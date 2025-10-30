@@ -1,0 +1,117 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+dist
+build
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files
+.env*
+!.env.example
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+docs/
+*.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+jest.config.js
+*.test.ts
+*.spec.ts
+test/
+tests/
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Dependency directories that we don't need in Docker
+jspm_packages/
+
+# Parcel cache
+.cache/
+.parcel-cache/
+
+# Next.js build output (if applicable)
+.next/
+out/
+
+# Nuxt.js build / generate output (if applicable)
+.nuxt/
+
+# Gatsby files (if applicable)
+.cache/
+public/
+
+# Storybook build outputs (if applicable)
+.out/
+.storybook-out/
+
+# Temporary folders
+tmp/
+temp/
+
+# Docker files (avoid recursive copying)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.backup
+*.bak
+
+# OS generated files
+Thumbs.db
+
+# Development specific files
+.prettierrc*
+.eslintrc*
+.editorconfig
+tsconfig.build.json
+
+# Prisma development files
+prisma/dev.db*
+
+# Local development scripts
+scripts/dev/
+dev-scripts/
