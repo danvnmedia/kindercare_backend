@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { UserController } from './controllers/user.controller';
-import { UserManagementModule } from '@/application/user-management/user-management.module';
-import { PersistenceModule } from '@/infra/persistence/persistence.module';
+import { UserManagementModule } from './modules/user-management.module';
 
 @Module({
-    imports: [UserManagementModule, PersistenceModule],
-    controllers: [UserController],
+    imports: [UserManagementModule],
+    controllers: [],
 })
 export class HttpModule {}

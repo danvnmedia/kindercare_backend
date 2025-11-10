@@ -1,15 +1,13 @@
-import 'dotenv/config';
+import "dotenv/config";
 
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
-import { StandardResponseInterceptor } from '@/core/modules/standard-response';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { ValidationPipe } from "@nestjs/common";
+import { StandardResponseInterceptor } from "@/core/modules/standard-response";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -26,24 +24,26 @@ async function bootstrap() {
   app.useGlobalInterceptors(standardResponseInterceptor);
 
   const config = new DocumentBuilder()
-    .setTitle('NestJS Boilerplate API')
-    .setDescription('API documentation for NestJS Clean Architecture Boilerplate')
-    .setVersion('1.0')
+    .setTitle("NestJS Boilerplate API")
+    .setDescription(
+      "API documentation for NestJS Clean Architecture Boilerplate",
+    )
+    .setVersion("1.0")
     .addBearerAuth(
       {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        name: 'JWT',
-        description: 'Enter JWT token',
-        in: 'header',
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        name: "JWT",
+        description: "Enter JWT token",
+        in: "header",
       },
-      'JWT',
+      "JWT",
     )
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document, {
+  SwaggerModule.setup("api/docs", app, document, {
     swaggerOptions: {
       persistAuthorization: true,
     },
@@ -51,8 +51,8 @@ async function bootstrap() {
 
   app.enableCors({
     origin: process.env.CORS_ORIGIN || true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   });
 

@@ -43,6 +43,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@clerk/backend": "^2.19.1",
     "@nestjs/bull": "^11.0.3",
     "@nestjs/bullmq": "^11.0.3",
     "@nestjs/common": "^11.0.1",
@@ -56,6 +57,7 @@
     "bullmq": "^5.58.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "crypto": "^1.0.1",
     "ioredis": "^5.7.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",

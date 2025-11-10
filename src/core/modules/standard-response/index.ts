@@ -1,7 +1,7 @@
 export * from './standard-response.module';
 export * from './interceptors/standard-response.interceptor';
 export * from './services/query-validator.service';
-export * from './services/query.service';
+// export * from './services/query.service'; // TypeORM-based, not used
 export * from './services/prisma-query.service';
 export * from './decorators/standard-response.decorator';
 export * from './dto/standard-response.dto';
