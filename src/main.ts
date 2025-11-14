@@ -4,7 +4,6 @@ import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { RequestMethod, ValidationPipe } from "@nestjs/common";
-import { clerkMiddleware } from "@clerk/express";
 import { StandardResponseInterceptor } from "@/core/modules/standard-response";
 
 async function bootstrap() {
@@ -24,9 +23,6 @@ async function bootstrap() {
 
   const standardResponseInterceptor = app.get(StandardResponseInterceptor);
   app.useGlobalInterceptors(standardResponseInterceptor);
-
-  // Middleware
-  app.use(clerkMiddleware());
 
   app.setGlobalPrefix('api', {
       exclude: [{ path: 'docs', method: RequestMethod.GET }],

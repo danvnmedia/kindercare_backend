@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { getAuth } from '@clerk/express';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { type AuthObject, type ClerkClient } from '@clerk/backend';
+import { createClerkRequest } from '@clerk/backend/internal';
+import type { Request as ExpressRequest } from 'express';
 import {
   AuthenticationPort,
   AuthenticationResult,
@@ -28,25 +30,27 @@ import {
 @Injectable()
 export class ClerkAuthenticationAdapter implements AuthenticationPort {
   private readonly logger = new Logger(ClerkAuthenticationAdapter.name);
+  constructor(
+    @Inject('ClerkClient') private readonly clerkClient: ClerkClient,
+  ) {}
 
   /**
    * Verify authentication using Clerk SDK
    *
-   * Uses @clerk/express getAuth() to extract authentication information
-   * from the request. This assumes clerkMiddleware() has been applied
-   * globally in main.ts.
-   *
    * @param request - Express request object with Clerk auth context
    * @returns Authentication result with Clerk userId
    */
-  async verifyAuthentication(request: any): Promise<AuthenticationResult> {
+  async verifyAuthentication(request: ExpressRequest): Promise<AuthenticationResult> {
     try {
-      // Extract auth information from Clerk middleware
-      const { userId, sessionId } = getAuth(request);
+      const clerkRequest = this.createClerkRequest(request);
+      const requestState = await this.clerkClient.authenticateRequest(
+        clerkRequest,
+        { acceptsToken: 'any' },
+      );
+      const authObject = requestState.toAuth();
 
-      // Check if user is authenticated
-      if (!userId) {
-        this.logger.debug('Authentication failed: No userId from Clerk');
+      if (!isSignedInSessionAuthObject(authObject)) {
+        this.logger.debug('Authentication failed: Missing authenticated user');
         return {
           isAuthenticated: false,
           userId: null,
@@ -54,12 +58,12 @@ export class ClerkAuthenticationAdapter implements AuthenticationPort {
         };
       }
 
-      this.logger.debug(`User authenticated successfully: ${userId}`);
+      this.logger.debug(`User authenticated successfully: ${authObject.userId}`);
 
       return {
         isAuthenticated: true,
-        userId,
-        sessionId: sessionId || undefined,
+        userId: authObject.userId,
+        sessionId: authObject.sessionId ?? undefined,
       };
     } catch (error) {
       // Handle unexpected errors from Clerk SDK
@@ -72,4 +76,49 @@ export class ClerkAuthenticationAdapter implements AuthenticationPort {
       };
     }
   }
+
+  /**
+   * Convert an Express request into the Fetch API Request expected by the Clerk SDK.
+   */
+  private createClerkRequest(request: ExpressRequest) {
+    const headers = new Headers();
+
+    Object.entries(request.headers).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        value.filter(Boolean).forEach((val) => headers.append(key, val));
+      } else if (value) {
+        headers.append(key, value);
+      }
+    });
+
+    const protocol =
+      request.protocol ??
+      ((request.socket as any)?.encrypted ? 'https' : 'http');
+    const host = headers.get('host') ?? 'localhost';
+    const url = new URL(request.originalUrl || request.url || '/', `${protocol}://${host}`);
+
+    return createClerkRequest(
+      new Request(url, {
+        method: request.method,
+        headers,
+      }),
+    );
+  }
 }
+
+type SignedInSessionAuthObject = AuthObject & {
+  isAuthenticated: true;
+  tokenType: 'session_token';
+  userId: string;
+  sessionId?: string | null;
+};
+
+const isSignedInSessionAuthObject = (
+  auth: AuthObject | null,
+): auth is SignedInSessionAuthObject => {
+  if (!auth || !auth.isAuthenticated || auth.tokenType !== 'session_token') {
+    return false;
+  }
+
+  return typeof (auth as { userId?: unknown }).userId === 'string';
+};
