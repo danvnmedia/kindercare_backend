@@ -26,7 +26,7 @@ model ClassRole {
 }
 
 model User {
-  id          Int       @id @default(autoincrement())
+  id          String    @id @default(uuid()) @db.Uuid
   clerkUid    String?   @unique
   email       String?   @unique @db.Citext
   fullName    String?
@@ -48,7 +48,7 @@ model User {
 }
 
 model Role {
-  id          Int     @id @default(autoincrement())
+  id          String  @id @db.Text
   name        String  @unique
   description String?
   permissions Json
@@ -65,8 +65,8 @@ model TeacherProfile {
   startDate DateTime?
 
   // Relations
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int  @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @db.Uuid
 
   homerooms ClassHomeroomTeacher[]
   subjects  ClassSubjectTeacher[]
@@ -82,8 +82,8 @@ model Student {
   address     String?
 
   // Optional link to a login-capable user
-  user   User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId Int?  @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String? @unique @db.Uuid
 
   // Homeroom class
   class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
@@ -103,7 +103,7 @@ model StudentParent {
   student      Student @relation("StudentToParent", fields: [studentId], references: [id], onDelete: Cascade)
   studentId    Int
   parent       User    @relation("ParentToStudent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  parentUserId Int
+  parentUserId String  @db.Uuid
 
   parentRelationship   ParentRelationship @relation(fields: [parentRelationshipId], references: [id])
   parentRelationshipId String

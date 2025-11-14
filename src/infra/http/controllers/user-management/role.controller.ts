@@ -4,13 +4,14 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { StandardResponse } from '@/core/modules/standard-response/decorators/standard-response.decorator';
+import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 
 // DTOs
 import { CreateRoleDto } from '../../dtos/user-management/create-role.dto';
@@ -28,8 +29,10 @@ import { DeleteRoleUseCase } from '@/application/user-management/use-cases/role/
 import { AssignUsersToRoleUseCase } from '@/application/user-management/use-cases/role/assign-users-to-role.use-case';
 import { RemoveUsersFromRoleUseCase } from '@/application/user-management/use-cases/role/remove-users-from-role.use-case';
 
-@Controller('api/v2/roles')
-@ApiTags('Roles (v2 - Clean Architecture)')
+@Controller('roles')
+@ApiTags('Roles')
+@ApiBearerAuth('JWT')
+@UseGuards(ClerkAuthGuard)
 export class RoleController {
   constructor(
     private readonly createRoleUseCase: CreateRoleUseCase,
@@ -77,8 +80,9 @@ export class RoleController {
     summary: 'Get role by ID',
     description: 'Retrieve a single role by its ID',
   })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.getRoleByIdUseCase.execute(id);
+  async findOne(@Param('id') id: string) {
+    const normalizedId = id.toLowerCase();
+    return await this.getRoleByIdUseCase.execute(normalizedId);
   }
 
   @Patch(':id')
@@ -91,10 +95,11 @@ export class RoleController {
     description: 'Update role information and permissions',
   })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: UpdateRoleDto,
   ) {
-    return await this.updateRoleUseCase.execute(id, dto);
+    const normalizedId = id.toLowerCase();
+    return await this.updateRoleUseCase.execute(normalizedId, dto);
   }
 
   @Delete(':id')
@@ -106,8 +111,9 @@ export class RoleController {
     summary: 'Delete role',
     description: 'Delete a role from the system',
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.deleteRoleUseCase.execute(id);
+  async remove(@Param('id') id: string) {
+    const normalizedId = id.toLowerCase();
+    await this.deleteRoleUseCase.execute(normalizedId);
   }
 
   @Post(':id/users')
@@ -120,10 +126,11 @@ export class RoleController {
     description: 'Assign multiple users to a role',
   })
   async assignUsers(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: AssignUsersDto,
   ) {
-    return await this.assignUsersToRoleUseCase.execute(id, dto.userIds);
+    const normalizedId = id.toLowerCase();
+    return await this.assignUsersToRoleUseCase.execute(normalizedId, dto.userIds);
   }
 
   @Delete(':id/users')
@@ -136,9 +143,10 @@ export class RoleController {
     description: 'Remove multiple users from a role',
   })
   async removeUsers(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body() dto: AssignUsersDto,
   ) {
-    return await this.removeUsersFromRoleUseCase.execute(id, dto.userIds);
+    const normalizedId = id.toLowerCase();
+    return await this.removeUsersFromRoleUseCase.execute(normalizedId, dto.userIds);
   }
 }

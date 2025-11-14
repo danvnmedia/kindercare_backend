@@ -6,6 +6,7 @@
 import { User as PrismaUser, Role as PrismaRole } from '@prisma/client';
 import { User } from '../../../../domain/user-management/user.entity';
 import { Prisma } from '@prisma/client';
+import { PrismaRoleMapper } from './prisma-role.mapper';
 
 export class PrismaUserMapper {
   /**
@@ -23,6 +24,7 @@ export class PrismaUserMapper {
       dateOfBirth: prismaUser.dateOfBirth,
       clerkUid: prismaUser.clerkUid,
       isActive: prismaUser.isActive,
+      roles: prismaUser.roles?.map(PrismaRoleMapper.toDomain) ?? [],
       createdAt: prismaUser.createdAt,
       updatedAt: prismaUser.updatedAt,
     };

@@ -6,14 +6,14 @@ import {
   FindAllRolesParams,
   PaginatedRoles,
 } from '../../../../application/user-management/ports/role.repository';
-import { Role } from '../../../../domain/user-management/role.entity';
+import { Role, CreateRoleData } from '../../../../domain/user-management/role.entity';
 import { PrismaRoleMapper } from '../mapper/prisma-role.mapper';
 
 @Injectable()
 export class PrismaRoleRepository implements RoleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: number): Promise<Role | null> {
+  async findById(id: string): Promise<Role | null> {
     const prismaRole = await this.prisma.role.findUnique({
       where: { id },
     });
@@ -74,7 +74,7 @@ export class PrismaRoleRepository implements RoleRepository {
     };
   }
 
-  async save(role: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>): Promise<Role> {
+  async save(role: CreateRoleData): Promise<Role> {
     const prismaData = PrismaRoleMapper.toPrismaCreate(role);
 
     const created = await this.prisma.role.create({
@@ -84,7 +84,7 @@ export class PrismaRoleRepository implements RoleRepository {
     return PrismaRoleMapper.toDomain(created);
   }
 
-  async update(id: number, data: Partial<Role>): Promise<Role> {
+  async update(id: string, data: Partial<Role>): Promise<Role> {
     const prismaData = PrismaRoleMapper.toPrismaUpdate(data);
 
     const updated = await this.prisma.role.update({
@@ -95,13 +95,13 @@ export class PrismaRoleRepository implements RoleRepository {
     return PrismaRoleMapper.toDomain(updated);
   }
 
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     await this.prisma.role.delete({
       where: { id },
     });
   }
 
-  async assignUsers(roleId: number, userIds: number[]): Promise<void> {
+  async assignUsers(roleId: string, userIds: string[]): Promise<void> {
     // Attach each user (idempotent)
     for (const userId of userIds) {
       // Check if already attached
@@ -123,7 +123,7 @@ export class PrismaRoleRepository implements RoleRepository {
     }
   }
 
-  async removeUsers(roleId: number, userIds: number[]): Promise<void> {
+  async removeUsers(roleId: string, userIds: string[]): Promise<void> {
     for (const userId of userIds) {
       await this.prisma.user.update({
         where: { id: userId },
@@ -134,7 +134,7 @@ export class PrismaRoleRepository implements RoleRepository {
     }
   }
 
-  async getRoleUsers(roleId: number, page: number, limit: number): Promise<any> {
+  async getRoleUsers(roleId: string, page: number, limit: number): Promise<any> {
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const skip = (safePage - 1) * safeLimit;

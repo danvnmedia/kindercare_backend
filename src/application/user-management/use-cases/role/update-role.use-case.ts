@@ -17,7 +17,7 @@ export class UpdateRoleUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(id: number, input: UpdateRoleInput): Promise<Role> {
+  async execute(id: string, input: UpdateRoleInput): Promise<Role> {
     try {
       // 1. Find existing role
       const currentRole = await this.roleRepository.findById(id);

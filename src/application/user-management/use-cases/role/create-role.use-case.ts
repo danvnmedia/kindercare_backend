@@ -20,19 +20,33 @@ export class CreateRoleUseCase {
     try {
       // 1. Validate role name
       RoleEntity.validateName(input.name);
+      const normalizedName = input.name.trim();
+      const roleId = normalizedName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+      if (!roleId) {
+        throw new BadRequestException('Role name must contain alphanumeric characters');
+      }
 
       // 2. Check name uniqueness
       const existingRole = await this.roleRepository.findByName(input.name);
       if (existingRole) {
         throw new ConflictException(`Role with name "${input.name}" already exists`);
       }
+      const existingRoleById = await this.roleRepository.findById(roleId);
+      if (existingRoleById) {
+        throw new ConflictException(`Role with id "${roleId}" already exists`);
+      }
 
       // 3. Validate permissions structure
       RoleEntity.validatePermissions(input.permissions);
 
       // 4. Prepare role data
-      const roleData: Omit<Role, 'id' | 'createdAt' | 'updatedAt'> = {
-        name: input.name.trim(),
+      const roleData: CreateRoleData = {
+        id: roleId,
+        name: normalizedName,
         description: input.description?.trim() || null,
         permissions: input.permissions,
         isActive: input.isActive ?? true,

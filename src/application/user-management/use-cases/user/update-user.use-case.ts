@@ -23,7 +23,7 @@ export class UpdateUserUseCase {
     private readonly identityService: IdentityService,
   ) {}
 
-  async execute(id: number, input: UpdateUserInput): Promise<User> {
+  async execute(id: string, input: UpdateUserInput): Promise<User> {
     try {
       // 1. Find existing user
       const currentUser = await this.userRepository.findById(id);
@@ -41,7 +41,7 @@ export class UpdateUserUseCase {
       // 3. Validate phone number format if provided
       if (input.phoneNumber && input.phoneNumber !== currentUser.phoneNumber) {
         if (!UserEntity.validatePhoneNumber(input.phoneNumber)) {
-          throw new InvalidUserDataException('Invalid phone number format (must be 10-11 digits starting with 0)');
+          throw new InvalidUserDataException('Invalid phone number format (must be in E.164 format, e.g., +84912345678)');
         }
       }
 

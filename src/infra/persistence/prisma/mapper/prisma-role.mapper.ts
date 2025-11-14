@@ -4,7 +4,7 @@
  */
 
 import { Role as PrismaRole } from '@prisma/client';
-import { Role } from '../../../../domain/user-management/role.entity';
+import { Role, CreateRoleData } from '../../../../domain/user-management/role.entity';
 import { Prisma } from '@prisma/client';
 
 export class PrismaRoleMapper {
@@ -26,8 +26,9 @@ export class PrismaRoleMapper {
   /**
    * Map domain entity to Prisma create input
    */
-  static toPrismaCreate(role: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>): Prisma.RoleCreateInput {
+  static toPrismaCreate(role: CreateRoleData): Prisma.RoleCreateInput {
     return {
+      id: role.id,
       name: role.name,
       description: role.description,
       permissions: role.permissions as Prisma.InputJsonValue,

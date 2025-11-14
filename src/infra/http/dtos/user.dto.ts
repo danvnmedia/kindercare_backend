@@ -14,7 +14,7 @@ export class CreateUserDto {
 }
 
 export class UserResponseDto {
-    @ApiProperty({ example: 'uuid-string', description: 'User ID' })
+    @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'User ID (UUID)' })
     @Expose()
     id: string;
 

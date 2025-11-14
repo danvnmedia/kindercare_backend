@@ -5,7 +5,7 @@ export interface GetAllRolesInput {
   page?: number;
   limit?: number;
   search?: string;
-  ids?: number[];
+  ids?: string[];
   sortBy?: string;
   order?: 'asc' | 'desc';
 }

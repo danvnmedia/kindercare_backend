@@ -4,13 +4,15 @@ import {
   Delete,
   Get,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { StandardResponse } from '@/core/modules/standard-response/decorators/standard-response.decorator';
+import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 
 // DTOs
 import { CreateUserDto } from '../../dtos/user-management/create-user.dto';
@@ -18,6 +20,9 @@ import { UpdateUserDto } from '../../dtos/user-management/update-user.dto';
 import { UserResponseDto } from '../../dtos/user-management/user-response.dto';
 import { AssignRolesDto } from '../../dtos/user-management/assign-roles.dto';
 import { UserQueryDto } from '../../dtos/user-management/user-query.dto';
+
+// Mappers
+import { UserInputMapper } from '../../mappers/user-input.mapper';
 
 // Use Cases
 import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
@@ -28,8 +33,10 @@ import { DeleteUserUseCase } from '@/application/user-management/use-cases/user/
 import { AssignRolesToUserUseCase } from '@/application/user-management/use-cases/user/assign-roles-to-user.use-case';
 import { RemoveRolesFromUserUseCase } from '@/application/user-management/use-cases/user/remove-roles-from-user.use-case';
 
-@Controller('api/v2/users')
-@ApiTags('Users (v2 - Clean Architecture)')
+@Controller('users')
+@ApiTags('Users')
+@ApiBearerAuth('JWT')
+@UseGuards(ClerkAuthGuard)
 export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
@@ -51,7 +58,8 @@ export class UserController {
     description: 'Creates a new user and provisions them in Clerk authentication system',
   })
   async create(@Body() dto: CreateUserDto) {
-    return await this.createUserUseCase.execute(dto);
+    const input = UserInputMapper.toCreateInput(dto);
+    return this.createUserUseCase.execute(input);
   }
 
   @Get()
@@ -65,7 +73,8 @@ export class UserController {
     description: 'Retrieve all users with filtering, sorting, and pagination',
   })
   async findAll(@Query() query: UserQueryDto) {
-    return await this.getAllUsersUseCase.execute(query);
+    const input = UserInputMapper.toGetAllInput(query);
+    return await this.getAllUsersUseCase.execute(input);
   }
 
   @Get(':id')
@@ -75,9 +84,9 @@ export class UserController {
   })
   @ApiOperation({
     summary: 'Get user by ID',
-    description: 'Retrieve a single user by their ID',
+    description: 'Retrieve a single user by their ID (UUID)',
   })
-  async findOne(@Param('id', ParseIntPipe) id: number) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     return await this.getUserByIdUseCase.execute(id);
   }
 
@@ -91,10 +100,11 @@ export class UserController {
     description: 'Update user information and sync with Clerk',
   })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateUserDto,
   ) {
-    return await this.updateUserUseCase.execute(id, dto);
+    const input = UserInputMapper.toUpdateInput(dto);
+    return await this.updateUserUseCase.execute(id, input);
   }
 
   @Delete(':id')
@@ -106,7 +116,7 @@ export class UserController {
     summary: 'Delete user',
     description: 'Delete user from database and Clerk authentication system',
   })
-  async remove(@Param('id', ParseIntPipe) id: number) {
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.deleteUserUseCase.execute(id);
   }
 
@@ -120,7 +130,7 @@ export class UserController {
     description: 'Assign multiple roles to a user',
   })
   async assignRoles(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignRolesDto,
   ) {
     return await this.assignRolesToUserUseCase.execute(id, dto.roleIds);
@@ -136,7 +146,7 @@ export class UserController {
     description: 'Remove multiple roles from a user',
   })
   async removeRoles(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AssignRolesDto,
   ) {
     return await this.removeRolesFromUserUseCase.execute(id, dto.roleIds);

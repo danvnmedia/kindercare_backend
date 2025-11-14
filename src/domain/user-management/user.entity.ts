@@ -4,8 +4,10 @@
  * NO NestJS decorators allowed in this layer
  */
 
+import { Role } from "./role.entity";
+
 export interface User {
-  id: number;
+  id: string;
   email: string | null;
   fullName: string | null;
   phoneNumber: string | null;
@@ -13,6 +15,7 @@ export interface User {
   dateOfBirth: Date | null;
   clerkUid: string | null;
   isActive: boolean;
+  roles?: Role[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,12 +67,14 @@ export class UserEntity {
   }
 
   /**
-   * Validate phone number format (basic validation for Vietnamese numbers)
+   * Validate phone number format (E.164 international standard)
+   * Vietnamese: +84 followed by 9-10 digits
+   * Example: +84912345678
    */
   static validatePhoneNumber(phoneNumber: string): boolean {
-    // Vietnamese phone number: 10-11 digits, starting with 0
-    const phoneRegex = /^0\d{9,10}$/;
-    return phoneRegex.test(phoneNumber);
+    // E.164 format: +84 followed by 9-10 digits
+    const e164Regex = /^\+84\d{9,10}$/;
+    return e164Regex.test(phoneNumber);
   }
 
   /**

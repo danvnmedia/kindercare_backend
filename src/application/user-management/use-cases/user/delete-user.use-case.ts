@@ -11,7 +11,7 @@ export class DeleteUserUseCase {
     private readonly identityService: IdentityService,
   ) {}
 
-  async execute(id: number): Promise<void> {
+  async execute(id: string): Promise<void> {
     try {
       // 1. Find existing user
       const user = await this.userRepository.findById(id);

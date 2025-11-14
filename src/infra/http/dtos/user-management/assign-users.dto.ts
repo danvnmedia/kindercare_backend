@@ -1,14 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ArrayNotEmpty, IsArray, IsInt } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsUUID } from 'class-validator';
 
 export class AssignUsersDto {
   @ApiProperty({
-    description: 'Array of user IDs to assign',
-    example: [1, 2, 3],
-    type: [Number],
+    description: 'Array of user IDs (UUIDs) to assign',
+    example: ['550e8400-e29b-41d4-a716-446655440000', '6ba7b810-9dad-11d1-80b4-00c04fd430c8'],
+    type: [String],
   })
   @IsArray()
   @ArrayNotEmpty()
-  @IsInt({ each: true })
-  userIds: number[];
+  @IsUUID(4, { each: true })
+  userIds: string[];
 }

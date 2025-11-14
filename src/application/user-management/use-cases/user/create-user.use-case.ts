@@ -7,12 +7,12 @@ import { PhoneAlreadyExistsException } from '../../../../domain/user-management/
 import { InvalidUserDataException } from '../../../../domain/user-management/exceptions/invalid-user-data.exception';
 
 export interface CreateUserInput {
-  email?: string;
-  fullName?: string;
-  phoneNumber?: string;
-  password?: string;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
   address?: string;
   dateOfBirth?: Date;
+  additionalInfo?: string;
   isActive?: boolean;
 }
 
@@ -45,21 +45,21 @@ export class CreateUserUseCase {
       // 3. Validate phone number format if provided
       if (input.phoneNumber) {
         if (!UserEntity.validatePhoneNumber(input.phoneNumber)) {
-          throw new InvalidUserDataException('Invalid phone number format (must be 10-11 digits starting with 0)');
+          throw new InvalidUserDataException('Invalid phone number format (Ex: +1234567890)');
         }
       }
 
-      // 4. Provision user in Clerk
-      const { clerkUid } = await this.identityService.provisionUser({
+      // 4. Create user
+      const clerkUser = await this.identityService.provisionUser({
         email: input.email,
-        phoneNumber: input.phoneNumber,
-        password: input.password,
         fullName: input.fullName,
+        phoneNumber: input.phoneNumber,
       });
+
 
       // 5. Prepare user data
       const userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
-        clerkUid,
+        clerkUid: clerkUser.clerkUid,
         email: input.email?.trim() || null,
         fullName: input.fullName?.trim() || null,
         phoneNumber: input.phoneNumber?.trim() || null,
@@ -71,10 +71,16 @@ export class CreateUserUseCase {
       // 6. Save user to database
       try {
         const savedUser = await this.userRepository.save(userData);
+
+        // Update external identity
+        await this.identityService.updateUser(clerkUser.clerkUid, {
+          externalId: savedUser.id,
+        });
+
         return savedUser;
       } catch (error) {
         // Rollback Clerk user if database save fails
-        await this.identityService.deleteIdentity(clerkUid).catch(() => {});
+        await this.identityService.deleteIdentity(clerkUser.clerkUid).catch(() => {});
         throw error;
       }
     } catch (error) {

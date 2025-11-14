@@ -5,9 +5,9 @@ export interface GetAllUsersInput {
   page?: number;
   limit?: number;
   search?: string;
-  ids?: number[];
+  ids?: string[];
   isActive?: boolean;
-  roleIds?: number[];
+  roleIds?: string[];
   sortBy?: string;
   order?: 'asc' | 'desc';
 }

@@ -40,10 +40,15 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "clerk:get-token": "ts-node -r tsconfig-paths/register scripts/get-clerk-token.ts",
+    "cli:create-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
+    "cli:list-admins": "CLI_COMMAND=list ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
+    "cli:delete-admin": "CLI_COMMAND=delete ts-node -r tsconfig-paths/register src/cli/create-admin.ts"
   },
   "dependencies": {
-    "@clerk/backend": "^2.19.1",
+    "@clerk/backend": "^2.22.0",
+    "@clerk/express": "^1.7.49",
     "@nestjs/bull": "^11.0.3",
     "@nestjs/bullmq": "^11.0.3",
     "@nestjs/common": "^11.0.1",

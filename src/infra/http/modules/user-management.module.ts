@@ -30,8 +30,24 @@ import { PrismaRoleRepository } from '@/infra/persistence/prisma/repositories/pr
 import { PrismaModule } from '@/infra/persistence/prisma/prisma.module';
 import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
 
+/**
+ * User Management Module
+ *
+ * HTTP presentation module for user and role management.
+ * Follows Clean Architecture with clear layer separation.
+ *
+ * Imports:
+ * - PrismaModule: Provides database repositories (USER_REPOSITORY, ROLE_REPOSITORY)
+ * - ClerkModule: Provides authentication (AUTHENTICATION_PORT) and identity services
+ *
+ * Layer structure:
+ * Controllers → Use Cases → Repositories (Ports) → Adapters (Implementations)
+ */
 @Module({
-  imports: [PrismaModule, ClerkModule],
+  imports: [
+    PrismaModule, // Database access
+    ClerkModule, // Authentication & Identity management
+  ],
   controllers: [UserController, RoleController],
   providers: [
     // User Use Cases

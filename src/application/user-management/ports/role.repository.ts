@@ -4,13 +4,13 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Role } from '../../../domain/user-management/role.entity';
+import { Role, CreateRoleData } from '../../../domain/user-management/role.entity';
 
 export interface FindAllRolesParams {
   page?: number;
   limit?: number;
   search?: string;
-  ids?: number[];
+  ids?: string[];
   sortBy?: string;
   order?: 'asc' | 'desc';
 }
@@ -27,7 +27,7 @@ export interface RoleRepository {
   /**
    * Find role by ID
    */
-  findById(id: number): Promise<Role | null>;
+  findById(id: string): Promise<Role | null>;
 
   /**
    * Find role by name
@@ -42,30 +42,30 @@ export interface RoleRepository {
   /**
    * Save a new role
    */
-  save(role: Omit<Role, 'id' | 'createdAt' | 'updatedAt'>): Promise<Role>;
+  save(role: CreateRoleData): Promise<Role>;
 
   /**
    * Update existing role
    */
-  update(id: number, data: Partial<Role>): Promise<Role>;
+  update(id: string, data: Partial<Role>): Promise<Role>;
 
   /**
    * Delete role
    */
-  delete(id: number): Promise<void>;
+  delete(id: string): Promise<void>;
 
   /**
    * Assign users to role
    */
-  assignUsers(roleId: number, userIds: number[]): Promise<void>;
+  assignUsers(roleId: string, userIds: string[]): Promise<void>;
 
   /**
    * Remove users from role
    */
-  removeUsers(roleId: number, userIds: number[]): Promise<void>;
+  removeUsers(roleId: string, userIds: string[]): Promise<void>;
 
   /**
    * Get role users (paginated)
    */
-  getRoleUsers(roleId: number, page: number, limit: number): Promise<any>;
+  getRoleUsers(roleId: string, page: number, limit: number): Promise<any>;
 }

@@ -10,7 +10,7 @@ export class GetUserByIdUseCase {
     private readonly userRepository: UserRepository,
   ) {}
 
-  async execute(id: number): Promise<User> {
+  async execute(id: string): Promise<User> {
     try {
       const user = await this.userRepository.findById(id);
 

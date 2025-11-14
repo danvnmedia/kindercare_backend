@@ -10,7 +10,7 @@ export class GetRoleByIdUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(id: number): Promise<Role> {
+  async execute(id: string): Promise<Role> {
     try {
       const role = await this.roleRepository.findById(id);
 

@@ -34,33 +34,37 @@ async function main() {
   console.log('-> Đã tạo Parent Relationships.');
 
   // Tạo các vai trò người dùng
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'school_admin' },
-    update: {},
-    create: {
-      name: 'school_admin',
+  const baseRoles = [
+    {
+      id: 'admin',
+      name: 'admin',
       description: 'Quản trị viên cao nhất của trường',
-      permissions: {}, // Ví dụ về cấu trúc permissions
     },
-  });
-  const teacherRole = await prisma.role.upsert({
-    where: { name: 'teacher' },
-    update: {},
-    create: {
+    {
+      id: 'teacher',
       name: 'teacher',
       description: 'Giáo viên giảng dạy và chủ nhiệm',
-      permissions: {},
     },
-  });
-  const parentRole = await prisma.role.upsert({
-    where: { name: 'parent' },
-    update: {},
-    create: {
-      name: 'parent',
-      description: 'Phụ huynh học sinh',
-      permissions: {},
+    {
+      id: 'student',
+      name: 'student',
+      description: 'Học sinh đã được cấp tài khoản',
     },
-  });
+  ];
+
+  for (const role of baseRoles) {
+    await prisma.role.upsert({
+      where: { id: role.id },
+      update: {
+        name: role.name,
+        description: role.description,
+      },
+      create: {
+        ...role,
+        permissions: {},
+      },
+    });
+  }
   console.log('-> Đã tạo Roles.');
 
   console.log(`Quá trình seeding hoàn tất.`);

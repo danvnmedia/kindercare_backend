@@ -8,7 +8,7 @@ import { PrismaUserMapper } from '../mapper/prisma-user.mapper';
 export class PrismaUserRepository implements UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findById(id: number): Promise<User | null> {
+  async findById(id: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({
       where: { id },
       include: { roles: true },
@@ -92,7 +92,7 @@ export class PrismaUserRepository implements UserRepository {
     return PrismaUserMapper.toDomain(created);
   }
 
-  async update(id: number, data: Partial<User>): Promise<User> {
+  async update(id: string, data: Partial<User>): Promise<User> {
     const prismaData = PrismaUserMapper.toPrismaUpdate(data);
     const updated = await this.prisma.user.update({
       where: { id },
@@ -102,13 +102,13 @@ export class PrismaUserRepository implements UserRepository {
     return PrismaUserMapper.toDomain(updated);
   }
 
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     await this.prisma.user.delete({
       where: { id },
     });
   }
 
-  async assignRoles(userId: number, roleIds: number[]): Promise<void> {
+  async assignRoles(userId: string, roleIds: string[]): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -119,7 +119,7 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
-  async removeRoles(userId: number, roleIds: number[]): Promise<void> {
+  async removeRoles(userId: string, roleIds: string[]): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -130,7 +130,7 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
-  async getUserRoles(userId: number, page: number, limit: number): Promise<any> {
+  async getUserRoles(userId: string, page: number, limit: number): Promise<any> {
     const skip = (page - 1) * limit;
 
     const [roles, total] = await Promise.all([

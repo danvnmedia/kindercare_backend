@@ -9,7 +9,7 @@ export class DeleteRoleUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(id: number): Promise<void> {
+  async execute(id: string): Promise<void> {
     try {
       // 1. Find existing role
       const role = await this.roleRepository.findById(id);

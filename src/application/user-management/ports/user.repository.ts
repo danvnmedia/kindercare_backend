@@ -10,9 +10,9 @@ export interface FindAllUsersParams {
   page?: number;
   limit?: number;
   search?: string;
-  ids?: number[];
+  ids?: string[];
   isActive?: boolean;
-  roleIds?: number[];
+  roleIds?: string[];
   sortBy?: string;
   order?: 'asc' | 'desc';
 }
@@ -29,7 +29,7 @@ export interface UserRepository {
   /**
    * Find user by ID
    */
-  findById(id: number): Promise<User | null>;
+  findById(id: string): Promise<User | null>;
 
   /**
    * Find user by email
@@ -54,25 +54,25 @@ export interface UserRepository {
   /**
    * Update existing user
    */
-  update(id: number, data: Partial<User>): Promise<User>;
+  update(id: string, data: Partial<User>): Promise<User>;
 
   /**
    * Delete user
    */
-  delete(id: number): Promise<void>;
+  delete(id: string): Promise<void>;
 
   /**
    * Assign roles to user
    */
-  assignRoles(userId: number, roleIds: number[]): Promise<void>;
+  assignRoles(userId: string, roleIds: string[]): Promise<void>;
 
   /**
    * Remove roles from user
    */
-  removeRoles(userId: number, roleIds: number[]): Promise<void>;
+  removeRoles(userId: string, roleIds: string[]): Promise<void>;
 
   /**
    * Get user roles (paginated)
    */
-  getUserRoles(userId: number, page: number, limit: number): Promise<any>;
+  getUserRoles(userId: string, page: number, limit: number): Promise<any>;
 }

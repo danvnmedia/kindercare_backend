@@ -13,7 +13,7 @@ export class RemoveRolesFromUserUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(userId: number, roleIds: number[]): Promise<void> {
+  async execute(userId: string, roleIds: string[]): Promise<void> {
     try {
       // 1. Validate user exists
       const user = await this.userRepository.findById(userId);

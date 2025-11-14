@@ -5,6 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { type ClerkClient, type User } from '@clerk/backend';
+import { InvitationInput, InvitationResult } from '../types/identity/invitations';
 import { ProvisionInput } from '../types/identity/provision-input';
 import { ProvisionResult } from '../types/identity/provision-result';
 
@@ -19,6 +20,7 @@ export class IdentityService {
       throw new BadRequestException('Either phone number or email is required');
     }
 
+    // Phone number is expected to be in E.164 format already (validated by DTOs)
     if (input.email) {
       const byEmail = await this.clerkClient.users.getUserList({
         emailAddress: [input.email],
@@ -41,11 +43,22 @@ export class IdentityService {
         emailAddress: input.email ? [input.email] : undefined,
         phoneNumber: input.phoneNumber ? [input.phoneNumber] : undefined,
         password: input.password,
+        skipPasswordRequirement: true,
         publicMetadata: { fullName: input.fullName?.trim() ?? '' },
       });
       return { clerkUid: created.id };
     } catch (err) {
       throw new ConflictException('Error when provisioning user: ' + err);
+    }
+  }
+
+  async inviteUser(email: string): Promise<void> {
+    try {
+      await this.clerkClient.invitations.createInvitation({
+        emailAddress: email,
+      });
+    } catch (err) {
+      throw new ConflictException('Error when inviting user: ' + err);
     }
   }
 
@@ -56,6 +69,7 @@ export class IdentityService {
     }
 
     if (updates.phoneNumber) {
+      // Phone number is expected to be in E.164 format already (validated by DTOs)
       await this.replacePrimaryPhone(user, updates.phoneNumber);
     }
 
@@ -70,11 +84,19 @@ export class IdentityService {
         publicMetadata: { fullName: updates.fullName.trim() },
       });
     }
+
+    if (updates.externalId) {
+      await this.clerkClient.users.updateUser(clerkUid, {
+        externalId: updates.externalId,
+      });
+    }
   }
 
   async deleteIdentity(clerkUid: string): Promise<void> {
     await this.clerkClient.users.deleteUser(clerkUid);
   }
+
+
 
   // ===== Private helpers =====
 

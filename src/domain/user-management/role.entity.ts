@@ -5,7 +5,7 @@
  */
 
 export interface Role {
-  id: number;
+  id: string;
   name: string;
   description: string | null;
   permissions: Record<string, any>; // JSON field for permissions
@@ -18,6 +18,7 @@ export interface Role {
  * Role creation data (without generated fields)
  */
 export interface CreateRoleData {
+  id: string;
   name: string;
   description?: string | null;
   permissions: Record<string, any>;
