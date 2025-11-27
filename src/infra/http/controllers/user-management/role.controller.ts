@@ -14,11 +14,14 @@ import { StandardResponse } from '@/core/modules/standard-response/decorators/st
 import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 
 // DTOs
-import { CreateRoleDto } from '../../dtos/user-management/create-role.dto';
-import { UpdateRoleDto } from '../../dtos/user-management/update-role.dto';
-import { RoleResponseDto } from '../../dtos/user-management/role-response.dto';
-import { AssignUsersDto } from '../../dtos/user-management/assign-users.dto';
-import { RoleQueryDto } from '../../dtos/user-management/role-query.dto';
+import {
+  CreateRoleRequest,
+  UpdateRoleRequest,
+  AssignRolesRequest,
+  AssignUsersRequest,
+  RoleResponse,
+} from '../../dtos/user-management/role';
+import { StandardRequestDto } from '@/core/modules/standard-response/dto/standard-request.dto';
 
 // Use Cases
 import { CreateRoleUseCase } from '@/application/user-management/use-cases/role/create-role.use-case';
@@ -47,34 +50,34 @@ export class RoleController {
   @Post()
   @StandardResponse({
     message: 'Role created successfully',
-    type: RoleResponseDto,
+    type: RoleResponse,
   })
   @ApiOperation({
     summary: 'Create a new role',
     description: 'Create a new role with permissions',
   })
-  async create(@Body() dto: CreateRoleDto) {
+  async create(@Body() dto: CreateRoleRequest) {
     return await this.createRoleUseCase.execute(dto);
   }
 
   @Get()
   @StandardResponse({
     message: 'Roles retrieved successfully',
-    type: RoleResponseDto,
+    type: RoleResponse,
     isArray: true,
   })
   @ApiOperation({
     summary: 'Get all roles',
     description: 'Retrieve all roles with filtering, sorting, and pagination',
   })
-  async findAll(@Query() query: RoleQueryDto) {
+  async findAll(@Query() query: StandardRequestDto) {
     return await this.getAllRolesUseCase.execute(query);
   }
 
   @Get(':id')
   @StandardResponse({
     message: 'Role retrieved successfully',
-    type: RoleResponseDto,
+    type: RoleResponse,
   })
   @ApiOperation({
     summary: 'Get role by ID',
@@ -88,7 +91,7 @@ export class RoleController {
   @Patch(':id')
   @StandardResponse({
     message: 'Role updated successfully',
-    type: RoleResponseDto,
+    type: RoleResponse,
   })
   @ApiOperation({
     summary: 'Update role',
@@ -96,7 +99,7 @@ export class RoleController {
   })
   async update(
     @Param('id') id: string,
-    @Body() dto: UpdateRoleDto,
+    @Body() dto: UpdateRoleRequest,
   ) {
     const normalizedId = id.toLowerCase();
     return await this.updateRoleUseCase.execute(normalizedId, dto);
@@ -119,7 +122,7 @@ export class RoleController {
   @Post(':id/users')
   @StandardResponse({
     message: 'Users assigned successfully',
-    type: RoleResponseDto,
+    type: RoleResponse,
   })
   @ApiOperation({
     summary: 'Assign users to role',
@@ -127,7 +130,7 @@ export class RoleController {
   })
   async assignUsers(
     @Param('id') id: string,
-    @Body() dto: AssignUsersDto,
+    @Body() dto: AssignUsersRequest,
   ) {
     const normalizedId = id.toLowerCase();
     return await this.assignUsersToRoleUseCase.execute(normalizedId, dto.userIds);
@@ -136,7 +139,7 @@ export class RoleController {
   @Delete(':id/users')
   @StandardResponse({
     message: 'Users removed successfully',
-    type: RoleResponseDto,
+    type: RoleResponse,
   })
   @ApiOperation({
     summary: 'Remove users from role',
@@ -144,7 +147,7 @@ export class RoleController {
   })
   async removeUsers(
     @Param('id') id: string,
-    @Body() dto: AssignUsersDto,
+    @Body() dto: AssignUsersRequest,
   ) {
     const normalizedId = id.toLowerCase();
     return await this.removeUsersFromRoleUseCase.execute(normalizedId, dto.userIds);

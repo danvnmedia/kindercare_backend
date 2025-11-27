@@ -9,42 +9,50 @@ datasource db {
   extensions = [citext]
 }
 
+// ==========================================
+// LOOKUP TABLES
+// ==========================================
+
 model ParentRelationship {
-  id          String  @id // e.g., "FATHER", "MOTHER", "GUARDIAN"
-  name        String  @unique // e.g., "Bố", "Mẹ", "Người giám hộ"
+  id          String  @id // "FATHER", "MOTHER", "GUARDIAN"
+  name        String  @unique
   description String?
 
   studentParents StudentParent[]
+
+  @@map("parent_relationship")
 }
 
 model ClassRole {
-  id          String  @id // Ví dụ: "HOMEROOM_TEACHER", "ASSISTANT"
-  name        String  @unique // Ví dụ: "Giáo viên Chủ nhiệm", "Trợ giảng"
+  id          String  @id // "HOMEROOM_TEACHER", "ASSISTANT"
+  name        String  @unique
   description String?
 
   homeroomTeachers ClassHomeroomTeacher[]
+
+  @@map("class_role")
 }
 
+// ==========================================
+// USER - AUTHENTICATION ONLY
+// ==========================================
+
 model User {
-  id          String    @id @default(uuid()) @db.Uuid
-  clerkUid    String?   @unique
-  email       String?   @unique @db.Citext
-  fullName    String?
-  phoneNumber String?   @unique
-  address     String?
-  dateOfBirth DateTime?
-  isActive    Boolean   @default(true)
+  id       String  @id @default(uuid()) @db.Uuid
+  clerkUid String  @unique @map("clerk_uid") // Clerk authentication ID
+  isActive Boolean @default(true) @map("is_active")
 
-  // Relations
-  roles          Role[] // M:N
-  teacherProfile TeacherProfile?
-  studentProfile Student?
+  // User can be either Parent or Teacher (NOT Student - kindergarten kids don't login)
+  parent  Parent?
+  teacher TeacherProfile?
 
-  // As a parent in StudentParent
-  parentOf StudentParent[] @relation("ParentToStudent")
+  // Authorization
+  userRoles UserRole[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@map("user")
 }
 
 model Role {
@@ -53,139 +61,236 @@ model Role {
   description String?
   permissions Json
 
-  // Relations
-  users User[]
+  userRoles UserRole[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@map("role")
+}
+
+// ==========================================
+// PROFILE TYPES (Student, Teacher, Parent)
+// ==========================================
+
+model Student {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Personal information (duplicated - no Person table)
+  fullName    String   @map("full_name")
+  email       String?  @db.Citext
+  phoneNumber String?  @map("phone_number")
+  address     String?
+  dateOfBirth DateTime? @map("date_of_birth")
+
+  // Student-specific data
+  nickname       String?   // Biệt danh
+  gender         String?   // Giới tính
+  enrollmentDate DateTime? @map("enrollment_date") // Ngày nhập học
+  isOnTrack      Boolean   @default(true) @map("is_on_track") // Học đúng tuyến/trái tuyến
+
+  // Class assignment
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId String? @db.Uuid @map("class_id")
+
+  // Parents relationship
+  parents StudentParent[] @relation("StudentToParent")
+
+  // Soft delete
+  isArchived Boolean @default(false) @map("is_archived")
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([classId])
+  @@index([isArchived])
+  @@map("student")
 }
 
 model TeacherProfile {
-  id        Int       @id @default(autoincrement())
-  startDate DateTime?
+  id String @id @default(uuid()) @db.Uuid
 
-  // Relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique @db.Uuid
+  // Personal information (duplicated - no Person table)
+  fullName    String    @map("full_name")
+  email       String    @unique @db.Citext
+  phoneNumber String    @unique @map("phone_number")
+  address     String?
+  dateOfBirth DateTime? @map("date_of_birth")
+  gender      String?
 
+  // Teacher-specific data
+  startDate  DateTime? @map("start_date")
+  isArchived Boolean   @default(false) @map("is_archived")
+
+  // User authentication (optional - teacher can be created before getting login)
+  userId String? @unique @db.Uuid @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Teacher assignments
   homerooms ClassHomeroomTeacher[]
   subjects  ClassSubjectTeacher[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([isArchived])
+  @@map("teacher")
 }
 
-model Student {
-  id          Int       @id @default(autoincrement())
-  fullName    String
-  dateOfBirth DateTime?
+model Parent {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Personal information (duplicated - no Person table)
+  fullName    String    @map("full_name")
+  email       String    @unique @db.Citext
+  phoneNumber String    @unique @map("phone_number")
   address     String?
+  dateOfBirth DateTime? @map("date_of_birth")
+  gender      String?
 
-  // Optional link to a login-capable user
+  // Parent-specific data
+  occupation  String?
+  workAddress String? @map("work_address")
+  isArchived  Boolean @default(false) @map("is_archived")
+
+  // User authentication (optional - parent can be created before getting login)
+  userId String? @unique @db.Uuid @map("user_id")
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  userId String? @unique @db.Uuid
 
-  // Homeroom class
-  class   Class? @relation(fields: [classId], references: [id], onDelete: SetNull)
-  classId Int?
+  // Spouse relationship (vợ/chồng)
+  spouse   Parent? @relation("SpouseRelation", fields: [spouseId], references: [id], onDelete: SetNull)
+  spouseId String? @unique @db.Uuid @map("spouse_id")
+  spouseOf Parent? @relation("SpouseRelation")
 
-  // Parents
-  parents StudentParent[] @relation("StudentToParent")
+  // Children relationship
+  children StudentParent[] @relation("ParentToStudent")
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
 
-  @@index([classId])
+  @@index([email])
+  @@index([phoneNumber])
+  @@index([spouseId])
+  @@index([isArchived])
+  @@map("parent")
 }
+
+// ==========================================
+// RELATIONSHIPS
+// ==========================================
 
 model StudentParent {
-  // Composite key to avoid duplicates
-  student      Student @relation("StudentToParent", fields: [studentId], references: [id], onDelete: Cascade)
-  studentId    Int
-  parent       User    @relation("ParentToStudent", fields: [parentUserId], references: [id], onDelete: Cascade)
-  parentUserId String  @db.Uuid
+  student   Student @relation("StudentToParent", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String  @db.Uuid @map("student_id")
+
+  parent   Parent @relation("ParentToStudent", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId String @db.Uuid @map("parent_id")
 
   parentRelationship   ParentRelationship @relation(fields: [parentRelationshipId], references: [id])
-  parentRelationshipId String
+  parentRelationshipId String @map("parent_relationship_id") // "FATHER", "MOTHER", "GUARDIAN"
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
 
-  @@id([studentId, parentUserId])
-  @@index([parentUserId])
+  @@id([studentId, parentId])
+  @@index([parentId])
+  @@map("student_parent")
 }
 
+model UserRole {
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @db.Uuid @map("user_id")
+
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String @db.Text @map("role_id")
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ==========================================
+// CLASS & GRADE LEVEL
+// ==========================================
+
 model GradeLevel {
-  id    Int    @id @default(autoincrement())
+  id    String @id @default(uuid()) @db.Uuid
   name  String
   order Int
 
   classes Class[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
 
   @@unique([name])
   @@unique([order])
+  @@map("grade_level")
 }
 
 model Subject {
-  id   Int    @id @default(autoincrement())
+  id   String @id @default(uuid()) @db.Uuid
   name String @unique
 
   classes ClassSubjectTeacher[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  @@map("subject")
 }
 
 model Class {
-  id   Int    @id @default(autoincrement())
+  id   String @id @default(uuid()) @db.Uuid
   name String
 
   gradeLevel   GradeLevel @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
-  gradeLevelId Int
+  gradeLevelId String     @db.Uuid @map("grade_level_id")
 
   students         Student[]
   homeroomTeachers ClassHomeroomTeacher[]
   subjectTeachers  ClassSubjectTeacher[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
 
-  // Đảm bảo không có trùng tên lớp trong cùng khối
   @@unique([gradeLevelId, name])
   @@index([gradeLevelId])
+  @@map("class")
 }
 
 model ClassHomeroomTeacher {
   class            Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId          Int
+  classId          String         @db.Uuid @map("class_id")
   teacher          TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
-  teacherProfileId Int
+  teacherProfileId String         @db.Uuid @map("teacher_id")
 
   classRole   ClassRole @relation(fields: [classRoleId], references: [id])
-  classRoleId String
+  classRoleId String    @map("class_role_id")
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
 
   @@id([classId, teacherProfileId])
   @@index([teacherProfileId])
+  @@map("class_homeroom_teacher")
 }
 
 model ClassSubjectTeacher {
   class            Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId          Int
+  classId          String         @db.Uuid @map("class_id")
   teacher          TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
-  teacherProfileId Int
+  teacherProfileId String         @db.Uuid @map("teacher_id")
   subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId        Int
+  subjectId        String         @db.Uuid @map("subject_id")
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
 
   @@id([classId, teacherProfileId, subjectId])
   @@index([teacherProfileId])
   @@index([subjectId])
+  @@map("class_subject_teacher")
 }

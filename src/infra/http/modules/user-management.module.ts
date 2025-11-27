@@ -1,17 +1,18 @@
 import { Module } from '@nestjs/common';
 
 // Controllers
-import { UserController } from '../controllers/user-management/user.controller';
 import { RoleController } from '../controllers/user-management/role.controller';
+import { StudentController } from '../controllers/user-management/student.controller';
+import { ParentController } from '../controllers/user-management/parent.controller';
 
-// Use Cases - User
-import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
-import { GetUserByIdUseCase } from '@/application/user-management/use-cases/user/get-user-by-id.use-case';
-import { GetAllUsersUseCase } from '@/application/user-management/use-cases/user/get-all-users.use-case';
-import { UpdateUserUseCase } from '@/application/user-management/use-cases/user/update-user.use-case';
-import { DeleteUserUseCase } from '@/application/user-management/use-cases/user/delete-user.use-case';
-import { AssignRolesToUserUseCase } from '@/application/user-management/use-cases/user/assign-roles-to-user.use-case';
-import { RemoveRolesFromUserUseCase } from '@/application/user-management/use-cases/user/remove-roles-from-user.use-case';
+// NOTE: User use cases are commented out until they are refactored to work with Person-based model
+// import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
+// import { GetUserByIdUseCase } from '@/application/user-management/use-cases/user/get-user-by-id.use-case';
+// import { GetAllUsersUseCase } from '@/application/user-management/use-cases/user/get-all-users.use-case';
+// import { UpdateUserUseCase } from '@/application/user-management/use-cases/user/update-user.use-case';
+// import { DeleteUserUseCase } from '@/application/user-management/use-cases/user/delete-user.use-case';
+// import { AssignRolesToUserUseCase } from '@/application/user-management/use-cases/user/assign-roles-to-user.use-case';
+// import { RemoveRolesFromUserUseCase } from '@/application/user-management/use-cases/user/remove-roles-from-user.use-case';
 
 // Use Cases - Role
 import { CreateRoleUseCase } from '@/application/user-management/use-cases/role/create-role.use-case';
@@ -22,13 +23,24 @@ import { DeleteRoleUseCase } from '@/application/user-management/use-cases/role/
 import { AssignUsersToRoleUseCase } from '@/application/user-management/use-cases/role/assign-users-to-role.use-case';
 import { RemoveUsersFromRoleUseCase } from '@/application/user-management/use-cases/role/remove-users-from-role.use-case';
 
+// Use Cases - Student
+import { CreateStudentUseCase } from '@/application/user-management/use-cases/student/create-student.use-case';
+import { GetAllStudentsUseCase } from '@/application/user-management/use-cases/student/get-all-students.use-case';
+
+// Use Cases - Parent
+import { CreateParentUseCase } from '@/application/user-management/use-cases/parent/create-parent.use-case';
+import { GetAllParentsUseCase } from '@/application/user-management/use-cases/parent/get-all-parents.use-case';
+
 // Repositories
 import { PrismaUserRepository } from '@/infra/persistence/prisma/repositories/prisma-user.repository';
 import { PrismaRoleRepository } from '@/infra/persistence/prisma/repositories/prisma-role.repository';
+import { PrismaStudentRepository } from '@/infra/persistence/prisma/repositories/prisma-student.repository';
+import { PrismaParentRepository } from '@/infra/persistence/prisma/repositories/prisma-parent.repository';
 
 // Modules
 import { PrismaModule } from '@/infra/persistence/prisma/prisma.module';
 import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
+import { StandardResponseModule } from '@/core/modules/standard-response/standard-response.module';
 
 /**
  * User Management Module
@@ -39,6 +51,7 @@ import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
  * Imports:
  * - PrismaModule: Provides database repositories (USER_REPOSITORY, ROLE_REPOSITORY)
  * - ClerkModule: Provides authentication (AUTHENTICATION_PORT) and identity services
+ * - StandardResponseModule: Provides PrismaQueryService for advanced filtering and pagination
  *
  * Layer structure:
  * Controllers → Use Cases → Repositories (Ports) → Adapters (Implementations)
@@ -47,17 +60,18 @@ import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
   imports: [
     PrismaModule, // Database access
     ClerkModule, // Authentication & Identity management
+    StandardResponseModule, // Query service for filtering and pagination
   ],
-  controllers: [UserController, RoleController],
+  controllers: [RoleController, StudentController, ParentController],
   providers: [
-    // User Use Cases
-    CreateUserUseCase,
-    GetUserByIdUseCase,
-    GetAllUsersUseCase,
-    UpdateUserUseCase,
-    DeleteUserUseCase,
-    AssignRolesToUserUseCase,
-    RemoveRolesFromUserUseCase,
+    // NOTE: User Use Cases commented out until refactored
+    // CreateUserUseCase,
+    // GetUserByIdUseCase,
+    // GetAllUsersUseCase,
+    // UpdateUserUseCase,
+    // DeleteUserUseCase,
+    // AssignRolesToUserUseCase,
+    // RemoveRolesFromUserUseCase,
 
     // Role Use Cases
     CreateRoleUseCase,
@@ -68,6 +82,14 @@ import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
     AssignUsersToRoleUseCase,
     RemoveUsersFromRoleUseCase,
 
+    // Student Use Cases
+    CreateStudentUseCase,
+    GetAllStudentsUseCase,
+
+    // Parent Use Cases
+    CreateParentUseCase,
+    GetAllParentsUseCase,
+
     // Repositories with Dependency Injection Tokens
     {
       provide: 'USER_REPOSITORY',
@@ -77,7 +99,20 @@ import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
       provide: 'ROLE_REPOSITORY',
       useClass: PrismaRoleRepository,
     },
+    {
+      provide: 'STUDENT_REPOSITORY',
+      useClass: PrismaStudentRepository,
+    },
+    {
+      provide: 'PARENT_REPOSITORY',
+      useClass: PrismaParentRepository,
+    },
   ],
-  exports: ['USER_REPOSITORY', 'ROLE_REPOSITORY'],
+  exports: [
+    'USER_REPOSITORY',
+    'ROLE_REPOSITORY',
+    'STUDENT_REPOSITORY',
+    'PARENT_REPOSITORY',
+  ],
 })
 export class UserManagementModule {}

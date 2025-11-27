@@ -31,6 +31,11 @@ async function main() {
     update: {},
     create: { id: 'MOTHER', name: 'Mẹ' },
   });
+  await prisma.parentRelationship.upsert({
+    where: { id: 'GUARDIAN' },
+    update: {},
+    create: { id: 'GUARDIAN', name: 'Người giám hộ' },
+  });
   console.log('-> Đã tạo Parent Relationships.');
 
   // Tạo các vai trò người dùng
@@ -44,6 +49,11 @@ async function main() {
       id: 'teacher',
       name: 'teacher',
       description: 'Giáo viên giảng dạy và chủ nhiệm',
+    },
+    {
+      id: 'parent',
+      name: 'parent',
+      description: 'Phụ huynh học sinh',
     },
     {
       id: 'student',

@@ -89,7 +89,7 @@ function isConstructorFunction(value: unknown): value is ConstructorFunction {
 
 function hasName(value: unknown): value is { name: string } {
     return (
-        typeof value === 'object' &&
+        (typeof value === 'object' || typeof value === 'function') &&
         value !== null &&
         'name' in value &&
         typeof (value as { name: unknown }).name === 'string'
@@ -111,10 +111,10 @@ export function createStandardResponseClass<T>(
     } else if (typeof dataType === 'string') {
         typeName += dataType;
     } else {
-        typeName += 'Unknown' + Math.random().toString(36).substring(2, 15);
+      typeName += 'Unknown';
     }
 
-    const className = `${typeName}${isPaginated ? 'Array' : ''}`;
+    const className = `${typeName}${isPaginated ? 'Array' : ''}-${Math.random().toString(36).substring(2, 15)}`;
 
     class DynamicClassWithPagination extends StandardResponseDto<T> {
         @ApiProperty({

@@ -1,3 +1,5 @@
+export * from './parent.entity';
+export * from './student.entity';
 export * from './user.entity';
 export * from './role.entity';
 export * from './exceptions/user-not-found.exception';

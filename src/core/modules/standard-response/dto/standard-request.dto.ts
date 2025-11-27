@@ -30,7 +30,7 @@ export enum FilterOperator {
     ENDS_WITH = 'ends_with',
 }
 
-export class StandardRequest {
+export class StandardRequestDto {
     @ApiProperty({
         description: 'Number of items to return',
         example: 20,
@@ -92,3 +92,6 @@ export class StandardRequest {
     @IsNumber()
     maxLimit?: number = 50;
 }
+
+// Alias to preserve existing imports
+export type StandardRequest = StandardRequestDto;

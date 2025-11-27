@@ -102,36 +102,20 @@ export class PrismaRoleRepository implements RoleRepository {
   }
 
   async assignUsers(roleId: string, userIds: string[]): Promise<void> {
-    // Attach each user (idempotent)
-    for (const userId of userIds) {
-      // Check if already attached
-      const existing = await this.prisma.user.count({
-        where: {
-          id: userId,
-          roles: { some: { id: roleId } },
-        },
-      });
+    if (!userIds.length) return;
 
-      if (existing === 0) {
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: {
-            roles: { connect: { id: roleId } },
-          },
-        });
-      }
-    }
+    await this.prisma.userRole.createMany({
+      data: userIds.map((userId) => ({ userId, roleId })),
+      skipDuplicates: true,
+    });
   }
 
   async removeUsers(roleId: string, userIds: string[]): Promise<void> {
-    for (const userId of userIds) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          roles: { disconnect: { id: roleId } },
-        },
-      });
-    }
+    if (!userIds.length) return;
+
+    await this.prisma.userRole.deleteMany({
+      where: { roleId, userId: { in: userIds } },
+    });
   }
 
   async getRoleUsers(roleId: string, page: number, limit: number): Promise<any> {
@@ -141,21 +125,36 @@ export class PrismaRoleRepository implements RoleRepository {
 
     const [users, total] = await Promise.all([
       this.prisma.user.findMany({
-        where: { roles: { some: { id: roleId } } },
+        where: { userRoles: { some: { roleId } } },
         skip,
         take: safeLimit,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
-          email: true,
-          fullName: true,
-          dateOfBirth: true,
-          phoneNumber: true,
+          clerkUid: true,
           isActive: true,
+          parent: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phoneNumber: true,
+              dateOfBirth: true,
+            },
+          },
+          teacher: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+              phoneNumber: true,
+              dateOfBirth: true,
+            },
+          },
         },
       }),
       this.prisma.user.count({
-        where: { roles: { some: { id: roleId } } },
+        where: { userRoles: { some: { roleId } } },
       }),
     ]);
 

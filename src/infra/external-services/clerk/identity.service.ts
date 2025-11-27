@@ -43,7 +43,7 @@ export class IdentityService {
         emailAddress: input.email ? [input.email] : undefined,
         phoneNumber: input.phoneNumber ? [input.phoneNumber] : undefined,
         password: input.password,
-        skipPasswordRequirement: true,
+        skipPasswordChecks: true,
         publicMetadata: { fullName: input.fullName?.trim() ?? '' },
       });
       return { clerkUid: created.id };

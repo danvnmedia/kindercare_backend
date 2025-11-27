@@ -11,15 +11,32 @@ export class PrismaUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({
       where: { id },
-      include: { roles: true },
+      include: { userRoles: { include: { role: true } } },
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const prismaUser = await this.prisma.user.findUnique({
-      where: { email },
-      include: { roles: true },
+    // NOTE: Email is now stored in Parent/TeacherProfile tables, not User table
+    // Find user by parent.email or teacher.email relationship
+    const prismaUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          {
+            parent: {
+              email: email
+            }
+          },
+          {
+            teacher: {
+              email: email
+            }
+          }
+        ]
+      },
+      include: {
+        userRoles: { include: { role: true } },
+      },
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
@@ -27,7 +44,7 @@ export class PrismaUserRepository implements UserRepository {
   async findByClerkUid(clerkUid: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({
       where: { clerkUid },
-      include: { roles: true },
+      include: { userRoles: { include: { role: true } } },
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
@@ -40,10 +57,26 @@ export class PrismaUserRepository implements UserRepository {
     const where: any = {};
 
     if (search) {
+      // Search in Parent or TeacherProfile email/fullName
       where.OR = [
-        { email: { contains: search, mode: 'insensitive' } },
-        { fullName: { contains: search, mode: 'insensitive' } },
-        { phoneNumber: { contains: search } },
+        {
+          parent: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { fullName: { contains: search, mode: 'insensitive' } },
+              { phoneNumber: { contains: search } },
+            ]
+          }
+        },
+        {
+          teacher: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              { fullName: { contains: search, mode: 'insensitive' } },
+              { phoneNumber: { contains: search } },
+            ]
+          }
+        }
       ];
     }
 
@@ -56,11 +89,7 @@ export class PrismaUserRepository implements UserRepository {
     }
 
     if (roleIds && roleIds.length > 0) {
-      where.roles = {
-        some: {
-          id: { in: roleIds },
-        },
-      };
+      where.userRoles = { some: { roleId: { in: roleIds } } };
     }
 
     const [users, total] = await Promise.all([
@@ -69,7 +98,7 @@ export class PrismaUserRepository implements UserRepository {
         skip,
         take: limit,
         orderBy: { [sortBy]: order },
-        include: { roles: true },
+        include: { userRoles: { include: { role: true } } },
       }),
       this.prisma.user.count({ where }),
     ]);
@@ -87,7 +116,7 @@ export class PrismaUserRepository implements UserRepository {
     const prismaData = PrismaUserMapper.toPrismaCreate(user);
     const created = await this.prisma.user.create({
       data: prismaData,
-      include: { roles: true },
+      include: { userRoles: { include: { role: true } } },
     });
     return PrismaUserMapper.toDomain(created);
   }
@@ -97,7 +126,7 @@ export class PrismaUserRepository implements UserRepository {
     const updated = await this.prisma.user.update({
       where: { id },
       data: prismaData,
-      include: { roles: true },
+      include: { userRoles: { include: { role: true } } },
     });
     return PrismaUserMapper.toDomain(updated);
   }
@@ -109,23 +138,17 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async assignRoles(userId: string, roleIds: string[]): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        roles: {
-          connect: roleIds.map((roleId) => ({ id: roleId })),
-        },
-      },
+    await this.prisma.userRole.createMany({
+      data: roleIds.map((roleId) => ({ userId, roleId })),
+      skipDuplicates: true,
     });
   }
 
   async removeRoles(userId: string, roleIds: string[]): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        roles: {
-          disconnect: roleIds.map((roleId) => ({ id: roleId })),
-        },
+    await this.prisma.userRole.deleteMany({
+      where: {
+        userId,
+        roleId: { in: roleIds },
       },
     });
   }
@@ -134,30 +157,21 @@ export class PrismaUserRepository implements UserRepository {
     const skip = (page - 1) * limit;
 
     const [roles, total] = await Promise.all([
-      this.prisma.role.findMany({
+      this.prisma.userRole.findMany({
         where: {
-          users: {
-            some: {
-              id: userId,
-            },
-          },
+          userId,
         },
         skip,
         take: limit,
+        include: { role: true },
       }),
-      this.prisma.role.count({
-        where: {
-          users: {
-            some: {
-              id: userId,
-            },
-          },
-        },
+      this.prisma.userRole.count({
+        where: { userId },
       }),
     ]);
 
     return {
-      data: roles,
+      data: roles.map((item) => item.role),
       total,
       page,
       limit,

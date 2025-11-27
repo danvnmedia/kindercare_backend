@@ -10,7 +10,7 @@ import { StandardResponse } from '@/core/modules/standard-response/decorators/st
 import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 import { UserInterceptor } from '../../interceptors/user.interceptor';
 import { CurrentUser } from '../../decorators/current-user.decorator';
-import { AuthMeResponseDto } from '../../dtos/auth/auth-me-response.dto';
+import { AuthMeResponse } from '../../dtos/auth/auth-me.response';
 import { User } from '@/domain/user-management/user.entity';
 
 /**
@@ -52,7 +52,7 @@ export class AuthController {
   @UseInterceptors(UserInterceptor)
   @StandardResponse({
     message: 'User information retrieved successfully',
-    type: AuthMeResponseDto,
+    type: AuthMeResponse,
   })
   @ApiOperation({
     summary: 'Get current authenticated user',

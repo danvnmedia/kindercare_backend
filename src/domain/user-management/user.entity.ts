@@ -2,18 +2,20 @@
  * User Domain Entity
  * Framework-agnostic pure TypeScript entity
  * NO NestJS decorators allowed in this layer
+ *
+ * NOTE: User ONLY contains authentication information.
+ * User can be either a Parent or Teacher (NOT Student - kindergarten kids don't login)
  */
 
-import { Role } from "./role.entity";
+import { Role } from './role.entity';
 
+/**
+ * User entity - represents authentication capability
+ * Can link to Parent or TeacherProfile for additional profile information
+ */
 export interface User {
   id: string;
-  email: string | null;
-  fullName: string | null;
-  phoneNumber: string | null;
-  address: string | null;
-  dateOfBirth: Date | null;
-  clerkUid: string | null;
+  clerkUid: string; // Required - Clerk authentication ID
   isActive: boolean;
   roles?: Role[];
   createdAt: Date;
@@ -24,12 +26,7 @@ export interface User {
  * User creation data (without generated fields)
  */
 export interface CreateUserData {
-  email?: string | null;
-  fullName?: string | null;
-  phoneNumber?: string | null;
-  address?: string | null;
-  dateOfBirth?: Date | null;
-  clerkUid?: string | null;
+  clerkUid: string; // Required
   isActive?: boolean;
 }
 
@@ -37,12 +34,8 @@ export interface CreateUserData {
  * User update data (partial)
  */
 export interface UpdateUserData {
-  email?: string | null;
-  fullName?: string | null;
-  phoneNumber?: string | null;
-  address?: string | null;
-  dateOfBirth?: Date | null;
   isActive?: boolean;
+  // clerkUid cannot be updated after creation
 }
 
 /**
@@ -50,31 +43,16 @@ export interface UpdateUserData {
  */
 export class UserEntity {
   /**
-   * Validate that at least one contact method is provided
+   * Validate Clerk UID format
+   * Clerk UIDs typically start with "user_" followed by random characters
    */
-  static validateContactInfo(data: CreateUserData): void {
-    if (!data.email && !data.phoneNumber) {
-      throw new Error('At least one of email or phone number must be provided');
+  static validateClerkUid(clerkUid: string): boolean {
+    if (!clerkUid || clerkUid.trim().length === 0) {
+      return false;
     }
-  }
-
-  /**
-   * Validate email format (basic validation)
-   */
-  static validateEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  /**
-   * Validate phone number format (E.164 international standard)
-   * Vietnamese: +84 followed by 9-10 digits
-   * Example: +84912345678
-   */
-  static validatePhoneNumber(phoneNumber: string): boolean {
-    // E.164 format: +84 followed by 9-10 digits
-    const e164Regex = /^\+84\d{9,10}$/;
-    return e164Regex.test(phoneNumber);
+    // Basic validation: should start with "user_" or "clerk_"
+    const clerkUidRegex = /^(user_|clerk_)[a-zA-Z0-9]+$/;
+    return clerkUidRegex.test(clerkUid);
   }
 
   /**
@@ -88,24 +66,45 @@ export class UserEntity {
    * Activate user
    */
   static activate(user: User): User {
-    return { ...user, isActive: true };
+    return { ...user, isActive: true, updatedAt: new Date() };
   }
 
   /**
    * Deactivate user
    */
   static deactivate(user: User): User {
-    return { ...user, isActive: false };
+    return { ...user, isActive: false, updatedAt: new Date() };
   }
 
   /**
-   * Update user profile
+   * Update user
    */
-  static updateProfile(user: User, updates: UpdateUserData): User {
+  static update(user: User, updates: UpdateUserData): User {
     return {
       ...user,
       ...updates,
       updatedAt: new Date(),
     };
+  }
+
+  /**
+   * Check if user has specific role
+   */
+  static hasRole(user: User, roleId: string): boolean {
+    return user.roles?.some((role) => role.id === roleId) ?? false;
+  }
+
+  /**
+   * Check if user has any of the specified roles
+   */
+  static hasAnyRole(user: User, roleIds: string[]): boolean {
+    return roleIds.some((roleId) => this.hasRole(user, roleId));
+  }
+
+  /**
+   * Check if user has all specified roles
+   */
+  static hasAllRoles(user: User, roleIds: string[]): boolean {
+    return roleIds.every((roleId) => this.hasRole(user, roleId));
   }
 }

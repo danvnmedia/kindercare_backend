@@ -1,9 +1,12 @@
 /**
  * Prisma User Mapper
  * Maps between Prisma User model and domain User entity
+ *
+ * NOTE: User only contains authentication info.
+ * Personal info is stored directly in Parent/TeacherProfile tables.
  */
 
-import { User as PrismaUser, Role as PrismaRole } from '@prisma/client';
+import { User as PrismaUser, Role as PrismaRole, UserRole as PrismaUserRole } from '@prisma/client';
 import { User } from '../../../../domain/user-management/user.entity';
 import { Prisma } from '@prisma/client';
 import { PrismaRoleMapper } from './prisma-role.mapper';
@@ -11,20 +14,22 @@ import { PrismaRoleMapper } from './prisma-role.mapper';
 export class PrismaUserMapper {
   /**
    * Map Prisma model to domain entity
+   * Supports eager-loaded roles
    */
   static toDomain(
-    prismaUser: PrismaUser & { roles?: PrismaRole[] },
+    prismaUser: PrismaUser & {
+      userRoles?: Array<
+        PrismaUserRole & {
+          role: PrismaRole;
+        }
+      >;
+    },
   ): User {
     return {
       id: prismaUser.id,
-      email: prismaUser.email,
-      fullName: prismaUser.fullName,
-      phoneNumber: prismaUser.phoneNumber,
-      address: prismaUser.address,
-      dateOfBirth: prismaUser.dateOfBirth,
       clerkUid: prismaUser.clerkUid,
       isActive: prismaUser.isActive,
-      roles: prismaUser.roles?.map(PrismaRoleMapper.toDomain) ?? [],
+      roles: prismaUser.userRoles?.map((ur) => PrismaRoleMapper.toDomain(ur.role)) ?? [],
       createdAt: prismaUser.createdAt,
       updatedAt: prismaUser.updatedAt,
     };
@@ -33,14 +38,11 @@ export class PrismaUserMapper {
   /**
    * Map domain entity to Prisma create input
    */
-  static toPrismaCreate(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Prisma.UserCreateInput {
+  static toPrismaCreate(
+    user: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'roles'>,
+  ): Prisma.UserCreateInput {
     return {
       clerkUid: user.clerkUid,
-      email: user.email,
-      fullName: user.fullName,
-      phoneNumber: user.phoneNumber,
-      address: user.address,
-      dateOfBirth: user.dateOfBirth,
       isActive: user.isActive,
     };
   }
@@ -48,14 +50,11 @@ export class PrismaUserMapper {
   /**
    * Map partial domain entity to Prisma update input
    */
-  static toPrismaUpdate(user: Partial<User>): Prisma.UserUpdateInput {
+  static toPrismaUpdate(
+    user: Partial<Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'roles' | 'clerkUid'>>,
+  ): Prisma.UserUpdateInput {
     const data: Prisma.UserUpdateInput = {};
 
-    if (user.email !== undefined) data.email = user.email;
-    if (user.fullName !== undefined) data.fullName = user.fullName;
-    if (user.phoneNumber !== undefined) data.phoneNumber = user.phoneNumber;
-    if (user.address !== undefined) data.address = user.address;
-    if (user.dateOfBirth !== undefined) data.dateOfBirth = user.dateOfBirth;
     if (user.isActive !== undefined) data.isActive = user.isActive;
 
     return data;
