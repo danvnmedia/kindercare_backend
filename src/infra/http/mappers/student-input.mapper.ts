@@ -33,12 +33,9 @@ export class StudentInputMapper {
 
       // Student information
       createUserAccount: dto.createUserAccount ?? false, // Default to false
-      enrollmentDate: dto.enrollmentDate,
-      classId: dto.classId,
-      isOnTrack: dto.isOnTrack ?? true, // Default to true
 
-      // Parent assignment
-      parentIds: dto.parentIds,
+      // Guardian assignment
+      guardianIds: dto.guardianIds,
     };
   }
 }

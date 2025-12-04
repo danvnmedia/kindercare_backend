@@ -6,4 +6,4 @@
  */
 // export * from './user-input.mapper'; // Temporarily disabled
 export * from './student-input.mapper';
-export * from './parent-input.mapper';
+export * from './guardian-input.mapper';

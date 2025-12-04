@@ -4,13 +4,24 @@
  * Personal information is now stored directly in Student (denormalized)
  */
 
-import { Student as PrismaStudent, Class as PrismaClass } from '@prisma/client';
+import {
+  Student as PrismaStudent,
+  Class as PrismaClass,
+  Guardian as PrismaGuardian,
+  GuardianRelationship as PrismaGuardianRelationship,
+  GuardianStudent as PrismaGuardianStudent,
+} from '@prisma/client';
 import { Student } from '../../../../domain/user-management/student.entity';
 import { Prisma } from '@prisma/client';
 
 type PrismaStudentWithRelations = PrismaStudent & {
   class?: PrismaClass | null;
-  parents?: any[];
+  guardians?: Array<
+    PrismaGuardianStudent & {
+      guardian: PrismaGuardian;
+      guardianRelationship: PrismaGuardianRelationship;
+    }
+  >;
 };
 
 export class PrismaStudentMapper {
@@ -18,8 +29,20 @@ export class PrismaStudentMapper {
    * Map Prisma model to domain entity
    */
   static toDomain(prismaStudent: PrismaStudentWithRelations): Student {
+    const guardians = prismaStudent.guardians
+      ? prismaStudent.guardians.map((guardianRelation) => ({
+          guardianId: guardianRelation.guardian.id,
+          fullName: guardianRelation.guardian.fullName,
+          email: guardianRelation.guardian.email,
+          phoneNumber: guardianRelation.guardian.phoneNumber,
+          relationship: guardianRelation.guardianRelationship.id,
+          relationshipName: guardianRelation.guardianRelationship.name,
+        }))
+      : undefined;
+
     return {
       id: prismaStudent.id,
+      studentCode: prismaStudent.studentCode,
       fullName: prismaStudent.fullName,
       email: prismaStudent.email,
       phoneNumber: prismaStudent.phoneNumber,
@@ -27,9 +50,7 @@ export class PrismaStudentMapper {
       dateOfBirth: prismaStudent.dateOfBirth,
       nickname: prismaStudent.nickname,
       gender: prismaStudent.gender,
-      enrollmentDate: prismaStudent.enrollmentDate,
-      isOnTrack: prismaStudent.isOnTrack,
-      classId: prismaStudent.classId,
+      guardians,
       isArchived: prismaStudent.isArchived,
       createdAt: prismaStudent.createdAt,
       updatedAt: prismaStudent.updatedAt,
@@ -43,6 +64,7 @@ export class PrismaStudentMapper {
     student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>,
   ): Prisma.StudentCreateInput {
     return {
+      studentCode: student.studentCode,
       fullName: student.fullName,
       email: student.email,
       phoneNumber: student.phoneNumber,
@@ -50,14 +72,7 @@ export class PrismaStudentMapper {
       dateOfBirth: student.dateOfBirth,
       nickname: student.nickname,
       gender: student.gender,
-      enrollmentDate: student.enrollmentDate,
-      isOnTrack: student.isOnTrack ?? true,
       isArchived: student.isArchived ?? false,
-      class: student.classId
-        ? {
-            connect: { id: student.classId },
-          }
-        : undefined,
     };
   }
 
@@ -74,15 +89,8 @@ export class PrismaStudentMapper {
     if (student.dateOfBirth !== undefined) data.dateOfBirth = student.dateOfBirth;
     if (student.nickname !== undefined) data.nickname = student.nickname;
     if (student.gender !== undefined) data.gender = student.gender;
-    if (student.enrollmentDate !== undefined)
-      data.enrollmentDate = student.enrollmentDate;
-    if (student.isOnTrack !== undefined) data.isOnTrack = student.isOnTrack;
+    if (student.studentCode !== undefined) data.studentCode = student.studentCode;
     if (student.isArchived !== undefined) data.isArchived = student.isArchived;
-    if (student.classId !== undefined) {
-      data.class = student.classId
-        ? { connect: { id: student.classId } }
-        : { disconnect: true };
-    }
 
     return data;
   }

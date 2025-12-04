@@ -4,12 +4,12 @@ import { Expose, Type } from 'class-transformer';
 
 /**
  * Profile Info DTO
- * Personal information from Parent or Teacher profile
+ * Personal information from Guardian or Teacher profile
  */
 export class ProfileInfo {
   @Expose()
-  @ApiProperty({ example: 'parent' })
-  type: 'parent' | 'teacher';
+  @ApiProperty({ example: 'guardian' })
+  type: 'guardian' | 'teacher';
 
   @Expose()
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
@@ -76,7 +76,7 @@ export class AuthMeResponse {
   @Type(() => ProfileInfo)
   @ApiProperty({
     type: ProfileInfo,
-    description: 'User profile information (from Parent or Teacher)',
+    description: 'User profile information (from Guardian or Teacher)',
     nullable: true,
   })
   profile: ProfileInfo | null;

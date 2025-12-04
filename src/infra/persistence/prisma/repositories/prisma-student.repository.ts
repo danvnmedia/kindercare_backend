@@ -18,11 +18,10 @@ export class PrismaStudentRepository implements StudentRepository {
     const prismaStudent = await this.prisma.student.findUnique({
       where: { id },
       include: {
-        class: true,
-        parents: {
+        guardians: {
           include: {
-            parent: true,
-            parentRelationship: true,
+            guardian: true,
+            guardianRelationship: true,
           },
         },
       },
@@ -33,9 +32,6 @@ export class PrismaStudentRepository implements StudentRepository {
   async findByEmail(email: string): Promise<Student | null> {
     const prismaStudent = await this.prisma.student.findFirst({
       where: { email },
-      include: {
-        class: true,
-      },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
   }
@@ -43,9 +39,6 @@ export class PrismaStudentRepository implements StudentRepository {
   async findByPhoneNumber(phoneNumber: string): Promise<Student | null> {
     const prismaStudent = await this.prisma.student.findFirst({
       where: { phoneNumber },
-      include: {
-        class: true,
-      },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
   }
@@ -53,9 +46,6 @@ export class PrismaStudentRepository implements StudentRepository {
   async findByIds(ids: string[]): Promise<Student[]> {
     const prismaStudents = await this.prisma.student.findMany({
       where: { id: { in: ids } },
-      include: {
-        class: true,
-      },
     });
     return prismaStudents.map(PrismaStudentMapper.toDomain);
   }
@@ -63,21 +53,19 @@ export class PrismaStudentRepository implements StudentRepository {
   async findAll(params: StandardRequest): Promise<PaginatedResult<Student>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
+      'studentCode',
       'fullName',
       'email',
       'phoneNumber',
-      'classId',
       'gender',
-      'isOnTrack',
       'nickname',
-      'enrollmentDate',
       'isArchived',
     ];
     params.allowedSortFields = [
       'createdAt',
       'updatedAt',
-      'enrollmentDate',
       'nickname',
+      'studentCode',
       'fullName',
     ];
 
@@ -88,17 +76,16 @@ export class PrismaStudentRepository implements StudentRepository {
       params,
       {
         include: {
-          class: true,
+          guardians: {
+            include: {
+              guardian: true,
+              guardianRelationship: true,
+            },
+          },
         },
       },
       PrismaStudentMapper,
     );
-  }
-
-  async countByClassId(classId: string): Promise<number> {
-    return await this.prisma.student.count({
-      where: { classId },
-    });
   }
 
   async save(
@@ -107,9 +94,6 @@ export class PrismaStudentRepository implements StudentRepository {
     const prismaData = PrismaStudentMapper.toPrismaCreate(student);
     const created = await this.prisma.student.create({
       data: prismaData,
-      include: {
-        class: true,
-      },
     });
     return PrismaStudentMapper.toDomain(created);
   }
@@ -119,9 +103,6 @@ export class PrismaStudentRepository implements StudentRepository {
     const updated = await this.prisma.student.update({
       where: { id },
       data: prismaData,
-      include: {
-        class: true,
-      },
     });
     return PrismaStudentMapper.toDomain(updated);
   }
@@ -132,45 +113,45 @@ export class PrismaStudentRepository implements StudentRepository {
     });
   }
 
-  async assignParents(
+  async assignGuardians(
     studentId: string,
-    parentRelations: Array<{ parentId: string; relationshipId: string }>,
+    guardianRelations: Array<{ guardianId: string; relationshipId: string }>,
   ): Promise<void> {
-    await this.prisma.studentParent.createMany({
-      data: parentRelations.map((relation) => ({
+    await this.prisma.guardianStudent.createMany({
+      data: guardianRelations.map((relation) => ({
         studentId,
-        parentId: relation.parentId,
-        parentRelationshipId: relation.relationshipId,
+        guardianId: relation.guardianId,
+        guardianRelationshipId: relation.relationshipId,
       })),
       skipDuplicates: true, // Skip if relationship already exists
     });
   }
 
-  async removeParents(studentId: string, parentIds: string[]): Promise<void> {
-    await this.prisma.studentParent.deleteMany({
+  async removeGuardians(studentId: string, guardianIds: string[]): Promise<void> {
+    await this.prisma.guardianStudent.deleteMany({
       where: {
         studentId,
-        parentId: { in: parentIds },
+        guardianId: { in: guardianIds },
       },
     });
   }
 
-  async getStudentParents(studentId: string): Promise<any[]> {
-    const studentParents = await this.prisma.studentParent.findMany({
+  async getStudentGuardians(studentId: string): Promise<any[]> {
+    const studentGuardians = await this.prisma.guardianStudent.findMany({
       where: { studentId },
       include: {
-        parent: true,
-        parentRelationship: true,
+        guardian: true,
+        guardianRelationship: true,
       },
     });
 
-    return studentParents.map((sp) => ({
-      parentId: sp.parent.id,
-      fullName: sp.parent.fullName,
-      email: sp.parent.email,
-      phoneNumber: sp.parent.phoneNumber,
-      relationship: sp.parentRelationship.id,
-      relationshipName: sp.parentRelationship.name,
+    return studentGuardians.map((sg) => ({
+      guardianId: sg.guardian.id,
+      fullName: sg.guardian.fullName,
+      email: sg.guardian.email,
+      phoneNumber: sg.guardian.phoneNumber,
+      relationship: sg.guardianRelationship.id,
+      relationshipName: sg.guardianRelationship.name,
     }));
   }
 }

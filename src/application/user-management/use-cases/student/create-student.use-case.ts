@@ -6,9 +6,10 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Student, StudentEntity } from '@/domain/user-management/student.entity';
 import { StudentRepository } from '../../ports/student.repository';
-import { ParentRepository } from '../../ports/parent.repository';
+import { GuardianRepository } from '../../ports/guardian.repository';
 import { UserRepository } from '../../ports/user.repository';
 import { IdentityService } from '@/infra/external-services/clerk/identity.service';
 
@@ -31,12 +32,9 @@ export interface CreateStudentInput {
 
   // Student-specific info
   createUserAccount?: boolean;
-  enrollmentDate?: Date;
-  classId?: string;
-  isOnTrack?: boolean;
 
-  // Parents
-  parentIds?: string[];
+  // Guardians
+  guardianIds?: string[];
 }
 
 @Injectable()
@@ -46,8 +44,8 @@ export class CreateStudentUseCase {
   constructor(
     @Inject('STUDENT_REPOSITORY')
     private readonly studentRepository: StudentRepository,
-    @Inject('PARENT_REPOSITORY')
-    private readonly parentRepository: ParentRepository,
+    @Inject('GUARDIAN_REPOSITORY')
+    private readonly guardianRepository: GuardianRepository,
     @Inject('USER_REPOSITORY')
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
@@ -56,7 +54,7 @@ export class CreateStudentUseCase {
   async execute(input: CreateStudentInput): Promise<Student> {
     try {
       this.logger.log(
-        `Creating student: ${input.fullName}, class: ${input.classId || 'None'}`,
+        `Creating student: ${input.fullName}`,
       );
 
       // ========== Step 1: Validate input data ==========
@@ -65,20 +63,20 @@ export class CreateStudentUseCase {
       // ========== Step 2: Check Student uniqueness (email/phone) ==========
       await this.checkStudentUniqueness(input);
 
-      // ========== Step 3: Validate parents exist (if provided) ==========
-      if (input.parentIds && input.parentIds.length > 0) {
-        await this.validateParents(input.parentIds);
+      // ========== Step 3: Validate guardians exist (if provided) ==========
+      if (input.guardianIds && input.guardianIds.length > 0) {
+        await this.validateGuardians(input.guardianIds);
       }
 
       // ========== Step 4: Create Student with all personal data ==========
       const student = await this.createStudent(input);
       this.logger.log(`Student created: ${student.id}`);
 
-      // ========== Step 5: Assign Parents (if provided) ==========
-      if (input.parentIds && input.parentIds.length > 0) {
-        await this.assignParents(student.id, input.parentIds);
+      // ========== Step 5: Assign Guardians (if provided) ==========
+      if (input.guardianIds && input.guardianIds.length > 0) {
+        await this.assignGuardians(student.id, input.guardianIds);
         this.logger.log(
-          `Assigned ${input.parentIds.length} parents to student ${student.id}`,
+          `Assigned ${input.guardianIds.length} guardians to student ${student.id}`,
         );
       }
 
@@ -103,7 +101,7 @@ export class CreateStudentUseCase {
   }
 
   /**
-   * Validate input data (full name, email, phone, date of birth, gender, nickname, enrollment date)
+   * Validate input data (full name, email, phone, date of birth, gender, nickname)
    */
   private validateInput(input: CreateStudentInput): void {
     // Validate full name
@@ -141,13 +139,6 @@ export class CreateStudentUseCase {
     if (input.dateOfBirth && input.dateOfBirth >= new Date()) {
       throw new BadRequestException('Date of birth must be in the past');
     }
-
-    // Validate enrollment date (should not be in the future)
-    if (input.enrollmentDate && !StudentEntity.validateEnrollmentDate(input.enrollmentDate)) {
-      throw new BadRequestException(
-        'Enrollment date should not be in the future',
-      );
-    }
   }
 
   /**
@@ -176,16 +167,16 @@ export class CreateStudentUseCase {
   }
 
   /**
-   * Validate that all parent IDs exist
+   * Validate that all guardian IDs exist
    */
-  private async validateParents(parentIds: string[]): Promise<void> {
-    const parents = await this.parentRepository.findByIds(parentIds);
-    const foundIds = parents.map((p) => p.id);
-    const missingIds = parentIds.filter((id) => !foundIds.includes(id));
+  private async validateGuardians(guardianIds: string[]): Promise<void> {
+    const guardians = await this.guardianRepository.findByIds(guardianIds);
+    const foundIds = guardians.map((p) => p.id);
+    const missingIds = guardianIds.filter((id) => !foundIds.includes(id));
 
     if (missingIds.length > 0) {
       throw new NotFoundException(
-        `Parents not found: ${missingIds.join(', ')}`,
+        `Guardians not found: ${missingIds.join(', ')}`,
       );
     }
   }
@@ -195,6 +186,7 @@ export class CreateStudentUseCase {
    */
   private async createStudent(input: CreateStudentInput): Promise<Student> {
     const studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> = {
+      studentCode: randomUUID(),
       // Personal information (now stored directly in Student)
       fullName: input.fullName.trim(),
       email: input.email?.trim() || null,
@@ -205,9 +197,6 @@ export class CreateStudentUseCase {
       // Student-specific data
       nickname: input.nickname?.trim() || null,
       gender: input.gender || null,
-      enrollmentDate: input.enrollmentDate || null,
-      isOnTrack: input.isOnTrack ?? true,
-      classId: input.classId || null,
       isArchived: false,
     };
 
@@ -215,19 +204,19 @@ export class CreateStudentUseCase {
   }
 
   /**
-   * Assign parents to student
+   * Assign guardians to student
    * Default relationship is "GUARDIAN" if not specified
    */
-  private async assignParents(
+  private async assignGuardians(
     studentId: string,
-    parentIds: string[],
+    guardianIds: string[],
   ): Promise<void> {
-    const parentRelations = parentIds.map((parentId) => ({
-      parentId,
+    const guardianRelations = guardianIds.map((guardianId) => ({
+      guardianId,
       relationshipId: 'GUARDIAN', // Default to GUARDIAN, can be customized later
     }));
 
-    await this.studentRepository.assignParents(studentId, parentRelations);
+    await this.studentRepository.assignGuardians(studentId, guardianRelations);
   }
 
   /**

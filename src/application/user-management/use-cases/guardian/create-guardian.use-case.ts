@@ -5,8 +5,8 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
-import { Parent, ParentEntity } from '@/domain/user-management/parent.entity';
-import { ParentRepository } from '../../ports/parent.repository';
+import { Guardian, GuardianEntity } from '@/domain/user-management/guardian.entity';
+import { GuardianRepository } from '../../ports/guardian.repository';
 import { UserRepository } from '../../ports/user.repository';
 import { IdentityService } from '@/infra/external-services/clerk/identity.service';
 
@@ -17,7 +17,7 @@ import { IdentityService } from '@/infra/external-services/clerk/identity.servic
  */
 const DEFAULT_WEAK_PASSWORD = 'ChangeMe123!';
 
-export interface CreateParentInput {
+export interface CreateGuardianInput {
   // Personal information
   fullName: string;
   dateOfBirth: Date;
@@ -26,44 +26,44 @@ export interface CreateParentInput {
   email: string;
   address?: string;
 
-  // Parent-specific data
+  // Guardian-specific data
   occupation?: string;
   workAddress?: string;
 }
 
 @Injectable()
-export class CreateParentUseCase {
-  private readonly logger = new Logger(CreateParentUseCase.name);
+export class CreateGuardianUseCase {
+  private readonly logger = new Logger(CreateGuardianUseCase.name);
 
   constructor(
-    @Inject('PARENT_REPOSITORY')
-    private readonly parentRepository: ParentRepository,
+    @Inject('GUARDIAN_REPOSITORY')
+    private readonly guardianRepository: GuardianRepository,
     @Inject('USER_REPOSITORY')
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
   ) {}
 
-  async execute(input: CreateParentInput): Promise<Parent> {
+  async execute(input: CreateGuardianInput): Promise<Guardian> {
     try {
-      this.logger.log(`Creating parent: ${input.fullName}`);
+      this.logger.log(`Creating guardian: ${input.fullName}`);
 
       // ========== Step 1: Validate input data ==========
       this.validateInput(input);
 
-      // ========== Step 2: Check Parent uniqueness (email/phone) ==========
-      await this.checkParentUniqueness(input);
+      // ========== Step 2: Check Guardian uniqueness (email/phone) ==========
+      await this.checkGuardianUniqueness(input);
 
-      // ========== Step 3: Create Parent ==========
-      const parent = await this.createParent(input);
-      this.logger.log(`Parent created: ${parent.id}`);
+      // ========== Step 3: Create Guardian ==========
+      const guardian = await this.createGuardian(input);
+      this.logger.log(`Guardian created: ${guardian.id}`);
 
       // ========== Step 4: Create User account with Clerk ==========
-      await this.createUserAccount(parent);
+      await this.createUserAccount(guardian);
 
-      this.logger.log(`Parent and User account created successfully for: ${input.email}`);
-      return parent;
+      this.logger.log(`Guardian and User account created successfully for: ${input.email}`);
+      return guardian;
     } catch (error) {
-      this.logger.error(`Failed to create parent: ${error.message}`, error.stack);
+      this.logger.error(`Failed to create guardian: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -71,21 +71,21 @@ export class CreateParentUseCase {
   /**
    * Validate input data (full name, email, phone, date of birth, gender)
    */
-  private validateInput(input: CreateParentInput): void {
+  private validateInput(input: CreateGuardianInput): void {
     // Validate full name
-    if (!ParentEntity.validateFullName(input.fullName)) {
+    if (!GuardianEntity.validateFullName(input.fullName)) {
       throw new BadRequestException(
         'Full name must be at least 2 characters and contain only valid characters',
       );
     }
 
     // Validate email format
-    if (!ParentEntity.validateEmail(input.email)) {
+    if (!GuardianEntity.validateEmail(input.email)) {
       throw new BadRequestException('Invalid email format');
     }
 
     // Validate phone number format
-    if (!ParentEntity.validatePhoneNumber(input.phoneNumber)) {
+    if (!GuardianEntity.validatePhoneNumber(input.phoneNumber)) {
       throw new BadRequestException(
         'Invalid phone number format (e.g., +84912345678)',
       );
@@ -96,14 +96,14 @@ export class CreateParentUseCase {
       throw new BadRequestException('Date of birth must be in the past');
     }
 
-    // Validate parent is adult (>= 18 years old)
+    // Validate guardian is adult (>= 18 years old)
     const age = this.calculateAge(input.dateOfBirth);
     if (age < 18) {
-      throw new BadRequestException('Parent must be at least 18 years old');
+      throw new BadRequestException('Guardian must be at least 18 years old');
     }
 
     // Validate gender
-    if (input.gender && !ParentEntity.validateGender(input.gender)) {
+    if (input.gender && !GuardianEntity.validateGender(input.gender)) {
       throw new BadRequestException('Invalid gender value (MALE, FEMALE, OTHER)');
     }
   }
@@ -125,31 +125,31 @@ export class CreateParentUseCase {
   }
 
   /**
-   * Check Parent uniqueness (email/phone)
+   * Check Guardian uniqueness (email/phone)
    */
-  private async checkParentUniqueness(input: CreateParentInput): Promise<void> {
+  private async checkGuardianUniqueness(input: CreateGuardianInput): Promise<void> {
     // Check email uniqueness
-    const existingByEmail = await this.parentRepository.findByEmail(input.email);
+    const existingByEmail = await this.guardianRepository.findByEmail(input.email);
     if (existingByEmail) {
       throw new ConflictException(
-        `Parent with email ${input.email} already exists`,
+        `Guardian with email ${input.email} already exists`,
       );
     }
 
     // Check phone uniqueness
-    const existingByPhone = await this.parentRepository.findByPhoneNumber(input.phoneNumber);
+    const existingByPhone = await this.guardianRepository.findByPhoneNumber(input.phoneNumber);
     if (existingByPhone) {
       throw new ConflictException(
-        `Parent with phone number ${input.phoneNumber} already exists`,
+        `Guardian with phone number ${input.phoneNumber} already exists`,
       );
     }
   }
 
   /**
-   * Create Parent
+   * Create Guardian
    */
-  private async createParent(input: CreateParentInput): Promise<Parent> {
-    const parentData: Omit<Parent, 'id' | 'createdAt' | 'updatedAt' | 'spouse'> = {
+  private async createGuardian(input: CreateGuardianInput): Promise<Guardian> {
+    const guardianData: Omit<Guardian, 'id' | 'createdAt' | 'updatedAt' | 'spouse'> = {
       fullName: input.fullName.trim(),
       email: input.email.trim(),
       phoneNumber: input.phoneNumber.trim(),
@@ -163,24 +163,24 @@ export class CreateParentUseCase {
       isArchived: false,
     };
 
-    return await this.parentRepository.save(parentData);
+    return await this.guardianRepository.save(guardianData);
   }
 
   /**
    * Create User account + Clerk identity with weak password
    * The weak password forces the user to change it on first login
    */
-  private async createUserAccount(parent: Parent): Promise<void> {
+  private async createUserAccount(guardian: Guardian): Promise<void> {
     try {
       // Create Clerk user with weak password
       this.logger.log(
-        `Creating Clerk user for parent: ${parent.email} with weak password`,
+        `Creating Clerk user for guardian: ${guardian.email} with weak password`,
       );
 
       const clerkUser = await this.identityService.provisionUser({
-        email: parent.email,
-        fullName: parent.fullName,
-        phoneNumber: parent.phoneNumber,
+        email: guardian.email,
+        fullName: guardian.fullName,
+        phoneNumber: guardian.phoneNumber,
         password: DEFAULT_WEAK_PASSWORD,
       });
 
@@ -192,15 +192,15 @@ export class CreateParentUseCase {
 
       const user = await this.userRepository.save(userData);
 
-      // Link Parent to User
-      await this.parentRepository.update(parent.id, { userId: user.id });
+      // Link Guardian to User
+      await this.guardianRepository.update(guardian.id, { userId: user.id });
 
       this.logger.log(
-        `User account created for parent: ${parent.email} (Clerk UID: ${clerkUser.clerkUid})`,
+        `User account created for guardian: ${guardian.email} (Clerk UID: ${clerkUser.clerkUid})`,
       );
     } catch (error) {
       this.logger.error(
-        `Failed to create user account for parent: ${error.message}`,
+        `Failed to create user account for guardian: ${error.message}`,
         error.stack,
       );
       throw new BadRequestException(

@@ -102,43 +102,16 @@ export class CreateStudentRequest {
   @IsBoolean()
   createUserAccount?: boolean;
 
-  @ApiProperty({
-    description: 'Student enrollment date (optional)',
-    example: '2025-01-15',
-    required: false,
-  })
-  @IsOptional()
-  @IsDateString()
-  enrollmentDate?: Date;
+  // ========== Guardian Assignment ==========
 
   @ApiProperty({
-    description: 'Class ID (UUID, optional)',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-    required: false,
-  })
-  @IsOptional()
-  @IsUUID('4', { message: 'Invalid class ID format' })
-  classId?: string;
-
-  @ApiProperty({
-    description: 'Is student on track (học đúng tuyến/trái tuyến)',
-    example: true,
-    default: true,
-  })
-  @IsOptional()
-  @IsBoolean()
-  isOnTrack?: boolean;
-
-  // ========== Parent Assignment ==========
-
-  @ApiProperty({
-    description: 'Array of parent IDs to assign to student',
+    description: 'Array of guardian IDs to assign to student',
     example: ['123e4567-e89b-12d3-a456-426614174001', '123e4567-e89b-12d3-a456-426614174002'],
     required: false,
     type: [String],
   })
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true, message: 'Each parent ID must be a valid UUID' })
-  parentIds?: string[];
+  @IsUUID('4', { each: true, message: 'Each guardian ID must be a valid UUID' })
+  guardianIds?: string[];
 }

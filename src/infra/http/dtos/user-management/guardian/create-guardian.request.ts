@@ -12,11 +12,11 @@ import {
 } from 'class-validator';
 import { Gender } from '../shared/gender.enum';
 
-export class CreateParentRequest {
+export class CreateGuardianRequest {
   // ========== Personal Information ==========
 
   @ApiProperty({
-    description: 'Parent full name',
+    description: 'Guardian full name',
     example: 'Nguyễn Thị B',
     minLength: 2,
     maxLength: 100,
@@ -28,7 +28,7 @@ export class CreateParentRequest {
   fullName: string;
 
   @ApiProperty({
-    description: 'Parent date of birth',
+    description: 'Guardian date of birth',
     example: '1985-03-20',
   })
   @IsNotEmpty()
@@ -36,7 +36,7 @@ export class CreateParentRequest {
   dateOfBirth: Date;
 
   @ApiProperty({
-    description: 'Parent gender',
+    description: 'Guardian gender',
     enum: Gender,
     example: Gender.FEMALE,
   })
@@ -45,7 +45,7 @@ export class CreateParentRequest {
   gender: Gender;
 
   @ApiProperty({
-    description: 'Parent phone number (required)',
+    description: 'Guardian phone number (required)',
     example: '+84912345678',
   })
   @IsNotEmpty()
@@ -56,15 +56,15 @@ export class CreateParentRequest {
   phoneNumber: string;
 
   @ApiProperty({
-    description: 'Parent email (required for account creation)',
-    example: 'parent@example.com',
+    description: 'Guardian email (required for account creation)',
+    example: 'guardian@example.com',
   })
   @IsNotEmpty()
   @IsEmail({}, { message: 'Invalid email format' })
   email: string;
 
   @ApiProperty({
-    description: 'Parent address',
+    description: 'Guardian address',
     example: '123 Đường ABC, Quận 1, TP.HCM',
     required: false,
   })
@@ -73,10 +73,10 @@ export class CreateParentRequest {
   @MaxLength(500)
   address?: string;
 
-  // ========== Parent-Specific Information ==========
+  // ========== Guardian-Specific Information ==========
 
   @ApiProperty({
-    description: 'Parent occupation/job title',
+    description: 'Guardian occupation/job title',
     example: 'Software Engineer',
     required: false,
   })
@@ -86,7 +86,7 @@ export class CreateParentRequest {
   occupation?: string;
 
   @ApiProperty({
-    description: 'Parent work address',
+    description: 'Guardian work address',
     example: '456 Đường XYZ, Quận 3, TP.HCM',
     required: false,
   })

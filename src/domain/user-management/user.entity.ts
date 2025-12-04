@@ -4,14 +4,14 @@
  * NO NestJS decorators allowed in this layer
  *
  * NOTE: User ONLY contains authentication information.
- * User can be either a Parent or Teacher (NOT Student - kindergarten kids don't login)
+ * User can be either a Guardian or Teacher (NOT Student - kindergarten kids don't login)
  */
 
 import { Role } from './role.entity';
 
 /**
  * User entity - represents authentication capability
- * Can link to Parent or TeacherProfile for additional profile information
+ * Can link to Guardian or Teacher for additional profile information
  */
 export interface User {
   id: string;

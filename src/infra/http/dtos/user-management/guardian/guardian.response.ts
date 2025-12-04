@@ -27,7 +27,7 @@ export class ChildInfo {
   relationshipName: string;
 }
 
-export class ParentSpouseInfo {
+export class GuardianSpouseInfo {
   @Expose()
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174001' })
   id: string;
@@ -45,18 +45,18 @@ export class ParentSpouseInfo {
   phoneNumber: string | null;
 }
 
-export class ParentResponse {
+export class GuardianResponse {
   @Expose()
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   id: string;
 
-  // Personal information (now stored directly in Parent)
+  // Personal information (now stored directly in Guardian)
   @Expose()
   @ApiProperty({ example: 'Nguyễn Thị B' })
   fullName: string;
 
   @Expose()
-  @ApiProperty({ example: 'parent@example.com' })
+  @ApiProperty({ example: 'guardian@example.com' })
   email: string;
 
   @Expose()
@@ -75,7 +75,7 @@ export class ParentResponse {
   @ApiProperty({ example: 'FEMALE', nullable: true })
   gender: string | null;
 
-  // Parent-specific data
+  // Guardian-specific data
   @Expose()
   @ApiProperty({ example: 'Software Engineer', nullable: true })
   occupation: string | null;
@@ -98,9 +98,9 @@ export class ParentResponse {
 
   // Relations
   @Expose()
-  @Type(() => ParentSpouseInfo)
-  @ApiProperty({ type: ParentSpouseInfo, nullable: true, required: false })
-  spouse?: ParentSpouseInfo | null;
+  @Type(() => GuardianSpouseInfo)
+  @ApiProperty({ type: GuardianSpouseInfo, nullable: true, required: false })
+  spouse?: GuardianSpouseInfo | null;
 
   @Expose()
   @Type(() => ChildInfo)

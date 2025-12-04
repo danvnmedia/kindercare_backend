@@ -7,36 +7,23 @@ async function main() {
 
   // --- 1. SEED DỮ LIỆU NỀN TẢNG (BẮT BUỘC) ---
 
-  // Tạo các loại vai trò trong lớp học
-  await prisma.classRole.upsert({
-    where: { id: 'HOMEROOM_TEACHER' },
-    update: {},
-    create: { id: 'HOMEROOM_TEACHER', name: 'Giáo viên Chủ nhiệm' },
-  });
-  await prisma.classRole.upsert({
-    where: { id: 'ASSISTANT' },
-    update: {},
-    create: { id: 'ASSISTANT', name: 'Giáo viên phụ' },
-  });
-  console.log('-> Đã tạo Class Roles.');
-
-  // Tạo các loại mối quan hệ phụ huynh
-  await prisma.parentRelationship.upsert({
+  // Tạo các loại mối quan hệ người giám hộ
+  await prisma.guardianRelationship.upsert({
     where: { id: 'FATHER' },
     update: {},
     create: { id: 'FATHER', name: 'Bố' },
   });
-  await prisma.parentRelationship.upsert({
+  await prisma.guardianRelationship.upsert({
     where: { id: 'MOTHER' },
     update: {},
     create: { id: 'MOTHER', name: 'Mẹ' },
   });
-  await prisma.parentRelationship.upsert({
+  await prisma.guardianRelationship.upsert({
     where: { id: 'GUARDIAN' },
     update: {},
     create: { id: 'GUARDIAN', name: 'Người giám hộ' },
   });
-  console.log('-> Đã tạo Parent Relationships.');
+  console.log('-> Đã tạo Guardian Relationships.');
 
   // Tạo các vai trò người dùng
   const baseRoles = [
@@ -51,9 +38,9 @@ async function main() {
       description: 'Giáo viên giảng dạy và chủ nhiệm',
     },
     {
-      id: 'parent',
-      name: 'parent',
-      description: 'Phụ huynh học sinh',
+      id: 'guardian',
+      name: 'guardian',
+      description: 'Người giám hộ học sinh',
     },
     {
       id: 'student',

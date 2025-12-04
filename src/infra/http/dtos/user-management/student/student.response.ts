@@ -11,7 +11,7 @@ export class ClassInfo {
   name: string;
 }
 
-export class ParentInfo {
+export class GuardianInfo {
   @Expose()
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   id: string;
@@ -25,7 +25,7 @@ export class ParentInfo {
   relationship: string;
 
   @Expose()
-  @ApiProperty({ example: 'parent@example.com', nullable: true })
+  @ApiProperty({ example: 'guardian@example.com', nullable: true })
   email: string | null;
 
   @Expose()
@@ -37,6 +37,10 @@ export class StudentResponse {
   @Expose()
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
   id: string;
+
+  @Expose()
+  @ApiProperty({ example: 'STU-2025-0001' })
+  studentCode: string;
 
   // Personal information (now stored directly in Student)
   @Expose()
@@ -91,9 +95,9 @@ export class StudentResponse {
   class?: ClassInfo | null;
 
   @Expose()
-  @Type(() => ParentInfo)
-  @ApiProperty({ type: [ParentInfo], required: false })
-  parents?: ParentInfo[];
+  @Type(() => GuardianInfo)
+  @ApiProperty({ type: [GuardianInfo], required: false })
+  guardians?: GuardianInfo[];
 
   @Expose()
   @ApiProperty({ example: '2025-11-26T00:00:00.000Z' })

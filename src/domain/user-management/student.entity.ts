@@ -10,6 +10,7 @@
  */
 export interface Student {
   id: string;
+  studentCode: string;
 
   // Personal information (duplicated - no Person table)
   fullName: string;
@@ -21,11 +22,9 @@ export interface Student {
   // Student-specific data
   nickname: string | null;
   gender: string | null; // "MALE", "FEMALE", "OTHER"
-  enrollmentDate: Date | null;
-  isOnTrack: boolean; // Học đúng tuyến/trái tuyến
 
-  // Class assignment
-  classId: string | null;
+  // Guardian relationships
+  guardians?: StudentGuardianInfo[];
 
   // Soft delete
   isArchived: boolean;
@@ -34,10 +33,20 @@ export interface Student {
   updatedAt: Date;
 }
 
+export interface StudentGuardianInfo {
+  guardianId: string;
+  fullName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  relationship: string;
+  relationshipName: string;
+}
+
 /**
  * Student creation data (without generated fields)
  */
 export interface CreateStudentData {
+  studentCode?: string;
   // Personal information
   fullName: string;
   email?: string | null;
@@ -48,15 +57,13 @@ export interface CreateStudentData {
   // Student-specific data
   nickname?: string | null;
   gender?: string | null;
-  enrollmentDate?: Date | null;
-  isOnTrack?: boolean;
-  classId?: string | null;
 }
 
 /**
  * Student update data (partial)
  */
 export interface UpdateStudentData {
+  studentCode?: string;
   // Personal information
   fullName?: string;
   email?: string | null;
@@ -67,9 +74,6 @@ export interface UpdateStudentData {
   // Student-specific data
   nickname?: string | null;
   gender?: string | null;
-  enrollmentDate?: Date | null;
-  isOnTrack?: boolean;
-  classId?: string | null;
 }
 
 /**
@@ -89,21 +93,6 @@ export class StudentEntity {
   }
 
   /**
-   * Validate enrollment date (should not be in the future)
-   */
-  static validateEnrollmentDate(enrollmentDate: Date): boolean {
-    const now = new Date();
-    return enrollmentDate <= now;
-  }
-
-  /**
-   * Check if student is currently enrolled in a class
-   */
-  static isEnrolled(student: Student): boolean {
-    return student.classId !== null;
-  }
-
-  /**
    * Update student profile
    */
   static updateProfile(student: Student, updates: UpdateStudentData): Student {
@@ -112,23 +101,6 @@ export class StudentEntity {
       ...updates,
       updatedAt: new Date(),
     };
-  }
-
-  /**
-   * Calculate school age (age at enrollment)
-   * Useful for determining appropriate class/grade level
-   */
-  static calculateSchoolAge(dateOfBirth: Date, enrollmentDate: Date): number {
-    const birthDate = new Date(dateOfBirth);
-    const enrollDate = new Date(enrollmentDate);
-    let age = enrollDate.getFullYear() - birthDate.getFullYear();
-    const monthDiff = enrollDate.getMonth() - birthDate.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && enrollDate.getDate() < birthDate.getDate())) {
-      age--;
-    }
-
-    return age;
   }
 
   /**

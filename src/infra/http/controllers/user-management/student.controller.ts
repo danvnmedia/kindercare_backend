@@ -39,7 +39,7 @@ export class StudentController {
   @ApiOperation({
     summary: 'Create a new student',
     description:
-      'Creates a new student with person information, class assignment, and optional parent assignment. Can also create user account with Clerk if requested.',
+      'Creates a new student with personal information and optional guardian assignment. Can also create user account with Clerk if requested.',
   })
   async create(@Body() dto: CreateStudentRequest) {
     const input = StudentInputMapper.toCreateInput(dto);

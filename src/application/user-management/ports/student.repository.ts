@@ -35,11 +35,6 @@ export interface StudentRepository {
   findAll(params: StandardRequest): Promise<PaginatedResult<Student>>;
 
   /**
-   * Count students in a class
-   */
-  countByClassId(classId: string): Promise<number>;
-
-  /**
    * Save a new student
    */
   save(student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>): Promise<Student>;
@@ -55,22 +50,22 @@ export interface StudentRepository {
   delete(id: string): Promise<void>;
 
   /**
-   * Assign parents to student
+   * Assign guardians to student
    * @param studentId - Student ID
-   * @param parentRelations - Array of { parentId, relationshipId }
+   * @param guardianRelations - Array of { guardianId, relationshipId }
    */
-  assignParents(
+  assignGuardians(
     studentId: string,
-    parentRelations: Array<{ parentId: string; relationshipId: string }>,
+    guardianRelations: Array<{ guardianId: string; relationshipId: string }>,
   ): Promise<void>;
 
   /**
-   * Remove parents from student
+   * Remove guardians from student
    */
-  removeParents(studentId: string, parentIds: string[]): Promise<void>;
+  removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
 
   /**
-   * Get student parents
+   * Get student guardians
    */
-  getStudentParents(studentId: string): Promise<any[]>;
+  getStudentGuardians(studentId: string): Promise<any[]>;
 }

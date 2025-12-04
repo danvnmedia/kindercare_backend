@@ -133,7 +133,7 @@ export class PrismaRoleRepository implements RoleRepository {
           id: true,
           clerkUid: true,
           isActive: true,
-          parent: {
+          guardian: {
             select: {
               id: true,
               fullName: true,

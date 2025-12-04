@@ -26,7 +26,8 @@
       "Bash(npx prisma migrate:*)",
       "Bash(npx prisma generate:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill -9)"
+      "Bash(xargs kill -9)",
+      "Bash(backlog task create:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

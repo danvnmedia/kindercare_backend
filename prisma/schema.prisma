@@ -13,46 +13,14 @@ datasource db {
 // LOOKUP TABLES
 // ==========================================
 
-model ParentRelationship {
-  id          String  @id // "FATHER", "MOTHER", "GUARDIAN"
+model GuardianRelationship {
+  id          String  @id
   name        String  @unique
   description String?
 
-  studentParents StudentParent[]
+  guardianStudents GuardianStudent[]
 
-  @@map("parent_relationship")
-}
-
-model ClassRole {
-  id          String  @id // "HOMEROOM_TEACHER", "ASSISTANT"
-  name        String  @unique
-  description String?
-
-  homeroomTeachers ClassHomeroomTeacher[]
-
-  @@map("class_role")
-}
-
-// ==========================================
-// USER - AUTHENTICATION ONLY
-// ==========================================
-
-model User {
-  id       String  @id @default(uuid()) @db.Uuid
-  clerkUid String  @unique @map("clerk_uid") // Clerk authentication ID
-  isActive Boolean @default(true) @map("is_active")
-
-  // User can be either Parent or Teacher (NOT Student - kindergarten kids don't login)
-  parent  Parent?
-  teacher TeacherProfile?
-
-  // Authorization
-  userRoles UserRole[]
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
-
-  @@map("user")
+  @@map("guardian_relationship")
 }
 
 model Role {
@@ -63,153 +31,168 @@ model Role {
 
   userRoles UserRole[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("role")
 }
 
 // ==========================================
-// PROFILE TYPES (Student, Teacher, Parent)
+// USER - AUTHENTICATION ONLY
+// ==========================================
+
+model User {
+  id       String  @id @default(uuid()) @db.Uuid
+  clerkUid String  @unique @map("clerk_uid")
+  isActive Boolean @default(true) @map("is_active")
+
+  // User can be either Guardian or Teacher
+  guardian Guardian?
+  teacher  Teacher?
+
+  // Authorization
+  userRoles UserRole[]
+
+  // Content Management
+  posts             Post[]
+  postHistories     PostHistory[]
+  postStatusChanges PostHistoryStatus[]
+  uploadedFiles     File[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([clerkUid])
+  @@map("user")
+}
+
+model UserRole {
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id") @db.Uuid
+
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId String @map("role_id") @db.Text
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// ==========================================
+// PROFILE TYPES (Student, Teacher, Guardian)
 // ==========================================
 
 model Student {
-  id String @id @default(uuid()) @db.Uuid
-
-  // Personal information (duplicated - no Person table)
-  fullName    String   @map("full_name")
-  email       String?  @db.Citext
-  phoneNumber String?  @map("phone_number")
+  id          String    @id @default(uuid()) @db.Uuid
+  studentCode String    @unique @map("student_code")
+  fullName    String    @map("full_name")
+  email       String?   @db.Citext
+  phoneNumber String?   @map("phone_number")
   address     String?
-  dateOfBirth DateTime? @map("date_of_birth")
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  nickname    String?
+  gender      String?
+  isArchived  Boolean   @default(false) @map("is_archived")
 
-  // Student-specific data
-  nickname       String?   // Biệt danh
-  gender         String?   // Giới tính
-  enrollmentDate DateTime? @map("enrollment_date") // Ngày nhập học
-  isOnTrack      Boolean   @default(true) @map("is_on_track") // Học đúng tuyến/trái tuyến
+  // Guardians relationship
+  guardians GuardianStudent[]
 
-  // Class assignment
-  class   Class?  @relation(fields: [classId], references: [id], onDelete: SetNull)
-  classId String? @db.Uuid @map("class_id")
+  // Class & Enrollment
+  enrollments   Enrollment[]
+  attendances   StudentAttendance[]
+  postAudiences PostAudience[]
 
-  // Parents relationship
-  parents StudentParent[] @relation("StudentToParent")
-
-  // Soft delete
-  isArchived Boolean @default(false) @map("is_archived")
-
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([email])
   @@index([phoneNumber])
-  @@index([classId])
   @@index([isArchived])
   @@map("student")
 }
 
-model TeacherProfile {
-  id String @id @default(uuid()) @db.Uuid
-
-  // Personal information (duplicated - no Person table)
+model Teacher {
+  id          String    @id @default(uuid()) @db.Uuid
   fullName    String    @map("full_name")
   email       String    @unique @db.Citext
   phoneNumber String    @unique @map("phone_number")
   address     String?
-  dateOfBirth DateTime? @map("date_of_birth")
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
+  startDate   DateTime? @map("start_date") @db.Date
+  isArchived  Boolean   @default(false) @map("is_archived")
 
-  // Teacher-specific data
-  startDate  DateTime? @map("start_date")
-  isArchived Boolean   @default(false) @map("is_archived")
-
-  // User authentication (optional - teacher can be created before getting login)
-  userId String? @unique @db.Uuid @map("user_id")
+  userId String? @unique @map("user_id") @db.Uuid
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Teacher assignments
-  homerooms ClassHomeroomTeacher[]
-  subjects  ClassSubjectTeacher[]
+  classes ClassTeacher[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([email])
   @@index([phoneNumber])
+  @@index([userId])
   @@index([isArchived])
   @@map("teacher")
 }
 
-model Parent {
-  id String @id @default(uuid()) @db.Uuid
-
-  // Personal information (duplicated - no Person table)
+model Guardian {
+  id          String    @id @default(uuid()) @db.Uuid
   fullName    String    @map("full_name")
   email       String    @unique @db.Citext
   phoneNumber String    @unique @map("phone_number")
   address     String?
-  dateOfBirth DateTime? @map("date_of_birth")
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
-
-  // Parent-specific data
   occupation  String?
-  workAddress String? @map("work_address")
-  isArchived  Boolean @default(false) @map("is_archived")
+  workAddress String?   @map("work_address")
+  isArchived  Boolean   @default(false) @map("is_archived")
 
-  // User authentication (optional - parent can be created before getting login)
-  userId String? @unique @db.Uuid @map("user_id")
+  userId String? @unique @map("user_id") @db.Uuid
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  // Spouse relationship (vợ/chồng)
-  spouse   Parent? @relation("SpouseRelation", fields: [spouseId], references: [id], onDelete: SetNull)
-  spouseId String? @unique @db.Uuid @map("spouse_id")
-  spouseOf Parent? @relation("SpouseRelation")
+  // Spouse relationship
+  spouse   Guardian? @relation("SpouseRelation", fields: [spouseId], references: [id], onDelete: SetNull)
+  spouseId String?   @unique @map("spouse_id") @db.Uuid
+  spouseOf Guardian? @relation("SpouseRelation")
 
   // Children relationship
-  children StudentParent[] @relation("ParentToStudent")
+  children GuardianStudent[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([email])
   @@index([phoneNumber])
+  @@index([userId])
   @@index([spouseId])
   @@index([isArchived])
-  @@map("parent")
+  @@map("guardian")
 }
 
 // ==========================================
 // RELATIONSHIPS
 // ==========================================
 
-model StudentParent {
-  student   Student @relation("StudentToParent", fields: [studentId], references: [id], onDelete: Cascade)
-  studentId String  @db.Uuid @map("student_id")
+model GuardianStudent {
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentId String  @map("student_id") @db.Uuid
 
-  parent   Parent @relation("ParentToStudent", fields: [parentId], references: [id], onDelete: Cascade)
-  parentId String @db.Uuid @map("parent_id")
+  guardian   Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  guardianId String   @map("guardian_id") @db.Uuid
 
-  parentRelationship   ParentRelationship @relation(fields: [parentRelationshipId], references: [id])
-  parentRelationshipId String @map("parent_relationship_id") // "FATHER", "MOTHER", "GUARDIAN"
+  guardianRelationship   GuardianRelationship @relation(fields: [guardianRelationshipId], references: [id])
+  guardianRelationshipId String               @map("guardian_relationship_id")
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@id([studentId, parentId])
-  @@index([parentId])
-  @@map("student_parent")
-}
-
-model UserRole {
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @db.Uuid @map("user_id")
-
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId String @db.Text @map("role_id")
-
-  @@id([userId, roleId])
-  @@map("user_roles")
+  @@id([studentId, guardianId])
+  @@index([guardianId])
+  @@index([guardianRelationshipId])
+  @@map("guardian_student")
 }
 
 // ==========================================
@@ -218,16 +201,14 @@ model UserRole {
 
 model GradeLevel {
   id    String @id @default(uuid()) @db.Uuid
-  name  String
-  order Int
+  name  String @unique
+  order Int    @unique
 
   classes Class[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([name])
-  @@unique([order])
   @@map("grade_level")
 }
 
@@ -235,10 +216,11 @@ model Subject {
   id   String @id @default(uuid()) @db.Uuid
   name String @unique
 
-  classes ClassSubjectTeacher[]
+  classes ClassTeacher[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   @@map("subject")
 }
 
@@ -247,50 +229,222 @@ model Class {
   name String
 
   gradeLevel   GradeLevel @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
-  gradeLevelId String     @db.Uuid @map("grade_level_id")
+  gradeLevelId String     @map("grade_level_id") @db.Uuid
 
-  students         Student[]
-  homeroomTeachers ClassHomeroomTeacher[]
-  subjectTeachers  ClassSubjectTeacher[]
+  teachers      ClassTeacher[]
+  enrollments   Enrollment[]
+  attendances   StudentAttendance[]
+  postAudiences PostAudience[]
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([gradeLevelId, name])
   @@index([gradeLevelId])
   @@map("class")
 }
 
-model ClassHomeroomTeacher {
-  class            Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId          String         @db.Uuid @map("class_id")
-  teacher          TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
-  teacherProfileId String         @db.Uuid @map("teacher_id")
+model ClassTeacher {
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId   String  @map("class_id") @db.Uuid
+  teacher   Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacherId String  @map("teacher_id") @db.Uuid
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String  @map("subject_id") @db.Uuid
 
-  classRole   ClassRole @relation(fields: [classRoleId], references: [id])
-  classRoleId String    @map("class_role_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
-
-  @@id([classId, teacherProfileId])
-  @@index([teacherProfileId])
-  @@map("class_homeroom_teacher")
+  @@id([classId, teacherId, subjectId])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@map("class_teacher")
 }
 
-model ClassSubjectTeacher {
-  class            Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId          String         @db.Uuid @map("class_id")
-  teacher          TeacherProfile @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
-  teacherProfileId String         @db.Uuid @map("teacher_id")
-  subject          Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId        String         @db.Uuid @map("subject_id")
+// ==========================================
+// ENROLLMENT MANAGEMENT
+// ==========================================
 
-  createdAt DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
-  updatedAt DateTime @updatedAt @db.Timestamptz(6) @map("updated_at")
+model Enrollment {
+  id             String   @id @default(uuid()) @db.Uuid
+  classId        String   @map("class_id") @db.Uuid
+  studentId      String   @map("student_id") @db.Uuid
+  enrollmentDate DateTime @map("enrollment_date") @db.Date
+  note           String?
 
-  @@id([classId, teacherProfileId, subjectId])
-  @@index([teacherProfileId])
-  @@index([subjectId])
-  @@map("class_subject_teacher")
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([studentId, classId, enrollmentDate])
+  @@index([classId])
+  @@index([studentId])
+  @@index([enrollmentDate])
+  @@map("enrollment")
+}
+
+// ==========================================
+// ATTENDANCE TRACKING
+// ==========================================
+
+model StudentAttendance {
+  id         String    @id @default(uuid()) @db.Uuid
+  studentId  String    @map("student_id") @db.Uuid
+  classId    String    @map("class_id") @db.Uuid
+  date       DateTime  @db.Date
+  checkinAt  DateTime? @map("checkin_at") @db.Timestamptz(6)
+  checkoutAt DateTime? @map("checkout_at") @db.Timestamptz(6)
+  status     String    @default("PRESENT")
+  reason     String?
+  note       String?
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([studentId, date])
+  @@index([classId])
+  @@index([date])
+  @@index([status])
+  @@map("student_attendance")
+}
+
+// ==========================================
+// POST & CONTENT MANAGEMENT
+// ==========================================
+
+model Post {
+  id        String    @id @default(uuid()) @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  type      String
+  title     String
+  content   String?   @db.Text
+  status    String    @default("DRAFT")
+  publishAt DateTime? @map("publish_at") @db.Timestamptz(6)
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  history     PostHistory[]
+  statusLog   PostHistoryStatus[]
+  audiences   PostAudience[]
+  attachments Attachment[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([authorId])
+  @@index([status])
+  @@index([type])
+  @@index([publishAt])
+  @@index([createdAt])
+  @@map("post")
+}
+
+model PostHistory {
+  id        String    @id @default(uuid()) @db.Uuid
+  postId    String    @map("post_id") @db.Uuid
+  authorId  String    @map("author_id") @db.Uuid
+  audience  String?
+  type      String
+  title     String
+  content   String?   @db.Text
+  status    String
+  publishAt DateTime? @map("publish_at") @db.Timestamptz(6)
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("post_history")
+}
+
+model PostHistoryStatus {
+  id      String  @id @default(uuid()) @db.Uuid
+  postId  String  @map("post_id") @db.Uuid
+  userId  String  @map("user_id") @db.Uuid
+  status  String
+  comment String? @db.Text
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([postId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("post_history_status")
+}
+
+model PostAudience {
+  id        String  @id @default(uuid()) @db.Uuid
+  type      String
+  postId    String  @map("post_id") @db.Uuid
+  classId   String? @map("class_id") @db.Uuid
+  studentId String? @map("student_id") @db.Uuid
+
+  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  class   Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([classId])
+  @@index([studentId])
+  @@index([type])
+  @@map("post_audience")
+}
+
+// ==========================================
+// FILE & ATTACHMENT MANAGEMENT
+// ==========================================
+
+model File {
+  id         String @id @default(uuid()) @db.Uuid
+  key        String
+  filename   String @map("filename")
+  mimeType   String @map("mime_type")
+  size       BigInt
+  status     String @default("PENDING")
+  uploadedBy String @map("uploaded_by") @db.Uuid
+
+  uploader    User         @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+  attachments Attachment[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([uploadedBy])
+  @@index([status])
+  @@index([createdAt])
+  @@map("file")
+}
+
+model Attachment {
+  id      String  @id @default(uuid()) @db.Uuid
+  postId  String  @map("post_id") @db.Uuid
+  fileId  String  @map("file_id") @db.Uuid
+  comment String? @db.Text
+  order   Int     @default(0)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  file File @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([postId, order])
+  @@index([postId])
+  @@index([fileId])
+  @@map("attachment")
 }
