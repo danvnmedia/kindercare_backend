@@ -64,6 +64,7 @@ export class PrismaGuardianMapper {
           dateOfBirth: child.student.dateOfBirth,
           nickname: child.student.nickname,
           gender: child.student.gender,
+          status: child.student.status,
           isArchived: child.student.isArchived,
           createdAt: child.student.createdAt,
           updatedAt: child.student.updatedAt,

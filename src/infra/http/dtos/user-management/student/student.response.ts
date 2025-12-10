@@ -73,6 +73,13 @@ export class StudentResponse {
   gender: string | null;
 
   @Expose()
+  @ApiProperty({
+    example: 'WAITING',
+    description: 'Student status: WAITING, ACTIVE, INACTIVE, GRADUATED',
+  })
+  status: string;
+
+  @Expose()
   @ApiProperty({ example: '2025-01-15T00:00:00.000Z', nullable: true })
   enrollmentDate: Date | null;
 

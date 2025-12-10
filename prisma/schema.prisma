@@ -92,6 +92,7 @@ model Student {
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   nickname    String?
   gender      String?
+  status      String    @default("WAITING") // WAITING, ACTIVE, INACTIVE, GRADUATED
   isArchived  Boolean   @default(false) @map("is_archived")
 
   // Guardians relationship
@@ -107,6 +108,7 @@ model Student {
 
   @@index([email])
   @@index([phoneNumber])
+  @@index([status])
   @@index([isArchived])
   @@map("student")
 }
@@ -205,6 +207,7 @@ model GradeLevel {
   order Int    @unique
 
   classes Class[]
+  postAudiences PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -408,19 +411,22 @@ model PostHistoryStatus {
 }
 
 model PostAudience {
-  id        String  @id @default(uuid()) @db.Uuid
-  type      String
-  postId    String  @map("post_id") @db.Uuid
-  classId   String? @map("class_id") @db.Uuid
-  studentId String? @map("student_id") @db.Uuid
+  id           String  @id @default(uuid()) @db.Uuid
+  type         String
+  postId       String  @map("post_id") @db.Uuid
+  classId      String? @map("class_id") @db.Uuid
+  studentId    String? @map("student_id") @db.Uuid
+  gradeLevelId String? @map("grade_level_id") @db.Uuid
 
-  post    Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  class   Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  post       Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  class      Class?      @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student    Student?    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: Cascade)
 
   @@index([postId])
   @@index([classId])
   @@index([studentId])
+  @@index([gradeLevelId])
   @@index([type])
   @@map("post_audience")
 }

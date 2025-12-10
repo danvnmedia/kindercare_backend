@@ -1,4 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { UserPayload } from '@/types/globals';
 
 /**
  * Decorator to extract the current authenticated user's Clerk ID from the request.
@@ -14,7 +15,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
  * ```
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): string => {
+  (data: unknown, ctx: ExecutionContext): UserPayload => {
     const request = ctx.switchToHttp().getRequest();
     return request.user;
   },

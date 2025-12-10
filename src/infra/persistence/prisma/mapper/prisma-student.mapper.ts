@@ -50,6 +50,7 @@ export class PrismaStudentMapper {
       dateOfBirth: prismaStudent.dateOfBirth,
       nickname: prismaStudent.nickname,
       gender: prismaStudent.gender,
+      status: prismaStudent.status,
       guardians,
       isArchived: prismaStudent.isArchived,
       createdAt: prismaStudent.createdAt,
@@ -72,6 +73,7 @@ export class PrismaStudentMapper {
       dateOfBirth: student.dateOfBirth,
       nickname: student.nickname,
       gender: student.gender,
+      status: student.status ?? 'WAITING',
       isArchived: student.isArchived ?? false,
     };
   }
@@ -89,6 +91,7 @@ export class PrismaStudentMapper {
     if (student.dateOfBirth !== undefined) data.dateOfBirth = student.dateOfBirth;
     if (student.nickname !== undefined) data.nickname = student.nickname;
     if (student.gender !== undefined) data.gender = student.gender;
+    if (student.status !== undefined) data.status = student.status;
     if (student.studentCode !== undefined) data.studentCode = student.studentCode;
     if (student.isArchived !== undefined) data.isArchived = student.isArchived;
 

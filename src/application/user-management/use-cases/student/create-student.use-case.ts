@@ -31,6 +31,7 @@ export interface CreateStudentInput {
   address?: string;
 
   // Student-specific info
+  status?: string; // "WAITING", "ACTIVE", "INACTIVE", "GRADUATED"
   createUserAccount?: boolean;
 
   // Guardians
@@ -197,6 +198,7 @@ export class CreateStudentUseCase {
       // Student-specific data
       nickname: input.nickname?.trim() || null,
       gender: input.gender || null,
+      status: input.status || 'WAITING',
       isArchived: false,
     };
 

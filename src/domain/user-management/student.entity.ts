@@ -22,6 +22,7 @@ export interface Student {
   // Student-specific data
   nickname: string | null;
   gender: string | null; // "MALE", "FEMALE", "OTHER"
+  status: string; // "WAITING", "ACTIVE", "INACTIVE", "GRADUATED"
 
   // Guardian relationships
   guardians?: StudentGuardianInfo[];
@@ -57,6 +58,7 @@ export interface CreateStudentData {
   // Student-specific data
   nickname?: string | null;
   gender?: string | null;
+  status?: string;
 }
 
 /**
@@ -74,6 +76,7 @@ export interface UpdateStudentData {
   // Student-specific data
   nickname?: string | null;
   gender?: string | null;
+  status?: string;
 }
 
 /**

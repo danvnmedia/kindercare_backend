@@ -32,6 +32,7 @@ export class StudentInputMapper {
       address: dto.address,
 
       // Student information
+      status: dto.status,
       createUserAccount: dto.createUserAccount ?? false, // Default to false
 
       // Guardian assignment

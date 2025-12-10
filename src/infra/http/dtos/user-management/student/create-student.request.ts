@@ -14,6 +14,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { Gender } from '../shared/gender.enum';
+import { StudentStatus } from '../shared/student-status.enum';
 
 export class CreateStudentRequest {
   // ========== Personal Information ==========
@@ -92,6 +93,17 @@ export class CreateStudentRequest {
   address?: string;
 
   // ========== Student-Specific Information ==========
+
+  @ApiProperty({
+    description: 'Student status',
+    enum: StudentStatus,
+    example: StudentStatus.WAITING,
+    default: StudentStatus.WAITING,
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(StudentStatus, { message: 'Status must be WAITING, ACTIVE, INACTIVE, or GRADUATED' })
+  status?: StudentStatus;
 
   @ApiProperty({
     description: 'Create user account for student (will create User + Clerk account)',
