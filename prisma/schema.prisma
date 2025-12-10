@@ -224,12 +224,31 @@ model Subject {
   @@map("subject")
 }
 
+model SchoolYear {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  status    Boolean  @default(false)
+
+  classes Class[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("school_year")
+}
+
 model Class {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
 
   gradeLevel   GradeLevel @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
   gradeLevelId String     @map("grade_level_id") @db.Uuid
+  schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
+  schoolYearId String     @map("school_year_id") @db.Uuid
 
   teachers      ClassTeacher[]
   enrollments   Enrollment[]
@@ -239,8 +258,9 @@ model Class {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([gradeLevelId, name])
+  @@unique([schoolYearId, gradeLevelId, name])
   @@index([gradeLevelId])
+  @@index([schoolYearId])
   @@map("class")
 }
 

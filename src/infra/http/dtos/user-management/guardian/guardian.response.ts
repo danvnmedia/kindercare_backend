@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Type } from 'class-transformer';
+import { Expose, Type, Transform } from 'class-transformer';
 
-export class ChildInfo {
+export class StudentChildInfo {
   @Expose()
   @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
-  studentId: string;
+  id: string;
 
   @Expose()
   @ApiProperty({ example: 'Nguyễn Văn A' })
@@ -13,18 +13,32 @@ export class ChildInfo {
   @Expose()
   @ApiProperty({ example: 'Bé A', nullable: true })
   nickname: string | null;
+}
 
-  @Expose()
-  @ApiProperty({ example: 'Lớp Mầm 1A', nullable: true })
-  className: string | null;
-
+export class GuardianRelationshipChildInfo {
   @Expose()
   @ApiProperty({ example: 'FATHER' })
-  relationship: string;
+  id: string;
 
   @Expose()
   @ApiProperty({ example: 'Cha' })
-  relationshipName: string;
+  name: string;
+}
+
+export class GuardianStudentResponse {
+  @Expose()
+  @Type(() => StudentChildInfo)
+  @ApiProperty({ type: StudentChildInfo })
+  student: StudentChildInfo;
+
+  @Expose()
+  @Type(() => GuardianRelationshipChildInfo)
+  @ApiProperty({ type: GuardianRelationshipChildInfo })
+  guardianRelationship: GuardianRelationshipChildInfo;
+
+  @Expose()
+  @ApiProperty({ example: 'Lớp Mầm 1A', nullable: true })
+  className: string | null; // This property is not mapped from the domain, will be null/undefined unless explicitly set
 }
 
 export class GuardianSpouseInfo {
@@ -103,9 +117,9 @@ export class GuardianResponse {
   spouse?: GuardianSpouseInfo | null;
 
   @Expose()
-  @Type(() => ChildInfo)
-  @ApiProperty({ type: [ChildInfo], required: false })
-  children?: ChildInfo[];
+  @Type(() => GuardianStudentResponse)
+  @ApiProperty({ type: [GuardianStudentResponse], required: false })
+  children?: GuardianStudentResponse[];
 
   @Expose()
   @ApiProperty({ example: '2025-11-26T00:00:00.000Z' })

@@ -1,0 +1,277 @@
+// Database schema in DBML format (snake_case tables/columns)
+
+Table guardian_relationship {
+  id text [pk]
+  name text [unique]
+  description text
+}
+
+Table user {
+  id uuid [pk]
+  clerk_uid text [unique]
+  is_active boolean
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table role {
+  id text [pk]
+  name text [unique]
+  description text
+  permissions jsonb
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table student {
+  id uuid [pk]
+  student_code string [unique]// Ex:AN564GD5
+  full_name text
+  email citext
+  phone_number text
+  address text
+  date_of_birth timestamp
+  nickname text
+  gender text
+  is_archived boolean
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table enrollment {
+  id uuid [pk]
+  class_id uuid
+  student_id uuid
+  enrollment_date timestamp
+  note string
+  created_at timestamptz
+  updated_at timestamptz
+}
+Ref: enrollment.class_id > class.id
+Ref: enrollment.student_id > student.id
+
+Table teacher {
+  id uuid [pk]
+  full_name text
+  email citext [unique]
+  phone_number text [unique]
+  address text
+  date_of_birth timestamp
+  gender text
+  start_date timestamp
+  is_archived boolean
+  user_id uuid [unique]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table guardian {
+  id uuid [pk]
+  full_name text
+  email citext [unique]
+  phone_number text [unique]
+  address text
+  date_of_birth timestamp
+  gender text
+  occupation text
+  work_address text
+  is_archived boolean
+  user_id uuid [unique]
+  spouse_id uuid [unique]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table guardian_student {
+  student_id uuid
+  guardian_id uuid
+  guardian_relationship_id text
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (student_id, guardian_id) [pk]
+    guardian_id
+  }
+}
+
+Table user_roles {
+  user_id uuid
+  role_id text
+
+  indexes {
+    (user_id, role_id) [pk]
+  }
+}
+
+Table school_year {
+  id uuid [pk]
+  name text [unique]
+  start_date date
+  end_date date
+  status boolean // Đánh dấu năm học hiện tại
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table grade_level {
+  id uuid [pk]
+  name text [unique]
+  order int [unique]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table subject {
+  id uuid [pk]
+  name text [unique]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table class {
+  id uuid [pk]
+  name text
+  description text
+  grade_level_id uuid
+  school_year_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (grade_level_id, name) [unique]
+  }
+}
+
+Table class_teacher {
+  class_id uuid
+  teacher_id uuid
+  subject_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (class_id, teacher_id, subject_id) [pk]
+    teacher_id
+  }
+}
+
+
+Table post {
+  id uuid [pk]
+  author_id uuid
+  type string //post,album
+  title string
+  content string // album
+  status string // draft, review, approve, reject
+  publish_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+}
+Ref: post.author_id > user.id
+
+Table post_history {
+  id uuid [pk]
+  post_id uuid
+  author_id uuid
+  audience string
+  type string //post,album
+  title string
+  content string // album
+  status string // draft, review, approve, reject
+  publish_at timestamptz
+  created_at timestamptz
+  updated_at timestamptz
+}
+Ref: post_history.post_id > post.id
+Ref: post_history.author_id > user.id
+
+Table post_audience {
+  id uuid [pk]
+  type string // class, student
+  post_id uuid
+  class_id uuid [null]
+  student_id uuid [null]
+}
+Ref: post_audience.post_id > post.id
+Ref: post_audience.student_id > student.id
+Ref: post_audience.class_id > class.id
+
+
+Table post_history_status {
+    id uuid
+    post_id uuid
+    user_id uuid // người thay đổi
+    status string // draft, review, approve, reject
+    comment string
+
+    created_at timestamptz
+    updated_at timestamptz
+}
+Ref: post_history_status.post_id > post.id
+Ref: post_history_status.user_id > user.id
+
+Table attachment {
+  id uuid
+  post_id uuid
+  file_id uuid
+  comment string
+  order int
+  created_at timestamptz
+  updated_at timestamptz
+}
+Ref: attachment.post_id > post.id
+Ref: attachment.file_id > file.id
+
+
+Table file {
+  id uuid
+  key string
+  filename string
+  mime_type string
+  size string
+  status string
+  uploaded_by uuid
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table student_attendance {
+  id uuid [pk]
+  student_id uuid
+  class_id uuid
+  date date
+
+  checkin_at timestamptz [null]
+  checkout_at timestamptz [null]
+
+  status text // 'present', 'absent', 'excused_absent',...
+  reason text [null]
+  note text [null]
+
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (student_id, date) [unique]
+    date
+    class_id
+  }
+}
+
+Ref: student_attendance.student_id > student.id
+Ref: student_attendance.class_id > class.id
+Ref: teacher.user_id > user.id
+Ref: guardian.user_id > user.id
+Ref: guardian.spouse_id > guardian.id
+Ref: guardian_student.student_id > student.id
+Ref: guardian_student.guardian_id > guardian.id
+Ref: guardian_student.guardian_relationship_id > guardian_relationship.id
+Ref: user_roles.user_id > user.id
+Ref: user_roles.role_id > role.id
+Ref: class.grade_level_id > grade_level.id
+Ref: class.school_year_id > school_year.id
+Ref: class_teacher.class_id > class.id
+Ref: class_teacher.teacher_id > teacher.id
+Ref: class_teacher.subject_id > subject.id
+

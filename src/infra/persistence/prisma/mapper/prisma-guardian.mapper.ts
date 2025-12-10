@@ -4,21 +4,34 @@
  * Personal information is stored directly in Guardian (denormalized)
  */
 
-import { Guardian as PrismaGuardian } from '@prisma/client';
-import { Guardian } from '../../../../domain/user-management/guardian.entity';
-import { Prisma } from '@prisma/client';
+import {
+  Guardian as PrismaGuardian,
+  Prisma,
+  Student as PrismaStudent,
+  GuardianStudent as PrismaGuardianStudent,
+  GuardianRelationship as PrismaGuardianRelationship,
+} from '@prisma/client';
+import {
+  Guardian,
+  GuardianStudent,
+} from '../../../../domain/user-management/guardian.entity';
+import { Student } from '../../../../domain/user-management/student.entity';
+
+type PrismaGuardianWithRelations = PrismaGuardian & {
+  spouse?: PrismaGuardian | null;
+  children?: (PrismaGuardianStudent & {
+    student: PrismaStudent;
+    guardianRelationship: PrismaGuardianRelationship;
+  })[];
+};
 
 export class PrismaGuardianMapper {
   /**
    * Map Prisma model to domain entity
-   * Supports eager-loaded spouse data
+   * Supports eager-loaded spouse and children data
    */
-  static toDomain(
-    prismaGuardian: PrismaGuardian & {
-      spouse?: PrismaGuardian | null;
-    },
-  ): Guardian {
-    return {
+  static toDomain(prismaGuardian: PrismaGuardianWithRelations): Guardian {
+    const guardian: Guardian = {
       id: prismaGuardian.id,
       fullName: prismaGuardian.fullName,
       email: prismaGuardian.email,
@@ -31,10 +44,43 @@ export class PrismaGuardianMapper {
       spouseId: prismaGuardian.spouseId,
       userId: prismaGuardian.userId,
       isArchived: prismaGuardian.isArchived,
-      spouse: prismaGuardian.spouse ? this.toDomain(prismaGuardian.spouse) : undefined,
       createdAt: prismaGuardian.createdAt,
       updatedAt: prismaGuardian.updatedAt,
     };
+
+    if (prismaGuardian.spouse) {
+      guardian.spouse = this.toDomain(prismaGuardian.spouse);
+    }
+
+    if (prismaGuardian.children) {
+      guardian.children = prismaGuardian.children.map((child) => {
+        const student: Student = {
+          id: child.student.id,
+          studentCode: child.student.studentCode,
+          fullName: child.student.fullName,
+          email: child.student.email,
+          phoneNumber: child.student.phoneNumber,
+          address: child.student.address,
+          dateOfBirth: child.student.dateOfBirth,
+          nickname: child.student.nickname,
+          gender: child.student.gender,
+          isArchived: child.student.isArchived,
+          createdAt: child.student.createdAt,
+          updatedAt: child.student.updatedAt,
+        };
+
+        const guardianStudent: GuardianStudent = {
+          student,
+          guardianRelationship: {
+            id: child.guardianRelationship.id,
+            name: child.guardianRelationship.name,
+          },
+        };
+        return guardianStudent;
+      });
+    }
+
+    return guardian;
   }
 
   /**

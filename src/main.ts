@@ -9,6 +9,7 @@ import { StandardResponseInterceptor } from "@/core/modules/standard-response";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

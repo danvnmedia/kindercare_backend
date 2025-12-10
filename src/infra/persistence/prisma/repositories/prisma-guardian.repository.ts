@@ -19,6 +19,12 @@ export class PrismaGuardianRepository implements GuardianRepository {
       where: { id },
       include: {
         spouse: true,
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
       },
     });
     return prismaGuardian ? PrismaGuardianMapper.toDomain(prismaGuardian) : null;
@@ -29,6 +35,12 @@ export class PrismaGuardianRepository implements GuardianRepository {
       where: { email },
       include: {
         spouse: true,
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
       },
     });
     return prismaGuardian ? PrismaGuardianMapper.toDomain(prismaGuardian) : null;
@@ -39,6 +51,12 @@ export class PrismaGuardianRepository implements GuardianRepository {
       where: { phoneNumber },
       include: {
         spouse: true,
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
       },
     });
     return prismaGuardian ? PrismaGuardianMapper.toDomain(prismaGuardian) : null;
@@ -67,7 +85,17 @@ export class PrismaGuardianRepository implements GuardianRepository {
       this.prisma,
       'guardian',
       params,
-      {},
+      {
+        include: {
+          children: {
+            include: {
+              student: true,
+              guardianRelationship: true,
+            },
+          },
+          spouse: true,
+        },
+      },
       PrismaGuardianMapper,
     );
   }

@@ -26,6 +26,9 @@ import { RemoveUsersFromRoleUseCase } from '@/application/user-management/use-ca
 // Use Cases - Student
 import { CreateStudentUseCase } from '@/application/user-management/use-cases/student/create-student.use-case';
 import { GetAllStudentsUseCase } from '@/application/user-management/use-cases/student/get-all-students.use-case';
+import { LinkStudentWithGuardianUseCase } from '@/application/user-management/use-cases/student/link-student-with-guardian.use-case';
+import { UnlinkStudentFromGuardianUseCase } from '@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case';
+import { GetStudentGuardiansUseCase } from '@/application/user-management/use-cases/student/get-student-guardians.use-case';
 
 // Use Cases - Guardian
 import { CreateGuardianUseCase } from '@/application/user-management/use-cases/guardian/create-guardian.use-case';
@@ -85,6 +88,9 @@ import { StandardResponseModule } from '@/core/modules/standard-response/standar
     // Student Use Cases
     CreateStudentUseCase,
     GetAllStudentsUseCase,
+    LinkStudentWithGuardianUseCase,
+    UnlinkStudentFromGuardianUseCase,
+    GetStudentGuardiansUseCase,
 
     // Guardian Use Cases
     CreateGuardianUseCase,

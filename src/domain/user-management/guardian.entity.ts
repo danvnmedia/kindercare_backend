@@ -4,6 +4,8 @@
  * NO NestJS decorators allowed in this layer
  */
 
+import { Student } from './student.entity';
+
 /**
  * Guardian entity - represents a parent/guardian profile
  * Personal information is now stored directly in Guardian (denormalized)
@@ -34,8 +36,21 @@ export interface Guardian {
   // Soft delete
   isArchived: boolean;
 
+  children?: GuardianStudent[];
+
   createdAt: Date;
   updatedAt: Date;
+}
+
+
+export interface GuardianRelationship {
+  id: string;
+  name: string;
+}
+
+export interface GuardianStudent {
+  student: Student;
+  guardianRelationship: GuardianRelationship;
 }
 
 /**

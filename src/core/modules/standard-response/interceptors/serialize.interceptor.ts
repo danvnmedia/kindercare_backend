@@ -44,7 +44,7 @@ export class SerializeInterceptor<T> implements NestInterceptor {
                         }),
                     };
                 }
-
+                console.log('Data before plainToInstance:', JSON.stringify(data, null, 2)); // Add this line
                 return plainToInstance(this.dto, data, {
                     excludeExtraneousValues: true,
                     enableImplicitConversion: true,
