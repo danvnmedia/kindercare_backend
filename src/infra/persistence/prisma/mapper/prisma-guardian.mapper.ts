@@ -10,12 +10,12 @@ import {
   Student as PrismaStudent,
   GuardianStudent as PrismaGuardianStudent,
   GuardianRelationship as PrismaGuardianRelationship,
-} from '@prisma/client';
+} from "@prisma/client";
 import {
   Guardian,
   GuardianStudent,
-} from '../../../../domain/user-management/guardian.entity';
-import { Student } from '../../../../domain/user-management/student.entity';
+} from "../../../../domain/user-management/guardian.entity";
+import { Student } from "../../../../domain/user-management/student.entity";
 
 type PrismaGuardianWithRelations = PrismaGuardian & {
   spouse?: PrismaGuardian | null;
@@ -27,7 +27,7 @@ type PrismaGuardianWithRelations = PrismaGuardian & {
 
 export class PrismaGuardianMapper {
   /**
-   * Map Prisma model to domain entity
+   * Convert Prisma model to Domain entity (full)
    * Supports eager-loaded spouse and children data
    */
   static toDomain(prismaGuardian: PrismaGuardianWithRelations): Guardian {
@@ -85,11 +85,37 @@ export class PrismaGuardianMapper {
   }
 
   /**
-   * Map domain entity to Prisma create input
+   * Convert Prisma model to Domain entity (without nested relations)
+   * Use to prevent circular references
    */
-  static toPrismaCreate(
-    guardian: Omit<Guardian, 'id' | 'createdAt' | 'updatedAt' | 'spouse'>,
-  ): Prisma.GuardianCreateInput {
+  static toDomainSimple(prismaGuardian: PrismaGuardian): Guardian {
+    const guardian: Guardian = {
+      id: prismaGuardian.id,
+      fullName: prismaGuardian.fullName,
+      email: prismaGuardian.email,
+      phoneNumber: prismaGuardian.phoneNumber,
+      address: prismaGuardian.address,
+      dateOfBirth: prismaGuardian.dateOfBirth,
+      gender: prismaGuardian.gender,
+      occupation: prismaGuardian.occupation,
+      workAddress: prismaGuardian.workAddress,
+      spouseId: prismaGuardian.spouseId,
+      userId: prismaGuardian.userId,
+      isArchived: prismaGuardian.isArchived,
+      createdAt: prismaGuardian.createdAt,
+      updatedAt: prismaGuardian.updatedAt,
+    };
+
+    // Prevent circular references by omitting spouse and children
+    return guardian;
+  }
+
+  /**
+   * Convert Domain entity to Prisma create input
+   */
+  static toPrisma(
+    guardian: Omit<Guardian, "id" | "createdAt" | "updatedAt" | "spouse">,
+  ): Prisma.GuardianUncheckedCreateInput {
     return {
       fullName: guardian.fullName,
       email: guardian.email,
@@ -100,36 +126,35 @@ export class PrismaGuardianMapper {
       occupation: guardian.occupation,
       workAddress: guardian.workAddress,
       isArchived: guardian.isArchived ?? false,
-      ...(guardian.userId && {
-        user: {
-          connect: { id: guardian.userId },
-        },
-      }),
-      ...(guardian.spouseId && {
-        spouse: {
-          connect: { id: guardian.spouseId },
-        },
-      }),
+      spouseId: guardian.spouseId,
+      userId: guardian.userId,
     };
   }
 
   /**
-   * Map partial domain entity to Prisma update input
+   * Convert Domain entity to Prisma update input
    */
   static toPrismaUpdate(
-    guardian: Partial<Omit<Guardian, 'id' | 'createdAt' | 'updatedAt' | 'spouse'>>,
+    guardian: Partial<
+      Omit<Guardian, "id" | "createdAt" | "updatedAt" | "spouse">
+    >,
   ): Prisma.GuardianUpdateInput {
     const data: Prisma.GuardianUpdateInput = {};
 
     if (guardian.fullName !== undefined) data.fullName = guardian.fullName;
     if (guardian.email !== undefined) data.email = guardian.email;
-    if (guardian.phoneNumber !== undefined) data.phoneNumber = guardian.phoneNumber;
+    if (guardian.phoneNumber !== undefined)
+      data.phoneNumber = guardian.phoneNumber;
     if (guardian.address !== undefined) data.address = guardian.address;
-    if (guardian.dateOfBirth !== undefined) data.dateOfBirth = guardian.dateOfBirth;
+    if (guardian.dateOfBirth !== undefined)
+      data.dateOfBirth = guardian.dateOfBirth;
     if (guardian.gender !== undefined) data.gender = guardian.gender;
-    if (guardian.occupation !== undefined) data.occupation = guardian.occupation;
-    if (guardian.workAddress !== undefined) data.workAddress = guardian.workAddress;
-    if (guardian.isArchived !== undefined) data.isArchived = guardian.isArchived;
+    if (guardian.occupation !== undefined)
+      data.occupation = guardian.occupation;
+    if (guardian.workAddress !== undefined)
+      data.workAddress = guardian.workAddress;
+    if (guardian.isArchived !== undefined)
+      data.isArchived = guardian.isArchived;
 
     if (guardian.userId !== undefined) {
       data.user = guardian.userId
@@ -146,5 +171,16 @@ export class PrismaGuardianMapper {
     }
 
     return data;
+  }
+
+  /**
+   * Convert array of Prisma models to Domain entities
+   */
+  static toDomainArray(
+    prismaGuardians: PrismaGuardianWithRelations[],
+  ): Guardian[] {
+    return prismaGuardians.map((prismaGuardian) =>
+      PrismaGuardianMapper.toDomain(prismaGuardian),
+    );
   }
 }

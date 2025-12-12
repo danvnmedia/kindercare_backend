@@ -1,5 +1,5 @@
 export enum FileStatus {
-  PENDING = 'PENDING',
-  ACTIVE = 'ACTIVE',
-  DELETED = 'DELETED',
+  PENDING = "PENDING",
+  ACTIVE = "ACTIVE",
+  DELETED = "DELETED",
 }

@@ -86,7 +86,7 @@ export class StudentEntity {
   /**
    * Valid gender values
    */
-  static readonly VALID_GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
+  static readonly VALID_GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 
   /**
    * Validate gender value

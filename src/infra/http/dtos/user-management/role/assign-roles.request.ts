@@ -1,11 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { ArrayNotEmpty, IsArray, IsString, Matches } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import { Transform } from "class-transformer";
+import { ArrayNotEmpty, IsArray, IsString, Matches } from "class-validator";
 
 export class AssignRolesRequest {
   @ApiProperty({
-    description: 'Array of role IDs to assign',
-    example: ['admin', 'teacher'],
+    description: "Array of role IDs to assign",
+    example: ["admin", "teacher"],
     type: [String],
   })
   @IsArray()
@@ -16,6 +16,9 @@ export class AssignRolesRequest {
       : value,
   )
   @IsString({ each: true })
-  @Matches(/^[a-z0-9_]+$/, { each: true, message: 'Role ID must be lowercase alphanumeric with underscores only' })
+  @Matches(/^[a-z0-9_]+$/, {
+    each: true,
+    message: "Role ID must be lowercase alphanumeric with underscores only",
+  })
   roleIds: string[];
 }

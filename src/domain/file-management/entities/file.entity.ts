@@ -1,13 +1,13 @@
-import { Entity } from '@/core/entities/entity';
-import { UniqueEntityID } from '@/core/entities/unique-entity-id';
-import { Optional } from '@/core/types/optional';
+import { Entity } from "@/core/entities/entity";
+import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { Optional } from "@/core/types/optional";
 
 export interface FileProps {
   key: string;
   filename: string;
   mimeType: string;
   size: bigint;
-  status: 'PENDING' | 'ACTIVE' | 'DELETED';
+  status: "PENDING" | "ACTIVE" | "DELETED";
   uploadedBy: UniqueEntityID;
   createdAt: Date;
   updatedAt: Date;
@@ -16,10 +16,7 @@ export interface FileProps {
 export class File extends Entity<FileProps> {
   protected props: FileProps; // Define props here
 
-  private constructor(
-    props: FileProps,
-    id?: UniqueEntityID,
-  ) {
+  private constructor(props: FileProps, id?: UniqueEntityID) {
     super(id); // Pass only id to super
     this.props = props;
   }
@@ -57,13 +54,13 @@ export class File extends Entity<FileProps> {
   }
 
   static create(
-    props: Optional<FileProps, 'createdAt' | 'updatedAt' | 'status'>,
+    props: Optional<FileProps, "createdAt" | "updatedAt" | "status">,
     id?: UniqueEntityID,
   ) {
     const file = new File(
       {
         ...props,
-        status: props.status ?? 'PENDING',
+        status: props.status ?? "PENDING",
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
       },

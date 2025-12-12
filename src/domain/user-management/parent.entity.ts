@@ -99,7 +99,7 @@ export class ParentEntity {
    */
   static validateSpouse(parentId: string, spouseId: string): void {
     if (parentId === spouseId) {
-      throw new Error('Parent cannot be spouse of themselves');
+      throw new Error("Parent cannot be spouse of themselves");
     }
   }
 
@@ -140,7 +140,8 @@ export class ParentEntity {
   static areSpouses(parent1: Parent, parent2: Parent): boolean {
     return (
       (parent1.spouseId === parent2.id && parent2.spouseId === parent1.id) ||
-      (parent1.spouseId === parent2.id || parent2.spouseId === parent1.id)
+      parent1.spouseId === parent2.id ||
+      parent2.spouseId === parent1.id
     );
   }
 
@@ -150,18 +151,18 @@ export class ParentEntity {
    */
   static getParentType(relationshipId: string): string {
     const types: Record<string, string> = {
-      FATHER: 'Father',
-      MOTHER: 'Mother',
-      GUARDIAN: 'Guardian',
+      FATHER: "Father",
+      MOTHER: "Mother",
+      GUARDIAN: "Guardian",
     };
-    return types[relationshipId] || 'Guardian';
+    return types[relationshipId] || "Guardian";
   }
 
   /**
    * Validate parent relationship ID
    */
   static validateRelationshipId(relationshipId: string): boolean {
-    const validRelationships = ['FATHER', 'MOTHER', 'GUARDIAN'];
+    const validRelationships = ["FATHER", "MOTHER", "GUARDIAN"];
     return validRelationships.includes(relationshipId);
   }
 
@@ -212,7 +213,7 @@ export class ParentEntity {
   /**
    * Validate gender
    */
-  static readonly VALID_GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
+  static readonly VALID_GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 
   static validateGender(gender: string): boolean {
     return this.VALID_GENDERS.includes(gender as any);

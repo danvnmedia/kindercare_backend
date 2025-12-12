@@ -1,8 +1,8 @@
-import { UniqueEntityID } from '@/core/entities/unique-entity-id';
-import { Either, left, right } from '@/core/types/either';
-import { File } from '@/domain/file-management/entities/file.entity';
-import { FileRepository } from '../ports/file.repository';
-import { StorageService } from '../ports/storage.service';
+import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { Either, left, right } from "@/core/types/either";
+import { File } from "@/domain/file-management/entities/file.entity";
+import { FileRepository } from "../ports/file.repository";
+import { StorageService } from "../ports/storage.service";
 
 export interface UploadFileUseCaseRequest {
   filename: string;
@@ -11,7 +11,10 @@ export interface UploadFileUseCaseRequest {
   uploadedBy: UniqueEntityID;
 }
 
-export type UploadFileUseCaseResponse = Either<Error, { file: File; uploadUrl: string }>;
+export type UploadFileUseCaseResponse = Either<
+  Error,
+  { file: File; uploadUrl: string }
+>;
 
 export class UploadFileUseCase {
   constructor(
@@ -43,12 +46,9 @@ export class UploadFileUseCase {
 
     let uploadUrl: string;
     try {
-      uploadUrl = await this.storageService.getUploadSignedUrl(
-        key,
-        mimeType,
-      );
+      uploadUrl = await this.storageService.getUploadSignedUrl(key, mimeType);
     } catch (error) {
-      return left(new Error('Failed to get upload signed URL.'));
+      return left(new Error("Failed to get upload signed URL."));
     }
 
     const createdFile = await this.fileRepository.create(file);

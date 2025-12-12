@@ -5,6 +5,6 @@
 export class UserNotFoundException extends Error {
   constructor(identifier: number | string) {
     super(`User with ID ${identifier} not found`);
-    this.name = 'UserNotFoundException';
+    this.name = "UserNotFoundException";
   }
 }

@@ -4,7 +4,7 @@
  * NO NestJS decorators allowed in this layer
  */
 
-import { Student } from './student.entity';
+import { Student } from "./student.entity";
 
 /**
  * Guardian entity - represents a parent/guardian profile
@@ -41,7 +41,6 @@ export interface Guardian {
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 export interface GuardianRelationship {
   id: string;
@@ -114,7 +113,7 @@ export class GuardianEntity {
    */
   static validateSpouse(guardianId: string, spouseId: string): void {
     if (guardianId === spouseId) {
-      throw new Error('Guardian cannot be spouse of themselves');
+      throw new Error("Guardian cannot be spouse of themselves");
     }
   }
 
@@ -154,8 +153,10 @@ export class GuardianEntity {
    */
   static areSpouses(guardian1: Guardian, guardian2: Guardian): boolean {
     return (
-      (guardian1.spouseId === guardian2.id && guardian2.spouseId === guardian1.id) ||
-      (guardian1.spouseId === guardian2.id || guardian2.spouseId === guardian1.id)
+      (guardian1.spouseId === guardian2.id &&
+        guardian2.spouseId === guardian1.id) ||
+      guardian1.spouseId === guardian2.id ||
+      guardian2.spouseId === guardian1.id
     );
   }
 
@@ -165,25 +166,28 @@ export class GuardianEntity {
    */
   static getGuardianType(relationshipId: string): string {
     const types: Record<string, string> = {
-      FATHER: 'Father',
-      MOTHER: 'Mother',
-      GUARDIAN: 'Guardian',
+      FATHER: "Father",
+      MOTHER: "Mother",
+      GUARDIAN: "Guardian",
     };
-    return types[relationshipId] || 'Guardian';
+    return types[relationshipId] || "Guardian";
   }
 
   /**
    * Validate guardian relationship ID
    */
   static validateRelationshipId(relationshipId: string): boolean {
-    const validRelationships = ['FATHER', 'MOTHER', 'GUARDIAN'];
+    const validRelationships = ["FATHER", "MOTHER", "GUARDIAN"];
     return validRelationships.includes(relationshipId);
   }
 
   /**
    * Update guardian profile
    */
-  static updateProfile(guardian: Guardian, updates: UpdateGuardianData): Guardian {
+  static updateProfile(
+    guardian: Guardian,
+    updates: UpdateGuardianData,
+  ): Guardian {
     // Validate spouse if provided
     if (updates.spouseId) {
       this.validateSpouse(guardian.id, updates.spouseId);
@@ -227,7 +231,7 @@ export class GuardianEntity {
   /**
    * Validate gender
    */
-  static readonly VALID_GENDERS = ['MALE', 'FEMALE', 'OTHER'] as const;
+  static readonly VALID_GENDERS = ["MALE", "FEMALE", "OTHER"] as const;
 
   static validateGender(gender: string): boolean {
     return this.VALID_GENDERS.includes(gender as any);

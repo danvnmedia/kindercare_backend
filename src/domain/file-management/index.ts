@@ -1,2 +1,2 @@
-export * from './entities/file.entity';
-export * from './enums/file-status.enum';
+export * from "./entities/file.entity";
+export * from "./enums/file-status.enum";

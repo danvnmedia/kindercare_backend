@@ -4,18 +4,21 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { Guardian, GuardianEntity } from '@/domain/user-management/guardian.entity';
-import { GuardianRepository } from '../../ports/guardian.repository';
-import { UserRepository } from '../../ports/user.repository';
-import { IdentityService } from '@/infra/external-services/clerk/identity.service';
+} from "@nestjs/common";
+import {
+  Guardian,
+  GuardianEntity,
+} from "@/domain/user-management/guardian.entity";
+import { GuardianRepository } from "../../ports/guardian.repository";
+import { UserRepository } from "../../ports/user.repository";
+import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
 /**
  * Default weak password that forces user to reset on first login
  * This password is intentionally weak to violate most password policies
  * forcing the user to change it immediately
  */
-const DEFAULT_WEAK_PASSWORD = 'ChangeMe123!';
+const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateGuardianInput {
   // Personal information
@@ -36,9 +39,9 @@ export class CreateGuardianUseCase {
   private readonly logger = new Logger(CreateGuardianUseCase.name);
 
   constructor(
-    @Inject('GUARDIAN_REPOSITORY')
+    @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
   ) {}
@@ -60,10 +63,15 @@ export class CreateGuardianUseCase {
       // ========== Step 4: Create User account with Clerk ==========
       await this.createUserAccount(guardian);
 
-      this.logger.log(`Guardian and User account created successfully for: ${input.email}`);
+      this.logger.log(
+        `Guardian and User account created successfully for: ${input.email}`,
+      );
       return guardian;
     } catch (error) {
-      this.logger.error(`Failed to create guardian: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create guardian: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -75,36 +83,38 @@ export class CreateGuardianUseCase {
     // Validate full name
     if (!GuardianEntity.validateFullName(input.fullName)) {
       throw new BadRequestException(
-        'Full name must be at least 2 characters and contain only valid characters',
+        "Full name must be at least 2 characters and contain only valid characters",
       );
     }
 
     // Validate email format
     if (!GuardianEntity.validateEmail(input.email)) {
-      throw new BadRequestException('Invalid email format');
+      throw new BadRequestException("Invalid email format");
     }
 
     // Validate phone number format
     if (!GuardianEntity.validatePhoneNumber(input.phoneNumber)) {
       throw new BadRequestException(
-        'Invalid phone number format (e.g., +84912345678)',
+        "Invalid phone number format (e.g., +84912345678)",
       );
     }
 
     // Validate date of birth (must be in the past)
     if (input.dateOfBirth >= new Date()) {
-      throw new BadRequestException('Date of birth must be in the past');
+      throw new BadRequestException("Date of birth must be in the past");
     }
 
     // Validate guardian is adult (>= 18 years old)
     const age = this.calculateAge(input.dateOfBirth);
     if (age < 18) {
-      throw new BadRequestException('Guardian must be at least 18 years old');
+      throw new BadRequestException("Guardian must be at least 18 years old");
     }
 
     // Validate gender
     if (input.gender && !GuardianEntity.validateGender(input.gender)) {
-      throw new BadRequestException('Invalid gender value (MALE, FEMALE, OTHER)');
+      throw new BadRequestException(
+        "Invalid gender value (MALE, FEMALE, OTHER)",
+      );
     }
   }
 
@@ -117,7 +127,10 @@ export class CreateGuardianUseCase {
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birthDate.getDate())
+    ) {
       age--;
     }
 
@@ -127,9 +140,13 @@ export class CreateGuardianUseCase {
   /**
    * Check Guardian uniqueness (email/phone)
    */
-  private async checkGuardianUniqueness(input: CreateGuardianInput): Promise<void> {
+  private async checkGuardianUniqueness(
+    input: CreateGuardianInput,
+  ): Promise<void> {
     // Check email uniqueness
-    const existingByEmail = await this.guardianRepository.findByEmail(input.email);
+    const existingByEmail = await this.guardianRepository.findByEmail(
+      input.email,
+    );
     if (existingByEmail) {
       throw new ConflictException(
         `Guardian with email ${input.email} already exists`,
@@ -137,7 +154,9 @@ export class CreateGuardianUseCase {
     }
 
     // Check phone uniqueness
-    const existingByPhone = await this.guardianRepository.findByPhoneNumber(input.phoneNumber);
+    const existingByPhone = await this.guardianRepository.findByPhoneNumber(
+      input.phoneNumber,
+    );
     if (existingByPhone) {
       throw new ConflictException(
         `Guardian with phone number ${input.phoneNumber} already exists`,
@@ -149,7 +168,10 @@ export class CreateGuardianUseCase {
    * Create Guardian
    */
   private async createGuardian(input: CreateGuardianInput): Promise<Guardian> {
-    const guardianData: Omit<Guardian, 'id' | 'createdAt' | 'updatedAt' | 'spouse'> = {
+    const guardianData: Omit<
+      Guardian,
+      "id" | "createdAt" | "updatedAt" | "spouse"
+    > = {
       fullName: input.fullName.trim(),
       email: input.email.trim(),
       phoneNumber: input.phoneNumber.trim(),

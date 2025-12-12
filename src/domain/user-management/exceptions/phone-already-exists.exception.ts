@@ -5,6 +5,6 @@
 export class PhoneAlreadyExistsException extends Error {
   constructor(phoneNumber: string) {
     super(`User with phone number ${phoneNumber} already exists`);
-    this.name = 'PhoneAlreadyExistsException';
+    this.name = "PhoneAlreadyExistsException";
   }
 }

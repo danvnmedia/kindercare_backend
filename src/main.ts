@@ -9,7 +9,6 @@ import { StandardResponseInterceptor } from "@/core/modules/standard-response";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -21,12 +20,11 @@ async function bootstrap() {
     }),
   );
 
-
   const standardResponseInterceptor = app.get(StandardResponseInterceptor);
   app.useGlobalInterceptors(standardResponseInterceptor);
 
-  app.setGlobalPrefix('api', {
-      exclude: [{ path: 'docs', method: RequestMethod.GET }],
+  app.setGlobalPrefix("api", {
+    exclude: [{ path: "docs", method: RequestMethod.GET }],
   });
 
   const config = new DocumentBuilder()

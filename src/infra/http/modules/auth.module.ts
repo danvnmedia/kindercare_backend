@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
-import { AuthController } from '../controllers/auth/auth.controller';
-import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
-import { PrismaModule } from '@/infra/persistence/prisma/prisma.module';
-import { UserInterceptor } from '../interceptors/user.interceptor';
-import { PrismaUserRepository } from '@/infra/persistence/prisma/repositories/prisma-user.repository';
+import { Module } from "@nestjs/common";
+import { AuthController } from "../controllers/auth/auth.controller";
+import { StandardResponseModule } from "@/core/modules/standard-response";
+import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
+import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
+import { UserInterceptor } from "../interceptors/user.interceptor";
+import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/prisma-user.repository";
 
 /**
  * Authentication Module
@@ -27,12 +28,20 @@ import { PrismaUserRepository } from '@/infra/persistence/prisma/repositories/pr
   imports: [
     ClerkModule, // Authentication port for guards
     PrismaModule, // Database access
+    StandardResponseModule, // Provides PrismaQueryService
   ],
   controllers: [AuthController],
   providers: [
     UserInterceptor,
     {
-      provide: 'USER_REPOSITORY',
+      provide: "USER_REPOSITORY",
+      useClass: PrismaUserRepository,
+    },
+  ],
+  exports: [
+    UserInterceptor,
+    {
+      provide: "USER_REPOSITORY",
       useClass: PrismaUserRepository,
     },
   ],

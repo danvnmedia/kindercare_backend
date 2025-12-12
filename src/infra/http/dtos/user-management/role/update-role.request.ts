@@ -1,10 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsBoolean,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 
 export class UpdateRoleRequest {
   @ApiProperty({
-    description: 'Role name (unique)',
-    example: 'ADMIN',
+    description: "Role name (unique)",
+    example: "ADMIN",
     required: false,
   })
   @IsOptional()
@@ -14,8 +21,8 @@ export class UpdateRoleRequest {
   name?: string;
 
   @ApiProperty({
-    description: 'Role description',
-    example: 'Administrator with full access',
+    description: "Role description",
+    example: "Administrator with full access",
     required: false,
   })
   @IsOptional()
@@ -24,8 +31,8 @@ export class UpdateRoleRequest {
   description?: string;
 
   @ApiProperty({
-    description: 'Permissions object',
-    example: { users: ['create', 'read', 'update', 'delete'] },
+    description: "Permissions object",
+    example: { users: ["create", "read", "update", "delete"] },
     required: false,
   })
   @IsOptional()
@@ -33,7 +40,7 @@ export class UpdateRoleRequest {
   permissions?: Record<string, any>;
 
   @ApiProperty({
-    description: 'Role active status',
+    description: "Role active status",
     example: true,
     required: false,
   })

@@ -1,5 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { User } from '../../../domain/user-management/user.entity';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { User } from "../../../domain/user-management/user.entity";
 
 /**
  * Decorator to extract the full User entity from the request.

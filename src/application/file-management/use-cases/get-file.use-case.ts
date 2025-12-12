@@ -1,8 +1,8 @@
-import { UniqueEntityID } from '@/core/entities/unique-entity-id';
-import { Either, left, right } from '@/core/types/either';
-import { File } from '@/domain/file-management/entities/file.entity';
-import { FileRepository } from '../ports/file.repository';
-import { StorageService } from '../ports/storage.service';
+import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { Either, left, right } from "@/core/types/either";
+import { File } from "@/domain/file-management/entities/file.entity";
+import { FileRepository } from "../ports/file.repository";
+import { StorageService } from "../ports/storage.service";
 
 export interface GetFileUseCaseRequest {
   fileId: UniqueEntityID;
@@ -22,7 +22,7 @@ export class GetFileUseCase {
     const file = await this.fileRepository.findById(fileId.toString());
 
     if (!file) {
-      return left(new Error('File not found.'));
+      return left(new Error("File not found."));
     }
 
     const url = await this.storageService.getSignedUrl(file.key);

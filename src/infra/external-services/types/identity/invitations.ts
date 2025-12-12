@@ -4,8 +4,7 @@ export type InvitationInput = {
     fullName: string;
     phoneNumber: string;
   };
-}
-
+};
 
 export type InvitationResult = {
   id: string;

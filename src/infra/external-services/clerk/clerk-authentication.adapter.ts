@@ -1,11 +1,11 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { type AuthObject, type ClerkClient } from '@clerk/backend';
-import { createClerkRequest } from '@clerk/backend/internal';
-import type { Request as ExpressRequest } from 'express';
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import { type AuthObject, type ClerkClient } from "@clerk/backend";
+import { createClerkRequest } from "@clerk/backend/internal";
+import type { Request as ExpressRequest } from "express";
 import {
   AuthenticationPort,
   AuthenticationResult,
-} from '@/application/ports/authentication.port';
+} from "@/application/ports/authentication.port";
 
 /**
  * Clerk Authentication Adapter
@@ -31,7 +31,7 @@ import {
 export class ClerkAuthenticationAdapter implements AuthenticationPort {
   private readonly logger = new Logger(ClerkAuthenticationAdapter.name);
   constructor(
-    @Inject('ClerkClient') private readonly clerkClient: ClerkClient,
+    @Inject("ClerkClient") private readonly clerkClient: ClerkClient,
   ) {}
 
   /**
@@ -40,25 +40,29 @@ export class ClerkAuthenticationAdapter implements AuthenticationPort {
    * @param request - Express request object with Clerk auth context
    * @returns Authentication result with Clerk userId
    */
-  async verifyAuthentication(request: ExpressRequest): Promise<AuthenticationResult> {
+  async verifyAuthentication(
+    request: ExpressRequest,
+  ): Promise<AuthenticationResult> {
     try {
       const clerkRequest = this.createClerkRequest(request);
       const requestState = await this.clerkClient.authenticateRequest(
         clerkRequest,
-        { acceptsToken: 'any' },
+        { acceptsToken: "any" },
       );
       const authObject = requestState.toAuth();
 
       if (!isSignedInSessionAuthObject(authObject)) {
-        this.logger.debug('Authentication failed: Missing authenticated user');
+        this.logger.debug("Authentication failed: Missing authenticated user");
         return {
           isAuthenticated: false,
           userId: null,
-          error: 'No valid authentication token',
+          error: "No valid authentication token",
         };
       }
 
-      this.logger.debug(`User authenticated successfully: ${authObject.userId}`);
+      this.logger.debug(
+        `User authenticated successfully: ${authObject.userId}`,
+      );
 
       return {
         isAuthenticated: true,
@@ -67,12 +71,12 @@ export class ClerkAuthenticationAdapter implements AuthenticationPort {
       };
     } catch (error) {
       // Handle unexpected errors from Clerk SDK
-      this.logger.error('Error during authentication verification', error);
+      this.logger.error("Error during authentication verification", error);
 
       return {
         isAuthenticated: false,
         userId: null,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -93,9 +97,12 @@ export class ClerkAuthenticationAdapter implements AuthenticationPort {
 
     const protocol =
       request.protocol ??
-      ((request.socket as any)?.encrypted ? 'https' : 'http');
-    const host = headers.get('host') ?? 'localhost';
-    const url = new URL(request.originalUrl || request.url || '/', `${protocol}://${host}`);
+      ((request.socket as any)?.encrypted ? "https" : "http");
+    const host = headers.get("host") ?? "localhost";
+    const url = new URL(
+      request.originalUrl || request.url || "/",
+      `${protocol}://${host}`,
+    );
 
     return createClerkRequest(
       new Request(url, {
@@ -108,7 +115,7 @@ export class ClerkAuthenticationAdapter implements AuthenticationPort {
 
 type SignedInSessionAuthObject = AuthObject & {
   isAuthenticated: true;
-  tokenType: 'session_token';
+  tokenType: "session_token";
   userId: string;
   sessionId?: string | null;
 };
@@ -116,9 +123,9 @@ type SignedInSessionAuthObject = AuthObject & {
 const isSignedInSessionAuthObject = (
   auth: AuthObject | null,
 ): auth is SignedInSessionAuthObject => {
-  if (!auth || !auth.isAuthenticated || auth.tokenType !== 'session_token') {
+  if (!auth || !auth.isAuthenticated || auth.tokenType !== "session_token") {
     return false;
   }
 
-  return typeof (auth as { userId?: unknown }).userId === 'string';
+  return typeof (auth as { userId?: unknown }).userId === "string";
 };

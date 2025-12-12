@@ -1,7 +1,16 @@
-import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
-import { Role, UpdateRoleData, RoleEntity } from '../../../../domain/user-management/role.entity';
-import { RoleRepository } from '../../ports/role.repository';
-import { RoleNotFoundException } from '../../../../domain/user-management/exceptions/role-not-found.exception';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
+import {
+  Role,
+  UpdateRoleData,
+  RoleEntity,
+} from "../../../../domain/user-management/role.entity";
+import { RoleRepository } from "../../ports/role.repository";
+import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
 
 export interface UpdateRoleInput {
   name?: string;
@@ -13,7 +22,7 @@ export interface UpdateRoleInput {
 @Injectable()
 export class UpdateRoleUseCase {
   constructor(
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
   ) {}
 
@@ -50,10 +59,13 @@ export class UpdateRoleUseCase {
       if (error instanceof RoleNotFoundException) {
         throw new NotFoundException(error.message);
       }
-      if (error.message.includes('cannot be empty') || error.message.includes('must be at least')) {
+      if (
+        error.message.includes("cannot be empty") ||
+        error.message.includes("must be at least")
+      ) {
         throw new BadRequestException(error.message);
       }
-      if (error.message.includes('must be a valid object')) {
+      if (error.message.includes("must be a valid object")) {
         throw new BadRequestException(error.message);
       }
       throw error;

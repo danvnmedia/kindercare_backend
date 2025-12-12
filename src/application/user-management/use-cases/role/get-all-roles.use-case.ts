@@ -1,32 +1,32 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { RoleRepository, FindAllRolesParams, PaginatedRoles } from '../../ports/role.repository';
-
-export interface GetAllRolesInput {
-  page?: number;
-  limit?: number;
-  search?: string;
-  ids?: string[];
-  sortBy?: string;
-  order?: 'asc' | 'desc';
-}
+import { Injectable, Inject, Logger } from "@nestjs/common";
+import { RoleRepository, PaginatedRoles } from "../../ports/role.repository";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 
 @Injectable()
 export class GetAllRolesUseCase {
+  private readonly logger = new Logger(GetAllRolesUseCase.name);
+
   constructor(
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(input: GetAllRolesInput): Promise<PaginatedRoles> {
-    const params: FindAllRolesParams = {
-      page: input.page ?? 1,
-      limit: input.limit ?? 20,
-      search: input.search,
-      ids: input.ids,
-      sortBy: input.sortBy ?? 'createdAt',
-      order: input.order ?? 'desc',
-    };
+  async execute(params: StandardRequest): Promise<PaginatedRoles> {
+    try {
+      this.logger.log(
+        `Fetching roles: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
+      );
 
-    return await this.roleRepository.findAll(params);
+      const result = await this.roleRepository.findAll(params);
+
+      this.logger.log(
+        `Found ${result.pagination.count} roles, returning page ${result.pagination.currentPage}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to fetch roles: ${error.message}`, error.stack);
+      throw error;
+    }
   }
 }

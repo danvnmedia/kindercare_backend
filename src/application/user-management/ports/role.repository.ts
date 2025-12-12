@@ -1,10 +1,8 @@
-/**
- * Role Repository Port (Interface)
- * Defines the contract for role data access
- * Implementation will be provided by infrastructure layer
- */
-
-import { Role, CreateRoleData } from '../../../domain/user-management/role.entity';
+import {
+  Role,
+  CreateRoleData,
+} from "../../../domain/user-management/role.entity";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export interface FindAllRolesParams {
   page?: number;
@@ -12,16 +10,10 @@ export interface FindAllRolesParams {
   search?: string;
   ids?: string[];
   sortBy?: string;
-  order?: 'asc' | 'desc';
+  order?: "asc" | "desc";
 }
 
-export interface PaginatedRoles {
-  data: Role[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type PaginatedRoles = PaginatedResult<Role>;
 
 export interface RoleRepository {
   /**

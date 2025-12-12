@@ -5,6 +5,6 @@
 export class InvalidUserDataException extends Error {
   constructor(message: string) {
     super(`Invalid user data: ${message}`);
-    this.name = 'InvalidUserDataException';
+    this.name = "InvalidUserDataException";
   }
 }

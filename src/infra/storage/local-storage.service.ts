@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { StorageService } from '../../application/file-management/ports/storage.service';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { promisify } from 'node:util';
+import { Injectable } from "@nestjs/common";
+import { StorageService } from "../../application/file-management/ports/storage.service";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { promisify } from "node:util";
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 
 const mkdir = promisify(fs.mkdir);
 const unlink = promisify(fs.unlink);
@@ -14,7 +14,7 @@ const unlink = promisify(fs.unlink);
 export class LocalStorageService implements StorageService {
   constructor() {
     mkdir(UPLOAD_DIR, { recursive: true }).catch((err) => {
-      console.error('Failed to create upload directory', err);
+      console.error("Failed to create upload directory", err);
     });
   }
 

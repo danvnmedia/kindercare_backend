@@ -1,5 +1,5 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { UserPayload } from '@/types/globals';
+import { createParamDecorator, ExecutionContext } from "@nestjs/common";
+import { UserPayload } from "@/types/globals";
 
 /**
  * Decorator to extract the current authenticated user's Clerk ID from the request.

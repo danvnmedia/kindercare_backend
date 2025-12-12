@@ -1,2 +1,2 @@
-export * from './file.repository';
-export * from './storage.service';
+export * from "./file.repository";
+export * from "./storage.service";

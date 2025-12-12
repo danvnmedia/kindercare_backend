@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { StudentRepository } from '@/application/user-management/ports/student.repository';
-import { Student } from '@/domain/user-management/student.entity';
-import { PrismaStudentMapper } from '../mapper/prisma-student.mapper';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
-import { PrismaQueryService } from '@/core/modules/standard-response/services/prisma-query.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import { Student } from "@/domain/user-management/student.entity";
+import { PrismaStudentMapper } from "../mapper/prisma-student.mapper";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 @Injectable()
 export class PrismaStudentRepository implements StudentRepository {
@@ -53,26 +53,26 @@ export class PrismaStudentRepository implements StudentRepository {
   async findAll(params: StandardRequest): Promise<PaginatedResult<Student>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
-      'studentCode',
-      'fullName',
-      'email',
-      'phoneNumber',
-      'gender',
-      'nickname',
-      'isArchived',
+      "studentCode",
+      "fullName",
+      "email",
+      "phoneNumber",
+      "gender",
+      "nickname",
+      "isArchived",
     ];
     params.allowedSortFields = [
-      'createdAt',
-      'updatedAt',
-      'nickname',
-      'studentCode',
-      'fullName',
+      "createdAt",
+      "updatedAt",
+      "nickname",
+      "studentCode",
+      "fullName",
     ];
 
     // Use PrismaQueryService to execute query with StandardRequest
     return await this.queryService.executeQuery<Student>(
       this.prisma,
-      'student',
+      "student",
       params,
       {
         include: {
@@ -89,9 +89,9 @@ export class PrismaStudentRepository implements StudentRepository {
   }
 
   async save(
-    student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>,
+    student: Omit<Student, "id" | "createdAt" | "updatedAt">,
   ): Promise<Student> {
-    const prismaData = PrismaStudentMapper.toPrismaCreate(student);
+    const prismaData = PrismaStudentMapper.toPrisma(student);
     const created = await this.prisma.student.create({
       data: prismaData,
     });
@@ -127,7 +127,10 @@ export class PrismaStudentRepository implements StudentRepository {
     });
   }
 
-  async removeGuardians(studentId: string, guardianIds: string[]): Promise<void> {
+  async removeGuardians(
+    studentId: string,
+    guardianIds: string[],
+  ): Promise<void> {
     await this.prisma.guardianStudent.deleteMany({
       where: {
         studentId,

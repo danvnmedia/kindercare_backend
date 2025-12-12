@@ -5,20 +5,23 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { Student, StudentEntity } from '@/domain/user-management/student.entity';
-import { StudentRepository } from '../../ports/student.repository';
-import { GuardianRepository } from '../../ports/guardian.repository';
-import { UserRepository } from '../../ports/user.repository';
-import { IdentityService } from '@/infra/external-services/clerk/identity.service';
+} from "@nestjs/common";
+import { randomUUID } from "crypto";
+import {
+  Student,
+  StudentEntity,
+} from "@/domain/user-management/student.entity";
+import { StudentRepository } from "../../ports/student.repository";
+import { GuardianRepository } from "../../ports/guardian.repository";
+import { UserRepository } from "../../ports/user.repository";
+import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
 /**
  * Default weak password that forces user to reset on first login
  * This password is intentionally weak to violate most password policies
  * forcing the user to change it immediately
  */
-const DEFAULT_WEAK_PASSWORD = 'ChangeMe123!';
+const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateStudentInput {
   // Personal information (now stored directly in Student)
@@ -43,20 +46,18 @@ export class CreateStudentUseCase {
   private readonly logger = new Logger(CreateStudentUseCase.name);
 
   constructor(
-    @Inject('STUDENT_REPOSITORY')
+    @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
-    @Inject('GUARDIAN_REPOSITORY')
+    @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
   ) {}
 
   async execute(input: CreateStudentInput): Promise<Student> {
     try {
-      this.logger.log(
-        `Creating student: ${input.fullName}`,
-      );
+      this.logger.log(`Creating student: ${input.fullName}`);
 
       // ========== Step 1: Validate input data ==========
       this.validateInput(input);
@@ -90,13 +91,16 @@ export class CreateStudentUseCase {
       // ========== Step 7: Return created student with relations ==========
       const createdStudent = await this.studentRepository.findById(student.id);
       if (!createdStudent) {
-        throw new Error('Failed to retrieve created student');
+        throw new Error("Failed to retrieve created student");
       }
 
       this.logger.log(`Student creation completed: ${createdStudent.id}`);
       return createdStudent;
     } catch (error) {
-      this.logger.error(`Failed to create student: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create student: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -108,47 +112,54 @@ export class CreateStudentUseCase {
     // Validate full name
     if (!StudentEntity.validateFullName(input.fullName)) {
       throw new BadRequestException(
-        'Full name must be at least 2 characters and contain only valid characters',
+        "Full name must be at least 2 characters and contain only valid characters",
       );
     }
 
     // Validate email format (if provided)
     if (input.email && !StudentEntity.validateEmail(input.email)) {
-      throw new BadRequestException('Invalid email format');
+      throw new BadRequestException("Invalid email format");
     }
 
     // Validate phone number format (if provided)
-    if (input.phoneNumber && !StudentEntity.validatePhoneNumber(input.phoneNumber)) {
+    if (
+      input.phoneNumber &&
+      !StudentEntity.validatePhoneNumber(input.phoneNumber)
+    ) {
       throw new BadRequestException(
-        'Invalid phone number format (e.g., +84912345678)',
+        "Invalid phone number format (e.g., +84912345678)",
       );
     }
 
     // Validate gender
     if (input.gender && !StudentEntity.validateGender(input.gender)) {
-      throw new BadRequestException('Gender must be MALE, FEMALE, or OTHER');
+      throw new BadRequestException("Gender must be MALE, FEMALE, or OTHER");
     }
 
     // Validate nickname
     if (input.nickname && !StudentEntity.validateNickname(input.nickname)) {
       throw new BadRequestException(
-        'Nickname must be between 1 and 50 characters',
+        "Nickname must be between 1 and 50 characters",
       );
     }
 
     // Validate date of birth (must be in the past)
     if (input.dateOfBirth && input.dateOfBirth >= new Date()) {
-      throw new BadRequestException('Date of birth must be in the past');
+      throw new BadRequestException("Date of birth must be in the past");
     }
   }
 
   /**
    * Check Student uniqueness (email/phone)
    */
-  private async checkStudentUniqueness(input: CreateStudentInput): Promise<void> {
+  private async checkStudentUniqueness(
+    input: CreateStudentInput,
+  ): Promise<void> {
     // Check email uniqueness (if provided)
     if (input.email) {
-      const existingByEmail = await this.studentRepository.findByEmail(input.email);
+      const existingByEmail = await this.studentRepository.findByEmail(
+        input.email,
+      );
       if (existingByEmail) {
         throw new ConflictException(
           `Student with email ${input.email} already exists`,
@@ -158,7 +169,9 @@ export class CreateStudentUseCase {
 
     // Check phone uniqueness (if provided)
     if (input.phoneNumber) {
-      const existingByPhone = await this.studentRepository.findByPhoneNumber(input.phoneNumber);
+      const existingByPhone = await this.studentRepository.findByPhoneNumber(
+        input.phoneNumber,
+      );
       if (existingByPhone) {
         throw new ConflictException(
           `Student with phone number ${input.phoneNumber} already exists`,
@@ -177,7 +190,7 @@ export class CreateStudentUseCase {
 
     if (missingIds.length > 0) {
       throw new NotFoundException(
-        `Guardians not found: ${missingIds.join(', ')}`,
+        `Guardians not found: ${missingIds.join(", ")}`,
       );
     }
   }
@@ -186,7 +199,7 @@ export class CreateStudentUseCase {
    * Create Student with all personal information
    */
   private async createStudent(input: CreateStudentInput): Promise<Student> {
-    const studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> = {
+    const studentData: Omit<Student, "id" | "createdAt" | "updatedAt"> = {
       studentCode: randomUUID(),
       // Personal information (now stored directly in Student)
       fullName: input.fullName.trim(),
@@ -198,7 +211,7 @@ export class CreateStudentUseCase {
       // Student-specific data
       nickname: input.nickname?.trim() || null,
       gender: input.gender || null,
-      status: input.status || 'WAITING',
+      status: input.status || "WAITING",
       isArchived: false,
     };
 
@@ -215,7 +228,7 @@ export class CreateStudentUseCase {
   ): Promise<void> {
     const guardianRelations = guardianIds.map((guardianId) => ({
       guardianId,
-      relationshipId: 'GUARDIAN', // Default to GUARDIAN, can be customized later
+      relationshipId: "GUARDIAN", // Default to GUARDIAN, can be customized later
     }));
 
     await this.studentRepository.assignGuardians(studentId, guardianRelations);
@@ -230,7 +243,7 @@ export class CreateStudentUseCase {
       // Validate that email or phone is provided for Clerk
       if (!student.email && !student.phoneNumber) {
         throw new BadRequestException(
-          'Email or phone number is required to create user account',
+          "Email or phone number is required to create user account",
         );
       }
 

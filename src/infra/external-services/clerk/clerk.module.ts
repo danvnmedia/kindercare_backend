@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { IdentityService } from './identity.service';
-import { ClerkClientProvider } from './clerk-client.provider';
-import { ClerkAuthenticationAdapter } from './clerk-authentication.adapter';
+import { Module } from "@nestjs/common";
+import { IdentityService } from "./identity.service";
+import { ClerkClientProvider } from "./clerk-client.provider";
+import { ClerkAuthenticationAdapter } from "./clerk-authentication.adapter";
 
 /**
  * Clerk Module
@@ -33,7 +33,7 @@ import { ClerkAuthenticationAdapter } from './clerk-authentication.adapter';
 
     // Authentication adapter implementing port
     {
-      provide: 'AUTHENTICATION_PORT',
+      provide: "AUTHENTICATION_PORT",
       useClass: ClerkAuthenticationAdapter,
     },
   ],
@@ -42,7 +42,7 @@ import { ClerkAuthenticationAdapter } from './clerk-authentication.adapter';
     IdentityService,
 
     // Export authentication port for guards
-    'AUTHENTICATION_PORT',
+    "AUTHENTICATION_PORT",
   ],
 })
 export class ClerkModule {}

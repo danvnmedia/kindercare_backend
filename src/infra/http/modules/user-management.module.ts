@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module } from "@nestjs/common";
 
 // Controllers
-import { RoleController } from '../controllers/user-management/role.controller';
-import { StudentController } from '../controllers/user-management/student.controller';
-import { GuardianController } from '../controllers/user-management/guardian.controller';
+import { RoleController } from "../controllers/user-management/role.controller";
+import { StudentController } from "../controllers/user-management/student.controller";
+import { GuardianController } from "../controllers/user-management/guardian.controller";
 
 // NOTE: User use cases are commented out until they are refactored to work with Person-based model
 // import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
@@ -15,35 +15,35 @@ import { GuardianController } from '../controllers/user-management/guardian.cont
 // import { RemoveRolesFromUserUseCase } from '@/application/user-management/use-cases/user/remove-roles-from-user.use-case';
 
 // Use Cases - Role
-import { CreateRoleUseCase } from '@/application/user-management/use-cases/role/create-role.use-case';
-import { GetRoleByIdUseCase } from '@/application/user-management/use-cases/role/get-role-by-id.use-case';
-import { GetAllRolesUseCase } from '@/application/user-management/use-cases/role/get-all-roles.use-case';
-import { UpdateRoleUseCase } from '@/application/user-management/use-cases/role/update-role.use-case';
-import { DeleteRoleUseCase } from '@/application/user-management/use-cases/role/delete-role.use-case';
-import { AssignUsersToRoleUseCase } from '@/application/user-management/use-cases/role/assign-users-to-role.use-case';
-import { RemoveUsersFromRoleUseCase } from '@/application/user-management/use-cases/role/remove-users-from-role.use-case';
+import { CreateRoleUseCase } from "@/application/user-management/use-cases/role/create-role.use-case";
+import { GetRoleByIdUseCase } from "@/application/user-management/use-cases/role/get-role-by-id.use-case";
+import { GetAllRolesUseCase } from "@/application/user-management/use-cases/role/get-all-roles.use-case";
+import { UpdateRoleUseCase } from "@/application/user-management/use-cases/role/update-role.use-case";
+import { DeleteRoleUseCase } from "@/application/user-management/use-cases/role/delete-role.use-case";
+import { AssignUsersToRoleUseCase } from "@/application/user-management/use-cases/role/assign-users-to-role.use-case";
+import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-cases/role/remove-users-from-role.use-case";
 
 // Use Cases - Student
-import { CreateStudentUseCase } from '@/application/user-management/use-cases/student/create-student.use-case';
-import { GetAllStudentsUseCase } from '@/application/user-management/use-cases/student/get-all-students.use-case';
-import { LinkStudentWithGuardianUseCase } from '@/application/user-management/use-cases/student/link-student-with-guardian.use-case';
-import { UnlinkStudentFromGuardianUseCase } from '@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case';
-import { GetStudentGuardiansUseCase } from '@/application/user-management/use-cases/student/get-student-guardians.use-case';
+import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
+import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
+import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
+import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
 
 // Use Cases - Guardian
-import { CreateGuardianUseCase } from '@/application/user-management/use-cases/guardian/create-guardian.use-case';
-import { GetAllGuardiansUseCase } from '@/application/user-management/use-cases/guardian/get-all-guardians.use-case';
+import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
+import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
 
 // Repositories
-import { PrismaUserRepository } from '@/infra/persistence/prisma/repositories/prisma-user.repository';
-import { PrismaRoleRepository } from '@/infra/persistence/prisma/repositories/prisma-role.repository';
-import { PrismaStudentRepository } from '@/infra/persistence/prisma/repositories/prisma-student.repository';
-import { PrismaGuardianRepository } from '@/infra/persistence/prisma/repositories/prisma-guardian.repository';
+import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/prisma-user.repository";
+import { PrismaRoleRepository } from "@/infra/persistence/prisma/repositories/prisma-role.repository";
+import { PrismaStudentRepository } from "@/infra/persistence/prisma/repositories/prisma-student.repository";
+import { PrismaGuardianRepository } from "@/infra/persistence/prisma/repositories/prisma-guardian.repository";
 
 // Modules
-import { PrismaModule } from '@/infra/persistence/prisma/prisma.module';
-import { ClerkModule } from '@/infra/external-services/clerk/clerk.module';
-import { StandardResponseModule } from '@/core/modules/standard-response/standard-response.module';
+import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
+import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
+import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 
 /**
  * User Management Module
@@ -98,27 +98,27 @@ import { StandardResponseModule } from '@/core/modules/standard-response/standar
 
     // Repositories with Dependency Injection Tokens
     {
-      provide: 'USER_REPOSITORY',
+      provide: "USER_REPOSITORY",
       useClass: PrismaUserRepository,
     },
     {
-      provide: 'ROLE_REPOSITORY',
+      provide: "ROLE_REPOSITORY",
       useClass: PrismaRoleRepository,
     },
     {
-      provide: 'STUDENT_REPOSITORY',
+      provide: "STUDENT_REPOSITORY",
       useClass: PrismaStudentRepository,
     },
     {
-      provide: 'GUARDIAN_REPOSITORY',
+      provide: "GUARDIAN_REPOSITORY",
       useClass: PrismaGuardianRepository,
     },
   ],
   exports: [
-    'USER_REPOSITORY',
-    'ROLE_REPOSITORY',
-    'STUDENT_REPOSITORY',
-    'GUARDIAN_REPOSITORY',
+    "USER_REPOSITORY",
+    "ROLE_REPOSITORY",
+    "STUDENT_REPOSITORY",
+    "GUARDIAN_REPOSITORY",
   ],
 })
 export class UserManagementModule {}

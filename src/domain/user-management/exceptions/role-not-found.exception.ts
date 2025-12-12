@@ -5,6 +5,6 @@
 export class RoleNotFoundException extends Error {
   constructor(identifier: number | string) {
     super(`Role with ID ${identifier} not found`);
-    this.name = 'RoleNotFoundException';
+    this.name = "RoleNotFoundException";
   }
 }

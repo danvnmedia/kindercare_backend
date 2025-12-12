@@ -10,9 +10,9 @@ import {
   Guardian as PrismaGuardian,
   GuardianRelationship as PrismaGuardianRelationship,
   GuardianStudent as PrismaGuardianStudent,
-} from '@prisma/client';
-import { Student } from '../../../../domain/user-management/student.entity';
-import { Prisma } from '@prisma/client';
+} from "@prisma/client";
+import { Student } from "../../../../domain/user-management/student.entity";
+import { Prisma } from "@prisma/client";
 
 type PrismaStudentWithRelations = PrismaStudent & {
   class?: PrismaClass | null;
@@ -26,7 +26,7 @@ type PrismaStudentWithRelations = PrismaStudent & {
 
 export class PrismaStudentMapper {
   /**
-   * Map Prisma model to domain entity
+   * Convert Prisma model to Domain entity (full)
    */
   static toDomain(prismaStudent: PrismaStudentWithRelations): Student {
     const guardians = prismaStudent.guardians
@@ -59,11 +59,34 @@ export class PrismaStudentMapper {
   }
 
   /**
-   * Map domain entity to Prisma create input
+   * Convert Prisma model to Domain entity (without nested relations)
+   * Use to prevent circular references
    */
-  static toPrismaCreate(
-    student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Prisma.StudentCreateInput {
+  static toDomainSimple(prismaStudent: PrismaStudent): Student {
+    return {
+      id: prismaStudent.id,
+      studentCode: prismaStudent.studentCode,
+      fullName: prismaStudent.fullName,
+      email: prismaStudent.email,
+      phoneNumber: prismaStudent.phoneNumber,
+      address: prismaStudent.address,
+      dateOfBirth: prismaStudent.dateOfBirth,
+      nickname: prismaStudent.nickname,
+      gender: prismaStudent.gender,
+      status: prismaStudent.status,
+      guardians: undefined, // No nested relations to prevent circular references
+      isArchived: prismaStudent.isArchived,
+      createdAt: prismaStudent.createdAt,
+      updatedAt: prismaStudent.updatedAt,
+    };
+  }
+
+  /**
+   * Convert Domain entity to Prisma create input
+   */
+  static toPrisma(
+    student: Omit<Student, "id" | "createdAt" | "updatedAt">,
+  ): Prisma.StudentUncheckedCreateInput {
     return {
       studentCode: student.studentCode,
       fullName: student.fullName,
@@ -73,28 +96,42 @@ export class PrismaStudentMapper {
       dateOfBirth: student.dateOfBirth,
       nickname: student.nickname,
       gender: student.gender,
-      status: student.status ?? 'WAITING',
+      status: student.status ?? "WAITING",
       isArchived: student.isArchived ?? false,
     };
   }
 
   /**
-   * Map partial domain entity to Prisma update input
+   * Convert Domain entity to Prisma update input
    */
   static toPrismaUpdate(student: Partial<Student>): Prisma.StudentUpdateInput {
     const data: Prisma.StudentUpdateInput = {};
 
     if (student.fullName !== undefined) data.fullName = student.fullName;
     if (student.email !== undefined) data.email = student.email;
-    if (student.phoneNumber !== undefined) data.phoneNumber = student.phoneNumber;
+    if (student.phoneNumber !== undefined)
+      data.phoneNumber = student.phoneNumber;
     if (student.address !== undefined) data.address = student.address;
-    if (student.dateOfBirth !== undefined) data.dateOfBirth = student.dateOfBirth;
+    if (student.dateOfBirth !== undefined)
+      data.dateOfBirth = student.dateOfBirth;
     if (student.nickname !== undefined) data.nickname = student.nickname;
     if (student.gender !== undefined) data.gender = student.gender;
     if (student.status !== undefined) data.status = student.status;
-    if (student.studentCode !== undefined) data.studentCode = student.studentCode;
+    if (student.studentCode !== undefined)
+      data.studentCode = student.studentCode;
     if (student.isArchived !== undefined) data.isArchived = student.isArchived;
 
     return data;
+  }
+
+  /**
+   * Convert array of Prisma models to Domain entities
+   */
+  static toDomainArray(
+    prismaStudents: PrismaStudentWithRelations[],
+  ): Student[] {
+    return prismaStudents.map((prismaStudent) =>
+      PrismaStudentMapper.toDomain(prismaStudent),
+    );
   }
 }

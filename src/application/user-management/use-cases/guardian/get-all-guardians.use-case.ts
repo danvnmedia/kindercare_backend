@@ -1,15 +1,15 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { GuardianRepository } from '../../ports/guardian.repository';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
-import { Guardian } from '@/domain/user-management/guardian.entity';
+import { Injectable, Inject, Logger } from "@nestjs/common";
+import { GuardianRepository } from "../../ports/guardian.repository";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { Guardian } from "@/domain/user-management/guardian.entity";
 
 @Injectable()
 export class GetAllGuardiansUseCase {
   private readonly logger = new Logger(GetAllGuardiansUseCase.name);
 
   constructor(
-    @Inject('GUARDIAN_REPOSITORY')
+    @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
   ) {}
 
@@ -27,7 +27,10 @@ export class GetAllGuardiansUseCase {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to fetch guardians: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch guardians: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

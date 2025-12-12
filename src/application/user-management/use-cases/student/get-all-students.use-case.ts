@@ -1,15 +1,15 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { StudentRepository } from '../../ports/student.repository';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
-import { Student } from '@/domain/user-management/student.entity';
+import { Injectable, Inject, Logger } from "@nestjs/common";
+import { StudentRepository } from "../../ports/student.repository";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { Student } from "@/domain/user-management/student.entity";
 
 @Injectable()
 export class GetAllStudentsUseCase {
   private readonly logger = new Logger(GetAllStudentsUseCase.name);
 
   constructor(
-    @Inject('STUDENT_REPOSITORY')
+    @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
   ) {}
 
@@ -27,7 +27,10 @@ export class GetAllStudentsUseCase {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to fetch students: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch students: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

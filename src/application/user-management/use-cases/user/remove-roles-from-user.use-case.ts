@@ -1,15 +1,15 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { UserRepository } from '../../ports/user.repository';
-import { RoleRepository } from '../../ports/role.repository';
-import { UserNotFoundException } from '../../../../domain/user-management/exceptions/user-not-found.exception';
-import { RoleNotFoundException } from '../../../../domain/user-management/exceptions/role-not-found.exception';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { UserRepository } from "../../ports/user.repository";
+import { RoleRepository } from "../../ports/role.repository";
+import { UserNotFoundException } from "../../../../domain/user-management/exceptions/user-not-found.exception";
+import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
 
 @Injectable()
 export class RemoveRolesFromUserUseCase {
   constructor(
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
   ) {}
 

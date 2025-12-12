@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { StudentRepository } from '../../ports/student.repository';
-import { GuardianRepository } from '../../ports/guardian.repository';
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import { StudentRepository } from "../../ports/student.repository";
+import { GuardianRepository } from "../../ports/guardian.repository";
 
 export interface UnlinkStudentFromGuardianInput {
   studentId: string;
@@ -17,9 +12,9 @@ export class UnlinkStudentFromGuardianUseCase {
   private readonly logger = new Logger(UnlinkStudentFromGuardianUseCase.name);
 
   constructor(
-    @Inject('STUDENT_REPOSITORY')
+    @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
-    @Inject('GUARDIAN_REPOSITORY')
+    @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
   ) {}
 
@@ -32,17 +27,22 @@ export class UnlinkStudentFromGuardianUseCase {
       // Check student exists
       const student = await this.studentRepository.findById(input.studentId);
       if (!student) {
-        throw new NotFoundException(`Student with ID ${input.studentId} not found`);
+        throw new NotFoundException(
+          `Student with ID ${input.studentId} not found`,
+        );
       }
 
       // Check guardian exists
       const guardian = await this.guardianRepository.findById(input.guardianId);
       if (!guardian) {
-        throw new NotFoundException(`Guardian with ID ${input.guardianId} not found`);
+        throw new NotFoundException(
+          `Guardian with ID ${input.guardianId} not found`,
+        );
       }
 
       // Check if relationship exists
-      const existingGuardians = await this.studentRepository.getStudentGuardians(input.studentId);
+      const existingGuardians =
+        await this.studentRepository.getStudentGuardians(input.studentId);
       const existingRelation = existingGuardians.find(
         (g) => g.guardianId === input.guardianId,
       );
@@ -53,7 +53,9 @@ export class UnlinkStudentFromGuardianUseCase {
       }
 
       // Remove the link
-      await this.studentRepository.removeGuardians(input.studentId, [input.guardianId]);
+      await this.studentRepository.removeGuardians(input.studentId, [
+        input.guardianId,
+      ]);
 
       this.logger.log(
         `Successfully unlinked student ${input.studentId} from guardian ${input.guardianId}`,

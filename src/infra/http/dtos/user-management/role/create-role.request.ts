@@ -1,10 +1,17 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsObject, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 
 export class CreateRoleRequest {
   @ApiProperty({
-    description: 'Role name (unique)',
-    example: 'ADMIN',
+    description: "Role name (unique)",
+    example: "ADMIN",
     minLength: 2,
     maxLength: 50,
   })
@@ -15,8 +22,8 @@ export class CreateRoleRequest {
   name: string;
 
   @ApiProperty({
-    description: 'Role description',
-    example: 'Administrator with full access',
+    description: "Role description",
+    example: "Administrator with full access",
     required: false,
   })
   @IsOptional()
@@ -25,8 +32,8 @@ export class CreateRoleRequest {
   description?: string;
 
   @ApiProperty({
-    description: 'Permissions object',
-    example: { users: ['create', 'read', 'update', 'delete'], roles: ['read'] },
+    description: "Permissions object",
+    example: { users: ["create", "read", "update", "delete"], roles: ["read"] },
   })
   @IsNotEmpty()
   @IsObject()

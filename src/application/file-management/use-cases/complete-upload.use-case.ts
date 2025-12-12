@@ -1,8 +1,8 @@
-import { UniqueEntityID } from '@/core/entities/unique-entity-id';
-import { Either, left, right } from '@/core/types/either';
-import { File } from '@/domain/file-management/entities/file.entity';
-import { FileStatus } from '@/domain/file-management/enums/file-status.enum';
-import { FileRepository } from '../ports/file.repository';
+import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { Either, left, right } from "@/core/types/either";
+import { File } from "@/domain/file-management/entities/file.entity";
+import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
+import { FileRepository } from "../ports/file.repository";
 
 export interface CompleteUploadUseCaseRequest {
   fileId: UniqueEntityID;
@@ -19,7 +19,7 @@ export class CompleteUploadUseCase {
     const file = await this.fileRepository.findById(fileId.toString());
 
     if (!file) {
-      return left(new Error('File not found.'));
+      return left(new Error("File not found."));
     }
 
     // Optionally, add logic to verify file existence in storage

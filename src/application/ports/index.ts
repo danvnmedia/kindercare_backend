@@ -9,4 +9,4 @@
  * - Infrastructure layer defines HOW to do it (implementations)
  */
 
-export * from './authentication.port';
+export * from "./authentication.port";

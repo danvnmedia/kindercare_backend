@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { UserManagementModule } from './modules/user-management.module';
-import { AuthModule } from './modules/auth.module';
-import { FileManagementModule } from './modules/file-management/file-management.module';
+import { Module } from "@nestjs/common";
+import { UserManagementModule } from "./modules/user-management.module";
+import { AuthModule } from "./modules/auth.module";
+import { FileManagementModule } from "./modules/file-management/file-management.module";
 
 /**
  * HTTP Module

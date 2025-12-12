@@ -1,18 +1,13 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { StudentRepository } from '../../ports/student.repository';
-import { StudentGuardianInfo } from '@/domain/user-management/student.entity';
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import { StudentRepository } from "../../ports/student.repository";
+import { StudentGuardianInfo } from "@/domain/user-management/student.entity";
 
 @Injectable()
 export class GetStudentGuardiansUseCase {
   private readonly logger = new Logger(GetStudentGuardiansUseCase.name);
 
   constructor(
-    @Inject('STUDENT_REPOSITORY')
+    @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
   ) {}
 
@@ -27,7 +22,8 @@ export class GetStudentGuardiansUseCase {
       }
 
       // Get guardians
-      const guardians = await this.studentRepository.getStudentGuardians(studentId);
+      const guardians =
+        await this.studentRepository.getStudentGuardians(studentId);
 
       this.logger.log(
         `Found ${guardians.length} guardians for student ${studentId}`,

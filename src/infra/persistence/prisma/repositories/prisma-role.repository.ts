@@ -1,17 +1,25 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../prisma.service';
+import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma.service";
 import {
   RoleRepository,
   FindAllRolesParams,
   PaginatedRoles,
-} from '../../../../application/user-management/ports/role.repository';
-import { Role, CreateRoleData } from '../../../../domain/user-management/role.entity';
-import { PrismaRoleMapper } from '../mapper/prisma-role.mapper';
+} from "../../../../application/user-management/ports/role.repository";
+import {
+  Role,
+  CreateRoleData,
+} from "../../../../domain/user-management/role.entity";
+import { PrismaRoleMapper } from "../mapper/prisma-role.mapper";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 
 @Injectable()
 export class PrismaRoleRepository implements RoleRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,
+  ) {}
 
   async findById(id: string): Promise<Role | null> {
     const prismaRole = await this.prisma.role.findUnique({
@@ -29,53 +37,21 @@ export class PrismaRoleRepository implements RoleRepository {
     return prismaRole ? PrismaRoleMapper.toDomain(prismaRole) : null;
   }
 
-  async findAll(params: FindAllRolesParams): Promise<PaginatedRoles> {
-    const page = params.page ?? 1;
-    const limit = params.limit ?? 20;
-    const skip = (page - 1) * limit;
+  async findAll(params: StandardRequest): Promise<PaginatedRoles> {
+    params.allowedFilterFields = ["name", "description"];
+    params.allowedSortFields = ["createdAt", "name"];
 
-    // Build where clause
-    const where: Prisma.RoleWhereInput = {
-      AND: [
-        params.search
-          ? {
-              OR: [
-                { name: { contains: params.search, mode: 'insensitive' } },
-                { description: { contains: params.search, mode: 'insensitive' } },
-              ],
-            }
-          : {},
-        params.ids && params.ids.length > 0 ? { id: { in: params.ids } } : {},
-      ],
-    };
-
-    // Build orderBy clause
-    const orderBy: Prisma.RoleOrderByWithRelationInput = {
-      [params.sortBy ?? 'createdAt']: params.order ?? 'desc',
-    };
-
-    // Execute queries
-    const [prismaRoles, total] = await Promise.all([
-      this.prisma.role.findMany({
-        where,
-        orderBy,
-        skip,
-        take: limit,
-      }),
-      this.prisma.role.count({ where }),
-    ]);
-
-    return {
-      data: prismaRoles.map(PrismaRoleMapper.toDomain),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / Math.max(limit, 1)),
-    };
+    return await this.queryService.executeQuery<Role>(
+      this.prisma,
+      "role",
+      params,
+      {},
+      PrismaRoleMapper,
+    );
   }
 
   async save(role: CreateRoleData): Promise<Role> {
-    const prismaData = PrismaRoleMapper.toPrismaCreate(role);
+    const prismaData = PrismaRoleMapper.toPrisma(role);
 
     const created = await this.prisma.role.create({
       data: prismaData,
@@ -118,7 +94,11 @@ export class PrismaRoleRepository implements RoleRepository {
     });
   }
 
-  async getRoleUsers(roleId: string, page: number, limit: number): Promise<any> {
+  async getRoleUsers(
+    roleId: string,
+    page: number,
+    limit: number,
+  ): Promise<any> {
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const skip = (safePage - 1) * safeLimit;
@@ -128,7 +108,7 @@ export class PrismaRoleRepository implements RoleRepository {
         where: { userRoles: { some: { roleId } } },
         skip,
         take: safeLimit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         select: {
           id: true,
           clerkUid: true,

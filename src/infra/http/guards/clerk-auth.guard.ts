@@ -5,9 +5,9 @@ import {
   Logger,
   Inject,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { AuthenticationPort } from '@/application/ports/authentication.port';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { AuthenticationPort } from "@/application/ports/authentication.port";
 
 /**
  * Clerk Authentication Guard
@@ -42,7 +42,7 @@ export class ClerkAuthGuard implements CanActivate {
   private readonly logger = new Logger(ClerkAuthGuard.name);
 
   constructor(
-    @Inject('AUTHENTICATION_PORT')
+    @Inject("AUTHENTICATION_PORT")
     private readonly authenticationPort: AuthenticationPort,
     private readonly reflector: Reflector,
   ) {}
@@ -56,7 +56,7 @@ export class ClerkAuthGuard implements CanActivate {
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Check if route is marked as public
-    const isPublic = this.reflector.getAllAndOverride<boolean>('isPublic', [
+    const isPublic = this.reflector.getAllAndOverride<boolean>("isPublic", [
       context.getHandler(),
       context.getClass(),
     ]);
@@ -69,16 +69,15 @@ export class ClerkAuthGuard implements CanActivate {
 
     try {
       // Verify authentication using port (abstraction)
-      const result = await this.authenticationPort.verifyAuthentication(
-        request,
-      );
+      const result =
+        await this.authenticationPort.verifyAuthentication(request);
 
       if (!result.isAuthenticated || !result.userId) {
         this.logger.warn(
-          `Authentication failed: ${result.error || 'No user ID'}`,
+          `Authentication failed: ${result.error || "No user ID"}`,
         );
         throw new UnauthorizedException(
-          result.error || 'Authentication required',
+          result.error || "Authentication required",
         );
       }
 
@@ -90,13 +89,13 @@ export class ClerkAuthGuard implements CanActivate {
       return true;
     } catch (error) {
       // Log error and deny access
-      this.logger.error('Authentication error', error);
+      this.logger.error("Authentication error", error);
 
       if (error instanceof UnauthorizedException) {
         throw error;
       }
 
-      throw new UnauthorizedException('Authentication failed');
+      throw new UnauthorizedException("Authentication failed");
     }
   }
 }

@@ -4,9 +4,9 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Student } from '../../../domain/user-management/student.entity';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
+import { Student } from "../../../domain/user-management/student.entity";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export interface StudentRepository {
   /**
@@ -37,7 +37,9 @@ export interface StudentRepository {
   /**
    * Save a new student
    */
-  save(student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'>): Promise<Student>;
+  save(
+    student: Omit<Student, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Student>;
 
   /**
    * Update existing student

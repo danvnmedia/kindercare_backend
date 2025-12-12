@@ -1,12 +1,12 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { Role } from '../../../../domain/user-management/role.entity';
-import { RoleRepository } from '../../ports/role.repository';
-import { RoleNotFoundException } from '../../../../domain/user-management/exceptions/role-not-found.exception';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { Role } from "../../../../domain/user-management/role.entity";
+import { RoleRepository } from "../../ports/role.repository";
+import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
 
 @Injectable()
 export class GetRoleByIdUseCase {
   constructor(
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
   ) {}
 

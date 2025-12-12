@@ -1,9 +1,7 @@
 /**
  * HTTP Mappers
  *
- * Barrel export file for all HTTP layer mappers.
- * Mappers transform DTOs (presentation layer) to Use Case Inputs (application layer).
+ * @deprecated HTTP mappers are being phased out. Use @Transform decorators in Response DTOs instead.
+ * See PROJECT.md section 6.1 for the new pattern.
  */
-// export * from './user-input.mapper'; // Temporarily disabled
-export * from './student-input.mapper';
-export * from './guardian-input.mapper';
+// All mappers have been removed - use class-transformer decorators in DTOs

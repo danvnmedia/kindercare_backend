@@ -52,10 +52,10 @@ export class RoleEntity {
    */
   static validateName(name: string): void {
     if (!name || name.trim().length === 0) {
-      throw new Error('Role name cannot be empty');
+      throw new Error("Role name cannot be empty");
     }
     if (name.trim().length < 2) {
-      throw new Error('Role name must be at least 2 characters');
+      throw new Error("Role name must be at least 2 characters");
     }
   }
 
@@ -63,8 +63,8 @@ export class RoleEntity {
    * Validate permissions structure
    */
   static validatePermissions(permissions: Record<string, any>): void {
-    if (!permissions || typeof permissions !== 'object') {
-      throw new Error('Permissions must be a valid object');
+    if (!permissions || typeof permissions !== "object") {
+      throw new Error("Permissions must be a valid object");
     }
   }
 
@@ -74,12 +74,8 @@ export class RoleEntity {
    * @param resource Resource name (e.g., 'users')
    * @param action Action name (e.g., 'create')
    */
-  static hasPermission(
-    role: Role,
-    resource: string,
-    action: string,
-  ): boolean {
-    if (!role.permissions || typeof role.permissions !== 'object') {
+  static hasPermission(role: Role, resource: string, action: string): boolean {
+    if (!role.permissions || typeof role.permissions !== "object") {
       return false;
     }
 
@@ -98,17 +94,15 @@ export class RoleEntity {
   /**
    * Add permission to role
    */
-  static addPermission(
-    role: Role,
-    resource: string,
-    action: string,
-  ): Role {
+  static addPermission(role: Role, resource: string, action: string): Role {
     const updatedPermissions = { ...role.permissions };
 
     // Handle array format
     if (Array.isArray(updatedPermissions)) {
       const permissions = updatedPermissions as Permission[];
-      const existingIndex = permissions.findIndex((p) => p.resource === resource);
+      const existingIndex = permissions.findIndex(
+        (p) => p.resource === resource,
+      );
 
       if (existingIndex >= 0) {
         if (!permissions[existingIndex].actions.includes(action)) {
@@ -129,22 +123,20 @@ export class RoleEntity {
   /**
    * Remove permission from role
    */
-  static removePermission(
-    role: Role,
-    resource: string,
-    action: string,
-  ): Role {
+  static removePermission(role: Role, resource: string, action: string): Role {
     const updatedPermissions = { ...role.permissions };
 
     // Handle array format
     if (Array.isArray(updatedPermissions)) {
       const permissions = updatedPermissions as Permission[];
-      const existingIndex = permissions.findIndex((p) => p.resource === resource);
+      const existingIndex = permissions.findIndex(
+        (p) => p.resource === resource,
+      );
 
       if (existingIndex >= 0) {
-        permissions[existingIndex].actions = permissions[existingIndex].actions.filter(
-          (a) => a !== action,
-        );
+        permissions[existingIndex].actions = permissions[
+          existingIndex
+        ].actions.filter((a) => a !== action);
 
         // Remove resource if no actions left
         if (permissions[existingIndex].actions.length === 0) {

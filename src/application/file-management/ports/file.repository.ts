@@ -1,5 +1,5 @@
-import { File } from '../../../domain/file-management/entities/file.entity';
-import { FileStatus } from '../../../domain/file-management/enums/file-status.enum';
+import { File } from "../../../domain/file-management/entities/file.entity";
+import { FileStatus } from "../../../domain/file-management/enums/file-status.enum";
 
 export abstract class FileRepository {
   abstract create(file: File): Promise<File>;

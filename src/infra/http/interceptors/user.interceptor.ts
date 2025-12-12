@@ -5,9 +5,9 @@ import {
   CallHandler,
   Inject,
   Logger,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { UserRepository } from '../../../application/user-management/ports/user.repository';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { UserRepository } from "../../../application/user-management/ports/user.repository";
 
 /**
  * Interceptor to fetch and attach User entity to request.
@@ -28,7 +28,7 @@ export class UserInterceptor implements NestInterceptor {
   private readonly logger = new Logger(UserInterceptor.name);
 
   constructor(
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
   ) {}
 
@@ -40,7 +40,9 @@ export class UserInterceptor implements NestInterceptor {
     const clerkId = request.clerkId;
 
     if (!clerkId) {
-      this.logger.warn('No clerkId found in request. Ensure ClerkAuthGuard is applied.');
+      this.logger.warn(
+        "No clerkId found in request. Ensure ClerkAuthGuard is applied.",
+      );
       return next.handle();
     }
 
@@ -55,7 +57,7 @@ export class UserInterceptor implements NestInterceptor {
         this.logger.warn(`User not found for clerkId: ${clerkId}`);
       }
     } catch (error) {
-      this.logger.error('Failed to fetch user', error);
+      this.logger.error("Failed to fetch user", error);
     }
 
     return next.handle();

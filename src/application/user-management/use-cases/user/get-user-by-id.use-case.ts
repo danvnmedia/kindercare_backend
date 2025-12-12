@@ -1,12 +1,12 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { User } from '../../../../domain/user-management/user.entity';
-import { UserRepository } from '../../ports/user.repository';
-import { UserNotFoundException } from '../../../../domain/user-management/exceptions/user-not-found.exception';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { User } from "../../../../domain/user-management/user.entity";
+import { UserRepository } from "../../ports/user.repository";
+import { UserNotFoundException } from "../../../../domain/user-management/exceptions/user-not-found.exception";
 
 @Injectable()
 export class GetUserByIdUseCase {
   constructor(
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
   ) {}
 

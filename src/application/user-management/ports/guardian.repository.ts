@@ -4,9 +4,9 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Guardian } from '../../../domain/user-management/guardian.entity';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
+import { Guardian } from "../../../domain/user-management/guardian.entity";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export interface GuardianRepository {
   /**
@@ -37,7 +37,9 @@ export interface GuardianRepository {
   /**
    * Save a new guardian
    */
-  save(guardian: Omit<Guardian, 'id' | 'createdAt' | 'updatedAt'>): Promise<Guardian>;
+  save(
+    guardian: Omit<Guardian, "id" | "createdAt" | "updatedAt">,
+  ): Promise<Guardian>;
 
   /**
    * Update existing guardian

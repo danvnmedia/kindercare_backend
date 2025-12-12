@@ -7,7 +7,7 @@
  * User can be either a Guardian or Teacher (NOT Student - kindergarten kids don't login)
  */
 
-import { Role } from './role.entity';
+import { Role } from "./role.entity";
 
 /**
  * User entity - represents authentication capability

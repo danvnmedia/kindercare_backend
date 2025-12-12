@@ -1,12 +1,10 @@
-/**
- * User Repository Port (Interface)
- * Defines the contract for user data access
- * Implementation will be provided by infrastructure layer
- */
+import { User } from "../../../domain/user-management/user.entity";
+import {
+  PaginatedResult,
+  QueryOptions,
+} from "@/core/modules/standard-response/dto/query.dto";
 
-import { User } from '../../../domain/user-management/user.entity';
-
-export interface FindAllUsersParams {
+export interface FindAllUsersParams extends QueryOptions {
   page?: number;
   limit?: number;
   search?: string;
@@ -14,16 +12,10 @@ export interface FindAllUsersParams {
   isActive?: boolean;
   roleIds?: string[];
   sortBy?: string;
-  order?: 'asc' | 'desc';
+  order?: "asc" | "desc";
 }
 
-export interface PaginatedUsers {
-  data: User[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+export type PaginatedUsers = PaginatedResult<User>;
 
 export interface UserRepository {
   /**
@@ -49,7 +41,7 @@ export interface UserRepository {
   /**
    * Save a new user
    */
-  save(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User>;
+  save(user: Omit<User, "id" | "createdAt" | "updatedAt">): Promise<User>;
 
   /**
    * Update existing user

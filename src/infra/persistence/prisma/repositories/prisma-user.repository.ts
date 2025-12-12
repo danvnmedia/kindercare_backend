@@ -1,12 +1,20 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { UserRepository, FindAllUsersParams, PaginatedUsers } from '@/application/user-management/ports/user.repository';
-import { User } from '@/domain/user-management';
-import { PrismaUserMapper } from '../mapper/prisma-user.mapper';
+import { Injectable, Inject } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import {
+  UserRepository,
+  FindAllUsersParams,
+  PaginatedUsers,
+} from "@/application/user-management/ports/user.repository";
+import { User } from "@/domain/user-management";
+import { PrismaUserMapper } from "../mapper/prisma-user.mapper";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,
+  ) {}
 
   async findById(id: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({
@@ -24,15 +32,15 @@ export class PrismaUserRepository implements UserRepository {
         OR: [
           {
             guardian: {
-              email: email
-            }
+              email: email,
+            },
           },
           {
             teacher: {
-              email: email
-            }
-          }
-        ]
+              email: email,
+            },
+          },
+        ],
       },
       include: {
         userRoles: { include: { role: true } },
@@ -50,70 +58,28 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findAll(params: FindAllUsersParams): Promise<PaginatedUsers> {
-    const { page = 1, limit = 10, search, ids, isActive, roleIds, sortBy = 'id', order = 'asc' } = params;
+    params.allowedFilterFields = ["isActive"];
+    params.allowedSortFields = ["createdAt"];
 
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
-
-    if (search) {
-      // Search in Guardian or Teacher email/fullName
-      where.OR = [
-        {
-          guardian: {
-            OR: [
-              { email: { contains: search, mode: 'insensitive' } },
-              { fullName: { contains: search, mode: 'insensitive' } },
-              { phoneNumber: { contains: search } },
-            ]
-          }
+    return await this.queryService.executeQuery<User>(
+      this.prisma,
+      "user",
+      params,
+      {
+        include: {
+          userRoles: { include: { role: true } },
+          guardian: true,
+          teacher: true,
         },
-        {
-          teacher: {
-            OR: [
-              { email: { contains: search, mode: 'insensitive' } },
-              { fullName: { contains: search, mode: 'insensitive' } },
-              { phoneNumber: { contains: search } },
-            ]
-          }
-        }
-      ];
-    }
-
-    if (ids && ids.length > 0) {
-      where.id = { in: ids };
-    }
-
-    if (isActive !== undefined) {
-      where.isActive = isActive;
-    }
-
-    if (roleIds && roleIds.length > 0) {
-      where.userRoles = { some: { roleId: { in: roleIds } } };
-    }
-
-    const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { [sortBy]: order },
-        include: { userRoles: { include: { role: true } } },
-      }),
-      this.prisma.user.count({ where }),
-    ]);
-
-    return {
-      data: users.map(PrismaUserMapper.toDomain),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
+      },
+      PrismaUserMapper,
+    );
   }
 
-  async save(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-    const prismaData = PrismaUserMapper.toPrismaCreate(user);
+  async save(
+    user: Omit<User, "id" | "createdAt" | "updatedAt">,
+  ): Promise<User> {
+    const prismaData = PrismaUserMapper.toPrisma(user);
     const created = await this.prisma.user.create({
       data: prismaData,
       include: { userRoles: { include: { role: true } } },
@@ -153,7 +119,11 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
-  async getUserRoles(userId: string, page: number, limit: number): Promise<any> {
+  async getUserRoles(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<any> {
     const skip = (page - 1) * limit;
 
     const [roles, total] = await Promise.all([

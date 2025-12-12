@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { FileRepository } from '../../../../application/file-management/ports/file.repository';
-import { File } from '../../../../domain/file-management/entities/file.entity';
-import { PrismaFileMapper } from '../mapper/prisma-file.mapper';
-import { FileStatus } from '../../../../domain/file-management/enums/file-status.enum';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { FileRepository } from "../../../../application/file-management/ports/file.repository";
+import { File } from "../../../../domain/file-management/entities/file.entity";
+import { PrismaFileMapper } from "../mapper/prisma-file.mapper";
+import { FileStatus } from "../../../../domain/file-management/enums/file-status.enum";
 
 @Injectable()
 export class PrismaFileRepository implements FileRepository {
@@ -21,7 +21,9 @@ export class PrismaFileRepository implements FileRepository {
   }
 
   async findByIds(ids: string[]): Promise<File[]> {
-    const files = await this.prisma.file.findMany({ where: { id: { in: ids } } });
+    const files = await this.prisma.file.findMany({
+      where: { id: { in: ids } },
+    });
     return files.map(PrismaFileMapper.toDomain);
   }
 

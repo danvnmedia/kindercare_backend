@@ -3,13 +3,15 @@
  * Maps between Prisma Role model and domain Role entity
  */
 
-import { Role as PrismaRole } from '@prisma/client';
-import { Role, CreateRoleData } from '../../../../domain/user-management/role.entity';
-import { Prisma } from '@prisma/client';
+import { Role as PrismaRole, Prisma } from "@prisma/client";
+import {
+  Role,
+  CreateRoleData,
+} from "../../../../domain/user-management/role.entity";
 
 export class PrismaRoleMapper {
   /**
-   * Map Prisma model to domain entity
+   * Convert Prisma model to Domain entity (full)
    */
   static toDomain(prismaRole: PrismaRole): Role {
     return {
@@ -24,9 +26,25 @@ export class PrismaRoleMapper {
   }
 
   /**
-   * Map domain entity to Prisma create input
+   * Convert Prisma model to Domain entity (without nested relations)
+   * Use to prevent circular references
    */
-  static toPrismaCreate(role: CreateRoleData): Prisma.RoleCreateInput {
+  static toDomainSimple(prismaRole: PrismaRole): Role {
+    return {
+      id: prismaRole.id,
+      name: prismaRole.name,
+      description: prismaRole.description,
+      permissions: prismaRole.permissions as Record<string, any>,
+      isActive: true, // Note: Prisma schema doesn't have isActive field yet
+      createdAt: prismaRole.createdAt,
+      updatedAt: prismaRole.updatedAt,
+    };
+  }
+
+  /**
+   * Convert Domain entity to Prisma create input
+   */
+  static toPrisma(role: CreateRoleData): Prisma.RoleUncheckedCreateInput {
     return {
       id: role.id,
       name: role.name,
@@ -36,7 +54,7 @@ export class PrismaRoleMapper {
   }
 
   /**
-   * Map partial domain entity to Prisma update input
+   * Convert Domain entity to Prisma update input
    */
   static toPrismaUpdate(role: Partial<Role>): Prisma.RoleUpdateInput {
     const data: Prisma.RoleUpdateInput = {};
@@ -48,5 +66,14 @@ export class PrismaRoleMapper {
     }
 
     return data;
+  }
+
+  /**
+   * Convert array of Prisma models to Domain entities
+   */
+  static toDomainArray(prismaRoles: PrismaRole[]): Role[] {
+    return prismaRoles.map((prismaRole) =>
+      PrismaRoleMapper.toDomain(prismaRole),
+    );
   }
 }

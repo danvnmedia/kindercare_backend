@@ -1,11 +1,11 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { RoleRepository } from '../../ports/role.repository';
-import { RoleNotFoundException } from '../../../../domain/user-management/exceptions/role-not-found.exception';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { RoleRepository } from "../../ports/role.repository";
+import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
 
 @Injectable()
 export class DeleteRoleUseCase {
   constructor(
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
   ) {}
 

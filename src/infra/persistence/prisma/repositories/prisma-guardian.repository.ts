@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
-import { GuardianRepository } from '@/application/user-management/ports/guardian.repository';
-import { Guardian } from '@/domain/user-management/guardian.entity';
-import { PrismaGuardianMapper } from '../mapper/prisma-guardian.mapper';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
-import { PrismaQueryService } from '@/core/modules/standard-response/services/prisma-query.service';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import { GuardianRepository } from "@/application/user-management/ports/guardian.repository";
+import { Guardian } from "@/domain/user-management/guardian.entity";
+import { PrismaGuardianMapper } from "../mapper/prisma-guardian.mapper";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 @Injectable()
 export class PrismaGuardianRepository implements GuardianRepository {
@@ -27,7 +27,9 @@ export class PrismaGuardianRepository implements GuardianRepository {
         },
       },
     });
-    return prismaGuardian ? PrismaGuardianMapper.toDomain(prismaGuardian) : null;
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
   }
 
   async findByEmail(email: string): Promise<Guardian | null> {
@@ -43,7 +45,9 @@ export class PrismaGuardianRepository implements GuardianRepository {
         },
       },
     });
-    return prismaGuardian ? PrismaGuardianMapper.toDomain(prismaGuardian) : null;
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
   }
 
   async findByPhoneNumber(phoneNumber: string): Promise<Guardian | null> {
@@ -59,31 +63,33 @@ export class PrismaGuardianRepository implements GuardianRepository {
         },
       },
     });
-    return prismaGuardian ? PrismaGuardianMapper.toDomain(prismaGuardian) : null;
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
   }
 
   async findAll(params: StandardRequest): Promise<PaginatedResult<Guardian>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
-      'fullName',
-      'email',
-      'phoneNumber',
-      'gender',
-      'occupation',
-      'workAddress',
-      'isArchived',
+      "fullName",
+      "email",
+      "phoneNumber",
+      "gender",
+      "occupation",
+      "workAddress",
+      "isArchived",
     ];
     params.allowedSortFields = [
-      'createdAt',
-      'updatedAt',
-      'fullName',
-      'occupation',
+      "createdAt",
+      "updatedAt",
+      "fullName",
+      "occupation",
     ];
 
     // Use PrismaQueryService to execute query with StandardRequest
     return await this.queryService.executeQuery<Guardian>(
       this.prisma,
-      'guardian',
+      "guardian",
       params,
       {
         include: {
@@ -110,9 +116,9 @@ export class PrismaGuardianRepository implements GuardianRepository {
   }
 
   async save(
-    guardian: Omit<Guardian, 'id' | 'createdAt' | 'updatedAt'>,
+    guardian: Omit<Guardian, "id" | "createdAt" | "updatedAt">,
   ): Promise<Guardian> {
-    const prismaData = PrismaGuardianMapper.toPrismaCreate(guardian);
+    const prismaData = PrismaGuardianMapper.toPrisma(guardian);
     const created = await this.prisma.guardian.create({
       data: prismaData,
     });

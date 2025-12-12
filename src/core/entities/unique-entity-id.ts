@@ -1,25 +1,25 @@
-import { v4 as uuid } from 'uuid';
+import { v4 as uuid } from "uuid";
 
 export class UniqueEntityID {
-    private _value: string;
+  private _value: string;
 
-    constructor(id?: string) {
-        this._value = id ?? uuid();
+  constructor(id?: string) {
+    this._value = id ?? uuid();
+  }
+
+  equals(id?: UniqueEntityID): boolean {
+    if (id === null || id === undefined) {
+      return false;
     }
 
-    equals(id?: UniqueEntityID): boolean {
-        if (id === null || id === undefined) {
-            return false;
-        }
-
-        if (!(id instanceof UniqueEntityID)) {
-            return false;
-        }
-
-        return id.toString() === this._value;
+    if (!(id instanceof UniqueEntityID)) {
+      return false;
     }
 
-    toString(): string {
-        return this._value;
-    }
+    return id.toString() === this._value;
+  }
+
+  toString(): string {
+    return this._value;
+  }
 }

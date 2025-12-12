@@ -1,12 +1,12 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { UserRepository } from '../../ports/user.repository';
-import { IdentityService } from '@/infra/external-services/clerk/identity.service';
-import { UserNotFoundException } from '../../../../domain/user-management/exceptions/user-not-found.exception';
+import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { UserRepository } from "../../ports/user.repository";
+import { IdentityService } from "@/infra/external-services/clerk/identity.service";
+import { UserNotFoundException } from "../../../../domain/user-management/exceptions/user-not-found.exception";
 
 @Injectable()
 export class DeleteUserUseCase {
   constructor(
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
   ) {}

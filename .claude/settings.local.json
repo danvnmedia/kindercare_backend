@@ -27,7 +27,16 @@
       "Bash(npx prisma generate:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill -9)",
-      "Bash(backlog:*)"
+      "Bash(backlog:*)",
+      "Bash(curl -s -X 'GET' 'http://localhost:3000/api/students?limit=5&offset=0&filter=%7B%22fullName%22%3A%7B%22ilike%22%3A%22Minh%22%7D%7D' -H 'accept: application/json' -H 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDIyMkFBQSIsImtpZCI6Imluc18zMjRFYVdzcnM1dWRDQUFrTEdqME42bUhtcTUiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2tkYy1tYWluLm1vb25pdmlhLmNvbSIsImV4cCI6MTc5NzA0OTM2NywiaWF0IjoxNzY1NTEzMzY3LCJpc3MiOiJodHRwczovL29uLXNraW5rLTk4LmNsZXJrLmFjY291bnRzLmRldiIsImp0aSI6ImU1MDdhM2IwODQ5MDQxZmJmYzM2IiwibmJmIjoxNzY1NTEzMzYyLCJzdWIiOiJ1c2VyXzM1amdUN2FmcGxaVWQ5cWZjTUVFM09wZFpHdiJ9.c21GbVDu4ve28K4wvSAJrWPzB7BAq2PlvdTRIzCoREtvDHHbxskKvOvKrrTRrDSGqCpvj6gYvuzu-7C2QpXFWJIHNfTKbyczojy_QqzBE6Ka3dHHgrL3SV1u7rHHNd8JoL3P7TDXvgkBnPmw-DN0hXFtDhsszTRmwCd22k3DYAkRCWVeNh-WKeiTSEybdv1sMadS-YOSutLO46Eou3ZDrb06xW4frPAEnbUmWyGkYt9k6Yt0nMXcqF8aBcQCsC6gD7YktEBj9Kg6j_4VIM1MEMppohhtYnpThj8GAbtuihEeNXwInLNOeNe-aRBZq-Qki-pa8bj2TMKZ1d3q08GJXQ')",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(docker logs:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDIyMkFBQSIsImtpZCI6Imluc18zMjRFYVdzcnM1dWRDQUFrTEdqME42bUhtcTUiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2tkYy1tYWluLm1vb25pdmlhLmNvbSIsImV4cCI6MTc5NzA0OTM2NywiaWF0IjoxNzY1NTEzMzY3LCJpc3MiOiJodHRwczovL29uLXNraW5rLTk4LmNsZXJrLmFjY291bnRzLmRldiIsImp0aSI6ImU1MDdhM2IwODQ5MDQxZmJmYzM2IiwibmJmIjoxNzY1NTEzMzYyLCJzdWIiOiJ1c2VyXzM1amdUN2FmcGxaVWQ5cWZjTUVFM09wZFpHdiJ9.c21GbVDu4ve28K4wvSAJrWPzB7BAq2PlvdTRIzCoREtvDHHbxskKvOvKrrTRrDSGqCpvj6gYvuzu-7C2QpXFWJIHNfTKbyczojy_QqzBE6Ka3dHHgrL3SV1u7rHHNd8JoL3P7TDXvgkBnPmw-DN0hXFtDhsszTRmwCd22k3DYAkRCWVeNh-WKeiTSEybdv1sMadS-YOSutLO46Eou3ZDrb06xW4frPAEnbUmWyGkYt9k6Yt0nMXcqF8aBcQCsC6gD7YktEBj9Kg6j_4VIM1MEMppohhtYnpThj8GAbtuihEeNXwInLNOeNe-aRBZq-Qki-pa8bj2TMKZ1d3q08GJXQ\")",
+      "Bash(POST_ID=\"6300c154-b3ee-48aa-8969-628e9440ea13\" TOKEN=\"eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDIyMkFBQSIsImtpZCI6Imluc18zMjRFYVdzcnM1dWRDQUFrTEdqME42bUhtcTUiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2tkYy1tYWluLm1vb25pdmlhLmNvbSIsImV4cCI6MTc5NzA0OTM2NywiaWF0IjoxNzY1NTEzMzY3LCJpc3MiOiJodHRwczovL29uLXNraW5rLTk4LmNsZXJrLmFjY291bnRzLmRldiIsImp0aSI6ImU1MDdhM2IwODQ5MDQxZmJmYzM2IiwibmJmIjoxNzY1NTEzMzYyLCJzdWIiOiJ1c2VyXzM1amdUN2FmcGxaVWQ5cWZjTUVFM09wZFpHdiJ9.c21GbVDu4ve28K4wvSAJrWPzB7BAq2PlvdTRIzCoREtvDHHbxskKvOvKrrTRrDSGqCpvj6gYvuzu-7C2QpXFWJIHNfTKbyczojy_QqzBE6Ka3dHHgrL3SV1u7rHHNd8JoL3P7TDXvgkBnPmw-DN0hXFtDhsszTRmwCd22k3DYAkRCWVeNh-WKeiTSEybdv1sMadS-YOSutLO46Eou3ZDrb06xW4frPAEnbUmWyGkYt9k6Yt0nMXcqF8aBcQCsC6gD7YktEBj9Kg6j_4VIM1MEMppohhtYnpThj8GAbtuihEeNXwInLNOeNe-aRBZq-Qki-pa8bj2TMKZ1d3q08GJXQ\")",
+      "Bash(echo \"=== 1. GET Post by ID ===\" curl -s \"http://localhost:3000/api/posts/$POST_ID\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(echo \"\" echo \"=== 2. List all Posts ===\" curl -s \"http://localhost:3000/api/posts\" -H \"Authorization: Bearer $TOKEN\")",
+      "Bash(echo \"\" echo \"=== 3. Submit for Review ===\" curl -s -X POST \"http://localhost:3000/api/posts/$POST_ID/submit\" -H \"Authorization: Bearer $TOKEN\")"
     ]
   },
   "enableAllProjectMcpServers": true,

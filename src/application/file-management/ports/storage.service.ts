@@ -1,5 +1,3 @@
-import { Express } from 'express';
-
 export abstract class StorageService {
   abstract getUploadSignedUrl(
     key: string,

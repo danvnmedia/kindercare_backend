@@ -3,21 +3,24 @@ import {
   ConflictException,
   Inject,
   Injectable,
-} from '@nestjs/common';
-import { type ClerkClient, type User } from '@clerk/backend';
-import { InvitationInput, InvitationResult } from '../types/identity/invitations';
-import { ProvisionInput } from '../types/identity/provision-input';
-import { ProvisionResult } from '../types/identity/provision-result';
+} from "@nestjs/common";
+import { type ClerkClient, type User } from "@clerk/backend";
+import {
+  InvitationInput,
+  InvitationResult,
+} from "../types/identity/invitations";
+import { ProvisionInput } from "../types/identity/provision-input";
+import { ProvisionResult } from "../types/identity/provision-result";
 
 @Injectable()
 export class IdentityService {
   constructor(
-    @Inject('ClerkClient') private readonly clerkClient: ClerkClient,
+    @Inject("ClerkClient") private readonly clerkClient: ClerkClient,
   ) {}
 
   async provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
     if (!input.email && !input.phoneNumber) {
-      throw new BadRequestException('Either phone number or email is required');
+      throw new BadRequestException("Either phone number or email is required");
     }
 
     // Phone number is expected to be in E.164 format already (validated by DTOs)
@@ -26,7 +29,7 @@ export class IdentityService {
         emailAddress: [input.email],
       });
       if (byEmail.totalCount > 0) {
-        throw new ConflictException('Email already exists');
+        throw new ConflictException("Email already exists");
       }
     }
     if (input.phoneNumber) {
@@ -34,7 +37,7 @@ export class IdentityService {
         phoneNumber: [input.phoneNumber],
       });
       if (byPhone.totalCount > 0) {
-        throw new ConflictException('Phone number already exists');
+        throw new ConflictException("Phone number already exists");
       }
     }
 
@@ -44,11 +47,11 @@ export class IdentityService {
         phoneNumber: input.phoneNumber ? [input.phoneNumber] : undefined,
         password: input.password,
         skipPasswordChecks: true,
-        publicMetadata: { fullName: input.fullName?.trim() ?? '' },
+        publicMetadata: { fullName: input.fullName?.trim() ?? "" },
       });
       return { clerkUid: created.id };
     } catch (err) {
-      throw new ConflictException('Error when provisioning user: ' + err);
+      throw new ConflictException("Error when provisioning user: " + err);
     }
   }
 
@@ -58,7 +61,7 @@ export class IdentityService {
         emailAddress: email,
       });
     } catch (err) {
-      throw new ConflictException('Error when inviting user: ' + err);
+      throw new ConflictException("Error when inviting user: " + err);
     }
   }
 
@@ -96,8 +99,6 @@ export class IdentityService {
     await this.clerkClient.users.deleteUser(clerkUid);
   }
 
-
-
   // ===== Private helpers =====
 
   private async replacePrimaryEmail(
@@ -108,7 +109,7 @@ export class IdentityService {
       emailAddress: [newEmail],
     });
     if (list.totalCount > 0 && list.data[0].id !== user.id) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException("Email already exists");
     }
 
     const existing = (user.emailAddresses ?? []).find(
@@ -148,7 +149,7 @@ export class IdentityService {
       phoneNumber: [newPhone],
     });
     if (list.totalCount > 0 && list.data[0].id !== user.id) {
-      throw new ConflictException('Phone number already exists');
+      throw new ConflictException("Phone number already exists");
     }
 
     const existing = (user.phoneNumbers ?? []).find(
