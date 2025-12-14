@@ -1,6 +1,5 @@
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
-import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
 import { FileRepository } from "../ports/file.repository";
 import { StorageService } from "../ports/storage.service";
 
@@ -31,10 +30,8 @@ export class DeleteFileUseCase {
       return left(new Error("File deletion failed from storage."));
     }
 
-    await this.fileRepository.updateStatus(
-      file.id.toString(),
-      FileStatus.DELETED,
-    );
+    file.markAsDeleted();
+    await this.fileRepository.update(file);
 
     return right(undefined);
   }

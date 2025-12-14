@@ -1,11 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { GuardianRepository } from "@/application/user-management/ports/guardian.repository";
-import { Guardian } from "@/domain/user-management/guardian.entity";
+import {
+  Guardian,
+  GuardianStudent,
+} from "@/domain/user-management/entities/guardian.entity";
 import { PrismaGuardianMapper } from "../mapper/prisma-guardian.mapper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+import { PrismaStudentMapper } from "../mapper/prisma-student.mapper"; // Import Student Mapper
 
 @Injectable()
 export class PrismaGuardianRepository implements GuardianRepository {
@@ -115,9 +119,7 @@ export class PrismaGuardianRepository implements GuardianRepository {
     return guardians.map(PrismaGuardianMapper.toDomain);
   }
 
-  async save(
-    guardian: Omit<Guardian, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Guardian> {
+  async save(guardian: Guardian): Promise<Guardian> {
     const prismaData = PrismaGuardianMapper.toPrisma(guardian);
     const created = await this.prisma.guardian.create({
       data: prismaData,
@@ -125,10 +127,10 @@ export class PrismaGuardianRepository implements GuardianRepository {
     return PrismaGuardianMapper.toDomain(created);
   }
 
-  async update(id: string, data: Partial<Guardian>): Promise<Guardian> {
-    const prismaData = PrismaGuardianMapper.toPrismaUpdate(data);
+  async update(guardian: Guardian): Promise<Guardian> {
+    const prismaData = PrismaGuardianMapper.toPrismaUpdate(guardian);
     const updated = await this.prisma.guardian.update({
-      where: { id },
+      where: { id: guardian.id },
       data: prismaData,
     });
     return PrismaGuardianMapper.toDomain(updated);
@@ -140,7 +142,7 @@ export class PrismaGuardianRepository implements GuardianRepository {
     });
   }
 
-  async getGuardianChildren(guardianId: string): Promise<any[]> {
+  async getGuardianChildren(guardianId: string): Promise<GuardianStudent[]> {
     const guardianStudents = await this.prisma.guardianStudent.findMany({
       where: { guardianId },
       include: {
@@ -150,12 +152,11 @@ export class PrismaGuardianRepository implements GuardianRepository {
     });
 
     return guardianStudents.map((gs) => ({
-      studentId: gs.student.id,
-      fullName: gs.student.fullName,
-      nickname: gs.student.nickname,
-      className: null,
-      relationship: gs.guardianRelationship.id,
-      relationshipName: gs.guardianRelationship.name,
+      student: PrismaStudentMapper.toDomain(gs.student),
+      guardianRelationship: {
+        id: gs.guardianRelationship.id,
+        name: gs.guardianRelationship.name,
+      },
     }));
   }
 }

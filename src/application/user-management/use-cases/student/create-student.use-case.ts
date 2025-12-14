@@ -7,37 +7,27 @@ import {
   Logger,
 } from "@nestjs/common";
 import { randomUUID } from "crypto";
-import {
-  Student,
-  StudentEntity,
-} from "@/domain/user-management/student.entity";
+import { Student } from "@/domain/user-management/entities/student.entity";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
+import { User } from "@/domain/user-management/user.entity";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
-/**
- * Default weak password that forces user to reset on first login
- * This password is intentionally weak to violate most password policies
- * forcing the user to change it immediately
- */
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateStudentInput {
-  // Personal information (now stored directly in Student)
   fullName: string;
   nickname?: string;
   dateOfBirth?: Date;
-  gender?: string;
+  gender?: Gender;
   phoneNumber?: string;
   email?: string;
   address?: string;
-
-  // Student-specific info
-  status?: string; // "WAITING", "ACTIVE", "INACTIVE", "GRADUATED"
+  status?: StudentStatus;
   createUserAccount?: boolean;
-
-  // Guardians
   guardianIds?: string[];
 }
 
@@ -59,22 +49,19 @@ export class CreateStudentUseCase {
     try {
       this.logger.log(`Creating student: ${input.fullName}`);
 
-      // ========== Step 1: Validate input data ==========
-      this.validateInput(input);
-
-      // ========== Step 2: Check Student uniqueness (email/phone) ==========
-      await this.checkStudentUniqueness(input);
-
-      // ========== Step 3: Validate guardians exist (if provided) ==========
+      // Step 1: Validate guardians exist (if provided)
       if (input.guardianIds && input.guardianIds.length > 0) {
         await this.validateGuardians(input.guardianIds);
       }
 
-      // ========== Step 4: Create Student with all personal data ==========
-      const student = await this.createStudent(input);
+      // Step 2: Check Student uniqueness (email/phone)
+      await this.checkStudentUniqueness(input);
+
+      // Step 3: Create and save the Student entity
+      const student = await this.createAndSaveStudent(input);
       this.logger.log(`Student created: ${student.id}`);
 
-      // ========== Step 5: Assign Guardians (if provided) ==========
+      // Step 4: Assign Guardians (if provided)
       if (input.guardianIds && input.guardianIds.length > 0) {
         await this.assignGuardians(student.id, input.guardianIds);
         this.logger.log(
@@ -82,13 +69,13 @@ export class CreateStudentUseCase {
         );
       }
 
-      // ========== Step 6: Create User + Clerk (if requested) ==========
+      // Step 5: Create User + Clerk (if requested)
       if (input.createUserAccount) {
         await this.createUserAccount(student);
         this.logger.log(`User account created for student ${student.id}`);
       }
 
-      // ========== Step 7: Return created student with relations ==========
+      // Step 6: Return created student with relations
       const createdStudent = await this.studentRepository.findById(student.id);
       if (!createdStudent) {
         throw new Error("Failed to retrieve created student");
@@ -101,61 +88,22 @@ export class CreateStudentUseCase {
         `Failed to create student: ${error.message}`,
         error.stack,
       );
-      throw error;
+      // Re-throw specific exceptions or a generic one
+      if (
+        error instanceof ConflictException ||
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      // Catch errors from Student.create() and wrap them in BadRequestException
+      throw new BadRequestException(error.message);
     }
   }
 
-  /**
-   * Validate input data (full name, email, phone, date of birth, gender, nickname)
-   */
-  private validateInput(input: CreateStudentInput): void {
-    // Validate full name
-    if (!StudentEntity.validateFullName(input.fullName)) {
-      throw new BadRequestException(
-        "Full name must be at least 2 characters and contain only valid characters",
-      );
-    }
-
-    // Validate email format (if provided)
-    if (input.email && !StudentEntity.validateEmail(input.email)) {
-      throw new BadRequestException("Invalid email format");
-    }
-
-    // Validate phone number format (if provided)
-    if (
-      input.phoneNumber &&
-      !StudentEntity.validatePhoneNumber(input.phoneNumber)
-    ) {
-      throw new BadRequestException(
-        "Invalid phone number format (e.g., +84912345678)",
-      );
-    }
-
-    // Validate gender
-    if (input.gender && !StudentEntity.validateGender(input.gender)) {
-      throw new BadRequestException("Gender must be MALE, FEMALE, or OTHER");
-    }
-
-    // Validate nickname
-    if (input.nickname && !StudentEntity.validateNickname(input.nickname)) {
-      throw new BadRequestException(
-        "Nickname must be between 1 and 50 characters",
-      );
-    }
-
-    // Validate date of birth (must be in the past)
-    if (input.dateOfBirth && input.dateOfBirth >= new Date()) {
-      throw new BadRequestException("Date of birth must be in the past");
-    }
-  }
-
-  /**
-   * Check Student uniqueness (email/phone)
-   */
   private async checkStudentUniqueness(
     input: CreateStudentInput,
   ): Promise<void> {
-    // Check email uniqueness (if provided)
     if (input.email) {
       const existingByEmail = await this.studentRepository.findByEmail(
         input.email,
@@ -167,7 +115,6 @@ export class CreateStudentUseCase {
       }
     }
 
-    // Check phone uniqueness (if provided)
     if (input.phoneNumber) {
       const existingByPhone = await this.studentRepository.findByPhoneNumber(
         input.phoneNumber,
@@ -180,9 +127,6 @@ export class CreateStudentUseCase {
     }
   }
 
-  /**
-   * Validate that all guardian IDs exist
-   */
   private async validateGuardians(guardianIds: string[]): Promise<void> {
     const guardians = await this.guardianRepository.findByIds(guardianIds);
     const foundIds = guardians.map((p) => p.id);
@@ -195,63 +139,45 @@ export class CreateStudentUseCase {
     }
   }
 
-  /**
-   * Create Student with all personal information
-   */
-  private async createStudent(input: CreateStudentInput): Promise<Student> {
-    const studentData: Omit<Student, "id" | "createdAt" | "updatedAt"> = {
-      studentCode: randomUUID(),
-      // Personal information (now stored directly in Student)
-      fullName: input.fullName.trim(),
-      email: input.email?.trim() || null,
-      phoneNumber: input.phoneNumber?.trim() || null,
-      address: input.address?.trim() || null,
+  private async createAndSaveStudent(
+    input: CreateStudentInput,
+  ): Promise<Student> {
+    const studentEntity = Student.create({
+      studentCode: randomUUID(), // Or generate based on a pattern
+      fullName: input.fullName,
+      email: input.email || null,
+      phoneNumber: input.phoneNumber || null,
+      address: input.address || null,
       dateOfBirth: input.dateOfBirth || null,
-
-      // Student-specific data
-      nickname: input.nickname?.trim() || null,
+      nickname: input.nickname || null,
       gender: input.gender || null,
-      status: input.status || "WAITING",
-      isArchived: false,
-    };
+      status: input.status || StudentStatus.WAITING,
+    });
 
-    return await this.studentRepository.save(studentData);
+    return await this.studentRepository.save(studentEntity);
   }
 
-  /**
-   * Assign guardians to student
-   * Default relationship is "GUARDIAN" if not specified
-   */
   private async assignGuardians(
     studentId: string,
     guardianIds: string[],
   ): Promise<void> {
     const guardianRelations = guardianIds.map((guardianId) => ({
       guardianId,
-      relationshipId: "GUARDIAN", // Default to GUARDIAN, can be customized later
+      relationshipId: "GUARDIAN", // Default relationship
     }));
-
     await this.studentRepository.assignGuardians(studentId, guardianRelations);
   }
 
-  /**
-   * Create User account + Clerk identity with weak password
-   * The weak password forces the user to change it on first login
-   */
   private async createUserAccount(student: Student): Promise<void> {
-    try {
-      // Validate that email or phone is provided for Clerk
-      if (!student.email && !student.phoneNumber) {
-        throw new BadRequestException(
-          "Email or phone number is required to create user account",
-        );
-      }
-
-      // Create Clerk user with weak password
-      this.logger.log(
-        `Creating Clerk user for student: ${student.email || student.phoneNumber} with weak password`,
+    if (!student.email && !student.phoneNumber) {
+      throw new BadRequestException(
+        "Email or phone number is required to create a user account",
       );
-
+    }
+    try {
+      this.logger.log(
+        `Creating Clerk user for: ${student.email || student.phoneNumber}`,
+      );
       const clerkUser = await this.identityService.provisionUser({
         email: student.email || undefined,
         fullName: student.fullName,
@@ -259,24 +185,19 @@ export class CreateStudentUseCase {
         password: DEFAULT_WEAK_PASSWORD,
       });
 
-      // Create User in database
-      const userData: any = {
+      const userEntity = User.create({
         clerkUid: clerkUser.clerkUid,
         isActive: true,
-      };
-
-      await this.userRepository.save(userData);
-
-      this.logger.log(
-        `User account created for student: ${student.email || student.phoneNumber} (Clerk UID: ${clerkUser.clerkUid})`,
-      );
+      });
+      await this.userRepository.save(userEntity);
+      this.logger.log(`User account created: ${clerkUser.clerkUid}`);
     } catch (error) {
       this.logger.error(
-        `Failed to create user account for student: ${error.message}`,
+        `Failed to create user account: ${error.message}`,
         error.stack,
       );
       throw new BadRequestException(
-        `Failed to create user account: ${error.message}`,
+        `Could not create user account: ${error.message}`,
       );
     }
   }

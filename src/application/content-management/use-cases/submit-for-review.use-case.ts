@@ -14,7 +14,6 @@ import {
   Post,
   PostHistoryStatus,
 } from "@/domain/content-management";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 
 @Injectable()
 export class SubmitForReviewUseCase {
@@ -49,12 +48,12 @@ export class SubmitForReviewUseCase {
         );
       }
 
-      post.status = PostStatus.PENDING_REVIEW;
+      post.submitForReview();
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({
-        postId: new UniqueEntityID(postId),
-        userId: new UniqueEntityID(currentUser.id),
+        postId: postId,
+        userId: currentUser.id,
         status: PostStatus.PENDING_REVIEW,
         createdAt: new Date(),
       });

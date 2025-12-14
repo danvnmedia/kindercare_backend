@@ -60,8 +60,8 @@ export class AddAttachmentUseCase {
       );
 
       const attachment = Attachment.create({
-        postId: new UniqueEntityID(input.postId),
-        fileId: new UniqueEntityID(input.fileId),
+        postId: input.postId,
+        fileId: input.fileId,
         comment: input.comment,
         order: maxOrder + 1,
       });

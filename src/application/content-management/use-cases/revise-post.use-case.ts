@@ -47,12 +47,12 @@ export class RevisePostUseCase {
         );
       }
 
-      post.status = PostStatus.DRAFT;
+      post.moveToDraft();
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({
-        postId: new UniqueEntityID(postId),
-        userId: new UniqueEntityID(currentUser.id),
+        postId: postId,
+        userId: currentUser.id,
         status: PostStatus.DRAFT,
         comment: "Post revised",
         createdAt: new Date(),

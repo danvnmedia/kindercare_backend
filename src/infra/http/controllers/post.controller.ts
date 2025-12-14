@@ -6,17 +6,13 @@ import {
   Patch,
   Param,
   Body,
-  Query,
   UseGuards,
-  ClassSerializerInterceptor,
-  UseInterceptors,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth, ApiOperation } from "@nestjs/swagger";
 import {
   StandardRequestParam,
   StandardResponse,
 } from "@/core/modules/standard-response/decorators";
-import { UserInterceptor } from "../interceptors/user.interceptor";
 import {
   CreatePostUseCase,
   UpdatePostUseCase,
@@ -46,14 +42,12 @@ import { User } from "@/domain/user-management/user.entity";
 import { Post as PostEntity } from "@/domain/content-management/entities/post.entity";
 import { PostHistoryStatus } from "@/domain/content-management/entities/post-history-status.entity";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { StandardRequest } from "@/core/modules/standard-response";
 
 @ApiTags("Content Management")
 @ApiBearerAuth("JWT")
 @Controller("posts")
 @UseGuards(ClerkAuthGuard)
-@UseInterceptors(UserInterceptor, ClassSerializerInterceptor)
 export class PostController {
   constructor(
     private readonly createPostUseCase: CreatePostUseCase,

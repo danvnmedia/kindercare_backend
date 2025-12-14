@@ -8,7 +8,7 @@ export interface UploadFileUseCaseRequest {
   filename: string;
   mimeType: string;
   size: number;
-  uploadedBy: UniqueEntityID;
+  uploadedBy: string;
 }
 
 export type UploadFileUseCaseResponse = Either<
@@ -30,8 +30,8 @@ export class UploadFileUseCase {
   }: UploadFileUseCaseRequest): Promise<UploadFileUseCaseResponse> {
     // TODO: Add file validation (mime type, size limits) here or in a domain service
 
-    const fileId = new UniqueEntityID(); // Generate ID upfront to use in key
-    const key = `files/${fileId.toString()}-${filename}`;
+    const fileId = new UniqueEntityID().toString();
+    const key = `files/${fileId}-${filename}`;
 
     const file = File.create(
       {

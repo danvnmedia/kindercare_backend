@@ -13,17 +13,16 @@ export class PrismaPostHistoryStatusMapper {
   static toDomain(
     prismaPostHistoryStatus: PrismaPostHistoryStatus,
   ): PostHistoryStatus {
-    const postHistoryStatusProps = {
-      postId: new UniqueEntityID(prismaPostHistoryStatus.postId),
-      userId: new UniqueEntityID(prismaPostHistoryStatus.userId),
-      status: prismaPostHistoryStatus.status as PostStatus,
-      comment: prismaPostHistoryStatus.comment,
-      createdAt: prismaPostHistoryStatus.createdAt,
-      updatedAt: prismaPostHistoryStatus.updatedAt,
-    };
     return PostHistoryStatus.create(
-      postHistoryStatusProps,
-      new UniqueEntityID(prismaPostHistoryStatus.id),
+      {
+        postId: prismaPostHistoryStatus.postId,
+        userId: prismaPostHistoryStatus.userId,
+        status: prismaPostHistoryStatus.status as PostStatus,
+        comment: prismaPostHistoryStatus.comment,
+        createdAt: prismaPostHistoryStatus.createdAt,
+        updatedAt: prismaPostHistoryStatus.updatedAt,
+      },
+      prismaPostHistoryStatus.id,
     );
   }
 
@@ -34,18 +33,7 @@ export class PrismaPostHistoryStatusMapper {
   static toDomainSimple(
     prismaPostHistoryStatus: PrismaPostHistoryStatus,
   ): PostHistoryStatus {
-    const postHistoryStatusProps = {
-      postId: new UniqueEntityID(prismaPostHistoryStatus.postId),
-      userId: new UniqueEntityID(prismaPostHistoryStatus.userId),
-      status: prismaPostHistoryStatus.status as PostStatus,
-      comment: prismaPostHistoryStatus.comment,
-      createdAt: prismaPostHistoryStatus.createdAt,
-      updatedAt: prismaPostHistoryStatus.updatedAt,
-    };
-    return PostHistoryStatus.create(
-      postHistoryStatusProps,
-      new UniqueEntityID(prismaPostHistoryStatus.id),
-    );
+    return PrismaPostHistoryStatusMapper.toDomain(prismaPostHistoryStatus);
   }
 
   /**
@@ -55,9 +43,9 @@ export class PrismaPostHistoryStatusMapper {
     postHistoryStatus: PostHistoryStatus,
   ): Prisma.PostHistoryStatusUncheckedCreateInput {
     return {
-      id: postHistoryStatus.id.toString(),
-      postId: postHistoryStatus.postId.toString(),
-      userId: postHistoryStatus.userId.toString(),
+      id: postHistoryStatus.id,
+      postId: postHistoryStatus.postId,
+      userId: postHistoryStatus.userId,
       status: postHistoryStatus.status,
       comment: postHistoryStatus.comment ?? null,
       createdAt: postHistoryStatus.createdAt,

@@ -29,16 +29,19 @@ export class PrismaUserMapper {
       >;
     },
   ): User {
-    return {
-      id: prismaUser.id,
-      clerkUid: prismaUser.clerkUid,
-      isActive: prismaUser.isActive,
-      roles:
-        prismaUser.userRoles?.map((ur) => PrismaRoleMapper.toDomain(ur.role)) ??
-        [],
-      createdAt: prismaUser.createdAt,
-      updatedAt: prismaUser.updatedAt,
-    };
+    return User.reconstitute(
+      {
+        clerkUid: prismaUser.clerkUid,
+        isActive: prismaUser.isActive,
+        roles:
+          prismaUser.userRoles?.map((ur) =>
+            PrismaRoleMapper.toDomain(ur.role),
+          ) ?? [],
+        createdAt: prismaUser.createdAt,
+        updatedAt: prismaUser.updatedAt,
+      },
+      prismaUser.id,
+    );
   }
 
   /**
@@ -46,23 +49,24 @@ export class PrismaUserMapper {
    * Use to prevent circular references
    */
   static toDomainSimple(prismaUser: PrismaUser): User {
-    return {
-      id: prismaUser.id,
-      clerkUid: prismaUser.clerkUid,
-      isActive: prismaUser.isActive,
-      roles: [],
-      createdAt: prismaUser.createdAt,
-      updatedAt: prismaUser.updatedAt,
-    };
+    return User.reconstitute(
+      {
+        clerkUid: prismaUser.clerkUid,
+        isActive: prismaUser.isActive,
+        roles: [],
+        createdAt: prismaUser.createdAt,
+        updatedAt: prismaUser.updatedAt,
+      },
+      prismaUser.id,
+    );
   }
 
   /**
    * Convert Domain entity to Prisma create input
    */
-  static toPrisma(
-    user: Omit<User, "id" | "createdAt" | "updatedAt" | "roles">,
-  ): Prisma.UserUncheckedCreateInput {
+  static toPrisma(user: User): Prisma.UserUncheckedCreateInput {
     return {
+      id: user.id,
       clerkUid: user.clerkUid,
       isActive: user.isActive,
     };
@@ -71,14 +75,11 @@ export class PrismaUserMapper {
   /**
    * Convert Domain entity to Prisma update input
    */
-  static toPrismaUpdate(
-    user: Partial<
-      Omit<User, "id" | "createdAt" | "updatedAt" | "roles" | "clerkUid">
-    >,
-  ): Prisma.UserUpdateInput {
-    const data: Prisma.UserUpdateInput = {};
-
-    if (user.isActive !== undefined) data.isActive = user.isActive;
+  static toPrismaUpdate(user: User): Prisma.UserUpdateInput {
+    const data: Prisma.UserUpdateInput = {
+      isActive: user.isActive,
+      updatedAt: user.updatedAt,
+    };
 
     return data;
   }

@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { PostStatus } from "@/domain/content-management/enums/post-status.enum";
 import { PostType } from "@/domain/content-management/enums/post-type.enum";
-import { Expose, Transform } from "class-transformer";
+import { Expose } from "class-transformer";
 
 export class PostHistoryResponse {
   @ApiProperty({
@@ -77,7 +77,6 @@ export class PostHistoryStatusResponse {
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @Expose()
-  @Transform(({ value }) => value.toString())
   id: string;
 
   @ApiProperty({
@@ -85,7 +84,6 @@ export class PostHistoryStatusResponse {
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @Expose()
-  @Transform(({ value }) => value.toString())
   postId: string;
 
   @ApiProperty({
@@ -93,7 +91,6 @@ export class PostHistoryStatusResponse {
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @Expose()
-  @Transform(({ value }) => value.toString())
   userId: string;
 
   @ApiProperty({

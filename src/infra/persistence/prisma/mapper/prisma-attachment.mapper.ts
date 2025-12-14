@@ -7,17 +7,16 @@ export class PrismaAttachmentMapper {
    * Convert Prisma model to Domain entity (full)
    */
   static toDomain(prismaAttachment: PrismaAttachment): Attachment {
-    const attachmentProps = {
-      postId: new UniqueEntityID(prismaAttachment.postId),
-      fileId: new UniqueEntityID(prismaAttachment.fileId),
-      comment: prismaAttachment.comment,
-      order: prismaAttachment.order,
-      createdAt: prismaAttachment.createdAt,
-      updatedAt: prismaAttachment.updatedAt,
-    };
     return Attachment.create(
-      attachmentProps,
-      new UniqueEntityID(prismaAttachment.id),
+      {
+        postId: prismaAttachment.postId,
+        fileId: prismaAttachment.fileId,
+        comment: prismaAttachment.comment,
+        order: prismaAttachment.order,
+        createdAt: prismaAttachment.createdAt,
+        updatedAt: prismaAttachment.updatedAt,
+      },
+      prismaAttachment.id,
     );
   }
 
@@ -26,18 +25,7 @@ export class PrismaAttachmentMapper {
    * Use to prevent circular references
    */
   static toDomainSimple(prismaAttachment: PrismaAttachment): Attachment {
-    const attachmentProps = {
-      postId: new UniqueEntityID(prismaAttachment.postId),
-      fileId: new UniqueEntityID(prismaAttachment.fileId),
-      comment: prismaAttachment.comment,
-      order: prismaAttachment.order,
-      createdAt: prismaAttachment.createdAt,
-      updatedAt: prismaAttachment.updatedAt,
-    };
-    return Attachment.create(
-      attachmentProps,
-      new UniqueEntityID(prismaAttachment.id),
-    );
+    return PrismaAttachmentMapper.toDomain(prismaAttachment);
   }
 
   /**
@@ -47,12 +35,23 @@ export class PrismaAttachmentMapper {
     attachment: Attachment,
   ): Prisma.AttachmentUncheckedCreateInput {
     return {
-      id: attachment.id.toString(),
-      postId: attachment.postId.toString(),
-      fileId: attachment.fileId.toString(),
+      id: attachment.id,
+      postId: attachment.postId,
+      fileId: attachment.fileId,
       comment: attachment.comment ?? null,
       order: attachment.order,
       createdAt: attachment.createdAt,
+      updatedAt: attachment.updatedAt ?? new Date(),
+    };
+  }
+
+  /**
+   * Convert Domain entity to Prisma update input
+   */
+  static toPrismaUpdate(attachment: Attachment): Prisma.AttachmentUpdateInput {
+    return {
+      comment: attachment.comment ?? null,
+      order: attachment.order,
       updatedAt: attachment.updatedAt ?? new Date(),
     };
   }

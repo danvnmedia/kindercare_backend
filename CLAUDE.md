@@ -1,144 +1,75 @@
-# KinderCare Backend - Development Guide
+# Project Instructions
 
-> NestJS backend with Clean Architecture. See @PROJECT.md for code patterns.
-
----
-
-## Project Overview
-
-- **Project**: KinderCare Backend v1.0.0
-- **Stack**: NestJS 11 + TypeScript 5.7 + Prisma 6 + PostgreSQL 15 + Redis 7
-- **Auth**: Clerk (external provider)
-- **Author**: [@howznguyen](https://github.com/howznguyen)
-
-### Business Context
-
-School management system for kindergartens: student enrollment, teacher management, parent relationships, class organization, and role-based access control.
+> **IMPORTANT**: These instructions are MANDATORY. Follow them exactly.
 
 ---
 
-## Architecture
+## Documentation Reference
 
-```
-src/
-├── core/                 # Shared utilities, base entities
-├── domain/               # Business entities (framework-agnostic)
-├── application/          # Use cases + repository ports
-└── infra/                # Controllers, Prisma repos, mappers
-    ├── http/             # Controllers, DTOs, guards
-    └── persistence/      # Prisma repositories, mappers
-```
+Before implementing any feature, you MUST read the relevant documentation:
 
-### Data Flow
+📁 **Documentation**: [docs/README.md](./docs/README.md)
 
-```
-Request → Controller → Use Case → Repository Port → Repository Impl → Prisma → DB
-       ← DTO        ← Domain    ← Domain Entity  ← Mapper         ←
-```
+### Required Reading by Task Type
 
-### Key Rules
-
-- Domain layer: **NO** NestJS decorators
-- Infrastructure depends on domain (via ports)
-- Controllers handle HTTP only, delegate to use cases
-- All data access through repository pattern
-
----
-
-## Code Patterns
-
-**See [PROJECT.md](./PROJECT.md)** for detailed patterns:
-
-1. **Mapper** - `toDomain()`, `toDomainSimple()`, `toPrisma()`, `toDomainArray()`
-2. **Controller** - Guards, decorators, StandardResponse
-3. **Use Case** - Business logic, repository injection
-4. **Repository Port** - Abstract interface in application layer
-5. **Repository Impl** - Prisma implementation in infra layer
-6. **DTO** - Request/Response with validation
-7. **Domain Entity** - Factory method pattern
+| Task | Must Read |
+|------|-----------|
+| New feature | [checklist.md](./docs/conventions/checklist.md) |
+| Create entity | [entity.md](./docs/patterns/entity.md), [repository.md](./docs/patterns/repository.md) |
+| Create API endpoint | [controller.md](./docs/patterns/controller.md), [dto.md](./docs/patterns/dto.md) |
+| Business logic | [use-case.md](./docs/patterns/use-case.md) |
+| Database mapping | [mapper.md](./docs/patterns/mapper.md) |
+| Error handling | [exception.md](./docs/patterns/exception.md) |
+| Authentication/Authorization | [guards.md](./docs/patterns/guards.md), [decorators.md](./docs/patterns/decorators.md) |
+| Event-driven feature | [domain-events.md](./docs/patterns/domain-events.md), [event-handler.md](./docs/patterns/event-handler.md) |
+| Transaction handling | [unit-of-work.md](./docs/patterns/unit-of-work.md) |
+| Custom validation | [validation.md](./docs/patterns/validation.md) |
+| Value types | [value-object.md](./docs/patterns/value-object.md) |
+| Module setup | [module.md](./docs/patterns/module.md) |
+| Naming | [naming.md](./docs/conventions/naming.md) |
+| Task management | [backlog.md](./docs/guides/backlog.md) |
+| Pagination & Filtering | [pagination-and-filtering.md](./docs/guides/pagination-and-filtering.md) |
 
 ---
 
-## Development Commands
+## Mandatory Rules
 
-```bash
-# Development
-npm run start:dev
+### 1. Follow Patterns Exactly
 
-# Database
-npm run prisma:generate      # Generate client
-npm run prisma:migrate:dev   # Run migrations
-npm run prisma:studio        # Visual editor
+- Use the EXACT code structure from documentation
+- Do NOT deviate from established patterns
+- If unsure, READ the relevant doc file first
 
-# Testing
-npm run test                 # Unit tests
-npm run test:e2e             # E2E tests
-npm run lint                 # Linting
-npm run build                # Production build
-```
 
----
+### 2. File Locations
 
-## Development Rules
+| Type | Location |
+|------|----------|
+| Entity | `src/domain/{module}/` |
+| Use Case | `src/application/{module}/use-cases/` |
+| Repository Port | `src/application/{module}/ports/` |
+| Repository Impl | `src/infra/persistence/prisma/repositories/` |
+| Mapper | `src/infra/persistence/prisma/mapper/` |
+| Controller | `src/infra/http/controllers/` |
+| DTO | `src/infra/http/dtos/` |
+| Exception | `src/core/exceptions/` |
+| Value Object | `src/core/value-objects/` |
 
-### Code Quality
+### 3. Before Writing Code
 
-- Prioritize functionality over strict linting
-- Always use try-catch in use cases
-- Validate inputs at presentation layer (DTOs)
-- Keep domain logic in domain layer
+1. Read the relevant pattern documentation
+2. Follow the checklist in [checklist.md](./docs/conventions/checklist.md)
+3. Use correct naming from [naming.md](./docs/conventions/naming.md)
 
-### Pre-commit/Push
+### 4. Task Management - Backlog CLI Tool
 
-- Run `npm run lint` before commit
-- Run `npm run test` before push (DO NOT ignore failures)
-- **DO NOT** commit secrets (.env, API keys)
-- **NEVER** add AI attribution signatures to commits
-
-### Commit Format
-
-```
-feat: add student enrollment feature
-fix: resolve duplicate parent assignment
-refactor: improve mapper pattern
-docs: update API documentation
-test: add unit tests for EnrollStudentUseCase
-```
+> Task management via CLI. **NEVER edit task files directly** - use CLI commands only.
 
 ---
-
-## Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Prisma out of sync | `npm run prisma:generate` |
-| Migration errors | `npm run prisma:migrate:reset` (dev only) |
-| Redis connection | Check container: `docker-compose ps` |
-| Clerk auth issues | Verify `CLERK_SECRET_KEY` in `.env` |
-
----
-
-## Resources
-
-- [API Docs](http://localhost:3000/api/docs) (Swagger)
-- [Prisma Schema](./prisma/schema.prisma)
-- [Code Patterns](./PROJECT.md)
-- [NestJS Docs](https://docs.nestjs.com/)
-- [Prisma Docs](https://www.prisma.io/docs/)
-- [Clerk Docs](https://clerk.com/docs)
-
----
-
-<!-- BACKLOG.MD GUIDELINES START -->
-# Backlog.md CLI Tool
 
 ## Overview
 
-Task management via CLI. **NEVER edit task files directly** - use CLI commands only.
-
-### Key Points
-
-- Tasks: `backlog/tasks/task-<id> - <title>.md`
+- Tasks location: `backlog/tasks/task-<id> - <title>.md`
 - Use `--plain` flag for AI-friendly output
 - CLI handles Git, metadata, file naming
 
@@ -147,8 +78,8 @@ Task management via CLI. **NEVER edit task files directly** - use CLI commands o
 ## Critical Rule
 
 ```
-- DO: backlog task edit, backlog task create
-- DON'T: Edit .md files directly
+DO:    backlog task edit, backlog task create
+DON'T: Edit .md files directly
 ```
 
 ---
@@ -168,7 +99,9 @@ Task management via CLI. **NEVER edit task files directly** - use CLI commands o
 | Add notes | `backlog task edit 42 --notes "Done"` |
 | Add plan | `backlog task edit 42 --plan "1. Step"` |
 
-### Workflow
+---
+
+## Workflow
 
 ```bash
 # 1. Find work
@@ -188,25 +121,15 @@ backlog task edit 42 --notes "Implemented X"
 backlog task edit 42 -s Done
 ```
 
-### Definition of Done
+---
+
+## Definition of Done
 
 1. All ACs checked via CLI
 2. Implementation notes added
 3. Status set to Done
 4. Tests pass
 5. Code reviewed
-
----
-
-## Multi-line Input
-
-```bash
-# Bash/Zsh
-backlog task edit 42 --plan $'1. Step\n2. Step'
-
-# POSIX
-backlog task edit 42 --notes "$(printf 'Line1\nLine2')"
-```
 
 ---
 
@@ -236,7 +159,9 @@ Why this task exists.
 What was done.
 ```
 
-### Modify via CLI
+---
+
+## Task Field Commands
 
 | Field | Command |
 |-------|---------|
@@ -265,11 +190,11 @@ backlog task create "Title" \
   --priority high
 ```
 
-**Good ACs**: Outcome-focused, testable, clear
+### Good ACs (Outcome-focused)
 - "User can log in with valid credentials"
 - "API returns 200 with correct data"
 
-**Bad ACs**: Implementation steps
+### Bad ACs (Implementation steps)
 - "Add function handleLogin()"
 
 ---
@@ -302,6 +227,18 @@ backlog task edit 42 -s Done
 
 ---
 
+## Multi-line Input
+
+```bash
+# Bash/Zsh
+backlog task edit 42 --plan '1. Step\n2. Step'
+
+# POSIX
+backlog task edit 42 --notes "$(printf 'Line1\nLine2')"
+```
+
+---
+
 ## Common Issues
 
 | Problem | Solution |
@@ -317,5 +254,3 @@ backlog task edit 42 -s Done
 **Change anything in a task = use `backlog task edit`**
 
 Full help: `backlog --help`
-
-<!-- BACKLOG.MD GUIDELINES END -->

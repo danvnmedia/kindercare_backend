@@ -14,11 +14,11 @@ export class PrismaFileMapper {
         mimeType: prismaFile.mimeType,
         size: prismaFile.size,
         status: prismaFile.status as "PENDING" | "ACTIVE" | "DELETED",
-        uploadedBy: new UniqueEntityID(prismaFile.uploadedBy),
+        uploadedBy: prismaFile.uploadedBy,
         createdAt: prismaFile.createdAt,
         updatedAt: prismaFile.updatedAt,
       },
-      new UniqueEntityID(prismaFile.id),
+      prismaFile.id,
     );
   }
 
@@ -34,11 +34,11 @@ export class PrismaFileMapper {
         mimeType: prismaFile.mimeType,
         size: prismaFile.size,
         status: prismaFile.status as "PENDING" | "ACTIVE" | "DELETED",
-        uploadedBy: new UniqueEntityID(prismaFile.uploadedBy),
+        uploadedBy: prismaFile.uploadedBy,
         createdAt: prismaFile.createdAt,
         updatedAt: prismaFile.updatedAt,
       },
-      new UniqueEntityID(prismaFile.id),
+      prismaFile.id,
     );
   }
 
@@ -55,6 +55,16 @@ export class PrismaFileMapper {
       status: domainFile.status,
       uploadedBy: domainFile.uploadedBy.toString(),
       createdAt: domainFile.createdAt,
+      updatedAt: domainFile.updatedAt,
+    };
+  }
+
+  /**
+   * Convert Domain entity to Prisma update input
+   */
+  static toPrismaUpdate(domainFile: DomainFile): Prisma.FileUpdateInput {
+    return {
+      status: domainFile.status,
       updatedAt: domainFile.updatedAt,
     };
   }

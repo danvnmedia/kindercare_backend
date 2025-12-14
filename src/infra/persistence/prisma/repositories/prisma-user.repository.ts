@@ -76,9 +76,7 @@ export class PrismaUserRepository implements UserRepository {
     );
   }
 
-  async save(
-    user: Omit<User, "id" | "createdAt" | "updatedAt">,
-  ): Promise<User> {
+  async save(user: User): Promise<User> {
     const prismaData = PrismaUserMapper.toPrisma(user);
     const created = await this.prisma.user.create({
       data: prismaData,
@@ -87,10 +85,10 @@ export class PrismaUserRepository implements UserRepository {
     return PrismaUserMapper.toDomain(created);
   }
 
-  async update(id: string, data: Partial<User>): Promise<User> {
-    const prismaData = PrismaUserMapper.toPrismaUpdate(data);
+  async update(user: User): Promise<User> {
+    const prismaData = PrismaUserMapper.toPrismaUpdate(user);
     const updated = await this.prisma.user.update({
-      where: { id },
+      where: { id: user.id },
       data: prismaData,
       include: { userRoles: { include: { role: true } } },
     });

@@ -1,16 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
-  IsDateString,
   IsEmail,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Matches,
   MaxLength,
   MinLength,
 } from "class-validator";
-import { Gender } from "../shared/gender.enum";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { IsE164Phone, IsAdultDateOfBirth } from "@/core/validators";
 
 export class CreateGuardianRequest {
   // ========== Personal Information ==========
@@ -28,11 +27,11 @@ export class CreateGuardianRequest {
   fullName: string;
 
   @ApiProperty({
-    description: "Guardian date of birth",
+    description: "Guardian date of birth (must be 18+ years old)",
     example: "1985-03-20",
   })
   @IsNotEmpty()
-  @IsDateString()
+  @IsAdultDateOfBirth()
   dateOfBirth: Date;
 
   @ApiProperty({
@@ -50,9 +49,7 @@ export class CreateGuardianRequest {
   })
   @IsNotEmpty()
   @IsString()
-  @Matches(/^\+84\d{9,10}$/, {
-    message: "Phone number must be in E.164 format (e.g., +84912345678)",
-  })
+  @IsE164Phone()
   phoneNumber: string;
 
   @ApiProperty({

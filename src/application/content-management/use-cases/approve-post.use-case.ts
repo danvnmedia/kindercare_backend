@@ -47,12 +47,12 @@ export class ApprovePostUseCase {
         );
       }
 
-      post.status = PostStatus.APPROVED;
+      post.approve();
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({
-        postId: new UniqueEntityID(postId),
-        userId: new UniqueEntityID(currentUser.id),
+        postId: postId,
+        userId: currentUser.id,
         status: PostStatus.APPROVED,
         createdAt: new Date(),
       });

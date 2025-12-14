@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
-import { GuardianEntity } from "@/domain/user-management/guardian.entity";
+import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 
 export interface LinkStudentWithGuardianInput {
   studentId: string;
@@ -43,7 +43,7 @@ export class LinkStudentWithGuardianUseCase {
       );
 
       // Validate relationship ID
-      if (!GuardianEntity.validateRelationshipId(input.relationshipId)) {
+      if (!Guardian.validateRelationshipId(input.relationshipId)) {
         throw new BadRequestException(
           `Invalid relationship ID: ${input.relationshipId}. Must be FATHER, MOTHER, or GUARDIAN`,
         );
@@ -90,7 +90,7 @@ export class LinkStudentWithGuardianUseCase {
       );
 
       // Get relationship name
-      const relationshipName = GuardianEntity.getGuardianType(
+      const relationshipName = Guardian.getGuardianType(
         input.relationshipId,
       );
 

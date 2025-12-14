@@ -8,19 +8,12 @@ export interface FileProps {
   mimeType: string;
   size: bigint;
   status: "PENDING" | "ACTIVE" | "DELETED";
-  uploadedBy: UniqueEntityID;
+  uploadedBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export class File extends Entity<FileProps> {
-  protected props: FileProps; // Define props here
-
-  private constructor(props: FileProps, id?: UniqueEntityID) {
-    super(id); // Pass only id to super
-    this.props = props;
-  }
-
   get key() {
     return this.props.key;
   }
@@ -53,20 +46,51 @@ export class File extends Entity<FileProps> {
     return this.props.updatedAt;
   }
 
+  // Domain methods
+  public markAsActive(): void {
+    if (this.props.status === "DELETED") {
+      throw new Error("Cannot activate a deleted file");
+    }
+    this.props.status = "ACTIVE";
+    this.touch();
+  }
+
+  public markAsDeleted(): void {
+    this.props.status = "DELETED";
+    this.touch();
+  }
+
+  public isDeleted(): boolean {
+    return this.props.status === "DELETED";
+  }
+
+  public isPending(): boolean {
+    return this.props.status === "PENDING";
+  }
+
+  public isActive(): boolean {
+    return this.props.status === "ACTIVE";
+  }
+
+  /**
+   * Update the 'updatedAt' timestamp
+   */
+  private touch(): void {
+    this.props.updatedAt = new Date();
+  }
+
   static create(
     props: Optional<FileProps, "createdAt" | "updatedAt" | "status">,
-    id?: UniqueEntityID,
+    id?: string,
   ) {
-    const file = new File(
+    return new File(
       {
         ...props,
         status: props.status ?? "PENDING",
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
       },
-      id,
+      new UniqueEntityID(id),
     );
-
-    return file;
   }
 }

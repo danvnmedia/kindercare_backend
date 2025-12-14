@@ -7,7 +7,6 @@ import {
 } from "@nestjs/common";
 import { Post, PostAudience, PostStatus } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
@@ -72,25 +71,30 @@ export class UpdatePostUseCase {
 
   private updatePostProperties(post: Post, input: UpdatePostInput): void {
     if (input.title) {
-      post.title = input.title;
+      post.updateTitle(input.title);
     }
-    if (input.content) {
-      post.content = input.content;
+    if (input.content !== undefined) {
+      post.updateContent(input.content);
     }
     if (input.status) {
-      post.status = input.status;
+      // Note: Status transitions should use specific domain methods
+      // This is a generic update - consider using publish(), archive(), etc.
+      throw new Error(
+        "Direct status update not allowed. Use specific transition methods (publish, archive, etc.)"
+      );
     }
-    if (input.publishAt) {
-      post.publishAt = input.publishAt;
+    if (input.publishAt !== undefined) {
+      post.updatePublishDate(input.publishAt);
     }
     if (input.audiences) {
-      post.audiences = input.audiences.map((audience) =>
+      const audiences = input.audiences.map((audience) =>
         PostAudience.create({
-          postId: new UniqueEntityID(post.id),
+          postId: post.id,
           audienceType: audience.audienceType,
-          audienceId: new UniqueEntityID(audience.audienceId),
+          audienceId: audience.audienceId,
         }),
       );
+      post.setAudiences(audiences);
     }
   }
 }

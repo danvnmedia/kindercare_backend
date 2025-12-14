@@ -4,6 +4,7 @@ import { Module } from "@nestjs/common";
 import { RoleController } from "../controllers/user-management/role.controller";
 import { StudentController } from "../controllers/user-management/student.controller";
 import { GuardianController } from "../controllers/user-management/guardian.controller";
+import { TeacherController } from "../controllers/user-management/teacher.controller";
 
 // NOTE: User use cases are commented out until they are refactored to work with Person-based model
 // import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
@@ -34,11 +35,20 @@ import { GetStudentGuardiansUseCase } from "@/application/user-management/use-ca
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
 
+// Use Cases - Teacher
+import { CreateTeacherUseCase } from "@/application/user-management/use-cases/teacher/create-teacher.use-case";
+import { GetTeacherByIdUseCase } from "@/application/user-management/use-cases/teacher/get-teacher-by-id.use-case";
+import { GetAllTeachersUseCase } from "@/application/user-management/use-cases/teacher/get-all-teachers.use-case";
+import { UpdateTeacherUseCase } from "@/application/user-management/use-cases/teacher/update-teacher.use-case";
+import { ArchiveTeacherUseCase } from "@/application/user-management/use-cases/teacher/archive-teacher.use-case";
+import { RestoreTeacherUseCase } from "@/application/user-management/use-cases/teacher/restore-teacher.use-case";
+
 // Repositories
 import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/prisma-user.repository";
 import { PrismaRoleRepository } from "@/infra/persistence/prisma/repositories/prisma-role.repository";
 import { PrismaStudentRepository } from "@/infra/persistence/prisma/repositories/prisma-student.repository";
 import { PrismaGuardianRepository } from "@/infra/persistence/prisma/repositories/prisma-guardian.repository";
+import { PrismaTeacherRepository } from "@/infra/persistence/prisma/repositories/prisma-teacher.repository";
 
 // Modules
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
@@ -65,7 +75,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     ClerkModule, // Authentication & Identity management
     StandardResponseModule, // Query service for filtering and pagination
   ],
-  controllers: [RoleController, StudentController, GuardianController],
+  controllers: [RoleController, StudentController, GuardianController, TeacherController],
   providers: [
     // NOTE: User Use Cases commented out until refactored
     // CreateUserUseCase,
@@ -96,6 +106,14 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     CreateGuardianUseCase,
     GetAllGuardiansUseCase,
 
+    // Teacher Use Cases
+    CreateTeacherUseCase,
+    GetTeacherByIdUseCase,
+    GetAllTeachersUseCase,
+    UpdateTeacherUseCase,
+    ArchiveTeacherUseCase,
+    RestoreTeacherUseCase,
+
     // Repositories with Dependency Injection Tokens
     {
       provide: "USER_REPOSITORY",
@@ -113,12 +131,17 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
       provide: "GUARDIAN_REPOSITORY",
       useClass: PrismaGuardianRepository,
     },
+    {
+      provide: "TEACHER_REPOSITORY",
+      useClass: PrismaTeacherRepository,
+    },
   ],
   exports: [
     "USER_REPOSITORY",
     "ROLE_REPOSITORY",
     "STUDENT_REPOSITORY",
     "GUARDIAN_REPOSITORY",
+    "TEACHER_REPOSITORY",
   ],
 })
 export class UserManagementModule {}

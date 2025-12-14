@@ -16,7 +16,7 @@ export class ListPostsUseCase {
   async execute(query: StandardRequestDto): Promise<PaginatedResult<Post>> {
     try {
       this.logger.log("Listing posts");
-      return await this.postRepository.findMany(query);
+      return this.postRepository.findMany(query);
     } catch (error) {
       this.logger.error(`Failed to list posts: ${error.message}`, error.stack);
       throw error;

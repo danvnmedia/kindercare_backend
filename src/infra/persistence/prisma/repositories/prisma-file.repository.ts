@@ -3,7 +3,6 @@ import { PrismaService } from "../prisma.service";
 import { FileRepository } from "../../../../application/file-management/ports/file.repository";
 import { File } from "../../../../domain/file-management/entities/file.entity";
 import { PrismaFileMapper } from "../mapper/prisma-file.mapper";
-import { FileStatus } from "../../../../domain/file-management/enums/file-status.enum";
 
 @Injectable()
 export class PrismaFileRepository implements FileRepository {
@@ -27,19 +26,18 @@ export class PrismaFileRepository implements FileRepository {
     return files.map(PrismaFileMapper.toDomain);
   }
 
-  async updateStatus(id: string, status: FileStatus): Promise<File> {
+  async update(file: File): Promise<File> {
+    const data = PrismaFileMapper.toPrismaUpdate(file);
     const updatedFile = await this.prisma.file.update({
-      where: { id },
-      data: { status },
+      where: { id: file.id.toString() },
+      data,
     });
     return PrismaFileMapper.toDomain(updatedFile);
   }
 
   async delete(id: string): Promise<void> {
-    // Soft delete by updating status to DELETED
-    await this.prisma.file.update({
-      where: { id },
-      data: { status: FileStatus.DELETED },
-    });
+    // Soft delete - handled by calling file.markAsDeleted() and update()
+    // This method is kept for hard deletion if needed
+    await this.prisma.file.delete({ where: { id } });
   }
 }

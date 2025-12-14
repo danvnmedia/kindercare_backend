@@ -1,7 +1,6 @@
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { File } from "@/domain/file-management/entities/file.entity";
-import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
 import { FileRepository } from "../ports/file.repository";
 
 export interface CompleteUploadUseCaseRequest {
@@ -25,10 +24,8 @@ export class CompleteUploadUseCase {
     // Optionally, add logic to verify file existence in storage
     // if a separate verification mechanism is available for the storage service.
 
-    const updatedFile = await this.fileRepository.updateStatus(
-      file.id.toString(),
-      FileStatus.ACTIVE,
-    );
+    file.markAsActive();
+    const updatedFile = await this.fileRepository.update(file);
 
     return right(updatedFile);
   }

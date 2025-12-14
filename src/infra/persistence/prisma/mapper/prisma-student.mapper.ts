@@ -1,9 +1,3 @@
-/**
- * Prisma Student Mapper
- * Maps between Prisma Student model and domain Student entity
- * Personal information is now stored directly in Student (denormalized)
- */
-
 import {
   Student as PrismaStudent,
   Class as PrismaClass,
@@ -11,7 +5,9 @@ import {
   GuardianRelationship as PrismaGuardianRelationship,
   GuardianStudent as PrismaGuardianStudent,
 } from "@prisma/client";
-import { Student } from "../../../../domain/user-management/student.entity";
+import { Student } from "@/domain/user-management/entities/student.entity";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import { Prisma } from "@prisma/client";
 
 type PrismaStudentWithRelations = PrismaStudent & {
@@ -25,23 +21,8 @@ type PrismaStudentWithRelations = PrismaStudent & {
 };
 
 export class PrismaStudentMapper {
-  /**
-   * Convert Prisma model to Domain entity (full)
-   */
   static toDomain(prismaStudent: PrismaStudentWithRelations): Student {
-    const guardians = prismaStudent.guardians
-      ? prismaStudent.guardians.map((guardianRelation) => ({
-          guardianId: guardianRelation.guardian.id,
-          fullName: guardianRelation.guardian.fullName,
-          email: guardianRelation.guardian.email,
-          phoneNumber: guardianRelation.guardian.phoneNumber,
-          relationship: guardianRelation.guardianRelationship.id,
-          relationshipName: guardianRelation.guardianRelationship.name,
-        }))
-      : undefined;
-
-    return {
-      id: prismaStudent.id,
+    const studentProps = {
       studentCode: prismaStudent.studentCode,
       fullName: prismaStudent.fullName,
       email: prismaStudent.email,
@@ -49,22 +30,20 @@ export class PrismaStudentMapper {
       address: prismaStudent.address,
       dateOfBirth: prismaStudent.dateOfBirth,
       nickname: prismaStudent.nickname,
-      gender: prismaStudent.gender,
-      status: prismaStudent.status,
-      guardians,
+      gender: prismaStudent.gender as Gender | null,
+      status: prismaStudent.status as StudentStatus,
       isArchived: prismaStudent.isArchived,
       createdAt: prismaStudent.createdAt,
       updatedAt: prismaStudent.updatedAt,
     };
+
+    // Note: The 'guardians' property is denormalized and not part of the core
+    // StudentProps. It should be loaded and attached at the repository or use-case level.
+    return Student.create(studentProps, prismaStudent.id);
   }
 
-  /**
-   * Convert Prisma model to Domain entity (without nested relations)
-   * Use to prevent circular references
-   */
   static toDomainSimple(prismaStudent: PrismaStudent): Student {
-    return {
-      id: prismaStudent.id,
+    const studentProps = {
       studentCode: prismaStudent.studentCode,
       fullName: prismaStudent.fullName,
       email: prismaStudent.email,
@@ -72,21 +51,34 @@ export class PrismaStudentMapper {
       address: prismaStudent.address,
       dateOfBirth: prismaStudent.dateOfBirth,
       nickname: prismaStudent.nickname,
-      gender: prismaStudent.gender,
-      status: prismaStudent.status,
-      guardians: undefined, // No nested relations to prevent circular references
+      gender: prismaStudent.gender as Gender | null,
+      status: prismaStudent.status as StudentStatus,
       isArchived: prismaStudent.isArchived,
       createdAt: prismaStudent.createdAt,
       updatedAt: prismaStudent.updatedAt,
     };
+    return Student.create(studentProps, prismaStudent.id);
   }
 
-  /**
-   * Convert Domain entity to Prisma create input
-   */
-  static toPrisma(
-    student: Omit<Student, "id" | "createdAt" | "updatedAt">,
-  ): Prisma.StudentUncheckedCreateInput {
+  static toPrisma(student: Student): Prisma.StudentUncheckedCreateInput {
+    return {
+      id: student.id,
+      studentCode: student.studentCode,
+      fullName: student.fullName,
+      email: student.email,
+      phoneNumber: student.phoneNumber,
+      address: student.address,
+      dateOfBirth: student.dateOfBirth,
+      nickname: student.nickname,
+      gender: student.gender,
+      status: student.status,
+      isArchived: student.isArchived,
+      createdAt: student.createdAt,
+      updatedAt: student.updatedAt,
+    };
+  }
+
+  static toPrismaUpdate(student: Student): Prisma.StudentUpdateInput {
     return {
       studentCode: student.studentCode,
       fullName: student.fullName,
@@ -96,37 +88,12 @@ export class PrismaStudentMapper {
       dateOfBirth: student.dateOfBirth,
       nickname: student.nickname,
       gender: student.gender,
-      status: student.status ?? "WAITING",
-      isArchived: student.isArchived ?? false,
+      status: student.status,
+      isArchived: student.isArchived,
+      updatedAt: student.updatedAt,
     };
   }
 
-  /**
-   * Convert Domain entity to Prisma update input
-   */
-  static toPrismaUpdate(student: Partial<Student>): Prisma.StudentUpdateInput {
-    const data: Prisma.StudentUpdateInput = {};
-
-    if (student.fullName !== undefined) data.fullName = student.fullName;
-    if (student.email !== undefined) data.email = student.email;
-    if (student.phoneNumber !== undefined)
-      data.phoneNumber = student.phoneNumber;
-    if (student.address !== undefined) data.address = student.address;
-    if (student.dateOfBirth !== undefined)
-      data.dateOfBirth = student.dateOfBirth;
-    if (student.nickname !== undefined) data.nickname = student.nickname;
-    if (student.gender !== undefined) data.gender = student.gender;
-    if (student.status !== undefined) data.status = student.status;
-    if (student.studentCode !== undefined)
-      data.studentCode = student.studentCode;
-    if (student.isArchived !== undefined) data.isArchived = student.isArchived;
-
-    return data;
-  }
-
-  /**
-   * Convert array of Prisma models to Domain entities
-   */
   static toDomainArray(
     prismaStudents: PrismaStudentWithRelations[],
   ): Student[] {

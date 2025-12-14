@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
-import { Student } from "@/domain/user-management/student.entity";
+import { Student } from "@/domain/user-management/entities/student.entity";
 import { PrismaStudentMapper } from "../mapper/prisma-student.mapper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
@@ -88,9 +88,7 @@ export class PrismaStudentRepository implements StudentRepository {
     );
   }
 
-  async save(
-    student: Omit<Student, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Student> {
+  async save(student: Student): Promise<Student> {
     const prismaData = PrismaStudentMapper.toPrisma(student);
     const created = await this.prisma.student.create({
       data: prismaData,
@@ -98,10 +96,10 @@ export class PrismaStudentRepository implements StudentRepository {
     return PrismaStudentMapper.toDomain(created);
   }
 
-  async update(id: string, data: Partial<Student>): Promise<Student> {
-    const prismaData = PrismaStudentMapper.toPrismaUpdate(data);
+  async update(student: Student): Promise<Student> {
+    const prismaData = PrismaStudentMapper.toPrismaUpdate(student);
     const updated = await this.prisma.student.update({
-      where: { id },
+      where: { id: student.id },
       data: prismaData,
     });
     return PrismaStudentMapper.toDomain(updated);

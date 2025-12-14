@@ -4,59 +4,57 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Student } from "../../../domain/user-management/student.entity";
-import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
-import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { Student } from '@/domain/user-management/entities/student.entity';
+import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
+import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
 
-export interface StudentRepository {
+export abstract class StudentRepository {
   /**
    * Find student by ID
    */
-  findById(id: string): Promise<Student | null>;
+  abstract findById(id: string): Promise<Student | null>;
 
   /**
    * Find student by email
    */
-  findByEmail(email: string): Promise<Student | null>;
+  abstract findByEmail(email: string): Promise<Student | null>;
 
   /**
    * Find student by phone number
    */
-  findByPhoneNumber(phoneNumber: string): Promise<Student | null>;
+  abstract findByPhoneNumber(phoneNumber: string): Promise<Student | null>;
 
   /**
    * Find multiple students by IDs
    */
-  findByIds(ids: string[]): Promise<Student[]>;
+  abstract findByIds(ids: string[]): Promise<Student[]>;
 
   /**
    * Find all students with filtering, sorting, pagination using StandardRequest
    */
-  findAll(params: StandardRequest): Promise<PaginatedResult<Student>>;
+  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Student>>;
 
   /**
-   * Save a new student
+   * Save a new or existing student
    */
-  save(
-    student: Omit<Student, "id" | "createdAt" | "updatedAt">,
-  ): Promise<Student>;
+  abstract save(student: Student): Promise<Student>;
 
   /**
    * Update existing student
    */
-  update(id: string, data: Partial<Student>): Promise<Student>;
+  abstract update(student: Student): Promise<Student>;
 
   /**
    * Delete student
    */
-  delete(id: string): Promise<void>;
+  abstract delete(id: string): Promise<void>;
 
   /**
    * Assign guardians to student
    * @param studentId - Student ID
    * @param guardianRelations - Array of { guardianId, relationshipId }
    */
-  assignGuardians(
+  abstract assignGuardians(
     studentId: string,
     guardianRelations: Array<{ guardianId: string; relationshipId: string }>,
   ): Promise<void>;
@@ -64,10 +62,10 @@ export interface StudentRepository {
   /**
    * Remove guardians from student
    */
-  removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
+  abstract removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
 
   /**
    * Get student guardians
    */
-  getStudentGuardians(studentId: string): Promise<any[]>;
+  abstract getStudentGuardians(studentId: string): Promise<any[]>;
 }

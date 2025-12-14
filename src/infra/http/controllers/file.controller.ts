@@ -52,7 +52,7 @@ export class FileController {
       filename,
       mimeType,
       size,
-      uploadedBy: new UniqueEntityID(user.sub),
+      uploadedBy: user.sub,
     });
 
     if (result.isLeft()) {
@@ -70,9 +70,7 @@ export class FileController {
   @StandardResponse({
     type: FileResponse,
   })
-  async completeUpload(
-    @Param("id", ParseUUIDPipe) id: string,
-  ): Promise<FileResponse> {
+  async completeUpload(@Param("id", ParseUUIDPipe) id: string) {
     const result = await this.completeUploadUseCase.execute({
       fileId: new UniqueEntityID(id),
     });
@@ -81,19 +79,7 @@ export class FileController {
       throw result.value; // TODO: Map to appropriate HTTP exception
     }
 
-    const file = result.value;
-    const response = new FileResponse();
-    response.id = file.id.toString();
-    response.key = file.key;
-    response.filename = file.filename;
-    response.mimeType = file.mimeType;
-    response.size = file.size;
-    response.status = file.status as FileStatus;
-    response.uploadedBy = file.uploadedBy.toString();
-    response.createdAt = file.createdAt;
-    response.updatedAt = file.updatedAt;
-
-    return response;
+    return result.value;
   }
 
   @Get(":id")
@@ -101,7 +87,7 @@ export class FileController {
   @StandardResponse({
     type: FileResponse,
   })
-  async get(@Param("id", ParseUUIDPipe) id: string): Promise<FileResponse> {
+  async get(@Param("id", ParseUUIDPipe) id: string) {
     const result = await this.getFile.execute({
       fileId: new UniqueEntityID(id),
     });
@@ -111,18 +97,7 @@ export class FileController {
     }
 
     const { file } = result.value;
-    const response = new FileResponse();
-    response.id = file.id.toString();
-    response.key = file.key;
-    response.filename = file.filename;
-    response.mimeType = file.mimeType;
-    response.size = file.size;
-    response.status = file.status as FileStatus;
-    response.uploadedBy = file.uploadedBy.toString();
-    response.createdAt = file.createdAt;
-    response.updatedAt = file.updatedAt;
-
-    return response;
+    return file;
   }
 
   @Delete(":id")

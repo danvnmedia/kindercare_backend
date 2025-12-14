@@ -57,12 +57,12 @@ export class RejectPostUseCase {
         );
       }
 
-      post.status = PostStatus.REJECTED;
+      post.reject();
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({
-        postId: new UniqueEntityID(postId),
-        userId: new UniqueEntityID(currentUser.id),
+        postId: postId,
+        userId: currentUser.id,
         status: PostStatus.REJECTED,
         comment,
         createdAt: new Date(),

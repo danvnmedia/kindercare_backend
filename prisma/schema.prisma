@@ -122,6 +122,7 @@ model Teacher {
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
   startDate   DateTime? @map("start_date") @db.Date
+  teacherType String    @default("TEACHER") @map("teacher_type")
   isArchived  Boolean   @default(false) @map("is_archived")
 
   userId String? @unique @map("user_id") @db.Uuid
@@ -137,6 +138,7 @@ model Teacher {
   @@index([phoneNumber])
   @@index([userId])
   @@index([isArchived])
+  @@index([teacherType])
   @@map("teacher")
 }
 

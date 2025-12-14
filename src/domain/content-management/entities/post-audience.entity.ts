@@ -3,19 +3,12 @@ import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { AudienceType } from "../enums/audience-type.enum";
 
 export interface PostAudienceProps {
-  postId: UniqueEntityID;
+  postId: string;
   audienceType: AudienceType;
-  audienceId: UniqueEntityID;
+  audienceId: string;
 }
 
 export class PostAudience extends Entity<PostAudienceProps> {
-  protected props: PostAudienceProps;
-
-  private constructor(props: PostAudienceProps, id?: UniqueEntityID) {
-    super(id);
-    this.props = props;
-  }
-
   get postId() {
     return this.props.postId;
   }
@@ -28,8 +21,7 @@ export class PostAudience extends Entity<PostAudienceProps> {
     return this.props.audienceId;
   }
 
-  static create(props: PostAudienceProps, id?: UniqueEntityID): PostAudience {
-    const postAudience = new PostAudience(props, id);
-    return postAudience;
+  static create(props: PostAudienceProps, id?: string): PostAudience {
+    return new PostAudience(props, new UniqueEntityID(id));
   }
 }

@@ -3,8 +3,8 @@ import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 
 export interface AttachmentProps {
-  postId: UniqueEntityID;
-  fileId: UniqueEntityID;
+  postId: string;
+  fileId: string;
   comment?: string | null;
   order: number;
   createdAt: Date;
@@ -12,18 +12,11 @@ export interface AttachmentProps {
 }
 
 export class Attachment extends Entity<AttachmentProps> {
-  protected props: AttachmentProps;
-
-  private constructor(props: AttachmentProps, id?: UniqueEntityID) {
-    super(id);
-    this.props = props;
-  }
-
-  get postId(): UniqueEntityID {
+  get postId(): string {
     return this.props.postId;
   }
 
-  get fileId(): UniqueEntityID {
+  get fileId(): string {
     return this.props.fileId;
   }
 
@@ -45,15 +38,16 @@ export class Attachment extends Entity<AttachmentProps> {
 
   static create(
     props: Optional<AttachmentProps, "createdAt" | "updatedAt" | "comment">,
-    id?: UniqueEntityID,
+    id?: string,
   ): Attachment {
-    const attachmentProps: AttachmentProps = {
-      ...props,
-      comment: props.comment ?? null,
-      createdAt: props.createdAt ?? new Date(),
-      updatedAt: props.updatedAt ?? null,
-    };
-    const attachment = new Attachment(attachmentProps, id);
-    return attachment;
+    return new Attachment(
+      {
+        ...props,
+        comment: props.comment ?? null,
+        createdAt: props.createdAt ?? new Date(),
+        updatedAt: props.updatedAt ?? null,
+      },
+      new UniqueEntityID(id),
+    );
   }
 }

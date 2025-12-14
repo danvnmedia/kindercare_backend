@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Transform } from "class-transformer";
 import { User } from "@/domain/user-management/user.entity";
-import { Guardian } from "@/domain/user-management/guardian.entity";
+import { Guardian } from '@/domain/user-management/entities/guardian.entity';
 import { Teacher } from "@/domain/user-management/teacher.entity";
 
 export class UserResponse {
@@ -10,7 +10,6 @@ export class UserResponse {
     description: "User ID (UUID)",
   })
   @Expose()
-  @Transform(({ value }) => value.toString())
   id: string;
 
   @ApiProperty({ example: "John Doe", description: "User name" })

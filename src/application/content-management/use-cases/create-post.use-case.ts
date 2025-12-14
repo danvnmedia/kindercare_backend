@@ -11,7 +11,6 @@ import {
   PostType,
 } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
@@ -75,20 +74,14 @@ export class CreatePostUseCase {
 
   private createPostEntity(input: CreatePostInput, author: User): Post {
     const postProps = {
-      authorId: new UniqueEntityID(author.id),
+      authorId: author.id,
       author: author,
       type: input.type,
       title: input.title,
       content: input.content,
       publishAt: input.publishAt,
       status: PostStatus.DRAFT,
-      audiences: input.audiences.map((audience) =>
-        PostAudience.create({
-          postId: new UniqueEntityID(), // placeholder, will be replaced by DB
-          audienceType: audience.audienceType,
-          audienceId: new UniqueEntityID(audience.audienceId),
-        }),
-      ),
+      audiences: [],
       attachments: [],
       createdAt: new Date(),
     };

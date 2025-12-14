@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from "@nestjs/common";
 import { StudentRepository } from "../../ports/student.repository";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
-import { Student } from "@/domain/user-management/student.entity";
+import { Student } from "@/domain/user-management/entities/student.entity";
 
 @Injectable()
 export class GetAllStudentsUseCase {

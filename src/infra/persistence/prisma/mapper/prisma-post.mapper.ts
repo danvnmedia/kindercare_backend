@@ -4,6 +4,8 @@ import {
   Attachment as PrismaAttachment,
   User as PrismaUser,
   Prisma,
+  Guardian as PrismaGuardian,
+  Teacher as PrismaTeacher,
 } from "@prisma/client";
 import {
   Post,
@@ -13,10 +15,17 @@ import {
   PostType,
   AudienceType,
 } from "@/domain/content-management";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { User } from "@/domain/user-management/user.entity"; // Import the domain User interface
+import { PrismaAttachmentMapper } from "./prisma-attachment.mapper";
+import { PrismaUserMapper } from "./prisma-user.mapper";
+
+type PrismaUserWithProfile = PrismaUser & {
+  guardian?: PrismaGuardian | null;
+  teacher?: PrismaTeacher | null;
+};
 
 export type PrismaPostWithRelations = PrismaPost & {
-  author: PrismaUser;
+  author: PrismaUserWithProfile;
   audiences: PrismaPostAudience[];
   attachments: PrismaAttachment[];
 };
@@ -26,87 +35,45 @@ export class PrismaPostMapper {
    * Convert Prisma model to Domain entity (full)
    */
   static toDomain(prismaPost: PrismaPostWithRelations): Post {
-    const postProps = {
-      authorId: new UniqueEntityID(prismaPost.authorId),
-      author: {
-        id: prismaPost.author.id,
-        clerkUid: prismaPost.author.clerkUid,
-        isActive: prismaPost.author.isActive,
-        createdAt: prismaPost.author.createdAt,
-        updatedAt: prismaPost.author.updatedAt,
-      },
-      type: prismaPost.type as PostType,
-      title: prismaPost.title,
-      content: prismaPost.content,
-      status: prismaPost.status as PostStatus,
-      publishAt: prismaPost.publishAt,
-      audiences: prismaPost.audiences.map((audience) => {
-        let audienceId: UniqueEntityID;
-        switch (audience.type as AudienceType) {
-          case AudienceType.CLASS:
-            audienceId = new UniqueEntityID(audience.classId as string);
-            break;
-          case AudienceType.STUDENT:
-            audienceId = new UniqueEntityID(audience.studentId as string);
-            break;
-          case AudienceType.GRADE:
-            audienceId = new UniqueEntityID(audience.gradeLevelId as string);
-            break;
-          default:
-            throw new Error(`Unknown AudienceType: ${audience.type}`);
-        }
-        return PostAudience.create(
-          {
-            postId: new UniqueEntityID(audience.postId),
-            audienceType: audience.type as AudienceType,
-            audienceId: audienceId,
-          },
-          new UniqueEntityID(audience.id),
-        );
-      }),
-      attachments: prismaPost.attachments.map((attachment) =>
-        Attachment.create(
-          {
-            postId: new UniqueEntityID(attachment.postId),
-            fileId: new UniqueEntityID(attachment.fileId),
-            comment: attachment.comment,
-            order: attachment.order,
-            createdAt: attachment.createdAt,
-            updatedAt: attachment.updatedAt,
-          },
-          new UniqueEntityID(attachment.id),
+    return Post.create(
+      {
+        authorId: prismaPost.authorId,
+        author: PrismaUserMapper.toDomain(prismaPost.author),
+        type: prismaPost.type as PostType,
+        title: prismaPost.title,
+        content: prismaPost.content,
+        status: prismaPost.status as PostStatus,
+        publishAt: prismaPost.publishAt,
+        audiences: [],
+        attachments: PrismaAttachmentMapper.toDomainArray(
+          prismaPost.attachments,
         ),
-      ),
-      createdAt: prismaPost.createdAt,
-      updatedAt: prismaPost.updatedAt,
-    };
-    return Post.create(postProps, new UniqueEntityID(prismaPost.id));
+        createdAt: prismaPost.createdAt,
+        updatedAt: prismaPost.updatedAt,
+      },
+      prismaPost.id,
+    );
   }
 
   /**
    * Convert Prisma model to Domain entity (without nested relations)
    * Use to prevent circular references
    */
-  static toDomainSimple(prismaPost: PrismaPost): Post {
-    const postProps = {
-      authorId: new UniqueEntityID(prismaPost.authorId),
-      author: {
-        // Provide minimal user object instead of undefined
-        id: prismaPost.authorId,
-        clerkUid: "", // Minimal required data to satisfy type
-        isActive: true, // Minimal required data to satisfy type
-        createdAt: prismaPost.createdAt, // Minimal required data to satisfy type
-        updatedAt: prismaPost.updatedAt, // Minimal required data to satisfy type
+  static toDomainSimple(prismaPost: PrismaPostWithRelations): Post {
+    return Post.create(
+      {
+        authorId: prismaPost.authorId,
+        author: PrismaUserMapper.toDomainSimple(prismaPost.author),
+        type: prismaPost.type as PostType,
+        title: prismaPost.title,
+        content: prismaPost.content,
+        status: prismaPost.status as PostStatus,
+        publishAt: prismaPost.publishAt,
+        createdAt: prismaPost.createdAt,
+        updatedAt: prismaPost.updatedAt,
       },
-      type: prismaPost.type as PostType,
-      title: prismaPost.title,
-      content: prismaPost.content,
-      status: prismaPost.status as PostStatus,
-      publishAt: prismaPost.publishAt,
-      createdAt: prismaPost.createdAt,
-      updatedAt: prismaPost.updatedAt,
-    };
-    return Post.create(postProps, new UniqueEntityID(prismaPost.id));
+      prismaPost.id,
+    );
   }
 
   /**
@@ -114,14 +81,28 @@ export class PrismaPostMapper {
    */
   static toPrisma(post: Post): Prisma.PostUncheckedCreateInput {
     return {
-      id: post.id.toString(),
-      authorId: post.authorId.toString(),
+      id: post.id,
+      authorId: post.authorId,
       type: post.type,
       title: post.title,
       content: post.content ?? null,
       status: post.status,
       publishAt: post.publishAt ?? null,
       createdAt: post.createdAt,
+      updatedAt: post.updatedAt ?? new Date(),
+    };
+  }
+
+  /**
+   * Convert Domain entity to Prisma update input
+   */
+  static toPrismaUpdate(post: Post): Prisma.PostUpdateInput {
+    return {
+      type: post.type,
+      title: post.title,
+      content: post.content ?? null,
+      status: post.status,
+      publishAt: post.publishAt ?? null,
       updatedAt: post.updatedAt ?? new Date(),
     };
   }

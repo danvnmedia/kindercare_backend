@@ -2,19 +2,18 @@ import { ApiProperty } from "@nestjs/swagger";
 import {
   IsArray,
   IsBoolean,
-  IsDateString,
   IsEmail,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
-  Matches,
   MaxLength,
   MinLength,
 } from "class-validator";
-import { Gender } from "../shared/gender.enum";
-import { StudentStatus } from "../shared/student-status.enum";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
+import { IsE164Phone, IsDateOfBirth } from "@/core/validators";
 
 export class CreateStudentRequest {
   // ========== Personal Information ==========
@@ -43,12 +42,12 @@ export class CreateStudentRequest {
   nickname?: string;
 
   @ApiProperty({
-    description: "Student date of birth (optional)",
+    description: "Student date of birth (optional, must be in the past)",
     example: "2018-05-15",
     required: false,
   })
   @IsOptional()
-  @IsDateString()
+  @IsDateOfBirth()
   dateOfBirth?: Date;
 
   @ApiProperty({
@@ -68,9 +67,7 @@ export class CreateStudentRequest {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^\+84\d{9,10}$/, {
-    message: "Phone number must be in E.164 format (e.g., +84912345678)",
-  })
+  @IsE164Phone()
   phoneNumber?: string;
 
   @ApiProperty({

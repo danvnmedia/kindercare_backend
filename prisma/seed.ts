@@ -39,6 +39,21 @@ async function main() {
       description: 'Giáo viên giảng dạy và chủ nhiệm',
     },
     {
+      id: 'nurse',
+      name: 'nurse',
+      description: 'Y tá/Nhân viên y tế trường học',
+    },
+    {
+      id: 'principal',
+      name: 'principal',
+      description: 'Hiệu trưởng/Ban giám hiệu',
+    },
+    {
+      id: 'staff',
+      name: 'staff',
+      description: 'Nhân viên hành chính',
+    },
+    {
       id: 'guardian',
       name: 'guardian',
       description: 'Người giám hộ học sinh',

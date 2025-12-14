@@ -17,8 +17,7 @@ import {
 } from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
-
-// DTOs
+import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   CreateStudentRequest,
   StudentResponse,
@@ -34,6 +33,7 @@ import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/s
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
+import { StandardRequestParam } from "@/core/modules/standard-response";
 
 @Controller("students")
 @ApiTags("Students")
@@ -59,22 +59,25 @@ export class StudentController {
       "Creates a new student with personal information and optional guardian assignment. Can also create user account with Clerk if requested.",
   })
   async create(@Body() dto: CreateStudentRequest) {
-    return await this.createStudentUseCase.execute({ ...dto });
+    return await this.createStudentUseCase.execute({
+      ...dto,
+      gender: dto.gender as Gender,
+    });
   }
 
   @Get()
   @StandardResponse({
     message: "Students retrieved successfully",
     type: StudentResponse,
-    isArray: true,
+    isPaginated: true,
   })
   @ApiOperation({
     summary: "Get all students",
     description:
       "Retrieve all students with advanced filtering, sorting, and pagination. Supports filtering by fullName, nickname, classId, gender, enrollmentDate. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
-  async findAll(@Query() query: StandardRequestDto) {
-    return await this.getAllStudentsUseCase.execute(query);
+  async findAll(@StandardRequestParam() query: StandardRequestDto) {
+    return this.getAllStudentsUseCase.execute(query);
   }
 
   // ========== Student-Guardian Relationship Endpoints ==========

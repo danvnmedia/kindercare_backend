@@ -5,18 +5,18 @@ import {
   CallHandler,
   BadRequestException,
   Type,
-} from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs';
+} from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { Observable } from "rxjs";
+import { map } from "rxjs";
 import {
   STANDARD_RESPONSE_KEY,
   StandardResponseOptions,
-} from '../decorators/standard-response.decorator';
-import { QueryValidatorService } from '../services/query-validator.service';
-import { StandardRequest } from '../dto/standard-request.dto';
-import { plainToInstance } from 'class-transformer';
-import { ValueObject } from '@/core/value-objects/value-object';
+} from "../decorators/standard-response.decorator";
+import { QueryValidatorService } from "../services/query-validator.service";
+import { StandardRequest } from "../dto/standard-request.dto";
+import { plainToInstance } from "class-transformer";
+import { ValueObject } from "@/core/value-objects/value-object";
 
 interface RequestWithQuery extends Request {
   query: Record<string, unknown>;
@@ -48,15 +48,15 @@ interface PaginatedData {
 
 function isPaginatedData(data: unknown): data is PaginatedData {
   return (
-    typeof data === 'object' &&
+    typeof data === "object" &&
     data !== null &&
-    'data' in data &&
-    'pagination' in data
+    "data" in data &&
+    "pagination" in data
   );
 }
 
 function isObjectWithSuccess(data: unknown): data is { success: boolean } {
-  return typeof data === 'object' && data !== null && 'success' in data;
+  return typeof data === "object" && data !== null && "success" in data;
 }
 
 function isError(error: unknown): error is Error {
@@ -65,24 +65,7 @@ function isError(error: unknown): error is Error {
 
 function isValueObject(data: unknown): data is ValueObject<any> {
   return (
-    typeof data === 'object' && data !== null && data instanceof ValueObject
-  );
-}
-
-/**
- * Check if the value is a UniqueEntityID-like object.
- * Uses duck typing for compatibility across module boundaries.
- */
-function isUniqueEntityID(value: unknown): value is { toString(): string } {
-  if (value === null || value === undefined) return false;
-  if (typeof value !== 'object') return false;
-
-  const obj = value as any;
-  // Check for UniqueEntityID signature: has _value property and toString method
-  return (
-    '_value' in obj &&
-    typeof obj._value === 'string' &&
-    typeof obj.toString === 'function'
+    typeof data === "object" && data !== null && data instanceof ValueObject
   );
 }
 
@@ -132,7 +115,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
         } catch (error: unknown) {
           const errorMessage = isError(error)
             ? error.message
-            : 'Invalid query parameters';
+            : "Invalid query parameters";
           throw new BadRequestException(errorMessage);
         }
       }
@@ -148,11 +131,12 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
           return data;
         }
 
-        // Process data to handle ValueObjects and Entities
+        // Process data to handle ValueObjects
         const processData = (input: unknown): unknown => {
-          // Handle null/undefined early
-          if (input === null || input === undefined) {
-            return input;
+          // Process ValueObjects using instanceof check
+          if (isValueObject(input)) {
+            const plainValue = input.toPlain();
+            return plainValue;
           }
 
           // Preserve Date objects
@@ -165,30 +149,18 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
             return input.map((item) => processData(item));
           }
 
-          // For object types only
-          if (typeof input !== 'object') {
-            return input;
-          }
-
-          // Process UniqueEntityID-like objects - convert to string
-          if (isUniqueEntityID(input)) {
-            return input.toString();
-          }
-
-          // Process ValueObjects using instanceof check
-          // Cast to unknown first to reset TypeScript's type narrowing
-          const maybeValueObject = input as unknown;
-          if (isValueObject(maybeValueObject)) {
-            return maybeValueObject.toPlain();
-          }
-
           // Process Entity-like objects (objects with props and _id)
-          if ('props' in input && '_id' in input) {
+          if (
+            typeof input === "object" &&
+            input !== null &&
+            !Array.isArray(input) &&
+            "props" in input &&
+            "_id" in input
+          ) {
+            // Flatten Entity structure: merge props with id
             const entity = input as any;
             const result: Record<string, unknown> = {
-              id: isUniqueEntityID(entity._id)
-                ? entity._id.toString()
-                : (entity._id?.value || String(entity._id)),
+              id: entity._id.value || entity._id.toString(),
             };
 
             // Process props and add them directly to the result
@@ -196,27 +168,28 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
               result[key] = processData(value);
             }
 
-            // Also include getters that are not in props
+            // Also include getters that are not in props (like priceUsd)
             const entityPrototype = Object.getPrototypeOf(entity);
-            const getterNames = Object.getOwnPropertyNames(entityPrototype)
-              .filter((name) => {
-                const descriptor = Object.getOwnPropertyDescriptor(
-                  entityPrototype,
-                  name,
-                );
-                return (
-                  descriptor &&
-                  typeof descriptor.get === 'function' &&
-                  name !== 'constructor'
-                );
-              });
+            const getterNames = Object.getOwnPropertyNames(
+              entityPrototype,
+            ).filter((name) => {
+              const descriptor = Object.getOwnPropertyDescriptor(
+                entityPrototype,
+                name,
+              );
+              return (
+                descriptor &&
+                typeof descriptor.get === "function" &&
+                name !== "constructor"
+              );
+            });
 
             for (const getterName of getterNames) {
               if (!(getterName in entity.props)) {
                 try {
                   const getterValue = entity[getterName];
                   result[getterName] = processData(getterValue);
-                } catch {
+                } catch (error) {
                   // Skip getters that might throw errors
                 }
               }
@@ -226,11 +199,20 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
           }
 
           // Process regular objects
-          const result: Record<string, unknown> = {};
-          for (const [key, value] of Object.entries(input)) {
-            result[key] = processData(value);
+          if (
+            typeof input === "object" &&
+            input !== null &&
+            !Array.isArray(input)
+          ) {
+            const result: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(input)) {
+              result[key] = processData(value);
+            }
+            return result;
           }
-          return result;
+
+          // Return primitives as is
+          return input;
         };
 
         // First process ValueObjects
@@ -243,8 +225,8 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
         // Auto transform if the type is a class constructor
         if (
           dtoClass &&
-          typeof dtoClass === 'function' &&
-          typeof processedData === 'object' &&
+          typeof dtoClass === "function" &&
+          typeof processedData === "object" &&
           processedData !== null
         ) {
           // Apply class-transformer to data based on its structure
@@ -265,7 +247,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
               return isNaN(obj.getTime()) ? null : obj.toISOString();
             }
             if (Array.isArray(obj)) return obj.map(transformDates);
-            if (typeof obj === 'object') {
+            if (typeof obj === "object") {
               const transformed: any = {};
               for (const [key, value] of Object.entries(obj)) {
                 transformed[key] = transformDates(value);
@@ -283,7 +265,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
               transformOptions,
             );
           } else if (
-            'data' in processedData &&
+            "data" in processedData &&
             Array.isArray((processedData as any).data)
           ) {
             const transformedDataArray = transformDates(
@@ -310,7 +292,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
         if (options.isPaginated && isPaginatedData(transformedData)) {
           return {
             success: true,
-            message: options.message || 'Data retrieved successfully',
+            message: options.message || "Data retrieved successfully",
             data: transformedData.data,
             pagination: transformedData.pagination,
             timestamp: new Date().toISOString(),
@@ -320,7 +302,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
         if (isPaginatedData(transformedData)) {
           return {
             success: true,
-            message: options.message || 'Data retrieved successfully',
+            message: options.message || "Data retrieved successfully",
             data: transformedData.data,
             pagination: transformedData.pagination,
             timestamp: new Date().toISOString(),
@@ -330,7 +312,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
         if (Array.isArray(transformedData)) {
           return {
             success: true,
-            message: options.message || 'Data retrieved successfully',
+            message: options.message || "Data retrieved successfully",
             data: transformedData,
             timestamp: new Date().toISOString(),
           } as StandardResponseData;
@@ -338,7 +320,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
 
         return {
           success: true,
-          message: options.message || 'Data retrieved successfully',
+          message: options.message || "Data retrieved successfully",
           data: transformedData,
           timestamp: new Date().toISOString(),
         } as StandardResponseData;

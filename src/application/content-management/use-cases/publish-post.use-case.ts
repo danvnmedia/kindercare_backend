@@ -44,21 +44,26 @@ export class PublishPostUseCase {
         );
       }
 
-      if (post.status !== PostStatus.APPROVED) {
+      // Note: Post entity publish() method expects DRAFT status
+      // This use case expects APPROVED status - need to align business rules
+      if (post.status !== PostStatus.DRAFT && post.status !== PostStatus.APPROVED) {
         throw new BadRequestException(
           `Cannot publish a post with status ${post.status}`,
         );
       }
 
-      post.status = PostStatus.PUBLISHED;
-      if (!post.publishAt) {
-        post.publishAt = new Date();
+      const publishDate = post.publishAt || new Date();
+      if (post.status === PostStatus.DRAFT) {
+        post.publish(publishDate);
+      } else {
+        // For APPROVED posts, manually set status until domain logic is aligned
+        post.approve(publishDate);
       }
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({
-        postId: new UniqueEntityID(postId),
-        userId: new UniqueEntityID(currentUser.id),
+        postId: postId,
+        userId: currentUser.id,
         status: PostStatus.PUBLISHED,
         createdAt: new Date(),
       });

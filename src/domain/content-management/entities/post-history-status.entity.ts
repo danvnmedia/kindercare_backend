@@ -4,8 +4,8 @@ import { PostStatus } from "../enums/post-status.enum";
 import { Optional } from "@/core/types/optional";
 
 export interface PostHistoryStatusProps {
-  postId: UniqueEntityID;
-  userId: UniqueEntityID;
+  postId: string;
+  userId: string;
   status: PostStatus;
   comment?: string | null;
   createdAt: Date;
@@ -13,18 +13,11 @@ export interface PostHistoryStatusProps {
 }
 
 export class PostHistoryStatus extends Entity<PostHistoryStatusProps> {
-  protected props: PostHistoryStatusProps;
-
-  private constructor(props: PostHistoryStatusProps, id?: UniqueEntityID) {
-    super(id);
-    this.props = props;
-  }
-
-  get postId(): UniqueEntityID {
+  get postId(): string {
     return this.props.postId;
   }
 
-  get userId(): UniqueEntityID {
+  get userId(): string {
     return this.props.userId;
   }
 
@@ -49,15 +42,16 @@ export class PostHistoryStatus extends Entity<PostHistoryStatusProps> {
       PostHistoryStatusProps,
       "createdAt" | "updatedAt" | "comment"
     >,
-    id?: UniqueEntityID,
+    id?: string,
   ): PostHistoryStatus {
-    const postHistoryStatusProps: PostHistoryStatusProps = {
-      ...props,
-      comment: props.comment ?? null,
-      createdAt: props.createdAt ?? new Date(),
-      updatedAt: props.updatedAt ?? null,
-    };
-    const postHistoryStatus = new PostHistoryStatus(postHistoryStatusProps, id);
-    return postHistoryStatus;
+    return new PostHistoryStatus(
+      {
+        ...props,
+        comment: props.comment ?? null,
+        createdAt: props.createdAt ?? new Date(),
+        updatedAt: props.updatedAt ?? null,
+      },
+      new UniqueEntityID(id),
+    );
   }
 }

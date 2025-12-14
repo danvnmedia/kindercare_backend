@@ -78,11 +78,11 @@ export class TeacherEntity {
 
   /**
    * Validate phone number format (required for teachers)
-   * Supports Vietnamese phone format: +84xxxxxxxxx
+   * Supports E.164 international format: +[country code][subscriber number]
    */
   static validatePhoneNumber(phoneNumber: string): boolean {
     if (!phoneNumber) return false;
-    const phoneRegex = /^\+84\d{9,10}$/;
+    const phoneRegex = /^\+[1-9]\d{1,14}$/;
     return phoneRegex.test(phoneNumber);
   }
 

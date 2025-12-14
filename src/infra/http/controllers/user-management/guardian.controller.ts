@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 
-// DTOs
+import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   CreateGuardianRequest,
   GuardianResponse,
@@ -32,10 +32,13 @@ export class GuardianController {
   @ApiOperation({
     summary: "Create a new guardian",
     description:
-      "Creates a new guardian with personal information and automatically creates a Clerk account with weak password (ChangeMe123!) that forces password reset on first login.",
+      "Creates a new guardian with personal information and automatically creates a Clerk account with weak password (ChangeMe12-3!) that forces password reset on first login.",
   })
   async create(@Body() dto: CreateGuardianRequest) {
-    return await this.createGuardianUseCase.execute({ ...dto });
+    return await this.createGuardianUseCase.execute({
+      ...dto,
+      gender: dto.gender as Gender,
+    });
   }
 
   @Get()

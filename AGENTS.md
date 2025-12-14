@@ -1,20 +1,75 @@
-# KinderCare Backend - AI Agents Guide
+# Project Instructions
 
-> **Code Patterns**: See [PROJECT.md](./PROJECT.md) for Mapper, Controller, Use Case, Repository patterns.
-> **Project Overview**: See [CLAUDE.md](./CLAUDE.md) for architecture and development rules.
+> **IMPORTANT**: These instructions are MANDATORY. Follow them exactly.
 
 ---
 
-<!-- BACKLOG.MD GUIDELINES START -->
-# Backlog.md CLI Tool
+## Documentation Reference
+
+Before implementing any feature, you MUST read the relevant documentation:
+
+📁 **Documentation**: [docs/README.md](./docs/README.md)
+
+### Required Reading by Task Type
+
+| Task | Must Read |
+|------|-----------|
+| New feature | [checklist.md](./docs/conventions/checklist.md) |
+| Create entity | [entity.md](./docs/patterns/entity.md), [repository.md](./docs/patterns/repository.md) |
+| Create API endpoint | [controller.md](./docs/patterns/controller.md), [dto.md](./docs/patterns/dto.md) |
+| Business logic | [use-case.md](./docs/patterns/use-case.md) |
+| Database mapping | [mapper.md](./docs/patterns/mapper.md) |
+| Error handling | [exception.md](./docs/patterns/exception.md) |
+| Authentication/Authorization | [guards.md](./docs/patterns/guards.md), [decorators.md](./docs/patterns/decorators.md) |
+| Event-driven feature | [domain-events.md](./docs/patterns/domain-events.md), [event-handler.md](./docs/patterns/event-handler.md) |
+| Transaction handling | [unit-of-work.md](./docs/patterns/unit-of-work.md) |
+| Custom validation | [validation.md](./docs/patterns/validation.md) |
+| Value types | [value-object.md](./docs/patterns/value-object.md) |
+| Module setup | [module.md](./docs/patterns/module.md) |
+| Naming | [naming.md](./docs/conventions/naming.md) |
+| Task management | [backlog.md](./docs/guides/backlog.md) |
+| Pagination & Filtering | [pagination-and-filtering.md](./docs/guides/pagination-and-filtering.md) |
+
+---
+
+## Mandatory Rules
+
+### 1. Follow Patterns Exactly
+
+- Use the EXACT code structure from documentation
+- Do NOT deviate from established patterns
+- If unsure, READ the relevant doc file first
+
+
+### 2. File Locations
+
+| Type | Location |
+|------|----------|
+| Entity | `src/domain/{module}/` |
+| Use Case | `src/application/{module}/use-cases/` |
+| Repository Port | `src/application/{module}/ports/` |
+| Repository Impl | `src/infra/persistence/prisma/repositories/` |
+| Mapper | `src/infra/persistence/prisma/mapper/` |
+| Controller | `src/infra/http/controllers/` |
+| DTO | `src/infra/http/dtos/` |
+| Exception | `src/core/exceptions/` |
+| Value Object | `src/core/value-objects/` |
+
+### 3. Before Writing Code
+
+1. Read the relevant pattern documentation
+2. Follow the checklist in [checklist.md](./docs/conventions/checklist.md)
+3. Use correct naming from [naming.md](./docs/conventions/naming.md)
+
+### 4. Task Management - Backlog CLI Tool
+
+> Task management via CLI. **NEVER edit task files directly** - use CLI commands only.
+
+---
 
 ## Overview
 
-Task management via CLI. **NEVER edit task files directly** - use CLI commands only.
-
-### Key Points
-
-- Tasks: `backlog/tasks/task-<id> - <title>.md`
+- Tasks location: `backlog/tasks/task-<id> - <title>.md`
 - Use `--plain` flag for AI-friendly output
 - CLI handles Git, metadata, file naming
 
@@ -23,8 +78,8 @@ Task management via CLI. **NEVER edit task files directly** - use CLI commands o
 ## Critical Rule
 
 ```
-- DO: backlog task edit, backlog task create
-- DON'T: Edit .md files directly
+DO:    backlog task edit, backlog task create
+DON'T: Edit .md files directly
 ```
 
 ---
@@ -39,12 +94,14 @@ Task management via CLI. **NEVER edit task files directly** - use CLI commands o
 | View | `backlog task 42 --plain` |
 | Search | `backlog search "topic" --plain` |
 | Create | `backlog task create "Title" -d "Desc" --ac "AC1"` |
-| Edit | `backlog task edit 42 -s "In Progress" -a @me` |
+| Edit | `backlog task edit 42 -s "In Progress" -a me` |
 | Check AC | `backlog task edit 42 --check-ac 1` |
 | Add notes | `backlog task edit 42 --notes "Done"` |
 | Add plan | `backlog task edit 42 --plan "1. Step"` |
 
-### Workflow
+---
+
+## Workflow
 
 ```bash
 # 1. Find work
@@ -64,25 +121,15 @@ backlog task edit 42 --notes "Implemented X"
 backlog task edit 42 -s Done
 ```
 
-### Definition of Done
+---
+
+## Definition of Done
 
 1. All ACs checked via CLI
 2. Implementation notes added
 3. Status set to Done
 4. Tests pass
 5. Code reviewed
-
----
-
-## Multi-line Input
-
-```bash
-# Bash/Zsh
-backlog task edit 42 --plan $'1. Step\n2. Step'
-
-# POSIX
-backlog task edit 42 --notes "$(printf 'Line1\nLine2')"
-```
 
 ---
 
@@ -93,7 +140,7 @@ backlog task edit 42 --notes "$(printf 'Line1\nLine2')"
 id: task-42
 title: Feature Name
 status: To Do
-assignee: [@user]
+assignee: [user]
 labels: [backend]
 ---
 
@@ -112,13 +159,15 @@ Why this task exists.
 What was done.
 ```
 
-### Modify via CLI
+---
+
+## Task Field Commands
 
 | Field | Command |
 |-------|---------|
 | Title | `backlog task edit 42 -t "New Title"` |
 | Status | `backlog task edit 42 -s "In Progress"` |
-| Assignee | `backlog task edit 42 -a @user` |
+| Assignee | `backlog task edit 42 -a user` |
 | Labels | `backlog task edit 42 -l backend,api` |
 | Description | `backlog task edit 42 -d "New desc"` |
 | Add AC | `backlog task edit 42 --ac "New criterion"` |
@@ -141,11 +190,11 @@ backlog task create "Title" \
   --priority high
 ```
 
-**Good ACs**: Outcome-focused, testable, clear
+### Good ACs (Outcome-focused)
 - "User can log in with valid credentials"
 - "API returns 200 with correct data"
 
-**Bad ACs**: Implementation steps
+### Bad ACs (Implementation steps)
 - "Add function handleLogin()"
 
 ---
@@ -178,6 +227,18 @@ backlog task edit 42 -s Done
 
 ---
 
+## Multi-line Input
+
+```bash
+# Bash/Zsh
+backlog task edit 42 --plan '1. Step\n2. Step'
+
+# POSIX
+backlog task edit 42 --notes "$(printf 'Line1\nLine2')"
+```
+
+---
+
 ## Common Issues
 
 | Problem | Solution |
@@ -193,5 +254,3 @@ backlog task edit 42 -s Done
 **Change anything in a task = use `backlog task edit`**
 
 Full help: `backlog --help`
-
-<!-- BACKLOG.MD GUIDELINES END -->
