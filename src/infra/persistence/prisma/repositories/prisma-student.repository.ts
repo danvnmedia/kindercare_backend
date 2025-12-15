@@ -60,6 +60,7 @@ export class PrismaStudentRepository implements StudentRepository {
       "gender",
       "nickname",
       "isArchived",
+      "dateOfBirth",
     ];
     params.allowedSortFields = [
       "createdAt",
@@ -67,6 +68,7 @@ export class PrismaStudentRepository implements StudentRepository {
       "nickname",
       "studentCode",
       "fullName",
+      "dateOfBirth",
     ];
 
     // Use PrismaQueryService to execute query with StandardRequest
