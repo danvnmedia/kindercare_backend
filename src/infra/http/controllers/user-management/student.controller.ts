@@ -30,6 +30,7 @@ import { StandardRequestDto } from "@/core/modules/standard-response/dto/standar
 // Use Cases
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
@@ -43,6 +44,7 @@ export class StudentController {
   constructor(
     private readonly createStudentUseCase: CreateStudentUseCase,
     private readonly getAllStudentsUseCase: GetAllStudentsUseCase,
+    private readonly deleteStudentUseCase: DeleteStudentUseCase,
     private readonly linkStudentWithGuardianUseCase: LinkStudentWithGuardianUseCase,
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
     private readonly getStudentGuardiansUseCase: GetStudentGuardiansUseCase,
@@ -78,6 +80,26 @@ export class StudentController {
   })
   async findAll(@StandardRequestParam() query: StandardRequestDto) {
     return this.getAllStudentsUseCase.execute(query);
+  }
+
+  @Delete(":id")
+  @StandardResponse({
+    message: "Student deleted successfully",
+    type: null,
+  })
+  @ApiOperation({
+    summary: "Delete a student",
+    description: "Permanently deletes a student by ID.",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  async delete(@Param("id", ParseUUIDPipe) id: string) {
+    await this.deleteStudentUseCase.execute(id);
+    return null;
   }
 
   // ========== Student-Guardian Relationship Endpoints ==========
