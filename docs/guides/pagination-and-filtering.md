@@ -55,6 +55,121 @@ Combined example:
 
 ---
 
+## Date Filtering
+
+**Important:** Date fields must use **ISO 8601 format**: `YYYY-MM-DDTHH:mm:ss.sssZ`
+
+### Supported Operators for Dates
+
+| Operator  | Use Case                  | Example                                    |
+|-----------|---------------------------|--------------------------------------------|
+| (none)    | Exact date                | `{"dateOfBirth": "2020-01-15T00:00:00.000Z"}` |
+| `eq`      | Exact date                | `{"dateOfBirth": {"eq": "2020-01-15T00:00:00.000Z"}}` |
+| `between` | Date range (inclusive)    | `{"dateOfBirth": {"between": ["2020-01-01T00:00:00.000Z", "2020-12-31T23:59:59.999Z"]}}` |
+
+### Date Filter Examples
+
+**Students born on specific date:**
+```
+GET /students?filter={"dateOfBirth":"2020-01-15T00:00:00.000Z"}
+```
+
+**Students born in 2020:**
+```
+GET /students?filter={"dateOfBirth":{"between":["2020-01-01T00:00:00.000Z","2020-12-31T23:59:59.999Z"]}}
+```
+
+**URL-encoded version:**
+```
+GET /students?filter=%7B%22dateOfBirth%22%3A%7B%22between%22%3A%5B%222020-01-01T00%3A00%3A00.000Z%22%2C%222020-12-31T23%3A59%3A59.999Z%22%5D%7D%7D
+```
+
+### Frontend Implementation
+
+```typescript
+// Convert date to ISO 8601 format
+const startDate = new Date("2020-01-01").toISOString(); // "2020-01-01T00:00:00.000Z"
+const endDate = new Date("2020-12-31").toISOString();
+
+const filter = {
+  dateOfBirth: {
+    between: [startDate, endDate]
+  }
+};
+
+// URL encode before sending
+const url = `/students?filter=${encodeURIComponent(JSON.stringify(filter))}`;
+```
+
+---
+
+## Timezone Handling
+
+### The Standard: Store UTC, Display Local
+
+```
+Frontend (any timezone) → API (UTC) → Database (UTC) → API (UTC) → Frontend (convert to local)
+```
+
+### Date-Only Fields (DOB, enrollment dates)
+
+For date-only fields, the date should be consistent worldwide. A birthday on "May 15, 2020" means May 15th everywhere.
+
+**Frontend should send dates at UTC midnight:**
+
+```typescript
+// User selects: May 15, 2020 (in Vietnam, GMT+7)
+const userDate = new Date(2020, 4, 15); // May 15, 2020 local
+
+// Convert to UTC midnight for date-only fields
+const utcDate = new Date(Date.UTC(
+  userDate.getFullYear(),
+  userDate.getMonth(),
+  userDate.getDate()
+)).toISOString();
+// Result: "2020-05-15T00:00:00.000Z"
+
+// Send to API
+fetch('/api/students', {
+  method: 'POST',
+  body: JSON.stringify({ dateOfBirth: utcDate })
+});
+```
+
+### Timestamp Fields (createdAt, check-in times)
+
+For timestamps, send the actual moment in UTC:
+
+```typescript
+// Event happens at 10:30 AM in Vietnam (GMT+7)
+const now = new Date().toISOString();
+// Result: "2025-12-16T03:30:00.000Z" (UTC equivalent)
+```
+
+### Display Conversion (Frontend)
+
+```typescript
+// API returns: "2020-05-15T00:00:00.000Z"
+const apiDate = new Date("2020-05-15T00:00:00.000Z");
+
+// Display in user's local timezone
+const displayDate = apiDate.toLocaleDateString('vi-VN', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit'
+});
+// Result in Vietnam: "15/05/2020"
+```
+
+### Summary
+
+| Field Type | Frontend Sends | Database Stores | Frontend Displays |
+|------------|----------------|-----------------|-------------------|
+| Date-only (DOB) | `2020-05-15T00:00:00.000Z` | `2020-05-15` (DATE) | Convert to local format |
+| Timestamp | `2025-12-16T03:30:00.000Z` | `2025-12-16 03:30:00+00` (TIMESTAMPTZ) | Convert to local time |
+
+---
+
 ## Response Format
 
 ```json
@@ -95,8 +210,8 @@ Combined example:
 ## Allowed Fields by Endpoint
 
 ### GET /students
-- **Filterable**: `studentCode`, `fullName`, `email`, `phoneNumber`, `gender`, `nickname`, `isArchived`
-- **Sortable**: `createdAt`, `updatedAt`, `nickname`, `studentCode`, `fullName`
+- **Filterable**: `studentCode`, `fullName`, `email`, `phoneNumber`, `gender`, `nickname`, `isArchived`, `dateOfBirth`
+- **Sortable**: `createdAt`, `updatedAt`, `nickname`, `studentCode`, `fullName`, `dateOfBirth`
 
 ### GET /guardians
 - **Filterable**: `fullName`, `email`, `phoneNumber`, `gender`, `occupation`, `workAddress`, `isArchived`

@@ -30,16 +30,20 @@ export interface DateOfBirthOptions {
 }
 
 /**
- * Calculate age from date of birth
+ * Calculate age from date of birth using UTC to avoid timezone issues
+ *
+ * Uses UTC methods to ensure consistent age calculation regardless of server timezone.
+ * This prevents edge cases where a user in GMT+7 might get wrong age calculation
+ * when the server runs in UTC.
  */
 function calculateAge(dateOfBirth: Date): number {
   const today = new Date();
-  let age = today.getFullYear() - dateOfBirth.getFullYear();
-  const monthDiff = today.getMonth() - dateOfBirth.getMonth();
+  let age = today.getUTCFullYear() - dateOfBirth.getUTCFullYear();
+  const monthDiff = today.getUTCMonth() - dateOfBirth.getUTCMonth();
 
   if (
     monthDiff < 0 ||
-    (monthDiff === 0 && today.getDate() < dateOfBirth.getDate())
+    (monthDiff === 0 && today.getUTCDate() < dateOfBirth.getUTCDate())
   ) {
     age--;
   }
@@ -87,11 +91,19 @@ export class IsDateOfBirthConstraint implements ValidatorConstraintInterface {
       return false;
     }
 
+    // Get today's date at midnight UTC for consistent comparison
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayUTC = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    );
+
+    // Normalize input date to midnight UTC for date-only comparison
+    const dateUTC = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
 
     // Check if date is in the future
-    if (!allowFuture && date > today) {
+    if (!allowFuture && dateUTC > todayUTC) {
       this.failureReason = "future_date";
       return false;
     }

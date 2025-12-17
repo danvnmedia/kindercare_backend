@@ -1,6 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
-  IsDateString,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -11,7 +10,12 @@ import {
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { TeacherType } from "@/domain/user-management/enums/teacher-type.enum";
-import { IsE164Phone, IsAdultDateOfBirth } from "@/core/validators";
+import {
+  IsE164Phone,
+  IsAdultDateOfBirth,
+  TransformToUTCDate,
+  IsISO8601Date,
+} from "@/core/validators";
 
 export class CreateTeacherRequest {
   // ========== Personal Information ==========
@@ -69,11 +73,13 @@ export class CreateTeacherRequest {
   address?: string;
 
   @ApiProperty({
-    description: "Teacher date of birth (must be 18+ years old)",
-    example: "1990-01-15",
+    description:
+      "Teacher date of birth in ISO 8601 format (must be 18+ years old)",
+    example: "1990-01-15T00:00:00.000Z",
     required: false,
   })
   @IsOptional()
+  @TransformToUTCDate()
   @IsAdultDateOfBirth()
   dateOfBirth?: Date;
 
@@ -88,11 +94,12 @@ export class CreateTeacherRequest {
   gender?: Gender;
 
   @ApiProperty({
-    description: "Teacher start date (employment start)",
-    example: "2024-01-01",
+    description: "Teacher start date in ISO 8601 format (employment start)",
+    example: "2024-01-01T00:00:00.000Z",
     required: false,
   })
   @IsOptional()
-  @IsDateString()
+  @TransformToUTCDate()
+  @IsISO8601Date()
   startDate?: Date;
 }

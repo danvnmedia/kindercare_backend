@@ -13,7 +13,7 @@ import {
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
-import { IsE164Phone, IsDateOfBirth } from "@/core/validators";
+import { IsE164Phone, IsDateOfBirth, TransformToUTCDate } from "@/core/validators";
 
 export class CreateStudentRequest {
   // ========== Personal Information ==========
@@ -42,11 +42,13 @@ export class CreateStudentRequest {
   nickname?: string;
 
   @ApiProperty({
-    description: "Student date of birth (optional, must be in the past)",
-    example: "2018-05-15",
+    description:
+      "Student date of birth in ISO 8601 format (optional, must be in the past)",
+    example: "2018-05-15T00:00:00.000Z",
     required: false,
   })
   @IsOptional()
+  @TransformToUTCDate()
   @IsDateOfBirth()
   dateOfBirth?: Date;
 

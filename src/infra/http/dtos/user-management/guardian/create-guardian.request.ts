@@ -9,7 +9,7 @@ import {
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { IsE164Phone, IsAdultDateOfBirth } from "@/core/validators";
+import { IsE164Phone, IsAdultDateOfBirth, TransformToUTCDate } from "@/core/validators";
 
 export class CreateGuardianRequest {
   // ========== Personal Information ==========
@@ -27,10 +27,12 @@ export class CreateGuardianRequest {
   fullName: string;
 
   @ApiProperty({
-    description: "Guardian date of birth (must be 18+ years old)",
-    example: "1985-03-20",
+    description:
+      "Guardian date of birth in ISO 8601 format (must be 18+ years old)",
+    example: "1985-03-20T00:00:00.000Z",
   })
   @IsNotEmpty()
+  @TransformToUTCDate()
   @IsAdultDateOfBirth()
   dateOfBirth: Date;
 
