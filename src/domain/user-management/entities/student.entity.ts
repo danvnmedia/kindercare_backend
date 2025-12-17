@@ -89,7 +89,7 @@ export class Student extends Entity<StudentProps> {
    */
   public archive(): void {
     this.props.isArchived = true;
-    this.props.status = StudentStatus.INACTIVE;
+    this.props.status = StudentStatus.DROPPED;
     this.touch();
   }
 

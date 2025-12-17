@@ -51,6 +51,9 @@ import { PrismaStudentRepository } from "@/infra/persistence/prisma/repositories
 import { PrismaGuardianRepository } from "@/infra/persistence/prisma/repositories/prisma-guardian.repository";
 import { PrismaTeacherRepository } from "@/infra/persistence/prisma/repositories/prisma-teacher.repository";
 
+// Services
+import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services/student-code-generator.service";
+
 // Modules
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
@@ -103,6 +106,9 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     LinkStudentWithGuardianUseCase,
     UnlinkStudentFromGuardianUseCase,
     GetStudentGuardiansUseCase,
+
+    // Services
+    StudentCodeGeneratorService,
 
     // Guardian Use Cases
     CreateGuardianUseCase,

@@ -39,7 +39,10 @@ export class StudentResponse {
   id: string;
 
   @Expose()
-  @ApiProperty({ example: "STU-2025-0001" })
+  @ApiProperty({
+    example: "2025-000001",
+    description: "Auto-generated student code in format YYYY-XXXXXX",
+  })
   studentCode: string;
 
   // Personal information (now stored directly in Student)
@@ -75,7 +78,7 @@ export class StudentResponse {
   @Expose()
   @ApiProperty({
     example: "WAITING",
-    description: "Student status: WAITING, ACTIVE, INACTIVE, GRADUATED",
+    description: "Student status: DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED",
   })
   status: string;
 

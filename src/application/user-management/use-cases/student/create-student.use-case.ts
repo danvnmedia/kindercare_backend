@@ -6,8 +6,8 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
-import { randomUUID } from "crypto";
 import { Student } from "@/domain/user-management/entities/student.entity";
+import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services/student-code-generator.service";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import { User } from "@/domain/user-management/user.entity";
@@ -43,6 +43,7 @@ export class CreateStudentUseCase {
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
+    private readonly studentCodeGenerator: StudentCodeGeneratorService,
   ) {}
 
   async execute(input: CreateStudentInput): Promise<Student> {
@@ -142,8 +143,10 @@ export class CreateStudentUseCase {
   private async createAndSaveStudent(
     input: CreateStudentInput,
   ): Promise<Student> {
+    const studentCode = await this.studentCodeGenerator.generateNextCode();
+
     const studentEntity = Student.create({
-      studentCode: randomUUID(), // Or generate based on a pattern
+      studentCode,
       fullName: input.fullName,
       email: input.email || null,
       phoneNumber: input.phoneNumber || null,

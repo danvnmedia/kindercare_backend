@@ -102,7 +102,7 @@ export class CreateStudentRequest {
   })
   @IsOptional()
   @IsEnum(StudentStatus, {
-    message: "Status must be WAITING, ACTIVE, INACTIVE, or GRADUATED",
+    message: "Status must be DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, or DEFERRED",
   })
   status?: StudentStatus;
 

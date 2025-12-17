@@ -44,7 +44,8 @@
     "clerk:get-token": "ts-node -r tsconfig-paths/register scripts/get-clerk-token.ts",
     "cli:create-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
     "cli:list-admins": "CLI_COMMAND=list ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
-    "cli:delete-admin": "CLI_COMMAND=delete ts-node -r tsconfig-paths/register src/cli/create-admin.ts"
+    "cli:delete-admin": "CLI_COMMAND=delete ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
+    "seed:students": "ts-node -r tsconfig-paths/register seeds/seed-students.ts"
   },
   "dependencies": {
     "@clerk/backend": "^2.22.0",

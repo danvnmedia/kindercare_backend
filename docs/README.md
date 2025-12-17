@@ -52,7 +52,8 @@
 |-------|------|
 | Backlog CLI | [backlog.md](./guides/backlog.md) |
 | Pagination & Filtering | [pagination-and-filtering.md](./guides/pagination-and-filtering.md) |
+| Code Generation | [code-generation.md](./guides/code-generation.md) |
 
 ---
 
-**Last Updated**: 2025-12-14
+**Last Updated**: 2025-12-17

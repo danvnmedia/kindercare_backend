@@ -1,6 +1,8 @@
 export enum StudentStatus {
-  WAITING = "WAITING",
+  DROPPED = "DROPPED",
   ACTIVE = "ACTIVE",
-  INACTIVE = "INACTIVE",
   GRADUATED = "GRADUATED",
+  TRIAL = "TRIAL",
+  WAITING = "WAITING",
+  DEFERRED = "DEFERRED",
 }
