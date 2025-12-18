@@ -129,7 +129,6 @@ temp/
 
 # Docker
 Dockerfile.prod
-docker-compose.prod.yml
 
 # Database
 *.db
