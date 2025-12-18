@@ -1,36 +1,35 @@
 #!/bin/sh
 set -e
 
-echo "Starting entrypoint script..."
+# Extract database host from DATABASE_URL
+DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\):.*/\1/p')
+DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
 
-# Wait for database to be ready
-echo "Waiting for database connection..."
-echo "DATABASE_URL: $DATABASE_URL"
+echo "⏳ Waiting for PostgreSQL at $DB_HOST:$DB_PORT..."
 
-MAX_RETRIES=30
-RETRY_COUNT=0
+# Simple TCP connection check
+max_retries=30
+retry_count=0
 
-until npx prisma migrate status > /dev/null 2>&1; do
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
-    echo "Failed to connect to database after $MAX_RETRIES attempts"
-    echo "Checking connection error:"
-    npx prisma migrate status
-    exit 1
+while [ $retry_count -lt $max_retries ]; do
+  if nc -z $DB_HOST $DB_PORT 2>/dev/null; then
+    echo "✅ PostgreSQL is ready!"
+    break
   fi
-  echo "Database is unavailable - attempt $RETRY_COUNT/$MAX_RETRIES - sleeping..."
+  echo "⏳ PostgreSQL is unavailable - sleeping (attempt $((retry_count+1))/$max_retries)"
   sleep 2
+  retry_count=$((retry_count+1))
 done
 
-echo "Database is ready!"
+if [ $retry_count -eq $max_retries ]; then
+  echo "❌ Failed to connect to PostgreSQL after $max_retries attempts"
+  exit 1
+fi
 
-# Generate Prisma client
-echo "Generating Prisma client..."
-npx prisma generate
-
-# Run database migrations
-echo "Running database migrations..."
+echo "🔄 Running database migrations..."
 npx prisma migrate deploy
 
-echo "Starting application..."
+echo "✅ Migrations completed!"
+
+echo "🚀 Starting application..."
 exec "$@"
