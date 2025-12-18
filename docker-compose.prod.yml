@@ -14,7 +14,8 @@ services:
       - .:/app
       - /app/node_modules
     command: npm run build && npm run start:prod
-
+    networks:
+      - kindercare-network
 
   postgres:
     image: postgres:15-alpine
@@ -29,12 +30,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - kindercare-network
 
   redis:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
     command: redis-server ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    networks:
+      - kindercare-network
+
+networks:
+  kindercare-network:
+    driver: bridge
 
 volumes:
   postgres_data:
