@@ -24,13 +24,19 @@ export class GetClassTeachersUseCase {
         throw new NotFoundException(`Class with ID ${classId} not found`);
       }
 
-      const assignments = await this.classTeacherRepository.findByClassId(classId);
+      const assignments =
+        await this.classTeacherRepository.findByClassId(classId);
 
-      this.logger.log(`Found ${assignments.length} teacher assignments for class ${classId}`);
+      this.logger.log(
+        `Found ${assignments.length} teacher assignments for class ${classId}`,
+      );
 
       return assignments;
     } catch (error) {
-      this.logger.error(`Failed to fetch class teachers: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch class teachers: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

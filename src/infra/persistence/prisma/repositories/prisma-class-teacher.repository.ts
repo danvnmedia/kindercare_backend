@@ -27,7 +27,9 @@ export class PrismaClassTeacherRepository implements ClassTeacherRepository {
         subject: true,
       },
     });
-    return prismaClassTeacher ? PrismaClassTeacherMapper.toDomain(prismaClassTeacher) : null;
+    return prismaClassTeacher
+      ? PrismaClassTeacherMapper.toDomain(prismaClassTeacher)
+      : null;
   }
 
   async findByClassId(classId: string): Promise<ClassTeacher[]> {
@@ -66,7 +68,10 @@ export class PrismaClassTeacherRepository implements ClassTeacherRepository {
     return PrismaClassTeacherMapper.toDomainArray(prismaClassTeachers);
   }
 
-  async findByClassAndSubject(classId: string, subjectId: string): Promise<ClassTeacher[]> {
+  async findByClassAndSubject(
+    classId: string,
+    subjectId: string,
+  ): Promise<ClassTeacher[]> {
     const prismaClassTeachers = await this.prisma.classTeacher.findMany({
       where: { classId, subjectId },
       include: {
@@ -91,7 +96,11 @@ export class PrismaClassTeacherRepository implements ClassTeacherRepository {
     return PrismaClassTeacherMapper.toDomain(created);
   }
 
-  async delete(classId: string, teacherId: string, subjectId: string): Promise<void> {
+  async delete(
+    classId: string,
+    teacherId: string,
+    subjectId: string,
+  ): Promise<void> {
     await this.prisma.classTeacher.delete({
       where: {
         classId_teacherId_subjectId: {

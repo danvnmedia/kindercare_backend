@@ -17,7 +17,10 @@ export interface ClassTeacherProps {
   updatedAt: Date;
 }
 
-export type CreateClassTeacherData = Pick<ClassTeacherProps, "classId" | "teacherId" | "subjectId">;
+export type CreateClassTeacherData = Pick<
+  ClassTeacherProps,
+  "classId" | "teacherId" | "subjectId"
+>;
 
 export class ClassTeacher extends Entity<ClassTeacherProps> {
   // --- Getters ---
@@ -65,7 +68,11 @@ export class ClassTeacher extends Entity<ClassTeacherProps> {
   /**
    * Checks if this assignment matches the given criteria
    */
-  public matches(classId: string, teacherId: string, subjectId: string): boolean {
+  public matches(
+    classId: string,
+    teacherId: string,
+    subjectId: string,
+  ): boolean {
     return (
       this.props.classId === classId &&
       this.props.teacherId === teacherId &&
@@ -80,7 +87,10 @@ export class ClassTeacher extends Entity<ClassTeacherProps> {
   // --- Factory Method ---
 
   public static create(
-    props: Optional<ClassTeacherProps, "createdAt" | "updatedAt" | "class" | "teacher" | "subject">,
+    props: Optional<
+      ClassTeacherProps,
+      "createdAt" | "updatedAt" | "class" | "teacher" | "subject"
+    >,
     id?: string,
   ): ClassTeacher {
     // Validation
@@ -101,7 +111,8 @@ export class ClassTeacher extends Entity<ClassTeacherProps> {
     };
 
     // For composite key entities, use a composite ID if not provided
-    const entityId = id ?? `${props.classId}-${props.teacherId}-${props.subjectId}`;
+    const entityId =
+      id ?? `${props.classId}-${props.teacherId}-${props.subjectId}`;
     return new ClassTeacher(classTeacherProps, new UniqueEntityID(entityId));
   }
 }

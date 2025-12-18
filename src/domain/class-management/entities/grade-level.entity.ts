@@ -9,7 +9,10 @@ export interface GradeLevelProps {
   updatedAt: Date;
 }
 
-export type CreateGradeLevelData = Omit<GradeLevelProps, "createdAt" | "updatedAt">;
+export type CreateGradeLevelData = Omit<
+  GradeLevelProps,
+  "createdAt" | "updatedAt"
+>;
 
 export class GradeLevel extends Entity<GradeLevelProps> {
   // --- Getters ---
@@ -72,6 +75,9 @@ export class GradeLevel extends Entity<GradeLevelProps> {
       updatedAt: props.updatedAt ?? new Date(),
     };
 
-    return new GradeLevel(gradeLevelProps, id ? new UniqueEntityID(id) : undefined);
+    return new GradeLevel(
+      gradeLevelProps,
+      id ? new UniqueEntityID(id) : undefined,
+    );
   }
 }

@@ -11,8 +11,13 @@ export interface SchoolYearProps {
   updatedAt: Date;
 }
 
-export type CreateSchoolYearData = Omit<SchoolYearProps, "createdAt" | "updatedAt" | "status">;
-export type UpdateSchoolYearData = Partial<Omit<SchoolYearProps, "createdAt" | "updatedAt">>;
+export type CreateSchoolYearData = Omit<
+  SchoolYearProps,
+  "createdAt" | "updatedAt" | "status"
+>;
+export type UpdateSchoolYearData = Partial<
+  Omit<SchoolYearProps, "createdAt" | "updatedAt">
+>;
 
 export class SchoolYear extends Entity<SchoolYearProps> {
   // --- Getters ---
@@ -117,6 +122,9 @@ export class SchoolYear extends Entity<SchoolYearProps> {
       updatedAt: props.updatedAt ?? new Date(),
     };
 
-    return new SchoolYear(schoolYearProps, id ? new UniqueEntityID(id) : undefined);
+    return new SchoolYear(
+      schoolYearProps,
+      id ? new UniqueEntityID(id) : undefined,
+    );
   }
 }

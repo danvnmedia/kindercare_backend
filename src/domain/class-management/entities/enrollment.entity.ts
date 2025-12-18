@@ -16,8 +16,13 @@ export interface EnrollmentProps {
   updatedAt: Date;
 }
 
-export type CreateEnrollmentData = Omit<EnrollmentProps, "createdAt" | "updatedAt" | "class" | "student">;
-export type UpdateEnrollmentData = Partial<Pick<EnrollmentProps, "enrollmentDate" | "note">>;
+export type CreateEnrollmentData = Omit<
+  EnrollmentProps,
+  "createdAt" | "updatedAt" | "class" | "student"
+>;
+export type UpdateEnrollmentData = Partial<
+  Pick<EnrollmentProps, "enrollmentDate" | "note">
+>;
 
 export class Enrollment extends Entity<EnrollmentProps> {
   // --- Getters ---
@@ -80,7 +85,10 @@ export class Enrollment extends Entity<EnrollmentProps> {
   // --- Factory Method ---
 
   public static create(
-    props: Optional<EnrollmentProps, "createdAt" | "updatedAt" | "note" | "class" | "student">,
+    props: Optional<
+      EnrollmentProps,
+      "createdAt" | "updatedAt" | "note" | "class" | "student"
+    >,
     id?: string,
   ): Enrollment {
     // Validation
@@ -101,6 +109,9 @@ export class Enrollment extends Entity<EnrollmentProps> {
       updatedAt: props.updatedAt ?? new Date(),
     };
 
-    return new Enrollment(enrollmentProps, id ? new UniqueEntityID(id) : undefined);
+    return new Enrollment(
+      enrollmentProps,
+      id ? new UniqueEntityID(id) : undefined,
+    );
   }
 }

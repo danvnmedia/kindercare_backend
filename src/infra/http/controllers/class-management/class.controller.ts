@@ -59,7 +59,8 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Create a new class",
-    description: "Creates a new class for a specific grade level and school year.",
+    description:
+      "Creates a new class for a specific grade level and school year.",
   })
   async create(@Body() dto: CreateClassRequest) {
     return await this.createClassUseCase.execute(dto);
@@ -123,7 +124,8 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Delete class",
-    description: "Delete a class. This will also remove all enrollments and teacher assignments.",
+    description:
+      "Delete a class. This will also remove all enrollments and teacher assignments.",
   })
   @ApiParam({
     name: "id",
@@ -144,14 +146,18 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Enroll a student in class",
-    description: "Enroll a student in this class with the specified enrollment date.",
+    description:
+      "Enroll a student in this class with the specified enrollment date.",
   })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async enrollStudent(@Param("id") classId: string, @Body() dto: EnrollStudentRequest) {
+  async enrollStudent(
+    @Param("id") classId: string,
+    @Body() dto: EnrollStudentRequest,
+  ) {
     return await this.enrollStudentUseCase.execute({
       classId,
       studentId: dto.studentId,
@@ -219,7 +225,10 @@ export class ClassController {
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async assignTeacher(@Param("id") classId: string, @Body() dto: AssignTeacherRequest) {
+  async assignTeacher(
+    @Param("id") classId: string,
+    @Body() dto: AssignTeacherRequest,
+  ) {
     return await this.assignTeacherToClassUseCase.execute({
       classId,
       teacherId: dto.teacherId,
@@ -253,7 +262,8 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Remove teacher from class",
-    description: "Remove a teacher's assignment from this class for a specific subject.",
+    description:
+      "Remove a teacher's assignment from this class for a specific subject.",
   })
   @ApiParam({
     name: "classId",
@@ -275,7 +285,11 @@ export class ClassController {
     @Param("teacherId") teacherId: string,
     @Param("subjectId") subjectId: string,
   ) {
-    await this.removeTeacherFromClassUseCase.execute({ classId, teacherId, subjectId });
+    await this.removeTeacherFromClassUseCase.execute({
+      classId,
+      teacherId,
+      subjectId,
+    });
     return null;
   }
 }

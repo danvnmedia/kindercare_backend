@@ -27,7 +27,10 @@ export class GetAllClassesUseCase {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to fetch classes: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch classes: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

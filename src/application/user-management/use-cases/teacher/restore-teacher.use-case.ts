@@ -1,21 +1,16 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { Teacher } from '@/domain/user-management/entities/teacher.entity';
-import { TeacherRepository } from '../../ports/teacher.repository';
-import { UserRepository } from '../../ports/user.repository';
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import { Teacher } from "@/domain/user-management/entities/teacher.entity";
+import { TeacherRepository } from "../../ports/teacher.repository";
+import { UserRepository } from "../../ports/user.repository";
 
 @Injectable()
 export class RestoreTeacherUseCase {
   private readonly logger = new Logger(RestoreTeacherUseCase.name);
 
   constructor(
-    @Inject('TEACHER_REPOSITORY')
+    @Inject("TEACHER_REPOSITORY")
     private readonly teacherRepository: TeacherRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
   ) {}
 
@@ -55,7 +50,9 @@ export class RestoreTeacherUseCase {
       if (user) {
         user.activate();
         await this.userRepository.update(user);
-        this.logger.log(`User account reactivated for teacher: ${teacher.email}`);
+        this.logger.log(
+          `User account reactivated for teacher: ${teacher.email}`,
+        );
       }
     } catch (error) {
       this.logger.error(

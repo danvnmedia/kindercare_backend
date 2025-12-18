@@ -4,10 +4,10 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Teacher } from '@/domain/user-management/entities/teacher.entity';
-import { TeacherType } from '@/domain/user-management/enums/teacher-type.enum';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
+import { Teacher } from "@/domain/user-management/entities/teacher.entity";
+import { TeacherType } from "@/domain/user-management/enums/teacher-type.enum";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export abstract class TeacherRepository {
   /**

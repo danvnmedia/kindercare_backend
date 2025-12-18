@@ -12,21 +12,27 @@ export class PrismaSchoolYearRepository implements SchoolYearRepository {
     const prismaSchoolYear = await this.prisma.schoolYear.findUnique({
       where: { id },
     });
-    return prismaSchoolYear ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear) : null;
+    return prismaSchoolYear
+      ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear)
+      : null;
   }
 
   async findByName(name: string): Promise<SchoolYear | null> {
     const prismaSchoolYear = await this.prisma.schoolYear.findFirst({
       where: { name },
     });
-    return prismaSchoolYear ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear) : null;
+    return prismaSchoolYear
+      ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear)
+      : null;
   }
 
   async findActive(): Promise<SchoolYear | null> {
     const prismaSchoolYear = await this.prisma.schoolYear.findFirst({
       where: { status: true },
     });
-    return prismaSchoolYear ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear) : null;
+    return prismaSchoolYear
+      ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear)
+      : null;
   }
 
   async findAll(): Promise<SchoolYear[]> {

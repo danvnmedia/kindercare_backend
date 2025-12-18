@@ -49,7 +49,9 @@ export class PrismaEnrollmentMapper {
     );
   }
 
-  static toPrisma(enrollment: Enrollment): Prisma.EnrollmentUncheckedCreateInput {
+  static toPrisma(
+    enrollment: Enrollment,
+  ): Prisma.EnrollmentUncheckedCreateInput {
     return {
       id: enrollment.id,
       classId: enrollment.classId,
@@ -69,7 +71,9 @@ export class PrismaEnrollmentMapper {
     };
   }
 
-  static toDomainArray(prismaEnrollments: PrismaEnrollmentWithRelations[]): Enrollment[] {
+  static toDomainArray(
+    prismaEnrollments: PrismaEnrollmentWithRelations[],
+  ): Enrollment[] {
     return prismaEnrollments.map((e) => PrismaEnrollmentMapper.toDomain(e));
   }
 }

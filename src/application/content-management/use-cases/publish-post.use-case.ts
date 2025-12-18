@@ -46,7 +46,10 @@ export class PublishPostUseCase {
 
       // Note: Post entity publish() method expects DRAFT status
       // This use case expects APPROVED status - need to align business rules
-      if (post.status !== PostStatus.DRAFT && post.status !== PostStatus.APPROVED) {
+      if (
+        post.status !== PostStatus.DRAFT &&
+        post.status !== PostStatus.APPROVED
+      ) {
         throw new BadRequestException(
           `Cannot publish a post with status ${post.status}`,
         );

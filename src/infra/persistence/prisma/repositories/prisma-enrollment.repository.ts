@@ -22,7 +22,9 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
         student: true,
       },
     });
-    return prismaEnrollment ? PrismaEnrollmentMapper.toDomain(prismaEnrollment) : null;
+    return prismaEnrollment
+      ? PrismaEnrollmentMapper.toDomain(prismaEnrollment)
+      : null;
   }
 
   async findByStudentClassDate(
@@ -41,7 +43,9 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
         student: true,
       },
     });
-    return prismaEnrollment ? PrismaEnrollmentMapper.toDomain(prismaEnrollment) : null;
+    return prismaEnrollment
+      ? PrismaEnrollmentMapper.toDomain(prismaEnrollment)
+      : null;
   }
 
   async findByClassId(classId: string): Promise<Enrollment[]> {
@@ -69,16 +73,8 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
   }
 
   async findAll(params: StandardRequest): Promise<PaginatedResult<Enrollment>> {
-    params.allowedFilterFields = [
-      "classId",
-      "studentId",
-      "enrollmentDate",
-    ];
-    params.allowedSortFields = [
-      "createdAt",
-      "updatedAt",
-      "enrollmentDate",
-    ];
+    params.allowedFilterFields = ["classId", "studentId", "enrollmentDate"];
+    params.allowedSortFields = ["createdAt", "updatedAt", "enrollmentDate"];
 
     return await this.queryService.executeQuery<Enrollment>(
       this.prisma,
@@ -125,7 +121,10 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
     });
   }
 
-  async deleteByStudentAndClass(studentId: string, classId: string): Promise<void> {
+  async deleteByStudentAndClass(
+    studentId: string,
+    classId: string,
+  ): Promise<void> {
     await this.prisma.enrollment.deleteMany({
       where: {
         studentId,

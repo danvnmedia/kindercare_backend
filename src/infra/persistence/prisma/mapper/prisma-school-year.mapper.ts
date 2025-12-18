@@ -17,7 +17,9 @@ export class PrismaSchoolYearMapper {
     );
   }
 
-  static toPrisma(schoolYear: SchoolYear): Prisma.SchoolYearUncheckedCreateInput {
+  static toPrisma(
+    schoolYear: SchoolYear,
+  ): Prisma.SchoolYearUncheckedCreateInput {
     return {
       id: schoolYear.id,
       name: schoolYear.name,

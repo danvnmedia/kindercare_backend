@@ -90,9 +90,7 @@ export class LinkStudentWithGuardianUseCase {
       );
 
       // Get relationship name
-      const relationshipName = Guardian.getGuardianType(
-        input.relationshipId,
-      );
+      const relationshipName = Guardian.getGuardianType(input.relationshipId);
 
       return {
         studentId: input.studentId,

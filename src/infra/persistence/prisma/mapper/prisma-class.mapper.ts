@@ -26,10 +26,14 @@ export class PrismaClassMapper {
 
     // Map relations if they exist
     if (prismaClass.gradeLevel) {
-      classProps.gradeLevel = PrismaGradeLevelMapper.toDomain(prismaClass.gradeLevel);
+      classProps.gradeLevel = PrismaGradeLevelMapper.toDomain(
+        prismaClass.gradeLevel,
+      );
     }
     if (prismaClass.schoolYear) {
-      classProps.schoolYear = PrismaSchoolYearMapper.toDomain(prismaClass.schoolYear);
+      classProps.schoolYear = PrismaSchoolYearMapper.toDomain(
+        prismaClass.schoolYear,
+      );
     }
 
     return Class.create(classProps, prismaClass.id);

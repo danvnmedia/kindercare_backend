@@ -9,7 +9,11 @@ import {
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { IsE164Phone, IsAdultDateOfBirth, TransformToUTCDate } from "@/core/validators";
+import {
+  IsE164Phone,
+  IsAdultDateOfBirth,
+  TransformToUTCDate,
+} from "@/core/validators";
 
 export class CreateGuardianRequest {
   // ========== Personal Information ==========

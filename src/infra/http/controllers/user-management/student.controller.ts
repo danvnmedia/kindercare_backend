@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -20,6 +21,7 @@ import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   CreateStudentRequest,
+  UpdateStudentRequest,
   StudentResponse,
   LinkStudentGuardianRequest,
   StudentGuardianResponse,
@@ -30,6 +32,7 @@ import { StandardRequestDto } from "@/core/modules/standard-response/dto/standar
 // Use Cases
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
@@ -44,6 +47,7 @@ export class StudentController {
   constructor(
     private readonly createStudentUseCase: CreateStudentUseCase,
     private readonly getAllStudentsUseCase: GetAllStudentsUseCase,
+    private readonly updateStudentUseCase: UpdateStudentUseCase,
     private readonly deleteStudentUseCase: DeleteStudentUseCase,
     private readonly linkStudentWithGuardianUseCase: LinkStudentWithGuardianUseCase,
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
@@ -80,6 +84,32 @@ export class StudentController {
   })
   async findAll(@StandardRequestParam() query: StandardRequestDto) {
     return this.getAllStudentsUseCase.execute(query);
+  }
+
+  @Patch(":id")
+  @StandardResponse({
+    message: "Student updated successfully",
+    type: StudentResponse,
+  })
+  @ApiOperation({
+    summary: "Update a student",
+    description:
+      "Updates student profile information. All fields are optional. Email and phone number uniqueness is validated.",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  async update(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() dto: UpdateStudentRequest,
+  ) {
+    return await this.updateStudentUseCase.execute(id, {
+      ...dto,
+      gender: dto.gender as Gender | undefined,
+    });
   }
 
   @Delete(":id")

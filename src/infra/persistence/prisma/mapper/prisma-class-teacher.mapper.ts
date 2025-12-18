@@ -17,7 +17,9 @@ type PrismaClassTeacherWithRelations = PrismaClassTeacher & {
 };
 
 export class PrismaClassTeacherMapper {
-  static toDomain(prismaClassTeacher: PrismaClassTeacherWithRelations): ClassTeacher {
+  static toDomain(
+    prismaClassTeacher: PrismaClassTeacherWithRelations,
+  ): ClassTeacher {
     const props: any = {
       classId: prismaClassTeacher.classId,
       teacherId: prismaClassTeacher.teacherId,
@@ -31,7 +33,9 @@ export class PrismaClassTeacherMapper {
       props.class = PrismaClassMapper.toDomainSimple(prismaClassTeacher.class);
     }
     if (prismaClassTeacher.teacher) {
-      props.teacher = PrismaTeacherMapper.toDomainSimple(prismaClassTeacher.teacher);
+      props.teacher = PrismaTeacherMapper.toDomainSimple(
+        prismaClassTeacher.teacher,
+      );
     }
     if (prismaClassTeacher.subject) {
       props.subject = PrismaSubjectMapper.toDomain(prismaClassTeacher.subject);
@@ -55,7 +59,9 @@ export class PrismaClassTeacherMapper {
     );
   }
 
-  static toPrisma(classTeacher: ClassTeacher): Prisma.ClassTeacherUncheckedCreateInput {
+  static toPrisma(
+    classTeacher: ClassTeacher,
+  ): Prisma.ClassTeacherUncheckedCreateInput {
     return {
       classId: classTeacher.classId,
       teacherId: classTeacher.teacherId,
@@ -65,7 +71,11 @@ export class PrismaClassTeacherMapper {
     };
   }
 
-  static toDomainArray(prismaClassTeachers: PrismaClassTeacherWithRelations[]): ClassTeacher[] {
-    return prismaClassTeachers.map((ct) => PrismaClassTeacherMapper.toDomain(ct));
+  static toDomainArray(
+    prismaClassTeachers: PrismaClassTeacherWithRelations[],
+  ): ClassTeacher[] {
+    return prismaClassTeachers.map((ct) =>
+      PrismaClassTeacherMapper.toDomain(ct),
+    );
   }
 }

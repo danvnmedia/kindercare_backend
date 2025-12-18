@@ -33,7 +33,9 @@ export class EnrollStudentUseCase {
 
   async execute(input: EnrollStudentInput): Promise<Enrollment> {
     try {
-      this.logger.log(`Enrolling student ${input.studentId} in class ${input.classId}`);
+      this.logger.log(
+        `Enrolling student ${input.studentId} in class ${input.classId}`,
+      );
 
       // Step 1: Validate class exists
       const classEntity = await this.classRepository.findById(input.classId);
@@ -44,15 +46,18 @@ export class EnrollStudentUseCase {
       // Step 2: Validate student exists
       const student = await this.studentRepository.findById(input.studentId);
       if (!student) {
-        throw new NotFoundException(`Student with ID ${input.studentId} not found`);
+        throw new NotFoundException(
+          `Student with ID ${input.studentId} not found`,
+        );
       }
 
       // Step 3: Check for duplicate enrollment
-      const existingEnrollment = await this.enrollmentRepository.findByStudentClassDate(
-        input.studentId,
-        input.classId,
-        input.enrollmentDate,
-      );
+      const existingEnrollment =
+        await this.enrollmentRepository.findByStudentClassDate(
+          input.studentId,
+          input.classId,
+          input.enrollmentDate,
+        );
       if (existingEnrollment) {
         throw new ConflictException(
           `Student is already enrolled in this class on this date`,
@@ -72,7 +77,10 @@ export class EnrollStudentUseCase {
 
       return savedEnrollment;
     } catch (error) {
-      this.logger.error(`Failed to enroll student: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to enroll student: ${error.message}`,
+        error.stack,
+      );
       if (
         error instanceof ConflictException ||
         error instanceof BadRequestException ||

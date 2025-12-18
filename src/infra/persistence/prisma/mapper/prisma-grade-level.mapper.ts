@@ -15,7 +15,9 @@ export class PrismaGradeLevelMapper {
     );
   }
 
-  static toPrisma(gradeLevel: GradeLevel): Prisma.GradeLevelUncheckedCreateInput {
+  static toPrisma(
+    gradeLevel: GradeLevel,
+  ): Prisma.GradeLevelUncheckedCreateInput {
     return {
       id: gradeLevel.id,
       name: gradeLevel.name,

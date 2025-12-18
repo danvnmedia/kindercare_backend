@@ -26,7 +26,10 @@ export class DeleteStudentUseCase {
 
       this.logger.log(`Student deleted: ${id}`);
     } catch (error) {
-      this.logger.error(`Failed to delete student: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to delete student: ${error.message}`,
+        error.stack,
+      );
       if (error instanceof StudentNotFoundException) {
         throw new NotFoundException(error.message);
       }

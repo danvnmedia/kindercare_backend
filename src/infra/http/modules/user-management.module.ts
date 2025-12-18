@@ -27,6 +27,7 @@ import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-ca
 // Use Cases - Student
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
@@ -79,7 +80,12 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     ClerkModule, // Authentication & Identity management
     StandardResponseModule, // Query service for filtering and pagination
   ],
-  controllers: [RoleController, StudentController, GuardianController, TeacherController],
+  controllers: [
+    RoleController,
+    StudentController,
+    GuardianController,
+    TeacherController,
+  ],
   providers: [
     // NOTE: User Use Cases commented out until refactored
     // CreateUserUseCase,
@@ -102,6 +108,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     // Student Use Cases
     CreateStudentUseCase,
     GetAllStudentsUseCase,
+    UpdateStudentUseCase,
     DeleteStudentUseCase,
     LinkStudentWithGuardianUseCase,
     UnlinkStudentFromGuardianUseCase,

@@ -78,7 +78,8 @@ export class StudentResponse {
   @Expose()
   @ApiProperty({
     example: "WAITING",
-    description: "Student status: DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED",
+    description:
+      "Student status: DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED",
   })
   status: string;
 

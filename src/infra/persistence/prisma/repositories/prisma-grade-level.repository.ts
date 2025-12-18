@@ -12,14 +12,18 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
     const prismaGradeLevel = await this.prisma.gradeLevel.findUnique({
       where: { id },
     });
-    return prismaGradeLevel ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel) : null;
+    return prismaGradeLevel
+      ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel)
+      : null;
   }
 
   async findByName(name: string): Promise<GradeLevel | null> {
     const prismaGradeLevel = await this.prisma.gradeLevel.findFirst({
       where: { name },
     });
-    return prismaGradeLevel ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel) : null;
+    return prismaGradeLevel
+      ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel)
+      : null;
   }
 
   async findAll(): Promise<GradeLevel[]> {

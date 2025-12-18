@@ -86,11 +86,7 @@ export class PrismaClassRepository implements ClassRepository {
       "gradeLevelId",
       "schoolYearId",
     ];
-    params.allowedSortFields = [
-      "createdAt",
-      "updatedAt",
-      "name",
-    ];
+    params.allowedSortFields = ["createdAt", "updatedAt", "name"];
 
     return await this.queryService.executeQuery<Class>(
       this.prisma,

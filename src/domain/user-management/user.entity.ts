@@ -168,7 +168,7 @@ export class User extends Entity<UserProps> {
     // Validation
     if (!User.validateClerkUid(props.clerkUid)) {
       throw new Error(
-        'Invalid Clerk UID format. Must start with "user_" or "clerk_"'
+        'Invalid Clerk UID format. Must start with "user_" or "clerk_"',
       );
     }
 

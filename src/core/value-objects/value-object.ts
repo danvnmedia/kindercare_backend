@@ -36,7 +36,7 @@ export abstract class ValueObject<T> {
    * Override this method in subclasses for custom serialization.
    */
   public toPlain(): T | Record<string, unknown> {
-    if (typeof this.props === 'object' && this.props !== null) {
+    if (typeof this.props === "object" && this.props !== null) {
       const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(this.props as object)) {
         if (value instanceof ValueObject) {
@@ -54,7 +54,7 @@ export abstract class ValueObject<T> {
    * Convert the Value Object to a string representation.
    */
   public toString(): string {
-    if (typeof this.props === 'string') {
+    if (typeof this.props === "string") {
       return this.props;
     }
     return JSON.stringify(this.props);

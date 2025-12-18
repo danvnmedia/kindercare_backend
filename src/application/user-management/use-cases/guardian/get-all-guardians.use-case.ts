@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger } from "@nestjs/common";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
-import { Guardian } from '@/domain/user-management/entities/guardian.entity';
+import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 
 @Injectable()
 export class GetAllGuardiansUseCase {

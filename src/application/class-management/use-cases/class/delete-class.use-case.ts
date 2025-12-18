@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from "@nestjs/common";
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { ClassRepository } from "../../ports/class.repository";
 
 @Injectable()
@@ -30,7 +25,10 @@ export class DeleteClassUseCase {
 
       this.logger.log(`Class deleted successfully: ${id}`);
     } catch (error) {
-      this.logger.error(`Failed to delete class: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to delete class: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

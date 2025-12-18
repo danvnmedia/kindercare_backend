@@ -4,9 +4,9 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Student } from '@/domain/user-management/entities/student.entity';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
+import { Student } from "@/domain/user-management/entities/student.entity";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export abstract class StudentRepository {
   /**
@@ -62,7 +62,10 @@ export abstract class StudentRepository {
   /**
    * Remove guardians from student
    */
-  abstract removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
+  abstract removeGuardians(
+    studentId: string,
+    guardianIds: string[],
+  ): Promise<void>;
 
   /**
    * Get student guardians

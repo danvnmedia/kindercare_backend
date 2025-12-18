@@ -22,7 +22,10 @@ export interface TeacherProps {
 
 // Data for updating a teacher
 export type UpdateTeacherData = Partial<
-  Omit<TeacherProps, "id" | "createdAt" | "updatedAt" | "isArchived" | "email" | "phoneNumber">
+  Omit<
+    TeacherProps,
+    "id" | "createdAt" | "updatedAt" | "isArchived" | "email" | "phoneNumber"
+  >
 >;
 
 export class Teacher extends Entity<TeacherProps> {
@@ -74,9 +77,11 @@ export class Teacher extends Entity<TeacherProps> {
     if (updates.fullName) this.props.fullName = updates.fullName;
     if (updates.teacherType) this.props.teacherType = updates.teacherType;
     if (updates.address !== undefined) this.props.address = updates.address;
-    if (updates.dateOfBirth !== undefined) this.props.dateOfBirth = updates.dateOfBirth;
+    if (updates.dateOfBirth !== undefined)
+      this.props.dateOfBirth = updates.dateOfBirth;
     if (updates.gender !== undefined) this.props.gender = updates.gender;
-    if (updates.startDate !== undefined) this.props.startDate = updates.startDate;
+    if (updates.startDate !== undefined)
+      this.props.startDate = updates.startDate;
     if (updates.userId !== undefined) this.props.userId = updates.userId;
     this.touch();
   }
@@ -176,20 +181,30 @@ export class Teacher extends Entity<TeacherProps> {
    * @returns A new Teacher instance.
    */
   public static create(
-    props: Optional<TeacherProps, "createdAt" | "updatedAt" | "isArchived" | "userId">,
+    props: Optional<
+      TeacherProps,
+      "createdAt" | "updatedAt" | "isArchived" | "userId"
+    >,
     id?: string,
   ): Teacher {
     // Validation
     if (!props.fullName || props.fullName.trim().length < 2) {
-      throw new Error("Full name is required and must be at least 2 characters.");
+      throw new Error(
+        "Full name is required and must be at least 2 characters.",
+      );
     }
     if (!props.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(props.email)) {
       throw new Error("A valid email address is required.");
     }
     if (!props.phoneNumber || !/^\+[1-9]\d{1,14}$/.test(props.phoneNumber)) {
-      throw new Error("A valid phone number in E.164 format is required (e.g., +84912345678).");
+      throw new Error(
+        "A valid phone number in E.164 format is required (e.g., +84912345678).",
+      );
     }
-    if (!props.teacherType || !Object.values(TeacherType).includes(props.teacherType)) {
+    if (
+      !props.teacherType ||
+      !Object.values(TeacherType).includes(props.teacherType)
+    ) {
       throw new Error("A valid teacher type is required.");
     }
 

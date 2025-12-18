@@ -1,7 +1,4 @@
-import {
-  Teacher as PrismaTeacher,
-  User as PrismaUser,
-} from "@prisma/client";
+import { Teacher as PrismaTeacher, User as PrismaUser } from "@prisma/client";
 import { Teacher } from "@/domain/user-management/entities/teacher.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { TeacherType } from "@/domain/user-management/enums/teacher-type.enum";
@@ -92,7 +89,9 @@ export class PrismaTeacherMapper {
     return updateData;
   }
 
-  static toDomainArray(prismaTeachers: PrismaTeacherWithRelations[]): Teacher[] {
+  static toDomainArray(
+    prismaTeachers: PrismaTeacherWithRelations[],
+  ): Teacher[] {
     return prismaTeachers.map((prismaTeacher) =>
       PrismaTeacherMapper.toDomain(prismaTeacher),
     );

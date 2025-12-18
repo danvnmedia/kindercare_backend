@@ -1,15 +1,15 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { TeacherRepository } from '../../ports/teacher.repository';
-import { StandardRequest } from '@/core/modules/standard-response/dto/standard-request.dto';
-import { PaginatedResult } from '@/core/modules/standard-response/dto/query.dto';
-import { Teacher } from '@/domain/user-management/entities/teacher.entity';
+import { Injectable, Inject, Logger } from "@nestjs/common";
+import { TeacherRepository } from "../../ports/teacher.repository";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { Teacher } from "@/domain/user-management/entities/teacher.entity";
 
 @Injectable()
 export class GetAllTeachersUseCase {
   private readonly logger = new Logger(GetAllTeachersUseCase.name);
 
   constructor(
-    @Inject('TEACHER_REPOSITORY')
+    @Inject("TEACHER_REPOSITORY")
     private readonly teacherRepository: TeacherRepository,
   ) {}
 

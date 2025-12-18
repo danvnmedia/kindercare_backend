@@ -4,17 +4,17 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { Teacher } from '@/domain/user-management/entities/teacher.entity';
-import { Gender } from '@/domain/user-management/enums/gender.enum';
-import { TeacherType } from '@/domain/user-management/enums/teacher-type.enum';
-import { User } from '@/domain/user-management/user.entity';
-import { TeacherRepository } from '../../ports/teacher.repository';
-import { UserRepository } from '../../ports/user.repository';
-import { RoleRepository } from '../../ports/role.repository';
-import { IdentityService } from '@/infra/external-services/clerk/identity.service';
+} from "@nestjs/common";
+import { Teacher } from "@/domain/user-management/entities/teacher.entity";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { TeacherType } from "@/domain/user-management/enums/teacher-type.enum";
+import { User } from "@/domain/user-management/user.entity";
+import { TeacherRepository } from "../../ports/teacher.repository";
+import { UserRepository } from "../../ports/user.repository";
+import { RoleRepository } from "../../ports/role.repository";
+import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
-const DEFAULT_WEAK_PASSWORD = 'ChangeMe123!';
+const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateTeacherInput {
   fullName: string;
@@ -32,18 +32,20 @@ export class CreateTeacherUseCase {
   private readonly logger = new Logger(CreateTeacherUseCase.name);
 
   constructor(
-    @Inject('TEACHER_REPOSITORY')
+    @Inject("TEACHER_REPOSITORY")
     private readonly teacherRepository: TeacherRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
     private readonly identityService: IdentityService,
   ) {}
 
   async execute(input: CreateTeacherInput): Promise<Teacher> {
     try {
-      this.logger.log(`Creating teacher: ${input.fullName} (${input.teacherType})`);
+      this.logger.log(
+        `Creating teacher: ${input.fullName} (${input.teacherType})`,
+      );
 
       // Step 1: Check Teacher uniqueness (email/phone)
       await this.checkTeacherUniqueness(input);
@@ -64,7 +66,10 @@ export class CreateTeacherUseCase {
         `Failed to create teacher: ${error.message}`,
         error.stack,
       );
-      if (error instanceof ConflictException || error instanceof BadRequestException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       throw new BadRequestException(error.message);
@@ -93,7 +98,9 @@ export class CreateTeacherUseCase {
     }
   }
 
-  private async createAndSaveTeacher(input: CreateTeacherInput): Promise<Teacher> {
+  private async createAndSaveTeacher(
+    input: CreateTeacherInput,
+  ): Promise<Teacher> {
     const teacherEntity = Teacher.create({
       fullName: input.fullName,
       email: input.email,
@@ -137,7 +144,9 @@ export class CreateTeacherUseCase {
       // Verify role exists
       const role = await this.roleRepository.findById(roleId);
       if (!role) {
-        this.logger.warn(`Role ${roleId} not found, teacher will have no role assigned`);
+        this.logger.warn(
+          `Role ${roleId} not found, teacher will have no role assigned`,
+        );
       } else {
         // Assign role to user
         await this.userRepository.assignRoles(user.id, [roleId]);

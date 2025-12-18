@@ -21,7 +21,10 @@ export class GetAllGradeLevelsUseCase {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to fetch grade levels: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch grade levels: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

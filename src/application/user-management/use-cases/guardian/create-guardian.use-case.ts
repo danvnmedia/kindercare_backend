@@ -4,15 +4,15 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
-} from '@nestjs/common';
-import { Guardian } from '@/domain/user-management/entities/guardian.entity';
-import { Gender } from '@/domain/user-management/enums/gender.enum';
-import { User } from '@/domain/user-management/user.entity';
-import { GuardianRepository } from '../../ports/guardian.repository';
-import { UserRepository } from '../../ports/user.repository';
-import { IdentityService } from '@/infra/external-services/clerk/identity.service';
+} from "@nestjs/common";
+import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { User } from "@/domain/user-management/user.entity";
+import { GuardianRepository } from "../../ports/guardian.repository";
+import { UserRepository } from "../../ports/user.repository";
+import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
-const DEFAULT_WEAK_PASSWORD = 'ChangeMe123!';
+const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateGuardianInput {
   fullName: string;
@@ -30,9 +30,9 @@ export class CreateGuardianUseCase {
   private readonly logger = new Logger(CreateGuardianUseCase.name);
 
   constructor(
-    @Inject('GUARDIAN_REPOSITORY')
+    @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
   ) {}
@@ -43,7 +43,7 @@ export class CreateGuardianUseCase {
 
       // Step 1: Validate age (business rule beyond entity creation)
       if (input.dateOfBirth && this.calculateAge(input.dateOfBirth) < 18) {
-        throw new BadRequestException('Guardian must be at least 18 years old');
+        throw new BadRequestException("Guardian must be at least 18 years old");
       }
 
       // Step 2: Check Guardian uniqueness (email/phone)
@@ -66,7 +66,10 @@ export class CreateGuardianUseCase {
         error.stack,
       );
       // Re-throw specific exceptions or a generic one
-      if (error instanceof ConflictException || error instanceof BadRequestException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
       // Catch errors from Guardian.create() and wrap them in BadRequestException
@@ -111,7 +114,9 @@ export class CreateGuardianUseCase {
     }
   }
 
-  private async createAndSaveGuardian(input: CreateGuardianInput): Promise<Guardian> {
+  private async createAndSaveGuardian(
+    input: CreateGuardianInput,
+  ): Promise<Guardian> {
     const guardianEntity = Guardian.create({
       fullName: input.fullName,
       email: input.email,

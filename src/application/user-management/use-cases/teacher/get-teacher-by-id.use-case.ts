@@ -1,13 +1,13 @@
-import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
-import { Teacher } from '@/domain/user-management/entities/teacher.entity';
-import { TeacherRepository } from '../../ports/teacher.repository';
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import { Teacher } from "@/domain/user-management/entities/teacher.entity";
+import { TeacherRepository } from "../../ports/teacher.repository";
 
 @Injectable()
 export class GetTeacherByIdUseCase {
   private readonly logger = new Logger(GetTeacherByIdUseCase.name);
 
   constructor(
-    @Inject('TEACHER_REPOSITORY')
+    @Inject("TEACHER_REPOSITORY")
     private readonly teacherRepository: TeacherRepository,
   ) {}
 

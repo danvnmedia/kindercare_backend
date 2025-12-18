@@ -21,7 +21,10 @@ export class GetAllSchoolYearsUseCase {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to fetch school years: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch school years: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

@@ -107,7 +107,7 @@ export class Post extends Entity<PostProps> {
   public publish(publishAt?: Date): void {
     if (this.props.status !== PostStatus.DRAFT) {
       throw new Error(
-        `Cannot publish post with status ${this.props.status}. Only draft posts can be published.`
+        `Cannot publish post with status ${this.props.status}. Only draft posts can be published.`,
       );
     }
     this.props.status = PostStatus.PUBLISHED;
@@ -190,7 +190,7 @@ export class Post extends Entity<PostProps> {
    */
   public removeAudience(audienceId: string): void {
     this.props.audiences = this.props.audiences.filter(
-      (a) => a.id !== audienceId
+      (a) => a.id !== audienceId,
     );
     this.touch();
   }
@@ -216,7 +216,7 @@ export class Post extends Entity<PostProps> {
    */
   public removeAttachment(attachmentId: string): void {
     this.props.attachments = this.props.attachments.filter(
-      (a) => a.id !== attachmentId
+      (a) => a.id !== attachmentId,
     );
     this.touch();
   }

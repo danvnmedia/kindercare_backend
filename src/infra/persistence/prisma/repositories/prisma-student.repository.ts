@@ -61,6 +61,7 @@ export class PrismaStudentRepository implements StudentRepository {
       "nickname",
       "isArchived",
       "dateOfBirth",
+      "status",
     ];
     params.allowedSortFields = [
       "createdAt",
@@ -85,6 +86,7 @@ export class PrismaStudentRepository implements StudentRepository {
             },
           },
         },
+        orderBy: { studentCode: "desc" }, // Default sort: newest students first
       },
       PrismaStudentMapper,
     );

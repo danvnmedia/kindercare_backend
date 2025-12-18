@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { StudentRepository } from "../../ports/student.repository";
-import { StudentGuardianInfo } from '@/domain/user-management/entities/student.entity';
+import { StudentGuardianInfo } from "@/domain/user-management/entities/student.entity";
 
 @Injectable()
 export class GetStudentGuardiansUseCase {

@@ -48,21 +48,26 @@ export class AssignTeacherToClassUseCase {
       // Step 2: Validate teacher exists
       const teacher = await this.teacherRepository.findById(input.teacherId);
       if (!teacher) {
-        throw new NotFoundException(`Teacher with ID ${input.teacherId} not found`);
+        throw new NotFoundException(
+          `Teacher with ID ${input.teacherId} not found`,
+        );
       }
 
       // Step 3: Validate subject exists
       const subject = await this.subjectRepository.findById(input.subjectId);
       if (!subject) {
-        throw new NotFoundException(`Subject with ID ${input.subjectId} not found`);
+        throw new NotFoundException(
+          `Subject with ID ${input.subjectId} not found`,
+        );
       }
 
       // Step 4: Check for duplicate assignment
-      const existingAssignment = await this.classTeacherRepository.findByCompositeKey(
-        input.classId,
-        input.teacherId,
-        input.subjectId,
-      );
+      const existingAssignment =
+        await this.classTeacherRepository.findByCompositeKey(
+          input.classId,
+          input.teacherId,
+          input.subjectId,
+        );
       if (existingAssignment) {
         throw new ConflictException(
           `Teacher is already assigned to this class for this subject`,
@@ -76,12 +81,16 @@ export class AssignTeacherToClassUseCase {
         subjectId: input.subjectId,
       });
 
-      const savedAssignment = await this.classTeacherRepository.save(classTeacher);
+      const savedAssignment =
+        await this.classTeacherRepository.save(classTeacher);
       this.logger.log(`Teacher assignment created for class ${input.classId}`);
 
       return savedAssignment;
     } catch (error) {
-      this.logger.error(`Failed to assign teacher: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to assign teacher: ${error.message}`,
+        error.stack,
+      );
       if (
         error instanceof ConflictException ||
         error instanceof BadRequestException ||

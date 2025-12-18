@@ -39,7 +39,10 @@ export class PrismaQueryService {
   buildOrderByClause(
     params: StandardRequest,
     allowedFields: string[] = [],
-  ): Record<string, "asc" | "desc"> | Record<string, "asc" | "desc">[] {
+  ):
+    | Record<string, "asc" | "desc">
+    | Record<string, "asc" | "desc">[]
+    | undefined {
     const orderBy: Record<string, "asc" | "desc">[] = [];
 
     if (
@@ -57,6 +60,7 @@ export class PrismaQueryService {
       });
     }
 
+    if (orderBy.length === 0) return undefined;
     return orderBy.length === 1 ? orderBy[0] : orderBy;
   }
 

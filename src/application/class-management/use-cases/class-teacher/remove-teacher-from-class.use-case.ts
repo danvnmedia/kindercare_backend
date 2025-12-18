@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  Logger,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, Inject, Logger, NotFoundException } from "@nestjs/common";
 import { ClassTeacherRepository } from "../../ports/class-teacher.repository";
 
 export interface RemoveTeacherFromClassInput {
@@ -48,7 +43,10 @@ export class RemoveTeacherFromClassUseCase {
 
       this.logger.log(`Teacher assignment removed successfully`);
     } catch (error) {
-      this.logger.error(`Failed to remove teacher: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to remove teacher: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

@@ -44,7 +44,8 @@ export class ReferenceDataController {
   })
   @ApiOperation({
     summary: "Get all school years",
-    description: "Retrieve all school years ordered by start date (most recent first).",
+    description:
+      "Retrieve all school years ordered by start date (most recent first).",
   })
   async getSchoolYears() {
     return await this.getAllSchoolYearsUseCase.execute();

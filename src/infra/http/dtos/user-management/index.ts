@@ -3,4 +3,3 @@ export * from "./role";
 export * from "./student";
 export * from "./guardian";
 export * from "./teacher";
-

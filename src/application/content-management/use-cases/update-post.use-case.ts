@@ -80,7 +80,7 @@ export class UpdatePostUseCase {
       // Note: Status transitions should use specific domain methods
       // This is a generic update - consider using publish(), archive(), etc.
       throw new Error(
-        "Direct status update not allowed. Use specific transition methods (publish, archive, etc.)"
+        "Direct status update not allowed. Use specific transition methods (publish, archive, etc.)",
       );
     }
     if (input.publishAt !== undefined) {

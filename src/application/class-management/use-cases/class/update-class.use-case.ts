@@ -1,10 +1,8 @@
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from "@nestjs/common";
-import { Class, UpdateClassData } from "@/domain/class-management/entities/class.entity";
+  Class,
+  UpdateClassData,
+} from "@/domain/class-management/entities/class.entity";
 import { ClassRepository } from "../../ports/class.repository";
 
 @Injectable()
@@ -35,7 +33,10 @@ export class UpdateClassUseCase {
       this.logger.log(`Class updated successfully: ${id}`);
       return updatedClass;
     } catch (error) {
-      this.logger.error(`Failed to update class: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update class: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

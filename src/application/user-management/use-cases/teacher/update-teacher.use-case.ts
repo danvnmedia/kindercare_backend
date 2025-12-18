@@ -1,14 +1,12 @@
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { Teacher, UpdateTeacherData } from '@/domain/user-management/entities/teacher.entity';
-import { TeacherRepository } from '../../ports/teacher.repository';
-import { UserRepository } from '../../ports/user.repository';
-import { RoleRepository } from '../../ports/role.repository';
-import { TeacherType } from '@/domain/user-management/enums/teacher-type.enum';
+  Teacher,
+  UpdateTeacherData,
+} from "@/domain/user-management/entities/teacher.entity";
+import { TeacherRepository } from "../../ports/teacher.repository";
+import { UserRepository } from "../../ports/user.repository";
+import { RoleRepository } from "../../ports/role.repository";
+import { TeacherType } from "@/domain/user-management/enums/teacher-type.enum";
 
 export interface UpdateTeacherInput extends UpdateTeacherData {
   teacherType?: TeacherType;
@@ -19,11 +17,11 @@ export class UpdateTeacherUseCase {
   private readonly logger = new Logger(UpdateTeacherUseCase.name);
 
   constructor(
-    @Inject('TEACHER_REPOSITORY')
+    @Inject("TEACHER_REPOSITORY")
     private readonly teacherRepository: TeacherRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
-    @Inject('ROLE_REPOSITORY')
+    @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
   ) {}
 
@@ -68,7 +66,7 @@ export class UpdateTeacherUseCase {
     newType: TeacherType,
   ): Promise<void> {
     if (!teacher.hasUserAccount()) {
-      this.logger.log('Teacher has no user account, skipping role update');
+      this.logger.log("Teacher has no user account, skipping role update");
       return;
     }
 
@@ -79,7 +77,9 @@ export class UpdateTeacherUseCase {
       // Verify new role exists
       const newRole = await this.roleRepository.findById(newRoleId);
       if (!newRole) {
-        this.logger.warn(`New role ${newRoleId} not found, skipping role update`);
+        this.logger.warn(
+          `New role ${newRoleId} not found, skipping role update`,
+        );
         return;
       }
 

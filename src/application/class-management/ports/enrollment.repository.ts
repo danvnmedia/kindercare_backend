@@ -36,7 +36,9 @@ export abstract class EnrollmentRepository {
   /**
    * Find all enrollments with filtering, sorting, pagination
    */
-  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Enrollment>>;
+  abstract findAll(
+    params: StandardRequest,
+  ): Promise<PaginatedResult<Enrollment>>;
 
   /**
    * Save a new enrollment
@@ -56,5 +58,8 @@ export abstract class EnrollmentRepository {
   /**
    * Delete all enrollments for a student in a class
    */
-  abstract deleteByStudentAndClass(studentId: string, classId: string): Promise<void>;
+  abstract deleteByStudentAndClass(
+    studentId: string,
+    classId: string,
+  ): Promise<void>;
 }

@@ -1,22 +1,17 @@
-import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { Teacher } from '@/domain/user-management/entities/teacher.entity';
-import { TeacherRepository } from '../../ports/teacher.repository';
-import { UserRepository } from '../../ports/user.repository';
-import { IdentityService } from '@/infra/external-services/clerk/identity.service';
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import { Teacher } from "@/domain/user-management/entities/teacher.entity";
+import { TeacherRepository } from "../../ports/teacher.repository";
+import { UserRepository } from "../../ports/user.repository";
+import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
 @Injectable()
 export class ArchiveTeacherUseCase {
   private readonly logger = new Logger(ArchiveTeacherUseCase.name);
 
   constructor(
-    @Inject('TEACHER_REPOSITORY')
+    @Inject("TEACHER_REPOSITORY")
     private readonly teacherRepository: TeacherRepository,
-    @Inject('USER_REPOSITORY')
+    @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly identityService: IdentityService,
   ) {}
@@ -57,7 +52,9 @@ export class ArchiveTeacherUseCase {
       if (user) {
         user.deactivate();
         await this.userRepository.update(user);
-        this.logger.log(`User account deactivated for teacher: ${teacher.email}`);
+        this.logger.log(
+          `User account deactivated for teacher: ${teacher.email}`,
+        );
       }
     } catch (error) {
       this.logger.error(

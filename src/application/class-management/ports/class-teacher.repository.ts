@@ -34,7 +34,10 @@ export abstract class ClassTeacherRepository {
   /**
    * Find assignments by class and subject
    */
-  abstract findByClassAndSubject(classId: string, subjectId: string): Promise<ClassTeacher[]>;
+  abstract findByClassAndSubject(
+    classId: string,
+    subjectId: string,
+  ): Promise<ClassTeacher[]>;
 
   /**
    * Save a new assignment
@@ -44,7 +47,11 @@ export abstract class ClassTeacherRepository {
   /**
    * Delete assignment by composite key
    */
-  abstract delete(classId: string, teacherId: string, subjectId: string): Promise<void>;
+  abstract delete(
+    classId: string,
+    teacherId: string,
+    subjectId: string,
+  ): Promise<void>;
 
   /**
    * Delete all assignments for a class

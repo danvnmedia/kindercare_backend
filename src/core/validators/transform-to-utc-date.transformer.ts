@@ -52,7 +52,10 @@ export function parseToUTCDate(value: unknown): Date | null {
     let dateString = trimmed;
     if (!dateString.includes("T")) {
       dateString = `${trimmed}T00:00:00.000Z`;
-    } else if (!dateString.endsWith("Z") && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+    } else if (
+      !dateString.endsWith("Z") &&
+      !dateString.match(/[+-]\d{2}:\d{2}$/)
+    ) {
       // Has time but no timezone indicator - treat as UTC
       dateString = `${trimmed}Z`;
     }

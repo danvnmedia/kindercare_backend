@@ -24,13 +24,19 @@ export class GetClassEnrollmentsUseCase {
         throw new NotFoundException(`Class with ID ${classId} not found`);
       }
 
-      const enrollments = await this.enrollmentRepository.findByClassId(classId);
+      const enrollments =
+        await this.enrollmentRepository.findByClassId(classId);
 
-      this.logger.log(`Found ${enrollments.length} enrollments for class ${classId}`);
+      this.logger.log(
+        `Found ${enrollments.length} enrollments for class ${classId}`,
+      );
 
       return enrollments;
     } catch (error) {
-      this.logger.error(`Failed to fetch class enrollments: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to fetch class enrollments: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

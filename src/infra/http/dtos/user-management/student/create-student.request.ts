@@ -13,7 +13,11 @@ import {
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
-import { IsE164Phone, IsDateOfBirth, TransformToUTCDate } from "@/core/validators";
+import {
+  IsE164Phone,
+  IsDateOfBirth,
+  TransformToUTCDate,
+} from "@/core/validators";
 
 export class CreateStudentRequest {
   // ========== Personal Information ==========
@@ -102,7 +106,8 @@ export class CreateStudentRequest {
   })
   @IsOptional()
   @IsEnum(StudentStatus, {
-    message: "Status must be DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, or DEFERRED",
+    message:
+      "Status must be DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, or DEFERRED",
   })
   status?: StudentStatus;
 

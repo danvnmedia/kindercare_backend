@@ -16,7 +16,10 @@ export interface ClassProps {
   updatedAt: Date;
 }
 
-export type CreateClassData = Omit<ClassProps, "createdAt" | "updatedAt" | "gradeLevel" | "schoolYear">;
+export type CreateClassData = Omit<
+  ClassProps,
+  "createdAt" | "updatedAt" | "gradeLevel" | "schoolYear"
+>;
 export type UpdateClassData = Partial<Pick<ClassProps, "name" | "description">>;
 
 export class Class extends Entity<ClassProps> {
@@ -94,7 +97,10 @@ export class Class extends Entity<ClassProps> {
   // --- Factory Method ---
 
   public static create(
-    props: Optional<ClassProps, "createdAt" | "updatedAt" | "description" | "gradeLevel" | "schoolYear">,
+    props: Optional<
+      ClassProps,
+      "createdAt" | "updatedAt" | "description" | "gradeLevel" | "schoolYear"
+    >,
     id?: string,
   ): Class {
     // Validation

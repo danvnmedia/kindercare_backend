@@ -66,5 +66,9 @@ export abstract class UserRepository {
   /**
    * Get user roles (paginated)
    */
-  abstract getUserRoles(userId: string, page: number, limit: number): Promise<any>;
+  abstract getUserRoles(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<any>;
 }

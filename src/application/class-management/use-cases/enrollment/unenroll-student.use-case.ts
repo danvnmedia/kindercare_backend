@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  Logger,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, Inject, Logger, NotFoundException } from "@nestjs/common";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 
 @Injectable()
@@ -22,7 +17,9 @@ export class UnenrollStudentUseCase {
       // Step 1: Find existing enrollment
       const enrollment = await this.enrollmentRepository.findById(enrollmentId);
       if (!enrollment) {
-        throw new NotFoundException(`Enrollment with ID ${enrollmentId} not found`);
+        throw new NotFoundException(
+          `Enrollment with ID ${enrollmentId} not found`,
+        );
       }
 
       // Step 2: Delete enrollment
@@ -30,7 +27,10 @@ export class UnenrollStudentUseCase {
 
       this.logger.log(`Enrollment deleted successfully: ${enrollmentId}`);
     } catch (error) {
-      this.logger.error(`Failed to unenroll student: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to unenroll student: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }

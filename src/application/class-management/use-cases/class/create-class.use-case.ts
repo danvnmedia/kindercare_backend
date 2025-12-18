@@ -36,15 +36,23 @@ export class CreateClassUseCase {
       this.logger.log(`Creating class: ${input.name}`);
 
       // Step 1: Validate grade level exists
-      const gradeLevel = await this.gradeLevelRepository.findById(input.gradeLevelId);
+      const gradeLevel = await this.gradeLevelRepository.findById(
+        input.gradeLevelId,
+      );
       if (!gradeLevel) {
-        throw new NotFoundException(`Grade level with ID ${input.gradeLevelId} not found`);
+        throw new NotFoundException(
+          `Grade level with ID ${input.gradeLevelId} not found`,
+        );
       }
 
       // Step 2: Validate school year exists
-      const schoolYear = await this.schoolYearRepository.findById(input.schoolYearId);
+      const schoolYear = await this.schoolYearRepository.findById(
+        input.schoolYearId,
+      );
       if (!schoolYear) {
-        throw new NotFoundException(`School year with ID ${input.schoolYearId} not found`);
+        throw new NotFoundException(
+          `School year with ID ${input.schoolYearId} not found`,
+        );
       }
 
       // Step 3: Check for duplicate class name in the same context
@@ -72,7 +80,10 @@ export class CreateClassUseCase {
 
       return savedClass;
     } catch (error) {
-      this.logger.error(`Failed to create class: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create class: ${error.message}`,
+        error.stack,
+      );
       if (
         error instanceof ConflictException ||
         error instanceof BadRequestException ||

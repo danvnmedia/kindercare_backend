@@ -29,14 +29,18 @@ export class PrismaTeacherRepository implements TeacherRepository {
     const prismaTeacher = await this.prisma.teacher.findFirst({
       where: { email },
     });
-    return prismaTeacher ? PrismaTeacherMapper.toDomainSimple(prismaTeacher) : null;
+    return prismaTeacher
+      ? PrismaTeacherMapper.toDomainSimple(prismaTeacher)
+      : null;
   }
 
   async findByPhoneNumber(phoneNumber: string): Promise<Teacher | null> {
     const prismaTeacher = await this.prisma.teacher.findFirst({
       where: { phoneNumber },
     });
-    return prismaTeacher ? PrismaTeacherMapper.toDomainSimple(prismaTeacher) : null;
+    return prismaTeacher
+      ? PrismaTeacherMapper.toDomainSimple(prismaTeacher)
+      : null;
   }
 
   async findByUserId(userId: string): Promise<Teacher | null> {
