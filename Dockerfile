@@ -17,9 +17,13 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Expose port
 EXPOSE 3000
 EXPOSE 9229
 
-# Start in development mode
-CMD ["npm", "run", "start:dev"]
+# Use entrypoint script
+ENTRYPOINT ["entrypoint.sh"]
