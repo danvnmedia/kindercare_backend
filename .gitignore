@@ -127,8 +127,6 @@ temp/
 *.swp
 *.swo
 
-# Docker
-Dockerfile.prod
 
 # Database
 *.db
