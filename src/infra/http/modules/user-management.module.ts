@@ -4,7 +4,7 @@ import { Module } from "@nestjs/common";
 import { RoleController } from "../controllers/user-management/role.controller";
 import { StudentController } from "../controllers/user-management/student.controller";
 import { GuardianController } from "../controllers/user-management/guardian.controller";
-import { TeacherController } from "../controllers/user-management/teacher.controller";
+import { StaffController } from "../controllers/user-management/staff.controller";
 
 // NOTE: User use cases are commented out until they are refactored to work with Person-based model
 // import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
@@ -37,20 +37,20 @@ import { GetStudentGuardiansUseCase } from "@/application/user-management/use-ca
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
 
-// Use Cases - Teacher
-import { CreateTeacherUseCase } from "@/application/user-management/use-cases/teacher/create-teacher.use-case";
-import { GetTeacherByIdUseCase } from "@/application/user-management/use-cases/teacher/get-teacher-by-id.use-case";
-import { GetAllTeachersUseCase } from "@/application/user-management/use-cases/teacher/get-all-teachers.use-case";
-import { UpdateTeacherUseCase } from "@/application/user-management/use-cases/teacher/update-teacher.use-case";
-import { ArchiveTeacherUseCase } from "@/application/user-management/use-cases/teacher/archive-teacher.use-case";
-import { RestoreTeacherUseCase } from "@/application/user-management/use-cases/teacher/restore-teacher.use-case";
+// Use Cases - Staff
+import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
+import { GetStaffByIdUseCase } from "@/application/user-management/use-cases/staff/get-staff-by-id.use-case";
+import { GetAllStaffUseCase } from "@/application/user-management/use-cases/staff/get-all-staff.use-case";
+import { UpdateStaffUseCase } from "@/application/user-management/use-cases/staff/update-staff.use-case";
+import { ArchiveStaffUseCase } from "@/application/user-management/use-cases/staff/archive-staff.use-case";
+import { RestoreStaffUseCase } from "@/application/user-management/use-cases/staff/restore-staff.use-case";
 
 // Repositories
 import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/prisma-user.repository";
 import { PrismaRoleRepository } from "@/infra/persistence/prisma/repositories/prisma-role.repository";
 import { PrismaStudentRepository } from "@/infra/persistence/prisma/repositories/prisma-student.repository";
 import { PrismaGuardianRepository } from "@/infra/persistence/prisma/repositories/prisma-guardian.repository";
-import { PrismaTeacherRepository } from "@/infra/persistence/prisma/repositories/prisma-teacher.repository";
+import { PrismaStaffRepository } from "@/infra/persistence/prisma/repositories/prisma-staff.repository";
 
 // Services
 import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services/student-code-generator.service";
@@ -84,7 +84,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     RoleController,
     StudentController,
     GuardianController,
-    TeacherController,
+    StaffController,
   ],
   providers: [
     // NOTE: User Use Cases commented out until refactored
@@ -121,13 +121,13 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     CreateGuardianUseCase,
     GetAllGuardiansUseCase,
 
-    // Teacher Use Cases
-    CreateTeacherUseCase,
-    GetTeacherByIdUseCase,
-    GetAllTeachersUseCase,
-    UpdateTeacherUseCase,
-    ArchiveTeacherUseCase,
-    RestoreTeacherUseCase,
+    // Staff Use Cases
+    CreateStaffUseCase,
+    GetStaffByIdUseCase,
+    GetAllStaffUseCase,
+    UpdateStaffUseCase,
+    ArchiveStaffUseCase,
+    RestoreStaffUseCase,
 
     // Repositories with Dependency Injection Tokens
     {
@@ -147,8 +147,8 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
       useClass: PrismaGuardianRepository,
     },
     {
-      provide: "TEACHER_REPOSITORY",
-      useClass: PrismaTeacherRepository,
+      provide: "STAFF_REPOSITORY",
+      useClass: PrismaStaffRepository,
     },
   ],
   exports: [
@@ -156,7 +156,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     "ROLE_REPOSITORY",
     "STUDENT_REPOSITORY",
     "GUARDIAN_REPOSITORY",
-    "TEACHER_REPOSITORY",
+    "STAFF_REPOSITORY",
   ],
 })
 export class UserManagementModule {}

@@ -25,8 +25,8 @@ export class PrismaUserRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    // NOTE: Email is now stored in Guardian/Teacher tables, not User table
-    // Find user by guardian.email or teacher.email relationship
+    // NOTE: Email is now stored in Guardian/Staff tables, not User table
+    // Find user by guardian.email or staff.email relationship
     const prismaUser = await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -36,7 +36,7 @@ export class PrismaUserRepository implements UserRepository {
             },
           },
           {
-            teacher: {
+            staff: {
               email: email,
             },
           },
@@ -69,7 +69,7 @@ export class PrismaUserRepository implements UserRepository {
         include: {
           userRoles: { include: { role: true } },
           guardian: true,
-          teacher: true,
+          staff: true,
         },
       },
       PrismaUserMapper,

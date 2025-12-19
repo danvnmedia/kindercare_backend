@@ -42,7 +42,7 @@ export class GetAllUsersUseCase {
           },
         },
         {
-          teacher: {
+          staff: {
             OR: [
               { email: { contains: input.search, mode: "insensitive" } },
               { fullName: { contains: input.search, mode: "insensitive" } },

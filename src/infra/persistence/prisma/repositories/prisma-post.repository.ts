@@ -70,7 +70,7 @@ export class PrismaPostRepository implements PostRepository {
         author: {
           include: {
             guardian: true,
-            teacher: true,
+            staff: true,
           },
         },
         audiences: true,
@@ -99,7 +99,7 @@ export class PrismaPostRepository implements PostRepository {
           author: {
             include: {
               guardian: true,
-              teacher: true,
+              staff: true,
             },
           },
           audiences: true,

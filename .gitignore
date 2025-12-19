@@ -157,3 +157,4 @@ generated/
 # Sub-agents
 .agents
 backlog
+.claude

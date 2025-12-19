@@ -5,7 +5,7 @@ import {
   User as PrismaUser,
   Prisma,
   Guardian as PrismaGuardian,
-  Teacher as PrismaTeacher,
+  Staff as PrismaStaff,
 } from "@prisma/client";
 import {
   Post,
@@ -21,7 +21,7 @@ import { PrismaUserMapper } from "./prisma-user.mapper";
 
 type PrismaUserWithProfile = PrismaUser & {
   guardian?: PrismaGuardian | null;
-  teacher?: PrismaTeacher | null;
+  staff?: PrismaStaff | null;
 };
 
 export type PrismaPostWithRelations = PrismaPost & {

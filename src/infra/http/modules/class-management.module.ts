@@ -21,10 +21,10 @@ import { EnrollStudentUseCase } from "@/application/class-management/use-cases/e
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
 import { UnenrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/unenroll-student.use-case";
 
-// Use Cases - Class Teacher
-import { AssignTeacherToClassUseCase } from "@/application/class-management/use-cases/class-teacher/assign-teacher-to-class.use-case";
-import { GetClassTeachersUseCase } from "@/application/class-management/use-cases/class-teacher/get-class-teachers.use-case";
-import { RemoveTeacherFromClassUseCase } from "@/application/class-management/use-cases/class-teacher/remove-teacher-from-class.use-case";
+// Use Cases - Class Staff
+import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
+import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
+import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
 
 // Repositories
 import { PrismaClassRepository } from "@/infra/persistence/prisma/repositories/prisma-class.repository";
@@ -32,7 +32,7 @@ import { PrismaGradeLevelRepository } from "@/infra/persistence/prisma/repositor
 import { PrismaSchoolYearRepository } from "@/infra/persistence/prisma/repositories/prisma-school-year.repository";
 import { PrismaSubjectRepository } from "@/infra/persistence/prisma/repositories/prisma-subject.repository";
 import { PrismaEnrollmentRepository } from "@/infra/persistence/prisma/repositories/prisma-enrollment.repository";
-import { PrismaClassTeacherRepository } from "@/infra/persistence/prisma/repositories/prisma-class-teacher.repository";
+import { PrismaClassStaffRepository } from "@/infra/persistence/prisma/repositories/prisma-class-staff.repository";
 
 // Modules
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
@@ -70,10 +70,10 @@ import { UserManagementModule } from "./user-management.module";
     GetClassEnrollmentsUseCase,
     UnenrollStudentUseCase,
 
-    // Class Teacher Use Cases
-    AssignTeacherToClassUseCase,
-    GetClassTeachersUseCase,
-    RemoveTeacherFromClassUseCase,
+    // Class Staff Use Cases
+    AssignStaffToClassUseCase,
+    GetClassStaffUseCase,
+    RemoveStaffFromClassUseCase,
 
     // Repositories
     {
@@ -97,8 +97,8 @@ import { UserManagementModule } from "./user-management.module";
       useClass: PrismaEnrollmentRepository,
     },
     {
-      provide: "CLASS_TEACHER_REPOSITORY",
-      useClass: PrismaClassTeacherRepository,
+      provide: "CLASS_STAFF_REPOSITORY",
+      useClass: PrismaClassStaffRepository,
     },
   ],
   exports: [
@@ -107,7 +107,7 @@ import { UserManagementModule } from "./user-management.module";
     "SCHOOL_YEAR_REPOSITORY",
     "SUBJECT_REPOSITORY",
     "ENROLLMENT_REPOSITORY",
-    "CLASS_TEACHER_REPOSITORY",
+    "CLASS_STAFF_REPOSITORY",
   ],
 })
 export class ClassManagementModule {}

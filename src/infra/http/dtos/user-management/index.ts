@@ -2,4 +2,4 @@ export * from "./user";
 export * from "./role";
 export * from "./student";
 export * from "./guardian";
-export * from "./teacher";
+export * from "./staff";

@@ -4,7 +4,7 @@
  * NO NestJS decorators allowed in this layer
  *
  * NOTE: User ONLY contains authentication information.
- * User can be either a Guardian or Teacher (NOT Student - kindergarten kids don't login)
+ * User can be either a Guardian or Staff (NOT Student - kindergarten kids don't login)
  */
 
 import { Entity } from "@/core/entities/entity";
@@ -46,7 +46,7 @@ export interface UpdateUserData {
 
 /**
  * User entity - represents authentication capability
- * Can link to Guardian or Teacher for additional profile information
+ * Can link to Guardian or Staff for additional profile information
  */
 export class User extends Entity<UserProps> {
   // --- Getters ---

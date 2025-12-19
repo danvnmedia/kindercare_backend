@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Transform } from "class-transformer";
 import { User } from "@/domain/user-management/user.entity";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
-import { Teacher } from "@/domain/user-management/teacher.entity";
+import { Staff } from "@/domain/user-management/entities/staff.entity";
 
 export class UserResponse {
   @ApiProperty({
@@ -15,9 +15,9 @@ export class UserResponse {
   @ApiProperty({ example: "John Doe", description: "User name" })
   @Expose()
   @Transform(
-    ({ obj }: { obj: User & { guardian?: Guardian; teacher?: Teacher } }) => {
+    ({ obj }: { obj: User & { guardian?: Guardian; staff?: Staff } }) => {
       if (obj.guardian) return obj.guardian.fullName;
-      if (obj.teacher) return obj.teacher.fullName;
+      if (obj.staff) return obj.staff.fullName;
       return "Unknown";
     },
     { toClassOnly: true },
@@ -27,9 +27,9 @@ export class UserResponse {
   @ApiProperty({ example: "john@example.com", description: "User email" })
   @Expose()
   @Transform(
-    ({ obj }: { obj: User & { guardian?: Guardian; teacher?: Teacher } }) => {
+    ({ obj }: { obj: User & { guardian?: Guardian; staff?: Staff } }) => {
       if (obj.guardian) return obj.guardian.email;
-      if (obj.teacher) return obj.teacher.email;
+      if (obj.staff) return obj.staff.email;
       return "unknown@example.com";
     },
     { toClassOnly: true },

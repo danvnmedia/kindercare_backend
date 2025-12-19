@@ -137,7 +137,7 @@ async function createAdmin(input: AdminInput) {
           permissions: {
             users: ["create", "read", "update", "delete"],
             students: ["create", "read", "update", "delete"],
-            teachers: ["create", "read", "update", "delete"],
+            staff: ["create", "read", "update", "delete"],
             classes: ["create", "read", "update", "delete"],
             roles: ["create", "read", "update", "delete"],
           },

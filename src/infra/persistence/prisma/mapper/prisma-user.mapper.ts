@@ -3,7 +3,7 @@
  * Maps between Prisma User model and domain User entity
  *
  * NOTE: User only contains authentication info.
- * Personal info is stored directly in Guardian/Teacher tables.
+ * Personal info is stored directly in Guardian/Staff tables.
  */
 
 import {

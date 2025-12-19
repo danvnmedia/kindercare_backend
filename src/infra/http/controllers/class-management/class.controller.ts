@@ -18,8 +18,8 @@ import {
   ClassResponse,
   EnrollStudentRequest,
   EnrollmentResponse,
-  AssignTeacherRequest,
-  ClassTeacherResponse,
+  AssignStaffRequest,
+  ClassStaffResponse,
 } from "../../dtos/class-management";
 
 // Use Cases
@@ -31,9 +31,9 @@ import { DeleteClassUseCase } from "@/application/class-management/use-cases/cla
 import { EnrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/enroll-student.use-case";
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
 import { UnenrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/unenroll-student.use-case";
-import { AssignTeacherToClassUseCase } from "@/application/class-management/use-cases/class-teacher/assign-teacher-to-class.use-case";
-import { GetClassTeachersUseCase } from "@/application/class-management/use-cases/class-teacher/get-class-teachers.use-case";
-import { RemoveTeacherFromClassUseCase } from "@/application/class-management/use-cases/class-teacher/remove-teacher-from-class.use-case";
+import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
+import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
+import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
 
 @Controller("classes")
 @ApiTags("Classes")
@@ -47,9 +47,9 @@ export class ClassController {
     private readonly enrollStudentUseCase: EnrollStudentUseCase,
     private readonly getClassEnrollmentsUseCase: GetClassEnrollmentsUseCase,
     private readonly unenrollStudentUseCase: UnenrollStudentUseCase,
-    private readonly assignTeacherToClassUseCase: AssignTeacherToClassUseCase,
-    private readonly getClassTeachersUseCase: GetClassTeachersUseCase,
-    private readonly removeTeacherFromClassUseCase: RemoveTeacherFromClassUseCase,
+    private readonly assignStaffToClassUseCase: AssignStaffToClassUseCase,
+    private readonly getClassStaffUseCase: GetClassStaffUseCase,
+    private readonly removeStaffFromClassUseCase: RemoveStaffFromClassUseCase,
   ) {}
 
   @Post()
@@ -125,7 +125,7 @@ export class ClassController {
   @ApiOperation({
     summary: "Delete class",
     description:
-      "Delete a class. This will also remove all enrollments and teacher assignments.",
+      "Delete a class. This will also remove all enrollments and staff assignments.",
   })
   @ApiParam({
     name: "id",
@@ -209,61 +209,61 @@ export class ClassController {
     return null;
   }
 
-  // ==================== Teacher Assignment Endpoints ====================
+  // ==================== Staff Assignment Endpoints ====================
 
-  @Post(":id/teachers")
+  @Post(":id/staff")
   @StandardResponse({
-    message: "Teacher assigned successfully",
-    type: ClassTeacherResponse,
+    message: "Staff assigned successfully",
+    type: ClassStaffResponse,
   })
   @ApiOperation({
-    summary: "Assign a teacher to class",
-    description: "Assign a teacher to teach a specific subject in this class.",
+    summary: "Assign a staff member to class",
+    description: "Assign a staff member to teach a specific subject in this class.",
   })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async assignTeacher(
+  async assignStaff(
     @Param("id") classId: string,
-    @Body() dto: AssignTeacherRequest,
+    @Body() dto: AssignStaffRequest,
   ) {
-    return await this.assignTeacherToClassUseCase.execute({
+    return await this.assignStaffToClassUseCase.execute({
       classId,
-      teacherId: dto.teacherId,
+      staffId: dto.staffId,
       subjectId: dto.subjectId,
     });
   }
 
-  @Get(":id/teachers")
+  @Get(":id/staff")
   @StandardResponse({
-    message: "Class teachers retrieved successfully",
-    type: ClassTeacherResponse,
+    message: "Class staff retrieved successfully",
+    type: ClassStaffResponse,
     isArray: true,
   })
   @ApiOperation({
-    summary: "Get class teachers",
-    description: "Get all teachers assigned to this class.",
+    summary: "Get class staff",
+    description: "Get all staff members assigned to this class.",
   })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async getTeachers(@Param("id") classId: string) {
-    return await this.getClassTeachersUseCase.execute(classId);
+  async getStaff(@Param("id") classId: string) {
+    return await this.getClassStaffUseCase.execute(classId);
   }
 
-  @Delete(":classId/teachers/:teacherId/subjects/:subjectId")
+  @Delete(":classId/staff/:staffId/subjects/:subjectId")
   @StandardResponse({
-    message: "Teacher removed from class successfully",
+    message: "Staff removed from class successfully",
     type: null,
   })
   @ApiOperation({
-    summary: "Remove teacher from class",
+    summary: "Remove staff from class",
     description:
-      "Remove a teacher's assignment from this class for a specific subject.",
+      "Remove a staff member's assignment from this class for a specific subject.",
   })
   @ApiParam({
     name: "classId",
@@ -271,8 +271,8 @@ export class ClassController {
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   @ApiParam({
-    name: "teacherId",
-    description: "Teacher UUID",
+    name: "staffId",
+    description: "Staff UUID",
     example: "123e4567-e89b-12d3-a456-426614174001",
   })
   @ApiParam({
@@ -280,14 +280,14 @@ export class ClassController {
     description: "Subject UUID",
     example: "123e4567-e89b-12d3-a456-426614174002",
   })
-  async removeTeacher(
+  async removeStaff(
     @Param("classId") classId: string,
-    @Param("teacherId") teacherId: string,
+    @Param("staffId") staffId: string,
     @Param("subjectId") subjectId: string,
   ) {
-    await this.removeTeacherFromClassUseCase.execute({
+    await this.removeStaffFromClassUseCase.execute({
       classId,
-      teacherId,
+      staffId,
       subjectId,
     });
     return null;

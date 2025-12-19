@@ -122,7 +122,7 @@ export class PrismaRoleRepository implements RoleRepository {
               dateOfBirth: true,
             },
           },
-          teacher: {
+          staff: {
             select: {
               id: true,
               fullName: true,
