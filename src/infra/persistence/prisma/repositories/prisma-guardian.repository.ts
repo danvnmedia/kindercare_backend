@@ -82,12 +82,15 @@ export class PrismaGuardianRepository implements GuardianRepository {
       "occupation",
       "workAddress",
       "isArchived",
+      "dateOfBirth",
     ];
     params.allowedSortFields = [
       "createdAt",
       "updatedAt",
       "fullName",
       "occupation",
+      "phoneNumber",
+      "dateOfBirth",
     ];
 
     // Use PrismaQueryService to execute query with StandardRequest
@@ -105,6 +108,7 @@ export class PrismaGuardianRepository implements GuardianRepository {
           },
           spouse: true,
         },
+        orderBy: { createdAt: "desc" },
       },
       PrismaGuardianMapper,
     );
