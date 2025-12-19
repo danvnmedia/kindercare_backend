@@ -70,8 +70,8 @@ export class GuardianResponse {
   fullName: string;
 
   @Expose()
-  @ApiProperty({ example: "guardian@example.com" })
-  email: string;
+  @ApiProperty({ example: "guardian@example.com", nullable: true })
+  email: string | null;
 
   @Expose()
   @ApiProperty({ example: "+84912345678" })

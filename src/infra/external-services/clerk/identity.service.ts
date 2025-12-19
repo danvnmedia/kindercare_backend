@@ -6,19 +6,23 @@ import {
 } from "@nestjs/common";
 import { type ClerkClient, type User } from "@clerk/backend";
 import {
-  InvitationInput,
-  InvitationResult,
-} from "../types/identity/invitations";
-import { ProvisionInput } from "../types/identity/provision-input";
-import { ProvisionResult } from "../types/identity/provision-result";
+  IdentityPort,
+  ProvisionIdentityInput,
+  ProvisionIdentityResult,
+  UpdateIdentityInput,
+} from "@/application/ports/identity.port";
 
 @Injectable()
-export class IdentityService {
+export class IdentityService extends IdentityPort {
   constructor(
     @Inject("ClerkClient") private readonly clerkClient: ClerkClient,
-  ) {}
+  ) {
+    super();
+  }
 
-  async provisionUser(input: ProvisionInput): Promise<ProvisionResult> {
+  async provisionUser(
+    input: ProvisionIdentityInput,
+  ): Promise<ProvisionIdentityResult> {
     if (!input.email && !input.phoneNumber) {
       throw new BadRequestException("Either phone number or email is required");
     }
@@ -65,7 +69,10 @@ export class IdentityService {
     }
   }
 
-  async updateUser(clerkUid: string, updates: ProvisionInput): Promise<void> {
+  async updateUser(
+    clerkUid: string,
+    updates: UpdateIdentityInput,
+  ): Promise<void> {
     const user = await this.clerkClient.users.getUser(clerkUid);
     if (updates.email) {
       await this.replacePrimaryEmail(user, updates.email);

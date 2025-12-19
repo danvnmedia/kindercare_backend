@@ -2,7 +2,6 @@ import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { StaffRepository } from "../../ports/staff.repository";
 import { UserRepository } from "../../ports/user.repository";
-import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
 @Injectable()
 export class ArchiveStaffUseCase {
@@ -13,7 +12,6 @@ export class ArchiveStaffUseCase {
     private readonly staffRepository: StaffRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
-    private readonly identityService: IdentityService,
   ) {}
 
   async execute(id: string): Promise<Staff> {

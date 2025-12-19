@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { IdentityService } from "./identity.service";
 import { ClerkClientProvider } from "./clerk-client.provider";
 import { ClerkAuthenticationAdapter } from "./clerk-authentication.adapter";
+import { IdentityPort } from "@/application/ports/identity.port";
 
 /**
  * Clerk Module
@@ -11,7 +12,7 @@ import { ClerkAuthenticationAdapter } from "./clerk-authentication.adapter";
  * - Authentication verification
  *
  * This module follows Clean Architecture by:
- * - Exporting port interfaces (AUTHENTICATION_PORT), not concrete implementations
+ * - Exporting port interfaces (AUTHENTICATION_PORT, IdentityPort), not concrete implementations
  * - Allowing application layer to depend on abstractions
  * - Enabling easy replacement of authentication provider
  *
@@ -28,8 +29,11 @@ import { ClerkAuthenticationAdapter } from "./clerk-authentication.adapter";
     // Clerk client configuration
     ClerkClientProvider,
 
-    // Identity service for user management
-    IdentityService,
+    // Identity port binding (Port → Implementation)
+    {
+      provide: IdentityPort,
+      useClass: IdentityService,
+    },
 
     // Authentication adapter implementing port
     {
@@ -38,8 +42,8 @@ import { ClerkAuthenticationAdapter } from "./clerk-authentication.adapter";
     },
   ],
   exports: [
-    // Export identity service for user provisioning
-    IdentityService,
+    // Export identity port for user provisioning
+    IdentityPort,
 
     // Export authentication port for guards
     "AUTHENTICATION_PORT",

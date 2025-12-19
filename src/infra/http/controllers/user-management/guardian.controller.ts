@@ -1,27 +1,44 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 
+import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   CreateGuardianRequest,
   GuardianResponse,
+  UpdateGuardianRequest,
 } from "../../dtos/user-management/guardian";
-import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 
 // Use Cases
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
+import { DeleteGuardianUseCase } from "@/application/user-management/use-cases/guardian/delete-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
+import { GetGuardianByIdUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-by-id.use-case";
+import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/guardian/update-guardian.use-case";
 
 @Controller("guardians")
 @ApiTags("Guardians")
-// @ApiBearerAuth('JWT')
-// @UseGuards(ClerkAuthGuard)
+@ApiBearerAuth("JWT")
+@UseGuards(ClerkAuthGuard)
 export class GuardianController {
   constructor(
     private readonly createGuardianUseCase: CreateGuardianUseCase,
     private readonly getAllGuardiansUseCase: GetAllGuardiansUseCase,
+    private readonly getGuardianByIdUseCase: GetGuardianByIdUseCase,
+    private readonly updateGuardianUseCase: UpdateGuardianUseCase,
+    private readonly deleteGuardianUseCase: DeleteGuardianUseCase,
   ) {}
 
   @Post()
@@ -54,5 +71,48 @@ export class GuardianController {
   })
   async findAll(@Query() query: StandardRequestDto) {
     return await this.getAllGuardiansUseCase.execute(query);
+  }
+
+  @Get(":id")
+  @StandardResponse({
+    message: "Guardian retrieved successfully",
+    type: GuardianResponse,
+  })
+  @ApiOperation({
+    summary: "Get a guardian by ID",
+    description: "Retrieve a single guardian by their unique ID.",
+  })
+  async findOne(@Param("id") id: string) {
+    return await this.getGuardianByIdUseCase.execute(id);
+  }
+
+  @Patch(":id")
+  @StandardResponse({
+    message: "Guardian updated successfully",
+    type: GuardianResponse,
+  })
+  @ApiOperation({
+    summary: "Update a guardian",
+    description:
+      "Update guardian information. Email and phone number uniqueness is enforced.",
+  })
+  async update(@Param("id") id: string, @Body() dto: UpdateGuardianRequest) {
+    return await this.updateGuardianUseCase.execute(id, {
+      ...dto,
+      gender: dto.gender as Gender,
+    });
+  }
+
+  @Delete(":id")
+  @StandardResponse({
+    message: "Guardian deleted successfully",
+    type: null,
+  })
+  @ApiOperation({
+    summary: "Delete a guardian",
+    description: "Permanently delete a guardian by their ID.",
+  })
+  async remove(@Param("id") id: string) {
+    await this.deleteGuardianUseCase.execute(id);
   }
 }

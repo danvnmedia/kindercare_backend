@@ -6,15 +6,15 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
+import { IdentityPort } from "@/application/ports/identity.port";
+import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
 import { Student } from "@/domain/user-management/entities/student.entity";
-import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services/student-code-generator.service";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import { User } from "@/domain/user-management/user.entity";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
-import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
@@ -42,8 +42,8 @@ export class CreateStudentUseCase {
     private readonly guardianRepository: GuardianRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
-    private readonly identityService: IdentityService,
-    private readonly studentCodeGenerator: StudentCodeGeneratorService,
+    private readonly identityPort: IdentityPort,
+    private readonly studentCodeGenerator: StudentCodeGeneratorPort,
   ) {}
 
   async execute(input: CreateStudentInput): Promise<Student> {
@@ -181,7 +181,7 @@ export class CreateStudentUseCase {
       this.logger.log(
         `Creating Clerk user for: ${student.email || student.phoneNumber}`,
       );
-      const clerkUser = await this.identityService.provisionUser({
+      const clerkUser = await this.identityPort.provisionUser({
         email: student.email || undefined,
         fullName: student.fullName,
         phoneNumber: student.phoneNumber || undefined,

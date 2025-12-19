@@ -1,8 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsEmail,
   IsEnum,
-  IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
@@ -15,62 +14,60 @@ import {
   TransformToUTCDate,
 } from "@/core/validators";
 
-export class CreateGuardianRequest {
+export class UpdateGuardianRequest {
   // ========== Personal Information ==========
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Guardian full name",
     example: "Nguyễn Thị B",
     minLength: 2,
     maxLength: 100,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MinLength(2)
   @MaxLength(100)
-  fullName: string;
+  fullName?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description:
       "Guardian date of birth in ISO 8601 format (must be 18+ years old)",
     example: "1985-03-20T00:00:00.000Z",
   })
-  @IsNotEmpty()
+  @IsOptional()
   @TransformToUTCDate()
   @IsAdultDateOfBirth()
-  dateOfBirth: Date;
+  dateOfBirth?: Date;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Guardian gender",
     enum: Gender,
     example: Gender.FEMALE,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
-  gender: Gender;
+  gender?: Gender;
 
-  @ApiProperty({
-    description: "Guardian phone number (required)",
+  @ApiPropertyOptional({
+    description: "Guardian phone number",
     example: "+84912345678",
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @IsE164Phone()
-  phoneNumber: string;
+  phoneNumber?: string;
 
-  @ApiProperty({
-    description: "Guardian email (optional)",
+  @ApiPropertyOptional({
+    description: "Guardian email",
     example: "guardian@example.com",
-    required: false,
   })
   @IsOptional()
   @IsEmail({}, { message: "Invalid email format" })
   email?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Guardian address",
     example: "123 Đường ABC, Quận 1, TP.HCM",
-    required: false,
   })
   @IsOptional()
   @IsString()
@@ -79,20 +76,18 @@ export class CreateGuardianRequest {
 
   // ========== Guardian-Specific Information ==========
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Guardian occupation/job title",
     example: "Software Engineer",
-    required: false,
   })
   @IsOptional()
   @IsString()
   @MaxLength(100)
   occupation?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Guardian work address",
     example: "456 Đường XYZ, Quận 3, TP.HCM",
-    required: false,
   })
   @IsOptional()
   @IsString()

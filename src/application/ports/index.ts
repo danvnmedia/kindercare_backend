@@ -10,3 +10,6 @@
  */
 
 export * from "./authentication.port";
+export * from "./identity.port";
+export * from "./student-code-generator.port";
+export * from "./unit-of-work.port";

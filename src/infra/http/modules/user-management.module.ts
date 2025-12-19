@@ -36,6 +36,9 @@ import { GetStudentGuardiansUseCase } from "@/application/user-management/use-ca
 // Use Cases - Guardian
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
+import { GetGuardianByIdUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-by-id.use-case";
+import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/guardian/update-guardian.use-case";
+import { DeleteGuardianUseCase } from "@/application/user-management/use-cases/guardian/delete-guardian.use-case";
 
 // Use Cases - Staff
 import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
@@ -52,7 +55,10 @@ import { PrismaStudentRepository } from "@/infra/persistence/prisma/repositories
 import { PrismaGuardianRepository } from "@/infra/persistence/prisma/repositories/prisma-guardian.repository";
 import { PrismaStaffRepository } from "@/infra/persistence/prisma/repositories/prisma-staff.repository";
 
-// Services
+// Ports
+import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
+
+// Services (Infrastructure implementations)
 import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services/student-code-generator.service";
 
 // Modules
@@ -114,12 +120,18 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     UnlinkStudentFromGuardianUseCase,
     GetStudentGuardiansUseCase,
 
-    // Services
-    StudentCodeGeneratorService,
+    // Port bindings (Port → Implementation)
+    {
+      provide: StudentCodeGeneratorPort,
+      useClass: StudentCodeGeneratorService,
+    },
 
     // Guardian Use Cases
     CreateGuardianUseCase,
     GetAllGuardiansUseCase,
+    GetGuardianByIdUseCase,
+    UpdateGuardianUseCase,
+    DeleteGuardianUseCase,
 
     // Staff Use Cases
     CreateStaffUseCase,

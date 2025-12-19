@@ -1,11 +1,14 @@
 import { Injectable, ConflictException } from "@nestjs/common";
+import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
 import { PrismaService } from "../prisma.service";
 
 const MAX_SEQUENCE_NUMBER = 999999;
 
 @Injectable()
-export class StudentCodeGeneratorService {
-  constructor(private readonly prisma: PrismaService) {}
+export class StudentCodeGeneratorService extends StudentCodeGeneratorPort {
+  constructor(private readonly prisma: PrismaService) {
+    super();
+  }
 
   /**
    * Generates next student code in format YYYY-XXXXXX

@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
+import { IdentityPort } from "@/application/ports/identity.port";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
@@ -12,7 +13,6 @@ import { User } from "@/domain/user-management/user.entity";
 import { StaffRepository } from "../../ports/staff.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { RoleRepository } from "../../ports/role.repository";
-import { IdentityService } from "@/infra/external-services/clerk/identity.service";
 
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
@@ -38,7 +38,7 @@ export class CreateStaffUseCase {
     private readonly userRepository: UserRepository,
     @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
-    private readonly identityService: IdentityService,
+    private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(input: CreateStaffInput): Promise<Staff> {
@@ -123,7 +123,7 @@ export class CreateStaffUseCase {
       );
 
       // Create Clerk user
-      const clerkUser = await this.identityService.provisionUser({
+      const clerkUser = await this.identityPort.provisionUser({
         email: staff.email,
         fullName: staff.fullName,
         phoneNumber: staff.phoneNumber,

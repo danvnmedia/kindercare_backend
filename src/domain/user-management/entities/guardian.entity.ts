@@ -24,7 +24,7 @@ export interface GuardianRelationshipType {
 // Properties of the Guardian entity
 export interface GuardianProps {
   fullName: string;
-  email: string;
+  email: string | null;
   phoneNumber: string;
   address: string | null;
   dateOfBirth: Date | null;
@@ -50,7 +50,7 @@ export class Guardian extends Entity<GuardianProps> {
   get fullName(): string {
     return this.props.fullName;
   }
-  get email(): string {
+  get email(): string | null {
     return this.props.email;
   }
   get phoneNumber(): string {
@@ -231,8 +231,9 @@ export class Guardian extends Entity<GuardianProps> {
         "Full name is required and must be at least 2 characters.",
       );
     }
-    if (!props.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(props.email)) {
-      throw new Error("Email is required and must be a valid email address.");
+    // Email is optional, but if provided must be valid
+    if (props.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(props.email)) {
+      throw new Error("Email must be a valid email address.");
     }
     if (!props.phoneNumber || !/^\+[1-9]\d{1,14}$/.test(props.phoneNumber)) {
       throw new Error(
