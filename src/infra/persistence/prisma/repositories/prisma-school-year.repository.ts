@@ -3,10 +3,16 @@ import { PrismaService } from "../prisma.service";
 import { SchoolYearRepository } from "@/application/class-management/ports/school-year.repository";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
 import { PrismaSchoolYearMapper } from "../mapper/prisma-school-year.mapper";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 @Injectable()
 export class PrismaSchoolYearRepository implements SchoolYearRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,
+  ) {}
 
   async findById(id: string): Promise<SchoolYear | null> {
     const prismaSchoolYear = await this.prisma.schoolYear.findUnique({
@@ -26,20 +32,34 @@ export class PrismaSchoolYearRepository implements SchoolYearRepository {
       : null;
   }
 
-  async findActive(): Promise<SchoolYear | null> {
-    const prismaSchoolYear = await this.prisma.schoolYear.findFirst({
-      where: { status: true },
-    });
-    return prismaSchoolYear
-      ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear)
-      : null;
-  }
-
-  async findAll(): Promise<SchoolYear[]> {
+  async findNonArchived(): Promise<SchoolYear[]> {
     const prismaSchoolYears = await this.prisma.schoolYear.findMany({
+      where: { isArchived: false },
       orderBy: { startDate: "desc" },
     });
     return PrismaSchoolYearMapper.toDomainArray(prismaSchoolYears);
+  }
+
+  async findAll(params: StandardRequest): Promise<PaginatedResult<SchoolYear>> {
+    // Define allowed fields for filtering and sorting
+    params.allowedFilterFields = ["name", "isArchived", "startDate", "endDate"];
+    params.allowedSortFields = [
+      "name",
+      "startDate",
+      "endDate",
+      "createdAt",
+      "updatedAt",
+    ];
+
+    return await this.queryService.executeQuery<SchoolYear>(
+      this.prisma,
+      "schoolYear",
+      params,
+      {
+        orderBy: { startDate: "desc" }, // Default sort: most recent first
+      },
+      PrismaSchoolYearMapper,
+    );
   }
 
   async save(schoolYear: SchoolYear): Promise<SchoolYear> {
@@ -65,18 +85,19 @@ export class PrismaSchoolYearRepository implements SchoolYearRepository {
     });
   }
 
-  async setActive(id: string): Promise<SchoolYear> {
-    // Deactivate all school years and activate the specified one in a transaction
-    const [_, updated] = await this.prisma.$transaction([
-      this.prisma.schoolYear.updateMany({
-        where: { status: true },
-        data: { status: false },
-      }),
-      this.prisma.schoolYear.update({
-        where: { id },
-        data: { status: true },
-      }),
-    ]);
+  async archive(id: string): Promise<SchoolYear> {
+    const updated = await this.prisma.schoolYear.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+    return PrismaSchoolYearMapper.toDomain(updated);
+  }
+
+  async unarchive(id: string): Promise<SchoolYear> {
+    const updated = await this.prisma.schoolYear.update({
+      where: { id },
+      data: { isArchived: false },
+    });
     return PrismaSchoolYearMapper.toDomain(updated);
   }
 }

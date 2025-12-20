@@ -68,11 +68,7 @@ export class ClassStaff extends Entity<ClassStaffProps> {
   /**
    * Checks if this assignment matches the given criteria
    */
-  public matches(
-    classId: string,
-    staffId: string,
-    subjectId: string,
-  ): boolean {
+  public matches(classId: string, staffId: string, subjectId: string): boolean {
     return (
       this.props.classId === classId &&
       this.props.staffId === staffId &&

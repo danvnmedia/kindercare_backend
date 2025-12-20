@@ -29,6 +29,7 @@ Before implementing any feature, you MUST read the relevant documentation:
 | Naming | [naming.md](./docs/conventions/naming.md) |
 | Task management | [backlog.md](./docs/guides/backlog.md) |
 | Pagination & Filtering | [pagination-and-filtering.md](./docs/guides/pagination-and-filtering.md) |
+| Sequential code generation | [code-generation.md](./docs/guides/code-generation.md) |
 
 ---
 

@@ -50,9 +50,7 @@ export class RestoreStaffUseCase {
       if (user) {
         user.activate();
         await this.userRepository.update(user);
-        this.logger.log(
-          `User account reactivated for staff: ${staff.email}`,
-        );
+        this.logger.log(`User account reactivated for staff: ${staff.email}`);
       }
     } catch (error) {
       this.logger.error(

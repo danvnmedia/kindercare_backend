@@ -6,14 +6,14 @@ export interface SchoolYearProps {
   name: string;
   startDate: Date;
   endDate: Date;
-  status: boolean; // true = active, false = inactive
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type CreateSchoolYearData = Omit<
   SchoolYearProps,
-  "createdAt" | "updatedAt" | "status"
+  "createdAt" | "updatedAt" | "isArchived"
 >;
 export type UpdateSchoolYearData = Partial<
   Omit<SchoolYearProps, "createdAt" | "updatedAt">
@@ -33,12 +33,8 @@ export class SchoolYear extends Entity<SchoolYearProps> {
     return this.props.endDate;
   }
 
-  get status(): boolean {
-    return this.props.status;
-  }
-
-  get isActive(): boolean {
-    return this.props.status;
+  get isArchived(): boolean {
+    return this.props.isArchived;
   }
 
   get createdAt(): Date {
@@ -64,8 +60,8 @@ export class SchoolYear extends Entity<SchoolYearProps> {
     if (data.endDate !== undefined) {
       this.props.endDate = data.endDate;
     }
-    if (data.status !== undefined) {
-      this.props.status = data.status;
+    if (data.isArchived !== undefined) {
+      this.props.isArchived = data.isArchived;
     }
 
     // Validate date range
@@ -76,13 +72,13 @@ export class SchoolYear extends Entity<SchoolYearProps> {
     this.touch();
   }
 
-  public activate(): void {
-    this.props.status = true;
+  public archive(): void {
+    this.props.isArchived = true;
     this.touch();
   }
 
-  public deactivate(): void {
-    this.props.status = false;
+  public unarchive(): void {
+    this.props.isArchived = false;
     this.touch();
   }
 
@@ -97,7 +93,7 @@ export class SchoolYear extends Entity<SchoolYearProps> {
   // --- Factory Method ---
 
   public static create(
-    props: Optional<SchoolYearProps, "createdAt" | "updatedAt" | "status">,
+    props: Optional<SchoolYearProps, "createdAt" | "updatedAt" | "isArchived">,
     id?: string,
   ): SchoolYear {
     // Validation
@@ -117,7 +113,7 @@ export class SchoolYear extends Entity<SchoolYearProps> {
     const schoolYearProps: SchoolYearProps = {
       ...props,
       name: props.name.trim(),
-      status: props.status ?? false,
+      isArchived: props.isArchived ?? true,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

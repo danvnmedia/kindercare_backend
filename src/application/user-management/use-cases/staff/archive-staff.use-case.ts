@@ -50,9 +50,7 @@ export class ArchiveStaffUseCase {
       if (user) {
         user.deactivate();
         await this.userRepository.update(user);
-        this.logger.log(
-          `User account deactivated for staff: ${staff.email}`,
-        );
+        this.logger.log(`User account deactivated for staff: ${staff.email}`);
       }
     } catch (error) {
       this.logger.error(

@@ -89,9 +89,7 @@ export class PrismaStaffMapper {
     return updateData;
   }
 
-  static toDomainArray(
-    prismaStaffs: PrismaStaffWithRelations[],
-  ): Staff[] {
+  static toDomainArray(prismaStaffs: PrismaStaffWithRelations[]): Staff[] {
     return prismaStaffs.map((prismaStaff) =>
       PrismaStaffMapper.toDomain(prismaStaff),
     );

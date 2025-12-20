@@ -1,17 +1,24 @@
 import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
+import { Class } from "./class.entity";
 
 export interface GradeLevelProps {
   name: string;
   order: number;
+  isArchived: boolean;
+  classes?: Class[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type CreateGradeLevelData = Omit<
   GradeLevelProps,
-  "createdAt" | "updatedAt"
+  "createdAt" | "updatedAt" | "classes" | "isArchived"
+>;
+
+export type UpdateGradeLevelData = Partial<
+  Pick<GradeLevelProps, "name" | "order" | "isArchived">
 >;
 
 export class GradeLevel extends Entity<GradeLevelProps> {
@@ -24,12 +31,20 @@ export class GradeLevel extends Entity<GradeLevelProps> {
     return this.props.order;
   }
 
+  get isArchived(): boolean {
+    return this.props.isArchived;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
 
   get updatedAt(): Date {
     return this.props.updatedAt;
+  }
+
+  get classes(): Class[] | undefined {
+    return this.props.classes;
   }
 
   // --- Domain Methods ---
@@ -50,6 +65,16 @@ export class GradeLevel extends Entity<GradeLevelProps> {
     this.touch();
   }
 
+  public archive(): void {
+    this.props.isArchived = true;
+    this.touch();
+  }
+
+  public unarchive(): void {
+    this.props.isArchived = false;
+    this.touch();
+  }
+
   private touch(): void {
     this.props.updatedAt = new Date();
   }
@@ -57,7 +82,10 @@ export class GradeLevel extends Entity<GradeLevelProps> {
   // --- Factory Method ---
 
   public static create(
-    props: Optional<GradeLevelProps, "createdAt" | "updatedAt">,
+    props: Optional<
+      GradeLevelProps,
+      "createdAt" | "updatedAt" | "classes" | "isArchived"
+    >,
     id?: string,
   ): GradeLevel {
     // Validation
@@ -71,6 +99,8 @@ export class GradeLevel extends Entity<GradeLevelProps> {
     const gradeLevelProps: GradeLevelProps = {
       ...props,
       name: props.name.trim(),
+      isArchived: props.isArchived ?? true,
+      classes: props.classes,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

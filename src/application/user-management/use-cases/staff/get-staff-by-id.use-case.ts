@@ -24,10 +24,7 @@ export class GetStaffByIdUseCase {
       this.logger.log(`Found staff: ${staff.fullName}`);
       return staff;
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch staff: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to fetch staff: ${error.message}`, error.stack);
       throw error;
     }
   }

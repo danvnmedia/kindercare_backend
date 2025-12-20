@@ -1,5 +1,19 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
+
+export class ClassSummaryResponse {
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
+  id: string;
+
+  @Expose()
+  @ApiProperty({ example: "Lớp A1" })
+  name: string;
+
+  @Expose()
+  @ApiProperty({ example: "Lớp Mầm A1 - Năm học 2024-2025", nullable: true })
+  description: string | null;
+}
 
 export class GradeLevelResponse {
   @Expose()
@@ -13,6 +27,15 @@ export class GradeLevelResponse {
   @Expose()
   @ApiProperty({ example: 1 })
   order: number;
+
+  @Expose()
+  @ApiProperty({ example: false })
+  isArchived: boolean;
+
+  @Expose()
+  @Type(() => ClassSummaryResponse)
+  @ApiPropertyOptional({ type: [ClassSummaryResponse] })
+  classes?: ClassSummaryResponse[];
 }
 
 export class SchoolYearResponse {
@@ -33,8 +56,8 @@ export class SchoolYearResponse {
   endDate: Date;
 
   @Expose()
-  @ApiProperty({ example: true })
-  status: boolean;
+  @ApiProperty({ example: false })
+  isArchived: boolean;
 }
 
 export class SubjectResponse {

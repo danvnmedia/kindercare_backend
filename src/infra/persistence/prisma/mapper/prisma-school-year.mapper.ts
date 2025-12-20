@@ -9,7 +9,7 @@ export class PrismaSchoolYearMapper {
         name: prismaSchoolYear.name,
         startDate: prismaSchoolYear.startDate,
         endDate: prismaSchoolYear.endDate,
-        status: prismaSchoolYear.status,
+        isArchived: prismaSchoolYear.isArchived,
         createdAt: prismaSchoolYear.createdAt,
         updatedAt: prismaSchoolYear.updatedAt,
       },
@@ -25,7 +25,7 @@ export class PrismaSchoolYearMapper {
       name: schoolYear.name,
       startDate: schoolYear.startDate,
       endDate: schoolYear.endDate,
-      status: schoolYear.status,
+      isArchived: schoolYear.isArchived,
       createdAt: schoolYear.createdAt,
       updatedAt: schoolYear.updatedAt,
     };
@@ -36,7 +36,7 @@ export class PrismaSchoolYearMapper {
       name: schoolYear.name,
       startDate: schoolYear.startDate,
       endDate: schoolYear.endDate,
-      status: schoolYear.status,
+      isArchived: schoolYear.isArchived,
       updatedAt: schoolYear.updatedAt,
     };
   }

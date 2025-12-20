@@ -216,9 +216,10 @@ model GuardianStudent {
 // ==========================================
 
 model GradeLevel {
-  id    String @id @default(uuid()) @db.Uuid
-  name  String @unique
-  order Int    @unique
+  id         String  @id @default(uuid()) @db.Uuid
+  name       String  @unique
+  order      Int     @unique
+  isArchived Boolean @default(true) @map("is_archived")
 
   classes       Class[]
   postAudiences PostAudience[]
@@ -226,6 +227,7 @@ model GradeLevel {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([isArchived])
   @@map("grade_level")
 }
 
@@ -242,18 +244,18 @@ model Subject {
 }
 
 model SchoolYear {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @unique
-  startDate DateTime @map("start_date") @db.Date
-  endDate   DateTime @map("end_date") @db.Date
-  status    Boolean  @default(false)
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String   @unique
+  startDate  DateTime @map("start_date") @db.Date
+  endDate    DateTime @map("end_date") @db.Date
+  isArchived Boolean  @default(true) @map("is_archived")
 
   classes Class[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@index([status])
+  @@index([isArchived])
   @@map("school_year")
 }
 

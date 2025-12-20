@@ -16,6 +16,16 @@ import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cas
 import { GetAllSchoolYearsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-school-years.use-case";
 import { GetAllSubjectsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-subjects.use-case";
 
+// Use Cases - School Year CUD
+import { CreateSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/create-school-year.use-case";
+import { UpdateSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/update-school-year.use-case";
+import { DeleteSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/delete-school-year.use-case";
+
+// Use Cases - Grade Level CUD
+import { CreateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/create-grade-level.use-case";
+import { UpdateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/update-grade-level.use-case";
+import { DeleteGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/delete-grade-level.use-case";
+
 // Use Cases - Enrollment
 import { EnrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/enroll-student.use-case";
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
@@ -64,6 +74,16 @@ import { UserManagementModule } from "./user-management.module";
     GetAllGradeLevelsUseCase,
     GetAllSchoolYearsUseCase,
     GetAllSubjectsUseCase,
+
+    // School Year CUD Use Cases
+    CreateSchoolYearUseCase,
+    UpdateSchoolYearUseCase,
+    DeleteSchoolYearUseCase,
+
+    // Grade Level CUD Use Cases
+    CreateGradeLevelUseCase,
+    UpdateGradeLevelUseCase,
+    DeleteGradeLevelUseCase,
 
     // Enrollment Use Cases
     EnrollStudentUseCase,

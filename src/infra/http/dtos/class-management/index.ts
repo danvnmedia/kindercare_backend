@@ -5,3 +5,7 @@ export * from "./enroll-student.request";
 export * from "./enrollment.response";
 export * from "./assign-staff.request";
 export * from "./class-staff.response";
+export * from "./create-school-year.request";
+export * from "./update-school-year.request";
+export * from "./create-grade-level.request";
+export * from "./update-grade-level.request";

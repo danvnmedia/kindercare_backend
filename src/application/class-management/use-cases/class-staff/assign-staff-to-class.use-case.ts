@@ -48,9 +48,7 @@ export class AssignStaffToClassUseCase {
       // Step 2: Validate staff exists
       const staff = await this.staffRepository.findById(input.staffId);
       if (!staff) {
-        throw new NotFoundException(
-          `Staff with ID ${input.staffId} not found`,
-        );
+        throw new NotFoundException(`Staff with ID ${input.staffId} not found`);
       }
 
       // Step 3: Validate subject exists
@@ -81,8 +79,7 @@ export class AssignStaffToClassUseCase {
         subjectId: input.subjectId,
       });
 
-      const savedAssignment =
-        await this.classStaffRepository.save(classStaff);
+      const savedAssignment = await this.classStaffRepository.save(classStaff);
       this.logger.log(`Staff assignment created for class ${input.classId}`);
 
       return savedAssignment;

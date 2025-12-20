@@ -27,10 +27,7 @@ export class GetAllStaffUseCase {
 
       return result;
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch staff: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Failed to fetch staff: ${error.message}`, error.stack);
       throw error;
     }
   }

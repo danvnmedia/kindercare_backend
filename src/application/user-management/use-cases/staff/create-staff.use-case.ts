@@ -43,9 +43,7 @@ export class CreateStaffUseCase {
 
   async execute(input: CreateStaffInput): Promise<Staff> {
     try {
-      this.logger.log(
-        `Creating staff: ${input.fullName} (${input.staffType})`,
-      );
+      this.logger.log(`Creating staff: ${input.fullName} (${input.staffType})`);
 
       // Step 1: Check Staff uniqueness (email/phone)
       await this.checkStaffUniqueness(input);
@@ -76,12 +74,8 @@ export class CreateStaffUseCase {
     }
   }
 
-  private async checkStaffUniqueness(
-    input: CreateStaffInput,
-  ): Promise<void> {
-    const existingByEmail = await this.staffRepository.findByEmail(
-      input.email,
-    );
+  private async checkStaffUniqueness(input: CreateStaffInput): Promise<void> {
+    const existingByEmail = await this.staffRepository.findByEmail(input.email);
     if (existingByEmail) {
       throw new ConflictException(
         `Staff with email ${input.email} already exists`,
@@ -98,9 +92,7 @@ export class CreateStaffUseCase {
     }
   }
 
-  private async createAndSaveStaff(
-    input: CreateStaffInput,
-  ): Promise<Staff> {
+  private async createAndSaveStaff(input: CreateStaffInput): Promise<Staff> {
     const staffEntity = Staff.create({
       fullName: input.fullName,
       email: input.email,

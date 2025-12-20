@@ -3,10 +3,16 @@ import { PrismaService } from "../prisma.service";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
 import { PrismaGradeLevelMapper } from "../mapper/prisma-grade-level.mapper";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 @Injectable()
 export class PrismaGradeLevelRepository implements GradeLevelRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,
+  ) {}
 
   async findById(id: string): Promise<GradeLevel | null> {
     const prismaGradeLevel = await this.prisma.gradeLevel.findUnique({
@@ -26,11 +32,63 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
       : null;
   }
 
+  async findByOrder(order: number): Promise<GradeLevel | null> {
+    const prismaGradeLevel = await this.prisma.gradeLevel.findFirst({
+      where: { order },
+    });
+    return prismaGradeLevel
+      ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel)
+      : null;
+  }
+
   async findAll(): Promise<GradeLevel[]> {
     const prismaGradeLevels = await this.prisma.gradeLevel.findMany({
       orderBy: { order: "asc" },
     });
     return PrismaGradeLevelMapper.toDomainArray(prismaGradeLevels);
+  }
+
+  async findNonArchived(): Promise<GradeLevel[]> {
+    const prismaGradeLevels = await this.prisma.gradeLevel.findMany({
+      where: { isArchived: false },
+      orderBy: { order: "asc" },
+    });
+    return PrismaGradeLevelMapper.toDomainArray(prismaGradeLevels);
+  }
+
+  async findAllWithClasses(
+    params: StandardRequest,
+  ): Promise<PaginatedResult<GradeLevel>> {
+    // Define allowed fields for filtering and sorting
+    params.allowedFilterFields = ["name", "order", "isArchived"];
+    params.allowedSortFields = ["name", "order", "createdAt", "updatedAt"];
+
+    // Create a mapper wrapper that uses toDomainWithClasses
+    const mapperWithClasses = {
+      toDomain: (item: any) => PrismaGradeLevelMapper.toDomainWithClasses(item),
+    };
+
+    return await this.queryService.executeQuery<GradeLevel>(
+      this.prisma,
+      "gradeLevel",
+      params,
+      {
+        include: { classes: true },
+        orderBy: { order: "asc" }, // Default sort: by order
+      },
+      mapperWithClasses,
+    );
+  }
+
+  async findNonArchivedWithClasses(): Promise<GradeLevel[]> {
+    const prismaGradeLevels = await this.prisma.gradeLevel.findMany({
+      where: { isArchived: false },
+      orderBy: { order: "asc" },
+      include: {
+        classes: true,
+      },
+    });
+    return PrismaGradeLevelMapper.toDomainArrayWithClasses(prismaGradeLevels);
   }
 
   async save(gradeLevel: GradeLevel): Promise<GradeLevel> {
@@ -54,5 +112,21 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
     await this.prisma.gradeLevel.delete({
       where: { id },
     });
+  }
+
+  async archive(id: string): Promise<GradeLevel> {
+    const updated = await this.prisma.gradeLevel.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+    return PrismaGradeLevelMapper.toDomain(updated);
+  }
+
+  async unarchive(id: string): Promise<GradeLevel> {
+    const updated = await this.prisma.gradeLevel.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+    return PrismaGradeLevelMapper.toDomain(updated);
   }
 }

@@ -218,7 +218,8 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Assign a staff member to class",
-    description: "Assign a staff member to teach a specific subject in this class.",
+    description:
+      "Assign a staff member to teach a specific subject in this class.",
   })
   @ApiParam({
     name: "id",

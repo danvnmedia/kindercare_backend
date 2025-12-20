@@ -5,6 +5,8 @@
  */
 
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export abstract class SchoolYearRepository {
   /**
@@ -18,14 +20,16 @@ export abstract class SchoolYearRepository {
   abstract findByName(name: string): Promise<SchoolYear | null>;
 
   /**
-   * Find the currently active school year
+   * Find all non-archived school years
    */
-  abstract findActive(): Promise<SchoolYear | null>;
+  abstract findNonArchived(): Promise<SchoolYear[]>;
 
   /**
-   * Find all school years
+   * Find all school years with filtering, sorting, pagination
    */
-  abstract findAll(): Promise<SchoolYear[]>;
+  abstract findAll(
+    params: StandardRequest,
+  ): Promise<PaginatedResult<SchoolYear>>;
 
   /**
    * Save a new school year
@@ -43,7 +47,12 @@ export abstract class SchoolYearRepository {
   abstract delete(id: string): Promise<void>;
 
   /**
-   * Set a school year as active (and deactivate others)
+   * Archive a school year
    */
-  abstract setActive(id: string): Promise<SchoolYear>;
+  abstract archive(id: string): Promise<SchoolYear>;
+
+  /**
+   * Unarchive a school year
+   */
+  abstract unarchive(id: string): Promise<SchoolYear>;
 }

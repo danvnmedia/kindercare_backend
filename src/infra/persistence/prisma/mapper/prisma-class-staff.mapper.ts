@@ -17,9 +17,7 @@ type PrismaClassStaffWithRelations = PrismaClassStaff & {
 };
 
 export class PrismaClassStaffMapper {
-  static toDomain(
-    prismaClassStaff: PrismaClassStaffWithRelations,
-  ): ClassStaff {
+  static toDomain(prismaClassStaff: PrismaClassStaffWithRelations): ClassStaff {
     const props: any = {
       classId: prismaClassStaff.classId,
       staffId: prismaClassStaff.staffId,
@@ -33,9 +31,7 @@ export class PrismaClassStaffMapper {
       props.class = PrismaClassMapper.toDomainSimple(prismaClassStaff.class);
     }
     if (prismaClassStaff.staff) {
-      props.staff = PrismaStaffMapper.toDomainSimple(
-        prismaClassStaff.staff,
-      );
+      props.staff = PrismaStaffMapper.toDomainSimple(prismaClassStaff.staff);
     }
     if (prismaClassStaff.subject) {
       props.subject = PrismaSubjectMapper.toDomain(prismaClassStaff.subject);
@@ -74,8 +70,6 @@ export class PrismaClassStaffMapper {
   static toDomainArray(
     prismaClassStaffs: PrismaClassStaffWithRelations[],
   ): ClassStaff[] {
-    return prismaClassStaffs.map((ct) =>
-      PrismaClassStaffMapper.toDomain(ct),
-    );
+    return prismaClassStaffs.map((ct) => PrismaClassStaffMapper.toDomain(ct));
   }
 }
