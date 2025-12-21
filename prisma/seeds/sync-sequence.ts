@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -14,7 +14,7 @@ async function sync() {
 
   let maxNumber = 0;
   for (const s of students) {
-    const num = parseInt(s.studentCode.split('-')[1], 10);
+    const num = parseInt(s.studentCode.split("-")[1], 10);
     if (num > maxNumber) maxNumber = num;
   }
 
@@ -30,5 +30,4 @@ async function sync() {
   }
 }
 
-sync()
-  .finally(() => prisma.$disconnect());
+sync().finally(() => prisma.$disconnect());
