@@ -51,7 +51,7 @@ export class CreateGradeLevelUseCase {
       const gradeLevel = GradeLevel.create({
         name: input.name,
         order: input.order,
-        isArchived: input.isArchived ?? true,
+        isArchived: input.isArchived ?? false,
       });
 
       // Step 4: Save to repository

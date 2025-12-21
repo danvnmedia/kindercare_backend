@@ -43,7 +43,7 @@ export class CreateSchoolYearUseCase {
         name: input.name,
         startDate: input.startDate,
         endDate: input.endDate,
-        isArchived: input.isArchived ?? true,
+        isArchived: input.isArchived ?? false,
       });
 
       // Step 3: Save to repository

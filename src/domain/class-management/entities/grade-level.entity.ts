@@ -99,7 +99,7 @@ export class GradeLevel extends Entity<GradeLevelProps> {
     const gradeLevelProps: GradeLevelProps = {
       ...props,
       name: props.name.trim(),
-      isArchived: props.isArchived ?? true,
+      isArchived: props.isArchived ?? false,
       classes: props.classes,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

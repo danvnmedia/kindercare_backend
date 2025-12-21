@@ -219,7 +219,7 @@ model GradeLevel {
   id         String  @id @default(uuid()) @db.Uuid
   name       String  @unique
   order      Int     @unique
-  isArchived Boolean @default(true) @map("is_archived")
+  isArchived Boolean @default(false) @map("is_archived")
 
   classes       Class[]
   postAudiences PostAudience[]
@@ -248,7 +248,7 @@ model SchoolYear {
   name       String   @unique
   startDate  DateTime @map("start_date") @db.Date
   endDate    DateTime @map("end_date") @db.Date
-  isArchived Boolean  @default(true) @map("is_archived")
+  isArchived Boolean  @default(false) @map("is_archived")
 
   classes Class[]
 

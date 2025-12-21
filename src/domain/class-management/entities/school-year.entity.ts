@@ -113,7 +113,7 @@ export class SchoolYear extends Entity<SchoolYearProps> {
     const schoolYearProps: SchoolYearProps = {
       ...props,
       name: props.name.trim(),
-      isArchived: props.isArchived ?? true,
+      isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };
