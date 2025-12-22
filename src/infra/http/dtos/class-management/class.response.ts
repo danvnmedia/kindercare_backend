@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 
 export class ClassSummaryResponse {
@@ -31,11 +31,6 @@ export class GradeLevelResponse {
   @Expose()
   @ApiProperty({ example: false })
   isArchived: boolean;
-
-  @Expose()
-  @Type(() => ClassSummaryResponse)
-  @ApiPropertyOptional({ type: [ClassSummaryResponse] })
-  classes?: ClassSummaryResponse[];
 }
 
 export class SchoolYearResponse {

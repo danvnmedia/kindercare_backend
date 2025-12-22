@@ -10,7 +10,7 @@ import { GradeLevelRepository } from "../../ports/grade-level.repository";
 
 export interface CreateGradeLevelInput {
   name: string;
-  order: number;
+  order?: number;
   isArchived?: boolean;
 }
 
@@ -37,20 +37,30 @@ export class CreateGradeLevelUseCase {
         );
       }
 
-      // Step 2: Check for duplicate order
-      const existingByOrder = await this.gradeLevelRepository.findByOrder(
-        input.order,
-      );
-      if (existingByOrder) {
-        throw new ConflictException(
-          `Grade level with order ${input.order} already exists`,
+      // Step 2: Determine order value (auto-calculate if not provided)
+      let order: number;
+      if (input.order !== undefined) {
+        // Check for duplicate order if explicitly provided
+        const existingByOrder = await this.gradeLevelRepository.findByOrder(
+          input.order,
         );
+        if (existingByOrder) {
+          throw new ConflictException(
+            `Grade level with order ${input.order} already exists`,
+          );
+        }
+        order = input.order;
+      } else {
+        // Auto-calculate: next order after the current maximum
+        const maxOrder = await this.gradeLevelRepository.getMaxOrder();
+        order = maxOrder + 1;
+        this.logger.log(`Auto-assigned order: ${order}`);
       }
 
       // Step 3: Create domain entity (validation happens in factory)
       const gradeLevel = GradeLevel.create({
         name: input.name,
-        order: input.order,
+        order,
         isArchived: input.isArchived ?? false,
       });
 

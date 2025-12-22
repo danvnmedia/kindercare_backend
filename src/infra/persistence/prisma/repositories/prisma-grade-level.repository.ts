@@ -56,6 +56,23 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
     return PrismaGradeLevelMapper.toDomainArray(prismaGradeLevels);
   }
 
+  async findAllPaginated(
+    params: StandardRequest,
+  ): Promise<PaginatedResult<GradeLevel>> {
+    params.allowedFilterFields = ["name", "order", "isArchived"];
+    params.allowedSortFields = ["name", "order", "createdAt", "updatedAt"];
+
+    return await this.queryService.executeQuery<GradeLevel>(
+      this.prisma,
+      "gradeLevel",
+      params,
+      {
+        orderBy: { order: "asc" },
+      },
+      PrismaGradeLevelMapper,
+    );
+  }
+
   async findAllWithClasses(
     params: StandardRequest,
   ): Promise<PaginatedResult<GradeLevel>> {
@@ -128,5 +145,43 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
       data: { isArchived: false },
     });
     return PrismaGradeLevelMapper.toDomain(updated);
+  }
+
+  async getMaxOrder(): Promise<number> {
+    const result = await this.prisma.gradeLevel.aggregate({
+      _max: { order: true },
+    });
+    return result._max.order ?? 0;
+  }
+
+  async reorder(ids: string[]): Promise<GradeLevel[]> {
+    // Two-phase update to avoid unique constraint violation on 'order' field
+    // Phase 1: Set all orders to negative temporary values (avoids collision)
+    // Phase 2: Set all orders to final positive values
+    await this.prisma.$transaction([
+      // Phase 1: Temporarily set to negative values
+      // Negative values won't conflict with existing positive orders
+      ...ids.map((id, index) =>
+        this.prisma.gradeLevel.update({
+          where: { id },
+          data: { order: -(index + 1) },
+        }),
+      ),
+      // Phase 2: Set to final positive values
+      ...ids.map((id, index) =>
+        this.prisma.gradeLevel.update({
+          where: { id },
+          data: { order: index + 1 },
+        }),
+      ),
+    ]);
+
+    // Fetch and return updated grade levels sorted by order
+    const updated = await this.prisma.gradeLevel.findMany({
+      where: { id: { in: ids } },
+      orderBy: { order: "asc" },
+    });
+
+    return PrismaGradeLevelMapper.toDomainArray(updated);
   }
 }

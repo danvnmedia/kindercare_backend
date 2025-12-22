@@ -25,6 +25,7 @@ import { DeleteSchoolYearUseCase } from "@/application/class-management/use-case
 import { CreateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/create-grade-level.use-case";
 import { UpdateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/update-grade-level.use-case";
 import { DeleteGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/delete-grade-level.use-case";
+import { ReorderGradeLevelsUseCase } from "@/application/class-management/use-cases/grade-level/reorder-grade-levels.use-case";
 
 // Use Cases - Enrollment
 import { EnrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/enroll-student.use-case";
@@ -84,6 +85,7 @@ import { UserManagementModule } from "./user-management.module";
     CreateGradeLevelUseCase,
     UpdateGradeLevelUseCase,
     DeleteGradeLevelUseCase,
+    ReorderGradeLevelsUseCase,
 
     // Enrollment Use Cases
     EnrollStudentUseCase,

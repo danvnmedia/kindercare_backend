@@ -19,7 +19,7 @@ export class GetAllGradeLevelsUseCase {
         `Fetching grade levels: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
       );
 
-      const result = await this.gradeLevelRepository.findAllWithClasses(params);
+      const result = await this.gradeLevelRepository.findAllPaginated(params);
 
       this.logger.log(
         `Found ${result.pagination.count} grade levels, returning page ${result.pagination.currentPage}`,

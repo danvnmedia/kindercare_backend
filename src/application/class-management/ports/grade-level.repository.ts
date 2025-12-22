@@ -35,6 +35,13 @@ export abstract class GradeLevelRepository {
   abstract findNonArchived(): Promise<GradeLevel[]>;
 
   /**
+   * Find all grade levels with pagination, filtering, and sorting
+   */
+  abstract findAllPaginated(
+    params: StandardRequest,
+  ): Promise<PaginatedResult<GradeLevel>>;
+
+  /**
    * Find all grade levels with their associated classes, with filtering, sorting, pagination
    */
   abstract findAllWithClasses(
@@ -70,4 +77,18 @@ export abstract class GradeLevelRepository {
    * Unarchive a grade level
    */
   abstract unarchive(id: string): Promise<GradeLevel>;
+
+  /**
+   * Get the maximum order value among all grade levels
+   * Returns 0 if no grade levels exist
+   */
+  abstract getMaxOrder(): Promise<number>;
+
+  /**
+   * Reorder grade levels based on the provided array of IDs
+   * The order field will be set based on the array index (index 0 = order 1, etc.)
+   * @param ids - Array of grade level IDs in the desired order
+   * @returns Updated grade levels sorted by new order
+   */
+  abstract reorder(ids: string[]): Promise<GradeLevel[]>;
 }

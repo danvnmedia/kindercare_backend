@@ -22,6 +22,7 @@ import { CreateSchoolYearRequest } from "../../dtos/class-management/create-scho
 import { UpdateSchoolYearRequest } from "../../dtos/class-management/update-school-year.request";
 import { CreateGradeLevelRequest } from "../../dtos/class-management/create-grade-level.request";
 import { UpdateGradeLevelRequest } from "../../dtos/class-management/update-grade-level.request";
+import { ReorderGradeLevelsRequest } from "../../dtos/class-management/reorder-grade-levels.request";
 
 // Use Cases - Read
 import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-grade-levels.use-case";
@@ -37,6 +38,7 @@ import { DeleteSchoolYearUseCase } from "@/application/class-management/use-case
 import { CreateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/create-grade-level.use-case";
 import { UpdateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/update-grade-level.use-case";
 import { DeleteGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/delete-grade-level.use-case";
+import { ReorderGradeLevelsUseCase } from "@/application/class-management/use-cases/grade-level/reorder-grade-levels.use-case";
 
 @Controller("reference-data")
 @ApiTags("Reference Data")
@@ -54,6 +56,7 @@ export class ReferenceDataController {
     private readonly createGradeLevelUseCase: CreateGradeLevelUseCase,
     private readonly updateGradeLevelUseCase: UpdateGradeLevelUseCase,
     private readonly deleteGradeLevelUseCase: DeleteGradeLevelUseCase,
+    private readonly reorderGradeLevelsUseCase: ReorderGradeLevelsUseCase,
   ) {}
 
   // ==================== Grade Level Endpoints ====================
@@ -125,6 +128,21 @@ export class ReferenceDataController {
   async deleteGradeLevel(@Param("id") id: string) {
     await this.deleteGradeLevelUseCase.execute(id);
     return null;
+  }
+
+  @Post("grade-levels/reorder")
+  @StandardResponse({
+    message: "Grade levels reordered successfully",
+    type: GradeLevelResponse,
+    isArray: true,
+  })
+  @ApiOperation({
+    summary: "Reorder grade levels",
+    description:
+      "Reorder grade levels based on the provided array of IDs. The order field will be set based on the array index (index 0 = order 1, index 1 = order 2, etc.).",
+  })
+  async reorderGradeLevels(@Body() dto: ReorderGradeLevelsRequest) {
+    return await this.reorderGradeLevelsUseCase.execute(dto);
   }
 
   // ==================== School Year Endpoints ====================

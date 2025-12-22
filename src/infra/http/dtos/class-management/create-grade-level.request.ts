@@ -23,15 +23,16 @@ export class CreateGradeLevelRequest {
   @MaxLength(100)
   name: string;
 
-  @ApiProperty({
-    description: "Display order (must be non-negative)",
+  @ApiPropertyOptional({
+    description:
+      "Display order (must be non-negative). If not provided, will be auto-assigned to the next available order.",
     example: 1,
     minimum: 0,
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsInt()
   @Min(0)
-  order: number;
+  order?: number;
 
   @ApiPropertyOptional({
     description: "Whether this grade level is archived",
