@@ -359,7 +359,6 @@ model StudentAttendance {
 model Post {
   id        String    @id @default(uuid()) @db.Uuid
   authorId  String    @map("author_id") @db.Uuid
-  type      String
   title     String
   content   String?   @db.Text
   status    String    @default("DRAFT")
@@ -377,7 +376,6 @@ model Post {
 
   @@index([authorId])
   @@index([status])
-  @@index([type])
   @@index([publishAt])
   @@index([createdAt])
   @@map("post")
@@ -388,7 +386,6 @@ model PostHistory {
   postId    String    @map("post_id") @db.Uuid
   authorId  String    @map("author_id") @db.Uuid
   audience  String?
-  type      String
   title     String
   content   String?   @db.Text
   status    String

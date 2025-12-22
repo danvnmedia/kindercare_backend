@@ -1,10 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
-import {
-  AudienceType,
-  PostStatus,
-  PostType,
-} from "@/domain/content-management/enums";
+import { AudienceType, PostStatus } from "@/domain/content-management/enums";
 import { FileResponse } from "../file/file.response";
 import { UserResponse } from "../user.response";
 export class PostAudienceResponse {
@@ -121,14 +117,6 @@ export class PostResponse {
   })
   @Expose()
   content: string;
-
-  @ApiProperty({
-    description: "The type of the post.",
-    enum: PostType,
-    example: PostType.ANNOUNCEMENT,
-  })
-  @Expose()
-  type: PostType;
 
   @ApiProperty({
     description: "The status of the post.",

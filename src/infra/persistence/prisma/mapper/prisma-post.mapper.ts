@@ -12,7 +12,6 @@ import {
   PostAudience,
   Attachment,
   PostStatus,
-  PostType,
   AudienceType,
 } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity"; // Import the domain User interface
@@ -39,7 +38,6 @@ export class PrismaPostMapper {
       {
         authorId: prismaPost.authorId,
         author: PrismaUserMapper.toDomain(prismaPost.author),
-        type: prismaPost.type as PostType,
         title: prismaPost.title,
         content: prismaPost.content,
         status: prismaPost.status as PostStatus,
@@ -64,7 +62,6 @@ export class PrismaPostMapper {
       {
         authorId: prismaPost.authorId,
         author: PrismaUserMapper.toDomainSimple(prismaPost.author),
-        type: prismaPost.type as PostType,
         title: prismaPost.title,
         content: prismaPost.content,
         status: prismaPost.status as PostStatus,
@@ -83,7 +80,6 @@ export class PrismaPostMapper {
     return {
       id: post.id,
       authorId: post.authorId,
-      type: post.type,
       title: post.title,
       content: post.content ?? null,
       status: post.status,
@@ -98,7 +94,6 @@ export class PrismaPostMapper {
    */
   static toPrismaUpdate(post: Post): Prisma.PostUpdateInput {
     return {
-      type: post.type,
       title: post.title,
       content: post.content ?? null,
       status: post.status,

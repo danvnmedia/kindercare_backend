@@ -79,8 +79,8 @@ export class PostController {
   @StandardResponse({
     type: PostResponse,
     isPaginated: true,
-    allowedSortFields: ["createdAt", "updatedAt", "title", "status", "type"],
-    allowedFilterFields: ["title", "status", "type", "publishAt", "audiences"],
+    allowedSortFields: ["createdAt", "updatedAt", "title", "status"],
+    allowedFilterFields: ["title", "status", "publishAt", "audiences"],
   })
   async findMany(@StandardRequestParam() params: StandardRequest) {
     return this.listPostsUseCase.execute(params);

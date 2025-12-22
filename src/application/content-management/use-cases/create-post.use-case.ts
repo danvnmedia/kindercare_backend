@@ -4,19 +4,13 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
-import {
-  Post,
-  PostAudience,
-  PostStatus,
-  PostType,
-} from "@/domain/content-management";
+import { Post, PostAudience, PostStatus } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
 
 export interface CreatePostInput {
-  type: PostType;
   title: string;
   content?: string;
   publishAt?: Date;
@@ -76,7 +70,6 @@ export class CreatePostUseCase {
     const postProps = {
       authorId: author.id,
       author: author,
-      type: input.type,
       title: input.title,
       content: input.content,
       publishAt: input.publishAt,

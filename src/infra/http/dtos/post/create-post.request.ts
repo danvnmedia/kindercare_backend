@@ -9,7 +9,7 @@ import {
   IsUUID,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { PostType, AudienceType } from "@/domain/content-management";
+import { AudienceType } from "@/domain/content-management";
 
 class CreateAudienceDto {
   @IsEnum(AudienceType)
@@ -20,9 +20,6 @@ class CreateAudienceDto {
 }
 
 export class CreatePostRequest {
-  @IsEnum(PostType)
-  type: PostType;
-
   @IsString()
   @MinLength(1)
   title: string;

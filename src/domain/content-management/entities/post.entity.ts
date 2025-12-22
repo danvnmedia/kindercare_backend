@@ -2,7 +2,6 @@ import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { PostStatus } from "../enums/post-status.enum";
-import { PostType } from "../enums/post-type.enum";
 import { PostAudience } from "./post-audience.entity";
 import { Attachment } from "./attachment.entity";
 import { User } from "@/domain/user-management/user.entity";
@@ -10,7 +9,6 @@ import { User } from "@/domain/user-management/user.entity";
 export interface PostProps {
   authorId: string;
   author?: User;
-  type: PostType;
   title: string;
   content: string | null;
   status: PostStatus;
@@ -30,10 +28,6 @@ export class Post extends Entity<PostProps> {
 
   get author(): User | undefined {
     return this.props.author;
-  }
-
-  get type(): PostType {
-    return this.props.type;
   }
 
   get title(): string {
@@ -89,14 +83,6 @@ export class Post extends Entity<PostProps> {
    */
   public updateContent(content: string | null): void {
     this.props.content = content;
-    this.touch();
-  }
-
-  /**
-   * Update post type
-   */
-  public updateType(type: PostType): void {
-    this.props.type = type;
     this.touch();
   }
 
@@ -294,7 +280,6 @@ export class Post extends Entity<PostProps> {
       {
         authorId: props.authorId,
         author: props.author,
-        type: props.type,
         title: props.title,
         content: props.content ?? null,
         publishAt: props.publishAt ?? null,

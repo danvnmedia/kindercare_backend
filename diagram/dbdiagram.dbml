@@ -1,5 +1,5 @@
 // Database schema in DBML format (snake_case tables/columns)
-// Updated: December 20, 2025
+// Updated: December 21, 2025
 
 // ==========================================
 // SEQUENCE TABLES
@@ -284,7 +284,6 @@ Ref: student_attendance.class_id > class.id
 Table post {
   id uuid [pk]
   author_id uuid
-  type text // post, album
   title text
   content text
   status text // DRAFT, PENDING_REVIEW, APPROVED, REJECTED, PUBLISHED
@@ -295,7 +294,6 @@ Table post {
   indexes {
     author_id
     status
-    type
     publish_at
     created_at
   }
@@ -307,7 +305,6 @@ Table post_history {
   post_id uuid
   author_id uuid
   audience text
-  type text
   title text
   content text
   status text
@@ -404,3 +401,7 @@ Table attachment {
 }
 Ref: attachment.post_id > post.id
 Ref: attachment.file_id > file.id
+
+
+
+
