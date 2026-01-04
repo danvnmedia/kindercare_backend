@@ -1,0 +1,36 @@
+{
+  "name": "backend",
+  "id": "backend",
+  "createdAt": "2026-01-03T19:36:40.613Z",
+  "settings": {
+    "defaultPriority": "medium",
+    "statuses": [
+      "todo",
+      "in-progress",
+      "in-review",
+      "done",
+      "blocked",
+      "on-hold",
+      "urgent"
+    ],
+    "statusColors": {
+      "todo": "gray",
+      "in-progress": "blue",
+      "in-review": "purple",
+      "done": "green",
+      "blocked": "red",
+      "on-hold": "yellow",
+      "urgent": "orange"
+    },
+    "visibleColumns": [
+      "todo",
+      "in-progress",
+      "blocked",
+      "done",
+      "in-review"
+    ],
+    "defaultLabels": [],
+    "timeFormat": "24h",
+    "serverPort": 6420
+  }
+}
