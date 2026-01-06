@@ -8,6 +8,7 @@ import {
   PrismaTransactionClient,
   UserTransactionOps,
   GuardianTransactionOps,
+  StaffTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -48,14 +49,21 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
   ): TransactionContext {
     const userOps = new UserTransactionOps(tx);
     const guardianOps = new GuardianTransactionOps(tx);
+    const staffOps = new StaffTransactionOps(tx);
 
     return {
       // User operations
       createUser: userOps.createUser.bind(userOps),
+      updateUser: userOps.updateUser.bind(userOps),
+      assignRoles: userOps.assignRoles.bind(userOps),
 
       // Guardian operations
       createGuardian: guardianOps.createGuardian.bind(guardianOps),
       updateGuardian: guardianOps.updateGuardian.bind(guardianOps),
+
+      // Staff operations
+      createStaff: staffOps.createStaff.bind(staffOps),
+      updateStaff: staffOps.updateStaff.bind(staffOps),
     };
   }
 }

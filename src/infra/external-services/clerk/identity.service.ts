@@ -106,6 +106,14 @@ export class IdentityService extends IdentityPort {
     await this.clerkClient.users.deleteUser(clerkUid);
   }
 
+  async lockIdentity(clerkUid: string): Promise<void> {
+    await this.clerkClient.users.lockUser(clerkUid);
+  }
+
+  async unlockIdentity(clerkUid: string): Promise<void> {
+    await this.clerkClient.users.unlockUser(clerkUid);
+  }
+
   // ===== Private helpers =====
 
   private async replacePrimaryEmail(

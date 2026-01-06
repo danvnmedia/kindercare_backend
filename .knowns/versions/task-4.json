@@ -1,0 +1,26 @@
+{
+  "taskId": "4",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "4",
+      "version": 1,
+      "timestamp": "2026-01-05T04:35:03.529Z",
+      "changes": [
+        {
+          "field": "priority",
+          "oldValue": "medium",
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
+        "status": "todo",
+        "priority": "high",
+        "labels": [],
+        "acceptanceCriteria": []
+      }
+    }
+  ]
+}

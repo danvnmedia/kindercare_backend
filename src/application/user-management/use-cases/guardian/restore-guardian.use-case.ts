@@ -5,76 +5,76 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
-import { Staff } from "@/domain/user-management/entities/staff.entity";
-import { StaffRepository } from "../../ports/staff.repository";
+import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { IdentityPort } from "@/application/ports/identity.port";
 
 /**
- * Restore Staff Use Case
+ * Restore Guardian Use Case
  *
- * Restores a soft-deleted staff by:
+ * Restores a soft-deleted guardian by:
  * 1. Unlocking the Clerk user (allows sign-in again)
  * 2. Activating the user in database (isActive = true)
- * 3. Restoring the staff in database (isArchived = false)
+ * 3. Restoring the guardian in database (isArchived = false)
  */
 @Injectable()
-export class RestoreStaffUseCase {
-  private readonly logger = new Logger(RestoreStaffUseCase.name);
+export class RestoreGuardianUseCase {
+  private readonly logger = new Logger(RestoreGuardianUseCase.name);
 
   constructor(
-    @Inject("STAFF_REPOSITORY")
-    private readonly staffRepository: StaffRepository,
+    @Inject("GUARDIAN_REPOSITORY")
+    private readonly guardianRepository: GuardianRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<Staff> {
-    this.logger.log(`Restoring staff: ${id}`);
+  async execute(id: string): Promise<Guardian> {
+    this.logger.log(`Restoring guardian: ${id}`);
 
-    // Step 1: Find existing staff
-    const staff = await this.staffRepository.findById(id);
-    if (!staff) {
-      throw new NotFoundException(`Staff with ID ${id} not found`);
+    // Step 1: Find existing guardian
+    const guardian = await this.guardianRepository.findById(id);
+    if (!guardian) {
+      throw new NotFoundException(`Guardian with ID ${id} not found`);
     }
 
-    // Step 2: Verify staff is archived
-    if (!staff.isArchived) {
-      throw new BadRequestException(`Staff with ID ${id} is not archived`);
+    // Step 2: Verify guardian is archived
+    if (!guardian.isArchived) {
+      throw new BadRequestException(`Guardian with ID ${id} is not archived`);
     }
 
     // Step 3: Unlock Clerk user (best effort - don't fail if this fails)
-    if (staff.hasUserAccount()) {
-      await this.unlockClerkUser(staff.userId!);
+    if (guardian.hasUserAccount()) {
+      await this.unlockClerkUser(guardian.userId!);
     }
 
-    // Step 4: Restore staff and activate user atomically
-    staff.restore();
+    // Step 4: Restore guardian and activate user atomically
+    guardian.restore();
 
     await this.unitOfWork.run(async (tx) => {
-      // Restore the staff (set isArchived = false)
-      await tx.updateStaff(staff.id, {
+      // Restore the guardian (set isArchived = false)
+      await tx.updateGuardian(guardian.id, {
         isArchived: false,
-        updatedAt: staff.updatedAt,
+        updatedAt: guardian.updatedAt,
       });
-      this.logger.log(`Staff restored in transaction: ${id}`);
+      this.logger.log(`Guardian restored in transaction: ${id}`);
 
       // Activate linked user account if exists
-      if (staff.hasUserAccount()) {
-        await tx.updateUser(staff.userId!, {
+      if (guardian.hasUserAccount()) {
+        await tx.updateUser(guardian.userId!, {
           isActive: true,
         });
         this.logger.log(
-          `User account activated in transaction for staff: ${staff.email}`,
+          `User account activated in transaction for guardian: ${guardian.email ?? guardian.phoneNumber}`,
         );
       }
     });
 
-    this.logger.log(`Staff restored successfully: ${id}`);
-    return staff;
+    this.logger.log(`Guardian restored successfully: ${id}`);
+    return guardian;
   }
 
   private async unlockClerkUser(userId: string): Promise<void> {

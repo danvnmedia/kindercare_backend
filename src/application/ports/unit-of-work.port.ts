@@ -32,6 +32,21 @@ export interface TransactionContext {
   }): Promise<{ id: string; clerkUid: string }>;
 
   /**
+   * Execute a raw update operation for User entity
+   */
+  updateUser(
+    id: string,
+    data: {
+      isActive?: boolean;
+    },
+  ): Promise<{ id: string }>;
+
+  /**
+   * Assign roles to a user
+   */
+  assignRoles(userId: string, roleIds: string[]): Promise<void>;
+
+  /**
    * Execute a raw create operation for Guardian entity
    */
   createGuardian(data: {
@@ -65,6 +80,45 @@ export interface TransactionContext {
       gender?: string | null;
       occupation?: string | null;
       workAddress?: string | null;
+      isArchived?: boolean;
+      updatedAt?: Date;
+    },
+  ): Promise<{ id: string }>;
+
+  /**
+   * Execute a raw create operation for Staff entity
+   */
+  createStaff(data: {
+    id: string;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+    staffType: string;
+    address: string | null;
+    dateOfBirth: Date | null;
+    gender: string | null;
+    startDate: Date | null;
+    userId: string | null;
+    isArchived: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Promise<{ id: string }>;
+
+  /**
+   * Execute a raw update operation for Staff entity
+   */
+  updateStaff(
+    id: string,
+    data: {
+      fullName?: string;
+      email?: string;
+      phoneNumber?: string;
+      staffType?: string;
+      address?: string | null;
+      dateOfBirth?: Date | null;
+      gender?: string | null;
+      startDate?: Date | null;
+      userId?: string | null;
       isArchived?: boolean;
       updatedAt?: Date;
     },

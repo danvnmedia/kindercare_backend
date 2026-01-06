@@ -72,4 +72,18 @@ export abstract class IdentityPort {
    * @param email - Email address to send invitation to
    */
   abstract inviteUser(email: string): Promise<void>;
+
+  /**
+   * Lock an identity account (prevents sign-in)
+   * Used for soft delete - account can be unlocked later
+   * @param identityUid - The identity UID to lock
+   */
+  abstract lockIdentity(identityUid: string): Promise<void>;
+
+  /**
+   * Unlock an identity account (allows sign-in again)
+   * Used to restore a soft-deleted account
+   * @param identityUid - The identity UID to unlock
+   */
+  abstract unlockIdentity(identityUid: string): Promise<void>;
 }

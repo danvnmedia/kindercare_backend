@@ -5,6 +5,8 @@ import { RoleController } from "../controllers/user-management/role.controller";
 import { StudentController } from "../controllers/user-management/student.controller";
 import { GuardianController } from "../controllers/user-management/guardian.controller";
 import { StaffController } from "../controllers/user-management/staff.controller";
+import { DangerGuardianController } from "../controllers/danger/danger-guardian.controller";
+import { DangerStaffController } from "../controllers/danger/danger-staff.controller";
 
 // NOTE: User use cases are commented out until they are refactored to work with Person-based model
 // import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
@@ -39,6 +41,8 @@ import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/
 import { GetGuardianByIdUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-by-id.use-case";
 import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/guardian/update-guardian.use-case";
 import { DeleteGuardianUseCase } from "@/application/user-management/use-cases/guardian/delete-guardian.use-case";
+import { ArchiveGuardianUseCase } from "@/application/user-management/use-cases/guardian/archive-guardian.use-case";
+import { RestoreGuardianUseCase } from "@/application/user-management/use-cases/guardian/restore-guardian.use-case";
 
 // Use Cases - Staff
 import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
@@ -47,6 +51,7 @@ import { GetAllStaffUseCase } from "@/application/user-management/use-cases/staf
 import { UpdateStaffUseCase } from "@/application/user-management/use-cases/staff/update-staff.use-case";
 import { ArchiveStaffUseCase } from "@/application/user-management/use-cases/staff/archive-staff.use-case";
 import { RestoreStaffUseCase } from "@/application/user-management/use-cases/staff/restore-staff.use-case";
+import { DeleteStaffUseCase } from "@/application/user-management/use-cases/staff/delete-staff.use-case";
 
 // Repositories
 import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/prisma-user.repository";
@@ -91,6 +96,8 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     StudentController,
     GuardianController,
     StaffController,
+    DangerGuardianController,
+    DangerStaffController,
   ],
   providers: [
     // NOTE: User Use Cases commented out until refactored
@@ -132,6 +139,8 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     GetGuardianByIdUseCase,
     UpdateGuardianUseCase,
     DeleteGuardianUseCase,
+    ArchiveGuardianUseCase,
+    RestoreGuardianUseCase,
 
     // Staff Use Cases
     CreateStaffUseCase,
@@ -140,6 +149,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     UpdateStaffUseCase,
     ArchiveStaffUseCase,
     RestoreStaffUseCase,
+    DeleteStaffUseCase,
 
     // Repositories with Dependency Injection Tokens
     {

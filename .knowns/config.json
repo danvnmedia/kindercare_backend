@@ -4,6 +4,7 @@
   "createdAt": "2026-01-03T19:36:40.613Z",
   "settings": {
     "defaultPriority": "medium",
+    "defaultLabels": [],
     "statuses": [
       "todo",
       "in-progress",
@@ -12,6 +13,11 @@
       "blocked",
       "on-hold",
       "urgent"
+    ],
+    "visibleColumns": [
+      "todo",
+      "in-progress",
+      "done"
     ],
     "statusColors": {
       "todo": "gray",
@@ -22,14 +28,8 @@
       "on-hold": "yellow",
       "urgent": "orange"
     },
-    "visibleColumns": [
-      "todo",
-      "in-progress",
-      "blocked",
-      "done",
-      "in-review"
-    ],
-    "defaultLabels": [],
+    "id": "backend",
+    "createdAt": "2026-01-03T19:36:40.613Z",
     "timeFormat": "24h",
     "serverPort": 6420
   }

@@ -1,18 +1,16 @@
-import {
-  Injectable,
-  Inject,
-  ConflictException,
-  BadRequestException,
-  Logger,
-} from "@nestjs/common";
 import { IdentityPort } from "@/application/ports/identity.port";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
-import { User } from "@/domain/user-management/user.entity";
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { StaffRepository } from "../../ports/staff.repository";
-import { UserRepository } from "../../ports/user.repository";
-import { RoleRepository } from "../../ports/role.repository";
 
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
@@ -27,6 +25,10 @@ export interface CreateStaffInput {
   startDate?: Date;
 }
 
+interface ClerkUserResult {
+  clerkUid: string;
+}
+
 @Injectable()
 export class CreateStaffUseCase {
   private readonly logger = new Logger(CreateStaffUseCase.name);
@@ -34,43 +36,85 @@ export class CreateStaffUseCase {
   constructor(
     @Inject("STAFF_REPOSITORY")
     private readonly staffRepository: StaffRepository,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
-    @Inject("ROLE_REPOSITORY")
-    private readonly roleRepository: RoleRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(input: CreateStaffInput): Promise<Staff> {
+    this.logger.log(`Creating staff: ${input.fullName} (${input.staffType})`);
+
+    // Step 1: Check Staff uniqueness (email/phone)
+    await this.checkStaffUniqueness(input);
+
+    // Step 2: Create Clerk user FIRST (external service - most likely to fail)
+    const clerkUser = await this.createClerkUser(input);
+
     try {
-      this.logger.log(`Creating staff: ${input.fullName} (${input.staffType})`);
+      // Step 3: DB Transaction - Create User + Staff + Role assignment atomically using UnitOfWork
+      const staff = await this.unitOfWork.run(async (tx) => {
+        // Create User entity with clerkUid
+        const user = await tx.createUser({
+          clerkUid: clerkUser.clerkUid,
+          isActive: true,
+        });
+        this.logger.log(`User created in transaction: ${user.id}`);
 
-      // Step 1: Check Staff uniqueness (email/phone)
-      await this.checkStaffUniqueness(input);
+        // Create Staff domain entity with userId already linked
+        const staffEntity = Staff.create({
+          fullName: input.fullName,
+          email: input.email,
+          phoneNumber: input.phoneNumber,
+          staffType: input.staffType,
+          address: input.address || null,
+          dateOfBirth: input.dateOfBirth || null,
+          gender: input.gender || null,
+          startDate: input.startDate || null,
+          userId: user.id, // Link immediately - no separate update needed
+        });
 
-      // Step 2: Create Staff entity instance and save
-      const staff = await this.createAndSaveStaff(input);
-      this.logger.log(`Staff created: ${staff.id}`);
+        // Persist Staff using transaction context
+        const createdStaff = await tx.createStaff({
+          id: staffEntity.id,
+          fullName: staffEntity.fullName,
+          email: staffEntity.email,
+          phoneNumber: staffEntity.phoneNumber,
+          staffType: staffEntity.staffType,
+          address: staffEntity.address,
+          dateOfBirth: staffEntity.dateOfBirth,
+          gender: staffEntity.gender,
+          startDate: staffEntity.startDate,
+          userId: staffEntity.userId,
+          isArchived: staffEntity.isArchived,
+          createdAt: staffEntity.createdAt,
+          updatedAt: staffEntity.updatedAt,
+        });
 
-      // Step 3: Create User account with Clerk and assign role based on staffType
-      await this.createUserAccountWithRole(staff);
+        this.logger.log(`Staff created in transaction: ${createdStaff.id}`);
+
+        // Assign role based on staffType
+        const roleId = Staff.getStaffRoleId(input.staffType);
+        await tx.assignRoles(user.id, [roleId]);
+        this.logger.log(`Assigned role ${roleId} to user ${user.id}`);
+
+        return staffEntity;
+      });
 
       this.logger.log(
         `Staff and User account created successfully for: ${input.email}`,
       );
       return staff;
     } catch (error) {
+      // Step 4: Compensation - Delete Clerk user if DB transaction fails
+      this.logger.error(
+        `DB transaction failed, compensating by deleting Clerk user: ${clerkUser.clerkUid}`,
+      );
+      await this.compensateClerkUser(clerkUser.clerkUid);
+
       this.logger.error(
         `Failed to create staff: ${error.message}`,
         error.stack,
       );
-      if (
-        error instanceof ConflictException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+      throw new BadRequestException(`Failed to create staff: ${error.message}`);
     }
   }
 
@@ -92,73 +136,44 @@ export class CreateStaffUseCase {
     }
   }
 
-  private async createAndSaveStaff(input: CreateStaffInput): Promise<Staff> {
-    const staffEntity = Staff.create({
-      fullName: input.fullName,
-      email: input.email,
-      phoneNumber: input.phoneNumber,
-      staffType: input.staffType,
-      address: input.address || null,
-      dateOfBirth: input.dateOfBirth || null,
-      gender: input.gender || null,
-      startDate: input.startDate || null,
-      userId: null,
-    });
+  private async createClerkUser(
+    input: CreateStaffInput,
+  ): Promise<ClerkUserResult> {
+    this.logger.log(`Creating Clerk user for staff: ${input.email}`);
 
-    return await this.staffRepository.save(staffEntity);
-  }
-
-  private async createUserAccountWithRole(staff: Staff): Promise<void> {
     try {
-      this.logger.log(
-        `Creating Clerk user for staff: ${staff.email} with weak password`,
-      );
-
-      // Create Clerk user
       const clerkUser = await this.identityPort.provisionUser({
-        email: staff.email,
-        fullName: staff.fullName,
-        phoneNumber: staff.phoneNumber,
+        email: input.email,
+        fullName: input.fullName,
+        phoneNumber: input.phoneNumber,
         password: DEFAULT_WEAK_PASSWORD,
       });
 
-      // Create User entity
-      const userEntity = User.create({
-        clerkUid: clerkUser.clerkUid,
-        isActive: true,
-      });
-
-      const user = await this.userRepository.save(userEntity);
-
-      // Get the role ID based on staff type
-      const roleId = Staff.getStaffRoleId(staff.staffType);
-
-      // Verify role exists
-      const role = await this.roleRepository.findById(roleId);
-      if (!role) {
-        this.logger.warn(
-          `Role ${roleId} not found, staff will have no role assigned`,
-        );
-      } else {
-        // Assign role to user
-        await this.userRepository.assignRoles(user.id, [roleId]);
-        this.logger.log(`Assigned role ${roleId} to user ${user.id}`);
-      }
-
-      // Link Staff to User
-      staff.linkUser(user.id);
-      await this.staffRepository.update(staff);
-
-      this.logger.log(
-        `User account created for staff: ${staff.email} (Clerk UID: ${clerkUser.clerkUid})`,
-      );
+      this.logger.log(`Clerk user created: ${clerkUser.clerkUid}`);
+      return clerkUser;
     } catch (error) {
       this.logger.error(
-        `Failed to create user account for staff: ${error.message}`,
+        `Failed to create Clerk user: ${error.message}`,
         error.stack,
       );
       throw new BadRequestException(
-        `Failed to create user account: ${error.message}`,
+        `Failed to create identity account: ${error.message}`,
+      );
+    }
+  }
+
+  private async compensateClerkUser(clerkUid: string): Promise<void> {
+    try {
+      await this.identityPort.deleteIdentity(clerkUid);
+      this.logger.log(
+        `Compensation successful: Clerk user deleted: ${clerkUid}`,
+      );
+    } catch (compensationError) {
+      // Log but don't throw - compensation is best effort
+      // This could be handled by a dead letter queue in production
+      this.logger.error(
+        `Compensation FAILED: Could not delete Clerk user ${clerkUid}. Manual cleanup required.`,
+        compensationError.stack,
       );
     }
   }

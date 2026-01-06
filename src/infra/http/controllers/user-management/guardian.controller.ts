@@ -23,7 +23,8 @@ import {
 
 // Use Cases
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
-import { DeleteGuardianUseCase } from "@/application/user-management/use-cases/guardian/delete-guardian.use-case";
+import { ArchiveGuardianUseCase } from "@/application/user-management/use-cases/guardian/archive-guardian.use-case";
+import { RestoreGuardianUseCase } from "@/application/user-management/use-cases/guardian/restore-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
 import { GetGuardianByIdUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-by-id.use-case";
 import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/guardian/update-guardian.use-case";
@@ -38,7 +39,8 @@ export class GuardianController {
     private readonly getAllGuardiansUseCase: GetAllGuardiansUseCase,
     private readonly getGuardianByIdUseCase: GetGuardianByIdUseCase,
     private readonly updateGuardianUseCase: UpdateGuardianUseCase,
-    private readonly deleteGuardianUseCase: DeleteGuardianUseCase,
+    private readonly archiveGuardianUseCase: ArchiveGuardianUseCase,
+    private readonly restoreGuardianUseCase: RestoreGuardianUseCase,
   ) {}
 
   @Post()
@@ -105,14 +107,29 @@ export class GuardianController {
 
   @Delete(":id")
   @StandardResponse({
-    message: "Guardian deleted successfully",
-    type: null,
+    message: "Guardian archived successfully",
+    type: GuardianResponse,
   })
   @ApiOperation({
-    summary: "Delete a guardian",
-    description: "Permanently delete a guardian by their ID.",
+    summary: "Archive a guardian (soft delete)",
+    description:
+      "Archives a guardian by locking their Clerk account and marking them as inactive. Use PATCH /guardians/:id/restore to restore. For permanent deletion, use DELETE /danger/guardians/:id.",
   })
-  async remove(@Param("id") id: string) {
-    await this.deleteGuardianUseCase.execute(id);
+  async archive(@Param("id") id: string) {
+    return await this.archiveGuardianUseCase.execute(id);
+  }
+
+  @Patch(":id/restore")
+  @StandardResponse({
+    message: "Guardian restored successfully",
+    type: GuardianResponse,
+  })
+  @ApiOperation({
+    summary: "Restore an archived guardian",
+    description:
+      "Restores an archived guardian by unlocking their Clerk account and marking them as active.",
+  })
+  async restore(@Param("id") id: string) {
+    return await this.restoreGuardianUseCase.execute(id);
   }
 }

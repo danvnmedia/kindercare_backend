@@ -1,71 +1,71 @@
 import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
-import { Staff } from "@/domain/user-management/entities/staff.entity";
-import { StaffRepository } from "../../ports/staff.repository";
+import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { IdentityPort } from "@/application/ports/identity.port";
 
 /**
- * Archive Staff Use Case (Soft Delete)
+ * Archive Guardian Use Case (Soft Delete)
  *
  * Performs soft delete by:
  * 1. Locking the Clerk user (prevents sign-in)
  * 2. Deactivating the user in database (isActive = false)
- * 3. Archiving the staff in database (isArchived = true)
+ * 3. Archiving the guardian in database (isArchived = true)
  *
  * This preserves data for potential account recovery.
  */
 @Injectable()
-export class ArchiveStaffUseCase {
-  private readonly logger = new Logger(ArchiveStaffUseCase.name);
+export class ArchiveGuardianUseCase {
+  private readonly logger = new Logger(ArchiveGuardianUseCase.name);
 
   constructor(
-    @Inject("STAFF_REPOSITORY")
-    private readonly staffRepository: StaffRepository,
+    @Inject("GUARDIAN_REPOSITORY")
+    private readonly guardianRepository: GuardianRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<Staff> {
-    this.logger.log(`Archiving staff: ${id}`);
+  async execute(id: string): Promise<Guardian> {
+    this.logger.log(`Archiving guardian: ${id}`);
 
-    // Step 1: Find existing staff
-    const staff = await this.staffRepository.findById(id);
-    if (!staff) {
-      throw new NotFoundException(`Staff with ID ${id} not found`);
+    // Step 1: Find existing guardian
+    const guardian = await this.guardianRepository.findById(id);
+    if (!guardian) {
+      throw new NotFoundException(`Guardian with ID ${id} not found`);
     }
 
     // Step 2: Lock Clerk user (best effort - don't fail if this fails)
-    if (staff.hasUserAccount()) {
-      await this.lockClerkUser(staff.userId!);
+    if (guardian.hasUserAccount()) {
+      await this.lockClerkUser(guardian.userId!);
     }
 
-    // Step 3: Archive staff and deactivate user atomically
-    staff.archive();
+    // Step 3: Archive guardian and deactivate user atomically
+    guardian.archive();
 
     await this.unitOfWork.run(async (tx) => {
-      // Archive the staff (set isArchived = true)
-      await tx.updateStaff(staff.id, {
+      // Archive the guardian (set isArchived = true)
+      await tx.updateGuardian(guardian.id, {
         isArchived: true,
-        updatedAt: staff.updatedAt,
+        updatedAt: guardian.updatedAt,
       });
-      this.logger.log(`Staff archived in transaction: ${id}`);
+      this.logger.log(`Guardian archived in transaction: ${id}`);
 
       // Deactivate linked user account if exists
-      if (staff.hasUserAccount()) {
-        await tx.updateUser(staff.userId!, {
+      if (guardian.hasUserAccount()) {
+        await tx.updateUser(guardian.userId!, {
           isActive: false,
         });
         this.logger.log(
-          `User account deactivated in transaction for staff: ${staff.email}`,
+          `User account deactivated in transaction for guardian: ${guardian.email ?? guardian.phoneNumber}`,
         );
       }
     });
 
-    this.logger.log(`Staff archived successfully: ${id}`);
-    return staff;
+    this.logger.log(`Guardian archived successfully: ${id}`);
+    return guardian;
   }
 
   private async lockClerkUser(userId: string): Promise<void> {
