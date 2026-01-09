@@ -1,0 +1,507 @@
+{
+  "taskId": "7",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "7",
+      "version": 1,
+      "timestamp": "2026-01-06T21:31:09.623Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Note: No Data Migration Needed\n\nThe database is currently empty and fresh, so the data migration considerations are NOT applicable:\n- No need to assign default campus_id to existing records\n- No existing data to migrate\n\nSimply apply the schema changes directly."
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.3: Update Prisma Schema - Academic & Content Tables Campus Scoping",
+        "description": "Update Prisma schema to add campus_id to all academic and content management tables.\n\nDepends on @task-5 (Campus table must exist first).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Changes Required\n\n### Academic Tables\n\n**grade_level**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Change unique: order -> (campus_id, order)\n- Add index on: campus_id\n\n**subject**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**school_year**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**class**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: (schoolYearId, gradeLevelId, name) -> (campus_id, schoolYearId, gradeLevelId, name)\n- Add index on: campus_id\n\n**student_attendance**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n### Content Tables\n\n**post**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**post_audience**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**file**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n## Notes\n- Existing data needs default campus_id assigned\n- Class uniqueness now includes campus for complete isolation",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "grade_level has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "subject has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "school_year has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "class has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "student_attendance has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "post has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "post_audience has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "file has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "All FKs have proper onDelete behavior"
+          },
+          {
+            "completed": false,
+            "text": "Prisma schema compiles without errors"
+          }
+        ],
+        "implementationNotes": "## Note: No Data Migration Needed\n\nThe database is currently empty and fresh, so the data migration considerations are NOT applicable:\n- No need to assign default campus_id to existing records\n- No existing data to migrate\n\nSimply apply the schema changes directly."
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "7",
+      "version": 2,
+      "timestamp": "2026-01-06T21:36:47.711Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Update Campus model - add relations for academic and content tables\n2. Update GradeLevel model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique constraints: (campusId, name), (campusId, order)\n   - Add index: campusId\n3. Update Subject model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n4. Update SchoolYear model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n5. Update Class model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n   - Add index: campusId\n6. Update StudentAttendance model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n7. Update Post model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n8. Update PostAudience model:\n   - Add campusId (required FK to Campus, onDelete: Cascade)\n   - Add index: campusId\n9. Update File model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n10. Run npx prisma format to validate"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.3: Update Prisma Schema - Academic & Content Tables Campus Scoping",
+        "description": "Update Prisma schema to add campus_id to all academic and content management tables.\n\nDepends on @task-5 (Campus table must exist first).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Changes Required\n\n### Academic Tables\n\n**grade_level**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Change unique: order -> (campus_id, order)\n- Add index on: campus_id\n\n**subject**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**school_year**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**class**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: (schoolYearId, gradeLevelId, name) -> (campus_id, schoolYearId, gradeLevelId, name)\n- Add index on: campus_id\n\n**student_attendance**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n### Content Tables\n\n**post**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**post_audience**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**file**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n## Notes\n- Existing data needs default campus_id assigned\n- Class uniqueness now includes campus for complete isolation",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "grade_level has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "subject has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "school_year has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "class has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "student_attendance has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "post has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "post_audience has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "file has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "All FKs have proper onDelete behavior"
+          },
+          {
+            "completed": false,
+            "text": "Prisma schema compiles without errors"
+          }
+        ],
+        "implementationPlan": "1. Update Campus model - add relations for academic and content tables\n2. Update GradeLevel model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique constraints: (campusId, name), (campusId, order)\n   - Add index: campusId\n3. Update Subject model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n4. Update SchoolYear model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n5. Update Class model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n   - Add index: campusId\n6. Update StudentAttendance model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n7. Update Post model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n8. Update PostAudience model:\n   - Add campusId (required FK to Campus, onDelete: Cascade)\n   - Add index: campusId\n9. Update File model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n10. Run npx prisma format to validate",
+        "implementationNotes": "## Note: No Data Migration Needed\n\nThe database is currently empty and fresh, so the data migration considerations are NOT applicable:\n- No need to assign default campus_id to existing records\n- No existing data to migrate\n\nSimply apply the schema changes directly."
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "7",
+      "version": 3,
+      "timestamp": "2026-01-06T21:42:24.050Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.3: Update Prisma Schema - Academic & Content Tables Campus Scoping",
+        "description": "Update Prisma schema to add campus_id to all academic and content management tables.\n\nDepends on @task-5 (Campus table must exist first).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Changes Required\n\n### Academic Tables\n\n**grade_level**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Change unique: order -> (campus_id, order)\n- Add index on: campus_id\n\n**subject**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**school_year**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**class**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: (schoolYearId, gradeLevelId, name) -> (campus_id, schoolYearId, gradeLevelId, name)\n- Add index on: campus_id\n\n**student_attendance**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n### Content Tables\n\n**post**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**post_audience**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**file**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n## Notes\n- Existing data needs default campus_id assigned\n- Class uniqueness now includes campus for complete isolation",
+        "status": "in-progress",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "grade_level has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "subject has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "school_year has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "class has campus_id with updated unique constraints"
+          },
+          {
+            "completed": false,
+            "text": "student_attendance has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "post has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "post_audience has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "file has campus_id with proper FK"
+          },
+          {
+            "completed": false,
+            "text": "All FKs have proper onDelete behavior"
+          },
+          {
+            "completed": false,
+            "text": "Prisma schema compiles without errors"
+          }
+        ],
+        "implementationPlan": "1. Update Campus model - add relations for academic and content tables\n2. Update GradeLevel model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique constraints: (campusId, name), (campusId, order)\n   - Add index: campusId\n3. Update Subject model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n4. Update SchoolYear model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n5. Update Class model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n   - Add index: campusId\n6. Update StudentAttendance model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n7. Update Post model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n8. Update PostAudience model:\n   - Add campusId (required FK to Campus, onDelete: Cascade)\n   - Add index: campusId\n9. Update File model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n10. Run npx prisma format to validate",
+        "implementationNotes": "## Note: No Data Migration Needed\n\nThe database is currently empty and fresh, so the data migration considerations are NOT applicable:\n- No need to assign default campus_id to existing records\n- No existing data to migrate\n\nSimply apply the schema changes directly."
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "7",
+      "version": 4,
+      "timestamp": "2026-01-06T21:43:05.441Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "grade_level has campus_id with updated unique constraints"
+            },
+            {
+              "completed": false,
+              "text": "subject has campus_id with updated unique constraints"
+            },
+            {
+              "completed": false,
+              "text": "school_year has campus_id with updated unique constraints"
+            },
+            {
+              "completed": false,
+              "text": "class has campus_id with updated unique constraints"
+            },
+            {
+              "completed": false,
+              "text": "student_attendance has campus_id with proper FK"
+            },
+            {
+              "completed": false,
+              "text": "post has campus_id with proper FK"
+            },
+            {
+              "completed": false,
+              "text": "post_audience has campus_id with proper FK"
+            },
+            {
+              "completed": false,
+              "text": "file has campus_id with proper FK"
+            },
+            {
+              "completed": false,
+              "text": "All FKs have proper onDelete behavior"
+            },
+            {
+              "completed": false,
+              "text": "Prisma schema compiles without errors"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "grade_level has campus_id with updated unique constraints"
+            },
+            {
+              "completed": true,
+              "text": "subject has campus_id with updated unique constraints"
+            },
+            {
+              "completed": true,
+              "text": "school_year has campus_id with updated unique constraints"
+            },
+            {
+              "completed": true,
+              "text": "class has campus_id with updated unique constraints"
+            },
+            {
+              "completed": true,
+              "text": "student_attendance has campus_id with proper FK"
+            },
+            {
+              "completed": true,
+              "text": "post has campus_id with proper FK"
+            },
+            {
+              "completed": true,
+              "text": "post_audience has campus_id with proper FK"
+            },
+            {
+              "completed": true,
+              "text": "file has campus_id with proper FK"
+            },
+            {
+              "completed": true,
+              "text": "All FKs have proper onDelete behavior"
+            },
+            {
+              "completed": true,
+              "text": "Prisma schema compiles without errors"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.3: Update Prisma Schema - Academic & Content Tables Campus Scoping",
+        "description": "Update Prisma schema to add campus_id to all academic and content management tables.\n\nDepends on @task-5 (Campus table must exist first).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Changes Required\n\n### Academic Tables\n\n**grade_level**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Change unique: order -> (campus_id, order)\n- Add index on: campus_id\n\n**subject**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**school_year**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**class**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: (schoolYearId, gradeLevelId, name) -> (campus_id, schoolYearId, gradeLevelId, name)\n- Add index on: campus_id\n\n**student_attendance**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n### Content Tables\n\n**post**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**post_audience**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**file**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n## Notes\n- Existing data needs default campus_id assigned\n- Class uniqueness now includes campus for complete isolation",
+        "status": "in-progress",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "grade_level has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "subject has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "school_year has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "class has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "student_attendance has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "post has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "post_audience has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "file has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "All FKs have proper onDelete behavior"
+          },
+          {
+            "completed": true,
+            "text": "Prisma schema compiles without errors"
+          }
+        ],
+        "implementationPlan": "1. Update Campus model - add relations for academic and content tables\n2. Update GradeLevel model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique constraints: (campusId, name), (campusId, order)\n   - Add index: campusId\n3. Update Subject model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n4. Update SchoolYear model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n5. Update Class model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n   - Add index: campusId\n6. Update StudentAttendance model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n7. Update Post model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n8. Update PostAudience model:\n   - Add campusId (required FK to Campus, onDelete: Cascade)\n   - Add index: campusId\n9. Update File model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n10. Run npx prisma format to validate",
+        "implementationNotes": "## Note: No Data Migration Needed\n\nThe database is currently empty and fresh, so the data migration considerations are NOT applicable:\n- No need to assign default campus_id to existing records\n- No existing data to migrate\n\nSimply apply the schema changes directly."
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "7",
+      "version": 5,
+      "timestamp": "2026-01-06T21:43:09.767Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": "## Note: No Data Migration Needed\n\nThe database is currently empty and fresh, so the data migration considerations are NOT applicable:\n- No need to assign default campus_id to existing records\n- No existing data to migrate\n\nSimply apply the schema changes directly.",
+          "newValue": "## Summary\nImplemented campus scoping for all academic and content tables.\n\n## Academic Tables Changes\n\n### GradeLevel\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name), order -> (campusId, order)\n\n### Subject\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name)\n\n### SchoolYear\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name)\n\n### Class\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n\n### StudentAttendance\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n## Content Tables Changes\n\n### Post\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n### PostAudience\n- Added campusId (required FK, onDelete: Cascade)\n- Added index on campusId\n\n### File\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n## Campus Model Updates\n- Added relations: gradeLevels[], subjects[], schoolYears[], classes[], studentAttendances[], posts[], postAudiences[], files[]\n\n## Notes\n- PostHistory and PostHistoryStatus intentionally NOT campus-scoped (inherit via Post)\n- Attachment intentionally NOT campus-scoped (inherit via Post/File)\n- Schema validates successfully"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.3: Update Prisma Schema - Academic & Content Tables Campus Scoping",
+        "description": "Update Prisma schema to add campus_id to all academic and content management tables.\n\nDepends on @task-5 (Campus table must exist first).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Changes Required\n\n### Academic Tables\n\n**grade_level**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Change unique: order -> (campus_id, order)\n- Add index on: campus_id\n\n**subject**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**school_year**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**class**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: (schoolYearId, gradeLevelId, name) -> (campus_id, schoolYearId, gradeLevelId, name)\n- Add index on: campus_id\n\n**student_attendance**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n### Content Tables\n\n**post**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**post_audience**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**file**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n## Notes\n- Existing data needs default campus_id assigned\n- Class uniqueness now includes campus for complete isolation",
+        "status": "in-progress",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "grade_level has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "subject has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "school_year has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "class has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "student_attendance has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "post has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "post_audience has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "file has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "All FKs have proper onDelete behavior"
+          },
+          {
+            "completed": true,
+            "text": "Prisma schema compiles without errors"
+          }
+        ],
+        "implementationPlan": "1. Update Campus model - add relations for academic and content tables\n2. Update GradeLevel model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique constraints: (campusId, name), (campusId, order)\n   - Add index: campusId\n3. Update Subject model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n4. Update SchoolYear model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n5. Update Class model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n   - Add index: campusId\n6. Update StudentAttendance model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n7. Update Post model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n8. Update PostAudience model:\n   - Add campusId (required FK to Campus, onDelete: Cascade)\n   - Add index: campusId\n9. Update File model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n10. Run npx prisma format to validate",
+        "implementationNotes": "## Summary\nImplemented campus scoping for all academic and content tables.\n\n## Academic Tables Changes\n\n### GradeLevel\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name), order -> (campusId, order)\n\n### Subject\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name)\n\n### SchoolYear\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name)\n\n### Class\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n\n### StudentAttendance\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n## Content Tables Changes\n\n### Post\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n### PostAudience\n- Added campusId (required FK, onDelete: Cascade)\n- Added index on campusId\n\n### File\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n## Campus Model Updates\n- Added relations: gradeLevels[], subjects[], schoolYears[], classes[], studentAttendances[], posts[], postAudiences[], files[]\n\n## Notes\n- PostHistory and PostHistoryStatus intentionally NOT campus-scoped (inherit via Post)\n- Attachment intentionally NOT campus-scoped (inherit via Post/File)\n- Schema validates successfully"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "7",
+      "version": 6,
+      "timestamp": "2026-01-06T21:43:15.001Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.3: Update Prisma Schema - Academic & Content Tables Campus Scoping",
+        "description": "Update Prisma schema to add campus_id to all academic and content management tables.\n\nDepends on @task-5 (Campus table must exist first).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Changes Required\n\n### Academic Tables\n\n**grade_level**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Change unique: order -> (campus_id, order)\n- Add index on: campus_id\n\n**subject**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**school_year**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: name -> (campus_id, name)\n- Add index on: campus_id\n\n**class**\n- Add: campus_id (uuid, required, FK to campus)\n- Change unique: (schoolYearId, gradeLevelId, name) -> (campus_id, schoolYearId, gradeLevelId, name)\n- Add index on: campus_id\n\n**student_attendance**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n### Content Tables\n\n**post**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**post_audience**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n**file**\n- Add: campus_id (uuid, required, FK to campus)\n- Add index on: campus_id\n\n## Notes\n- Existing data needs default campus_id assigned\n- Class uniqueness now includes campus for complete isolation",
+        "status": "done",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "grade_level has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "subject has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "school_year has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "class has campus_id with updated unique constraints"
+          },
+          {
+            "completed": true,
+            "text": "student_attendance has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "post has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "post_audience has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "file has campus_id with proper FK"
+          },
+          {
+            "completed": true,
+            "text": "All FKs have proper onDelete behavior"
+          },
+          {
+            "completed": true,
+            "text": "Prisma schema compiles without errors"
+          }
+        ],
+        "implementationPlan": "1. Update Campus model - add relations for academic and content tables\n2. Update GradeLevel model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique constraints: (campusId, name), (campusId, order)\n   - Add index: campusId\n3. Update Subject model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n4. Update SchoolYear model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: name -> (campusId, name)\n   - Add index: campusId\n5. Update Class model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Change unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n   - Add index: campusId\n6. Update StudentAttendance model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n7. Update Post model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n8. Update PostAudience model:\n   - Add campusId (required FK to Campus, onDelete: Cascade)\n   - Add index: campusId\n9. Update File model:\n   - Add campusId (required FK to Campus, onDelete: Restrict)\n   - Add index: campusId\n10. Run npx prisma format to validate",
+        "implementationNotes": "## Summary\nImplemented campus scoping for all academic and content tables.\n\n## Academic Tables Changes\n\n### GradeLevel\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name), order -> (campusId, order)\n\n### Subject\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name)\n\n### SchoolYear\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: name -> (campusId, name)\n\n### Class\n- Added campusId (required FK, onDelete: Restrict)\n- Changed unique: (schoolYearId, gradeLevelId, name) -> (campusId, schoolYearId, gradeLevelId, name)\n\n### StudentAttendance\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n## Content Tables Changes\n\n### Post\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n### PostAudience\n- Added campusId (required FK, onDelete: Cascade)\n- Added index on campusId\n\n### File\n- Added campusId (required FK, onDelete: Restrict)\n- Added index on campusId\n\n## Campus Model Updates\n- Added relations: gradeLevels[], subjects[], schoolYears[], classes[], studentAttendances[], posts[], postAudiences[], files[]\n\n## Notes\n- PostHistory and PostHistoryStatus intentionally NOT campus-scoped (inherit via Post)\n- Attachment intentionally NOT campus-scoped (inherit via Post/File)\n- Schema validates successfully"
+      }
+    }
+  ]
+}

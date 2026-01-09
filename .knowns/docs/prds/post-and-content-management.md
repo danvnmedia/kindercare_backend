@@ -38,7 +38,7 @@ Schools lack a centralized, controlled way to communicate with parents. Current 
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| F1 | Create posts with title (200 chars), rich text content (10k chars), attachments (max 50 images) | Must |
+| F1 | Create posts with title (200 chars), rich text content (JSON/Tiptap format), attachments (max 50 images) | Must |
 | F2 | Save drafts with auto-save every 30 seconds | Must |
 | F3 | Schedule posts for future publish date | Must |
 | F4 | Target audience: campus-wide, grade-level, class, or individual students | Must |
@@ -91,6 +91,8 @@ DRAFT -> PENDING_APPROVAL -> APPROVED -> PUBLISHED -> ARCHIVED
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
+| Content format | JSON (Tiptap/ProseMirror) | Cross-platform rendering; structured data; native editor format |
+| Content storage | JSONB + extracted plain text | JSON for rendering, plain text for full-text search |
 | Comment structure | Nested (adjacency list) | Allows threaded discussions; simple pattern with parent_comment_id |
 | Comment nesting | parent_comment_id + depth | PostgreSQL WITH RECURSIVE handles tree queries; depth limited to 3 levels |
 | Reaction model | HEART only, toggleable | Simple like/unlike; no reaction type complexity |

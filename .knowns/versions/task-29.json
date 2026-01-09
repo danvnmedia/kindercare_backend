@@ -1,0 +1,61 @@
+{
+  "taskId": "29",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "29",
+      "version": 1,
+      "timestamp": "2026-01-09T03:10:45.884Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create PrismaPostCategoryMapper in src/infra/persistence/prisma/mapper/:\n   - Define PrismaPostCategoryWithRelations type\n   - toDomain(): map Prisma model to PostCategory entity\n   - toPrisma(): map entity to Prisma.PostCategoryUncheckedCreateInput\n   - toPrismaUpdate(): map entity to Prisma.PostCategoryUpdateInput\n   - toDomainArray(): batch mapping\n2. Create PrismaPostReactionMapper:\n   - toDomain(): map to PostReaction entity\n   - toPrisma(): map to create input\n   - toDomainArray(): batch mapping\n3. Create PrismaPostCommentMapper:\n   - Define type with optional parent relation\n   - toDomain(): handle parent_comment_id self-reference\n   - toPrisma(): create input with parent connect\n   - toPrismaUpdate(): update with soft delete fields\n   - toDomainArray(): batch mapping\n4. Create PrismaPostApprovalRequestMapper:\n   - Define type with user relations\n   - toDomain(): include submitter/reviewer info\n   - toPrisma(): create with snapshot fields\n   - toPrismaUpdate(): update status and review fields\n5. Create PrismaCampusSettingMapper:\n   - Simple mapping (no relations)\n   - toDomain(), toPrisma(), toPrismaUpdate()\n6. Update PrismaPostMapper:\n   - Handle content as Json type (Prisma.JsonValue)\n   - Map contentText, contentVersion\n   - Handle pinning fields\n   - Handle soft delete fields\n7. Update src/infra/persistence/prisma/mapper/index.ts exports"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Infrastructure - Create Prisma mappers for new entities",
+        "description": "Create Prisma mappers for bidirectional mapping between Prisma models and domain entities.\n\n**Context:**\n- Follow existing mapper patterns (see PrismaStaffMapper, PrismaGuardianMapper)\n- Include toDomain(), toDomainSimple(), toPrisma(), toPrismaUpdate(), toDomainArray()\n- Handle relation mapping (connect/disconnect)\n- Reference: @doc/patterns/mapper-pattern\n\n**Mappers to Create:**\n1. PrismaPostCategoryMapper\n2. PrismaPostReactionMapper\n3. PrismaPostCommentMapper (handle self-reference for nesting)\n4. PrismaPostApprovalRequestMapper\n5. PrismaCampusSettingMapper\n\n**Update Existing:**\n- PrismaPostMapper: handle JSON content field",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "infrastructure",
+          "mapper",
+          "phase-3"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "PrismaPostCategoryMapper created with toDomain, toPrisma, toPrismaUpdate, toDomainArray"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostReactionMapper created with toDomain, toPrisma, toDomainArray"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostCommentMapper created with toDomain, toPrisma, toPrismaUpdate (handles parent relation)"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostApprovalRequestMapper created with toDomain, toPrisma, toPrismaUpdate"
+          },
+          {
+            "completed": false,
+            "text": "PrismaCampusSettingMapper created with toDomain, toPrisma, toPrismaUpdate"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostMapper updated to handle JSON content correctly"
+          },
+          {
+            "completed": false,
+            "text": "All mappers export from index.ts"
+          }
+        ],
+        "implementationPlan": "1. Create PrismaPostCategoryMapper in src/infra/persistence/prisma/mapper/:\n   - Define PrismaPostCategoryWithRelations type\n   - toDomain(): map Prisma model to PostCategory entity\n   - toPrisma(): map entity to Prisma.PostCategoryUncheckedCreateInput\n   - toPrismaUpdate(): map entity to Prisma.PostCategoryUpdateInput\n   - toDomainArray(): batch mapping\n2. Create PrismaPostReactionMapper:\n   - toDomain(): map to PostReaction entity\n   - toPrisma(): map to create input\n   - toDomainArray(): batch mapping\n3. Create PrismaPostCommentMapper:\n   - Define type with optional parent relation\n   - toDomain(): handle parent_comment_id self-reference\n   - toPrisma(): create input with parent connect\n   - toPrismaUpdate(): update with soft delete fields\n   - toDomainArray(): batch mapping\n4. Create PrismaPostApprovalRequestMapper:\n   - Define type with user relations\n   - toDomain(): include submitter/reviewer info\n   - toPrisma(): create with snapshot fields\n   - toPrismaUpdate(): update status and review fields\n5. Create PrismaCampusSettingMapper:\n   - Simple mapping (no relations)\n   - toDomain(), toPrisma(), toPrismaUpdate()\n6. Update PrismaPostMapper:\n   - Handle content as Json type (Prisma.JsonValue)\n   - Map contentText, contentVersion\n   - Handle pinning fields\n   - Handle soft delete fields\n7. Update src/infra/persistence/prisma/mapper/index.ts exports"
+      }
+    }
+  ]
+}

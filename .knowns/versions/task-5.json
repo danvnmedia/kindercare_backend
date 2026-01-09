@@ -1,0 +1,429 @@
+{
+  "taskId": "5",
+  "currentVersion": 5,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "5",
+      "version": 1,
+      "timestamp": "2026-01-06T04:37:46.097Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Read current schema: prisma/schema.prisma\n2. Create new models in schema:\n   - Campus model with id, name, address, phone_number, is_active, timestamps\n   - Permission model with id (text), module, description, created_at\n   - RolePermission model with role_id, permission_id composite PK\n   - StaffType model with campus_id FK, default_role_id FK\n3. Modify existing Role model:\n   - Change id from String to UUID\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default boolean\n   - Update unique constraint to (campus_id, name)\n4. Modify UserRole model:\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at timestamp\n   - Update composite PK to (user_id, role_id, campus_id)\n5. Modify StudentCodeSequence:\n   - Add campus_id to composite PK\n   - PK becomes (campus_id, year)\n6. Run npx prisma format to validate\n7. Generate migration: npx prisma migrate dev --name multi_campus_foundation\n8. Review generated SQL before applying"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.1: Update Prisma Schema for Multi-Campus Foundation",
+        "description": "Update the Prisma schema to add the foundational tables and columns for multi-campus architecture. This is the first and most critical migration step.\n\nSee @doc/migrations/multi-campus-migration for full context.\nSee @diagram/dbdiagram_new.dbml for target schema.\n\n## Changes Required\n\n### New Tables\n1. **campus** - Root entity for all campus-scoped data\n   - id (uuid, pk), name, address, phone_number, is_active, timestamps\n\n2. **permission** - Atomic code-based permissions\n   - id (text, pk), module, description, created_at\n\n3. **role_permission** - Role to permission mapping\n   - role_id (uuid), permission_id (text), created_at\n   - Composite PK: (role_id, permission_id)\n\n4. **staff_type** - Campus-configurable staff types\n   - id (uuid), campus_id, name, description, default_role_id, is_active, timestamps\n   - Unique: (campus_id, name)\n\n### Modified Tables\n1. **role** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: is_system_default (boolean, default false)\n   - Change: id from text to uuid\n   - Add unique index: (campus_id, name)\n\n2. **user_roles** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: assigned_at (timestamptz)\n   - Change: role_id from text to uuid\n   - Change PK: (user_id, role_id, campus_id)\n\n3. **student_code_sequence** - Campus-scoped sequences\n   - Change PK from (year) to (campus_id, year)\n   - Add: campus_id (uuid, FK to campus)\n\n### Important Notes\n- This is a breaking change requiring data migration\n- Existing roles need to be migrated (either as system defaults or assigned to default campus)\n- Create migration script for existing data",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus table created with all required columns and indexes"
+          },
+          {
+            "completed": false,
+            "text": "Permission table created for atomic permissions"
+          },
+          {
+            "completed": false,
+            "text": "role_permission junction table created with proper FKs"
+          },
+          {
+            "completed": false,
+            "text": "staff_type table created with campus scoping and default_role_id FK"
+          },
+          {
+            "completed": false,
+            "text": "Role table modified with campus_id, is_system_default columns"
+          },
+          {
+            "completed": false,
+            "text": "user_roles table modified with campus_id and assigned_at columns"
+          },
+          {
+            "completed": false,
+            "text": "student_code_sequence PK changed to (campus_id, year)"
+          },
+          {
+            "completed": false,
+            "text": "All foreign key relationships properly defined"
+          },
+          {
+            "completed": false,
+            "text": "Prisma schema compiles without errors (npx prisma format)"
+          },
+          {
+            "completed": false,
+            "text": "Migration SQL file generated"
+          }
+        ],
+        "implementationPlan": "1. Read current schema: prisma/schema.prisma\n2. Create new models in schema:\n   - Campus model with id, name, address, phone_number, is_active, timestamps\n   - Permission model with id (text), module, description, created_at\n   - RolePermission model with role_id, permission_id composite PK\n   - StaffType model with campus_id FK, default_role_id FK\n3. Modify existing Role model:\n   - Change id from String to UUID\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default boolean\n   - Update unique constraint to (campus_id, name)\n4. Modify UserRole model:\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at timestamp\n   - Update composite PK to (user_id, role_id, campus_id)\n5. Modify StudentCodeSequence:\n   - Add campus_id to composite PK\n   - PK becomes (campus_id, year)\n6. Run npx prisma format to validate\n7. Generate migration: npx prisma migrate dev --name multi_campus_foundation\n8. Review generated SQL before applying"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "5",
+      "version": 2,
+      "timestamp": "2026-01-06T20:54:36.290Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": "1. Read current schema: prisma/schema.prisma\n2. Create new models in schema:\n   - Campus model with id, name, address, phone_number, is_active, timestamps\n   - Permission model with id (text), module, description, created_at\n   - RolePermission model with role_id, permission_id composite PK\n   - StaffType model with campus_id FK, default_role_id FK\n3. Modify existing Role model:\n   - Change id from String to UUID\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default boolean\n   - Update unique constraint to (campus_id, name)\n4. Modify UserRole model:\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at timestamp\n   - Update composite PK to (user_id, role_id, campus_id)\n5. Modify StudentCodeSequence:\n   - Add campus_id to composite PK\n   - PK becomes (campus_id, year)\n6. Run npx prisma format to validate\n7. Generate migration: npx prisma migrate dev --name multi_campus_foundation\n8. Review generated SQL before applying",
+          "newValue": "1. Create new Campus model with: id (uuid), name, address, phone_number, is_active, timestamps\n2. Create new Permission model with: id (text pk), module, description, created_at\n3. Create new RolePermission model with: role_id (uuid), permission_id (text), composite PK\n4. Create new StaffType model with: id (uuid), campus_id FK, name, description, default_role_id FK, is_active, timestamps, unique(campus_id, name)\n5. Modify Role model:\n   - Change id from String @db.Text to String @default(uuid()) @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default Boolean (default false)\n   - Remove global unique on name\n   - Add unique(campus_id, name)\n   - Keep permissions Json for now (will be deprecated later)\n6. Modify UserRole model:\n   - Change role_id from String @db.Text to String @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at DateTime\n   - Change composite PK from (userId, roleId) to (userId, roleId, campusId)\n7. Modify StudentCodeSequence:\n   - Add campus_id (uuid FK to Campus)\n   - Change PK from year to (campus_id, year)\n8. Run npx prisma format to validate schema\n9. Generate migration with npx prisma migrate dev --name multi_campus_foundation\n10. Review generated SQL and verify all FKs/indexes"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.1: Update Prisma Schema for Multi-Campus Foundation",
+        "description": "Update the Prisma schema to add the foundational tables and columns for multi-campus architecture. This is the first and most critical migration step.\n\nSee @doc/migrations/multi-campus-migration for full context.\nSee @diagram/dbdiagram_new.dbml for target schema.\n\n## Changes Required\n\n### New Tables\n1. **campus** - Root entity for all campus-scoped data\n   - id (uuid, pk), name, address, phone_number, is_active, timestamps\n\n2. **permission** - Atomic code-based permissions\n   - id (text, pk), module, description, created_at\n\n3. **role_permission** - Role to permission mapping\n   - role_id (uuid), permission_id (text), created_at\n   - Composite PK: (role_id, permission_id)\n\n4. **staff_type** - Campus-configurable staff types\n   - id (uuid), campus_id, name, description, default_role_id, is_active, timestamps\n   - Unique: (campus_id, name)\n\n### Modified Tables\n1. **role** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: is_system_default (boolean, default false)\n   - Change: id from text to uuid\n   - Add unique index: (campus_id, name)\n\n2. **user_roles** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: assigned_at (timestamptz)\n   - Change: role_id from text to uuid\n   - Change PK: (user_id, role_id, campus_id)\n\n3. **student_code_sequence** - Campus-scoped sequences\n   - Change PK from (year) to (campus_id, year)\n   - Add: campus_id (uuid, FK to campus)\n\n### Important Notes\n- This is a breaking change requiring data migration\n- Existing roles need to be migrated (either as system defaults or assigned to default campus)\n- Create migration script for existing data",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus table created with all required columns and indexes"
+          },
+          {
+            "completed": false,
+            "text": "Permission table created for atomic permissions"
+          },
+          {
+            "completed": false,
+            "text": "role_permission junction table created with proper FKs"
+          },
+          {
+            "completed": false,
+            "text": "staff_type table created with campus scoping and default_role_id FK"
+          },
+          {
+            "completed": false,
+            "text": "Role table modified with campus_id, is_system_default columns"
+          },
+          {
+            "completed": false,
+            "text": "user_roles table modified with campus_id and assigned_at columns"
+          },
+          {
+            "completed": false,
+            "text": "student_code_sequence PK changed to (campus_id, year)"
+          },
+          {
+            "completed": false,
+            "text": "All foreign key relationships properly defined"
+          },
+          {
+            "completed": false,
+            "text": "Prisma schema compiles without errors (npx prisma format)"
+          },
+          {
+            "completed": false,
+            "text": "Migration SQL file generated"
+          }
+        ],
+        "implementationPlan": "1. Create new Campus model with: id (uuid), name, address, phone_number, is_active, timestamps\n2. Create new Permission model with: id (text pk), module, description, created_at\n3. Create new RolePermission model with: role_id (uuid), permission_id (text), composite PK\n4. Create new StaffType model with: id (uuid), campus_id FK, name, description, default_role_id FK, is_active, timestamps, unique(campus_id, name)\n5. Modify Role model:\n   - Change id from String @db.Text to String @default(uuid()) @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default Boolean (default false)\n   - Remove global unique on name\n   - Add unique(campus_id, name)\n   - Keep permissions Json for now (will be deprecated later)\n6. Modify UserRole model:\n   - Change role_id from String @db.Text to String @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at DateTime\n   - Change composite PK from (userId, roleId) to (userId, roleId, campusId)\n7. Modify StudentCodeSequence:\n   - Add campus_id (uuid FK to Campus)\n   - Change PK from year to (campus_id, year)\n8. Run npx prisma format to validate schema\n9. Generate migration with npx prisma migrate dev --name multi_campus_foundation\n10. Review generated SQL and verify all FKs/indexes"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "5",
+      "version": 3,
+      "timestamp": "2026-01-06T21:05:08.363Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Summary\nSuccessfully implemented Phase 1.1 - Prisma Schema for Multi-Campus Foundation.\n\n## Changes Made\n\n### New Tables Created\n1. **campus** - Root entity with id (uuid), name, address, phone_number, is_active\n2. **permission** - Atomic permissions with id (text), module, description\n3. **role_permission** - Junction table mapping roles to permissions\n4. **staff_type** - Campus-configurable staff types with default_role_id FK\n\n### Modified Tables\n1. **role**:\n   - Changed id from TEXT to UUID (with data migration)\n   - Added campus_id (nullable FK to campus)\n   - Added is_system_default (boolean)\n   - Changed unique constraint to (campus_id, name)\n   - Existing roles marked as isSystemDefault=true\n\n2. **user_roles**:\n   - Added id (uuid) as primary key\n   - Changed role_id from TEXT to UUID\n   - Added campus_id (nullable FK to campus)\n   - Added assigned_at timestamp\n   - Changed PK structure with unique constraint on (user_id, role_id, campus_id)\n\n3. **student_code_sequence**:\n   - Added campus_id to composite PK\n   - PK changed from (year) to (campus_id, year)\n   - Existing data migrated to Default Campus\n\n### Files Modified\n- prisma/schema.prisma - Schema updates\n- prisma/migrations/20260106000000_multi_campus_foundation/migration.sql - Custom migration with data preservation\n- prisma/seed.ts - Updated for new Role UUID format\n\n## Migration Notes\n- A 'Default Campus' was created (ID: 00000000-0000-0000-0000-000000000001) for existing data\n- All existing roles were migrated with new UUIDs and marked as system defaults\n- Existing user_roles relationships preserved with new role UUIDs\n\n## Known Type Errors (Expected - To Be Fixed in Later Phases)\nFiles that need updates for campus-aware operations:\n- prisma/seeds/seed-students.ts (StudentCodeSequence needs campusId)\n- prisma/seeds/sync-sequence.ts (StudentCodeSequence needs campusId)\n- src/infra/persistence/prisma/repositories/prisma-role.repository.ts (Role lookup needs campus context)\n- src/infra/persistence/prisma/services/student-code-generator.service.ts (StudentCodeSequence needs campusId)\n\nThese will be addressed in Phase 1.2+ when creating the Campus domain module."
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.1: Update Prisma Schema for Multi-Campus Foundation",
+        "description": "Update the Prisma schema to add the foundational tables and columns for multi-campus architecture. This is the first and most critical migration step.\n\nSee @doc/migrations/multi-campus-migration for full context.\nSee @diagram/dbdiagram_new.dbml for target schema.\n\n## Changes Required\n\n### New Tables\n1. **campus** - Root entity for all campus-scoped data\n   - id (uuid, pk), name, address, phone_number, is_active, timestamps\n\n2. **permission** - Atomic code-based permissions\n   - id (text, pk), module, description, created_at\n\n3. **role_permission** - Role to permission mapping\n   - role_id (uuid), permission_id (text), created_at\n   - Composite PK: (role_id, permission_id)\n\n4. **staff_type** - Campus-configurable staff types\n   - id (uuid), campus_id, name, description, default_role_id, is_active, timestamps\n   - Unique: (campus_id, name)\n\n### Modified Tables\n1. **role** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: is_system_default (boolean, default false)\n   - Change: id from text to uuid\n   - Add unique index: (campus_id, name)\n\n2. **user_roles** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: assigned_at (timestamptz)\n   - Change: role_id from text to uuid\n   - Change PK: (user_id, role_id, campus_id)\n\n3. **student_code_sequence** - Campus-scoped sequences\n   - Change PK from (year) to (campus_id, year)\n   - Add: campus_id (uuid, FK to campus)\n\n### Important Notes\n- This is a breaking change requiring data migration\n- Existing roles need to be migrated (either as system defaults or assigned to default campus)\n- Create migration script for existing data",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus table created with all required columns and indexes"
+          },
+          {
+            "completed": false,
+            "text": "Permission table created for atomic permissions"
+          },
+          {
+            "completed": false,
+            "text": "role_permission junction table created with proper FKs"
+          },
+          {
+            "completed": false,
+            "text": "staff_type table created with campus scoping and default_role_id FK"
+          },
+          {
+            "completed": false,
+            "text": "Role table modified with campus_id, is_system_default columns"
+          },
+          {
+            "completed": false,
+            "text": "user_roles table modified with campus_id and assigned_at columns"
+          },
+          {
+            "completed": false,
+            "text": "student_code_sequence PK changed to (campus_id, year)"
+          },
+          {
+            "completed": false,
+            "text": "All foreign key relationships properly defined"
+          },
+          {
+            "completed": false,
+            "text": "Prisma schema compiles without errors (npx prisma format)"
+          },
+          {
+            "completed": false,
+            "text": "Migration SQL file generated"
+          }
+        ],
+        "implementationPlan": "1. Create new Campus model with: id (uuid), name, address, phone_number, is_active, timestamps\n2. Create new Permission model with: id (text pk), module, description, created_at\n3. Create new RolePermission model with: role_id (uuid), permission_id (text), composite PK\n4. Create new StaffType model with: id (uuid), campus_id FK, name, description, default_role_id FK, is_active, timestamps, unique(campus_id, name)\n5. Modify Role model:\n   - Change id from String @db.Text to String @default(uuid()) @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default Boolean (default false)\n   - Remove global unique on name\n   - Add unique(campus_id, name)\n   - Keep permissions Json for now (will be deprecated later)\n6. Modify UserRole model:\n   - Change role_id from String @db.Text to String @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at DateTime\n   - Change composite PK from (userId, roleId) to (userId, roleId, campusId)\n7. Modify StudentCodeSequence:\n   - Add campus_id (uuid FK to Campus)\n   - Change PK from year to (campus_id, year)\n8. Run npx prisma format to validate schema\n9. Generate migration with npx prisma migrate dev --name multi_campus_foundation\n10. Review generated SQL and verify all FKs/indexes",
+        "implementationNotes": "## Summary\nSuccessfully implemented Phase 1.1 - Prisma Schema for Multi-Campus Foundation.\n\n## Changes Made\n\n### New Tables Created\n1. **campus** - Root entity with id (uuid), name, address, phone_number, is_active\n2. **permission** - Atomic permissions with id (text), module, description\n3. **role_permission** - Junction table mapping roles to permissions\n4. **staff_type** - Campus-configurable staff types with default_role_id FK\n\n### Modified Tables\n1. **role**:\n   - Changed id from TEXT to UUID (with data migration)\n   - Added campus_id (nullable FK to campus)\n   - Added is_system_default (boolean)\n   - Changed unique constraint to (campus_id, name)\n   - Existing roles marked as isSystemDefault=true\n\n2. **user_roles**:\n   - Added id (uuid) as primary key\n   - Changed role_id from TEXT to UUID\n   - Added campus_id (nullable FK to campus)\n   - Added assigned_at timestamp\n   - Changed PK structure with unique constraint on (user_id, role_id, campus_id)\n\n3. **student_code_sequence**:\n   - Added campus_id to composite PK\n   - PK changed from (year) to (campus_id, year)\n   - Existing data migrated to Default Campus\n\n### Files Modified\n- prisma/schema.prisma - Schema updates\n- prisma/migrations/20260106000000_multi_campus_foundation/migration.sql - Custom migration with data preservation\n- prisma/seed.ts - Updated for new Role UUID format\n\n## Migration Notes\n- A 'Default Campus' was created (ID: 00000000-0000-0000-0000-000000000001) for existing data\n- All existing roles were migrated with new UUIDs and marked as system defaults\n- Existing user_roles relationships preserved with new role UUIDs\n\n## Known Type Errors (Expected - To Be Fixed in Later Phases)\nFiles that need updates for campus-aware operations:\n- prisma/seeds/seed-students.ts (StudentCodeSequence needs campusId)\n- prisma/seeds/sync-sequence.ts (StudentCodeSequence needs campusId)\n- src/infra/persistence/prisma/repositories/prisma-role.repository.ts (Role lookup needs campus context)\n- src/infra/persistence/prisma/services/student-code-generator.service.ts (StudentCodeSequence needs campusId)\n\nThese will be addressed in Phase 1.2+ when creating the Campus domain module."
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "5",
+      "version": 4,
+      "timestamp": "2026-01-06T21:05:19.066Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Campus table created with all required columns and indexes"
+            },
+            {
+              "completed": false,
+              "text": "Permission table created for atomic permissions"
+            },
+            {
+              "completed": false,
+              "text": "role_permission junction table created with proper FKs"
+            },
+            {
+              "completed": false,
+              "text": "staff_type table created with campus scoping and default_role_id FK"
+            },
+            {
+              "completed": false,
+              "text": "Role table modified with campus_id, is_system_default columns"
+            },
+            {
+              "completed": false,
+              "text": "user_roles table modified with campus_id and assigned_at columns"
+            },
+            {
+              "completed": false,
+              "text": "student_code_sequence PK changed to (campus_id, year)"
+            },
+            {
+              "completed": false,
+              "text": "All foreign key relationships properly defined"
+            },
+            {
+              "completed": false,
+              "text": "Prisma schema compiles without errors (npx prisma format)"
+            },
+            {
+              "completed": false,
+              "text": "Migration SQL file generated"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "Campus table created with all required columns and indexes"
+            },
+            {
+              "completed": true,
+              "text": "Permission table created for atomic permissions"
+            },
+            {
+              "completed": true,
+              "text": "role_permission junction table created with proper FKs"
+            },
+            {
+              "completed": true,
+              "text": "staff_type table created with campus scoping and default_role_id FK"
+            },
+            {
+              "completed": true,
+              "text": "Role table modified with campus_id, is_system_default columns"
+            },
+            {
+              "completed": true,
+              "text": "user_roles table modified with campus_id and assigned_at columns"
+            },
+            {
+              "completed": true,
+              "text": "student_code_sequence PK changed to (campus_id, year)"
+            },
+            {
+              "completed": true,
+              "text": "All foreign key relationships properly defined"
+            },
+            {
+              "completed": true,
+              "text": "Prisma schema compiles without errors (npx prisma format)"
+            },
+            {
+              "completed": true,
+              "text": "Migration SQL file generated"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.1: Update Prisma Schema for Multi-Campus Foundation",
+        "description": "Update the Prisma schema to add the foundational tables and columns for multi-campus architecture. This is the first and most critical migration step.\n\nSee @doc/migrations/multi-campus-migration for full context.\nSee @diagram/dbdiagram_new.dbml for target schema.\n\n## Changes Required\n\n### New Tables\n1. **campus** - Root entity for all campus-scoped data\n   - id (uuid, pk), name, address, phone_number, is_active, timestamps\n\n2. **permission** - Atomic code-based permissions\n   - id (text, pk), module, description, created_at\n\n3. **role_permission** - Role to permission mapping\n   - role_id (uuid), permission_id (text), created_at\n   - Composite PK: (role_id, permission_id)\n\n4. **staff_type** - Campus-configurable staff types\n   - id (uuid), campus_id, name, description, default_role_id, is_active, timestamps\n   - Unique: (campus_id, name)\n\n### Modified Tables\n1. **role** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: is_system_default (boolean, default false)\n   - Change: id from text to uuid\n   - Add unique index: (campus_id, name)\n\n2. **user_roles** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: assigned_at (timestamptz)\n   - Change: role_id from text to uuid\n   - Change PK: (user_id, role_id, campus_id)\n\n3. **student_code_sequence** - Campus-scoped sequences\n   - Change PK from (year) to (campus_id, year)\n   - Add: campus_id (uuid, FK to campus)\n\n### Important Notes\n- This is a breaking change requiring data migration\n- Existing roles need to be migrated (either as system defaults or assigned to default campus)\n- Create migration script for existing data",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus table created with all required columns and indexes"
+          },
+          {
+            "completed": true,
+            "text": "Permission table created for atomic permissions"
+          },
+          {
+            "completed": true,
+            "text": "role_permission junction table created with proper FKs"
+          },
+          {
+            "completed": true,
+            "text": "staff_type table created with campus scoping and default_role_id FK"
+          },
+          {
+            "completed": true,
+            "text": "Role table modified with campus_id, is_system_default columns"
+          },
+          {
+            "completed": true,
+            "text": "user_roles table modified with campus_id and assigned_at columns"
+          },
+          {
+            "completed": true,
+            "text": "student_code_sequence PK changed to (campus_id, year)"
+          },
+          {
+            "completed": true,
+            "text": "All foreign key relationships properly defined"
+          },
+          {
+            "completed": true,
+            "text": "Prisma schema compiles without errors (npx prisma format)"
+          },
+          {
+            "completed": true,
+            "text": "Migration SQL file generated"
+          }
+        ],
+        "implementationPlan": "1. Create new Campus model with: id (uuid), name, address, phone_number, is_active, timestamps\n2. Create new Permission model with: id (text pk), module, description, created_at\n3. Create new RolePermission model with: role_id (uuid), permission_id (text), composite PK\n4. Create new StaffType model with: id (uuid), campus_id FK, name, description, default_role_id FK, is_active, timestamps, unique(campus_id, name)\n5. Modify Role model:\n   - Change id from String @db.Text to String @default(uuid()) @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default Boolean (default false)\n   - Remove global unique on name\n   - Add unique(campus_id, name)\n   - Keep permissions Json for now (will be deprecated later)\n6. Modify UserRole model:\n   - Change role_id from String @db.Text to String @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at DateTime\n   - Change composite PK from (userId, roleId) to (userId, roleId, campusId)\n7. Modify StudentCodeSequence:\n   - Add campus_id (uuid FK to Campus)\n   - Change PK from year to (campus_id, year)\n8. Run npx prisma format to validate schema\n9. Generate migration with npx prisma migrate dev --name multi_campus_foundation\n10. Review generated SQL and verify all FKs/indexes",
+        "implementationNotes": "## Summary\nSuccessfully implemented Phase 1.1 - Prisma Schema for Multi-Campus Foundation.\n\n## Changes Made\n\n### New Tables Created\n1. **campus** - Root entity with id (uuid), name, address, phone_number, is_active\n2. **permission** - Atomic permissions with id (text), module, description\n3. **role_permission** - Junction table mapping roles to permissions\n4. **staff_type** - Campus-configurable staff types with default_role_id FK\n\n### Modified Tables\n1. **role**:\n   - Changed id from TEXT to UUID (with data migration)\n   - Added campus_id (nullable FK to campus)\n   - Added is_system_default (boolean)\n   - Changed unique constraint to (campus_id, name)\n   - Existing roles marked as isSystemDefault=true\n\n2. **user_roles**:\n   - Added id (uuid) as primary key\n   - Changed role_id from TEXT to UUID\n   - Added campus_id (nullable FK to campus)\n   - Added assigned_at timestamp\n   - Changed PK structure with unique constraint on (user_id, role_id, campus_id)\n\n3. **student_code_sequence**:\n   - Added campus_id to composite PK\n   - PK changed from (year) to (campus_id, year)\n   - Existing data migrated to Default Campus\n\n### Files Modified\n- prisma/schema.prisma - Schema updates\n- prisma/migrations/20260106000000_multi_campus_foundation/migration.sql - Custom migration with data preservation\n- prisma/seed.ts - Updated for new Role UUID format\n\n## Migration Notes\n- A 'Default Campus' was created (ID: 00000000-0000-0000-0000-000000000001) for existing data\n- All existing roles were migrated with new UUIDs and marked as system defaults\n- Existing user_roles relationships preserved with new role UUIDs\n\n## Known Type Errors (Expected - To Be Fixed in Later Phases)\nFiles that need updates for campus-aware operations:\n- prisma/seeds/seed-students.ts (StudentCodeSequence needs campusId)\n- prisma/seeds/sync-sequence.ts (StudentCodeSequence needs campusId)\n- src/infra/persistence/prisma/repositories/prisma-role.repository.ts (Role lookup needs campus context)\n- src/infra/persistence/prisma/services/student-code-generator.service.ts (StudentCodeSequence needs campusId)\n\nThese will be addressed in Phase 1.2+ when creating the Campus domain module."
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "5",
+      "version": 5,
+      "timestamp": "2026-01-06T21:05:31.920Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 1.1: Update Prisma Schema for Multi-Campus Foundation",
+        "description": "Update the Prisma schema to add the foundational tables and columns for multi-campus architecture. This is the first and most critical migration step.\n\nSee @doc/migrations/multi-campus-migration for full context.\nSee @diagram/dbdiagram_new.dbml for target schema.\n\n## Changes Required\n\n### New Tables\n1. **campus** - Root entity for all campus-scoped data\n   - id (uuid, pk), name, address, phone_number, is_active, timestamps\n\n2. **permission** - Atomic code-based permissions\n   - id (text, pk), module, description, created_at\n\n3. **role_permission** - Role to permission mapping\n   - role_id (uuid), permission_id (text), created_at\n   - Composite PK: (role_id, permission_id)\n\n4. **staff_type** - Campus-configurable staff types\n   - id (uuid), campus_id, name, description, default_role_id, is_active, timestamps\n   - Unique: (campus_id, name)\n\n### Modified Tables\n1. **role** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: is_system_default (boolean, default false)\n   - Change: id from text to uuid\n   - Add unique index: (campus_id, name)\n\n2. **user_roles** - Add campus scoping\n   - Add: campus_id (uuid, nullable, FK to campus)\n   - Add: assigned_at (timestamptz)\n   - Change: role_id from text to uuid\n   - Change PK: (user_id, role_id, campus_id)\n\n3. **student_code_sequence** - Campus-scoped sequences\n   - Change PK from (year) to (campus_id, year)\n   - Add: campus_id (uuid, FK to campus)\n\n### Important Notes\n- This is a breaking change requiring data migration\n- Existing roles need to be migrated (either as system defaults or assigned to default campus)\n- Create migration script for existing data",
+        "status": "done",
+        "priority": "high",
+        "labels": [
+          "migration",
+          "prisma",
+          "database",
+          "phase-1"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus table created with all required columns and indexes"
+          },
+          {
+            "completed": true,
+            "text": "Permission table created for atomic permissions"
+          },
+          {
+            "completed": true,
+            "text": "role_permission junction table created with proper FKs"
+          },
+          {
+            "completed": true,
+            "text": "staff_type table created with campus scoping and default_role_id FK"
+          },
+          {
+            "completed": true,
+            "text": "Role table modified with campus_id, is_system_default columns"
+          },
+          {
+            "completed": true,
+            "text": "user_roles table modified with campus_id and assigned_at columns"
+          },
+          {
+            "completed": true,
+            "text": "student_code_sequence PK changed to (campus_id, year)"
+          },
+          {
+            "completed": true,
+            "text": "All foreign key relationships properly defined"
+          },
+          {
+            "completed": true,
+            "text": "Prisma schema compiles without errors (npx prisma format)"
+          },
+          {
+            "completed": true,
+            "text": "Migration SQL file generated"
+          }
+        ],
+        "implementationPlan": "1. Create new Campus model with: id (uuid), name, address, phone_number, is_active, timestamps\n2. Create new Permission model with: id (text pk), module, description, created_at\n3. Create new RolePermission model with: role_id (uuid), permission_id (text), composite PK\n4. Create new StaffType model with: id (uuid), campus_id FK, name, description, default_role_id FK, is_active, timestamps, unique(campus_id, name)\n5. Modify Role model:\n   - Change id from String @db.Text to String @default(uuid()) @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add is_system_default Boolean (default false)\n   - Remove global unique on name\n   - Add unique(campus_id, name)\n   - Keep permissions Json for now (will be deprecated later)\n6. Modify UserRole model:\n   - Change role_id from String @db.Text to String @db.Uuid\n   - Add campus_id (optional FK to Campus)\n   - Add assigned_at DateTime\n   - Change composite PK from (userId, roleId) to (userId, roleId, campusId)\n7. Modify StudentCodeSequence:\n   - Add campus_id (uuid FK to Campus)\n   - Change PK from year to (campus_id, year)\n8. Run npx prisma format to validate schema\n9. Generate migration with npx prisma migrate dev --name multi_campus_foundation\n10. Review generated SQL and verify all FKs/indexes",
+        "implementationNotes": "## Summary\nSuccessfully implemented Phase 1.1 - Prisma Schema for Multi-Campus Foundation.\n\n## Changes Made\n\n### New Tables Created\n1. **campus** - Root entity with id (uuid), name, address, phone_number, is_active\n2. **permission** - Atomic permissions with id (text), module, description\n3. **role_permission** - Junction table mapping roles to permissions\n4. **staff_type** - Campus-configurable staff types with default_role_id FK\n\n### Modified Tables\n1. **role**:\n   - Changed id from TEXT to UUID (with data migration)\n   - Added campus_id (nullable FK to campus)\n   - Added is_system_default (boolean)\n   - Changed unique constraint to (campus_id, name)\n   - Existing roles marked as isSystemDefault=true\n\n2. **user_roles**:\n   - Added id (uuid) as primary key\n   - Changed role_id from TEXT to UUID\n   - Added campus_id (nullable FK to campus)\n   - Added assigned_at timestamp\n   - Changed PK structure with unique constraint on (user_id, role_id, campus_id)\n\n3. **student_code_sequence**:\n   - Added campus_id to composite PK\n   - PK changed from (year) to (campus_id, year)\n   - Existing data migrated to Default Campus\n\n### Files Modified\n- prisma/schema.prisma - Schema updates\n- prisma/migrations/20260106000000_multi_campus_foundation/migration.sql - Custom migration with data preservation\n- prisma/seed.ts - Updated for new Role UUID format\n\n## Migration Notes\n- A 'Default Campus' was created (ID: 00000000-0000-0000-0000-000000000001) for existing data\n- All existing roles were migrated with new UUIDs and marked as system defaults\n- Existing user_roles relationships preserved with new role UUIDs\n\n## Known Type Errors (Expected - To Be Fixed in Later Phases)\nFiles that need updates for campus-aware operations:\n- prisma/seeds/seed-students.ts (StudentCodeSequence needs campusId)\n- prisma/seeds/sync-sequence.ts (StudentCodeSequence needs campusId)\n- src/infra/persistence/prisma/repositories/prisma-role.repository.ts (Role lookup needs campus context)\n- src/infra/persistence/prisma/services/student-code-generator.service.ts (StudentCodeSequence needs campusId)\n\nThese will be addressed in Phase 1.2+ when creating the Campus domain module."
+      }
+    }
+  ]
+}

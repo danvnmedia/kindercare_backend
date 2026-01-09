@@ -1,6 +1,6 @@
 {
   "taskId": "4",
-  "currentVersion": 1,
+  "currentVersion": 6,
   "versions": [
     {
       "id": "v1",
@@ -17,6 +17,106 @@
       "snapshot": {
         "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
         "status": "todo",
+        "priority": "high",
+        "labels": [],
+        "acceptanceCriteria": []
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "4",
+      "version": 2,
+      "timestamp": "2026-01-06T04:45:33.828Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
+        "status": "in-progress",
+        "priority": "high",
+        "labels": [],
+        "acceptanceCriteria": []
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "4",
+      "version": 3,
+      "timestamp": "2026-01-06T04:45:33.922Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
+        "status": "done",
+        "priority": "high",
+        "labels": [],
+        "acceptanceCriteria": []
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "4",
+      "version": 4,
+      "timestamp": "2026-01-06T04:45:34.276Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "done",
+          "newValue": "on-hold"
+        }
+      ],
+      "snapshot": {
+        "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
+        "status": "on-hold",
+        "priority": "high",
+        "labels": [],
+        "acceptanceCriteria": []
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "4",
+      "version": 5,
+      "timestamp": "2026-01-07T00:06:39.195Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "on-hold",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
+        "status": "in-progress",
+        "priority": "high",
+        "labels": [],
+        "acceptanceCriteria": []
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "4",
+      "version": 6,
+      "timestamp": "2026-01-07T00:06:46.824Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "on-hold"
+        }
+      ],
+      "snapshot": {
+        "title": "Support creation / lock / delete seamlessly when an user is both Guardian and Staff",
+        "status": "on-hold",
         "priority": "high",
         "labels": [],
         "acceptanceCriteria": []

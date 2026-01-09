@@ -1,0 +1,74 @@
+{
+  "taskId": "21",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "21",
+      "version": 1,
+      "timestamp": "2026-01-06T04:38:43.306Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create campus decorator: src/infra/http/decorators/campus.decorator.ts\n   - @CampusContext() - Parameter decorator to extract campusId\n   - Reads from X-Campus-Id header\n   - Falls back to user's default campus if configured\n\n2. Create campus guard: src/infra/http/guards/campus.guard.ts\n   - Extract campusId from request header\n   - Validate campus exists and is active\n   - Verify user has at least one role in that campus\n   - Exception for global admins (campus_id = null roles)\n   - Attach campusId to request object\n\n3. Create @RequireCampusAccess() decorator\n   - Combines with UseGuards(CampusGuard)\n   - Makes it easy to apply to controllers/routes\n\n4. Create request context helper: src/infra/http/context/campus-context.ts\n   - Helper to get/set current campus in request\n   - Consider AsyncLocalStorage for deep access\n\n5. Update existing guards: src/infra/http/guards/roles.guard.ts\n   - Check roles within current campus context\n   - Global roles (campus_id = null) should pass for any campus\n\n6. Create interceptor (optional): src/infra/http/interceptors/campus.interceptor.ts\n   - Add campus context to response headers\n   - Log campus context for auditing\n\n7. Update all campus-scoped controllers:\n   - Add @RequireCampusAccess() at controller level\n   - Use @CampusContext() to extract campusId\n   - Pass campusId to use cases\n\n8. Add E2E tests:\n   - Request with valid X-Campus-Id header\n   - Request without header (should fail)\n   - Request with invalid campus ID\n   - Request to campus user has no access to\n   - Global admin accessing any campus"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 5.2: Campus Context and Authentication Integration",
+        "description": "Create the campus context mechanism that allows requests to be scoped to a specific campus. This is critical for all campus-scoped operations.\n\nDepends on @task-9 (Campus module), @task-20 (User roles campus scoping).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Requirements\n\n### Campus Context Resolution\nThe system needs to determine which campus a request is operating in. Options:\n\n1. **Header-based**: X-Campus-Id header\n2. **Path-based**: /campuses/{campusId}/students\n3. **Auth token claim**: Campus ID in JWT\n4. **User default**: User's default/primary campus\n\nRecommended: Header-based with fallback to user's default campus.\n\n## Implementation\n\n### Decorator\n**File**: src/infra/http/decorators/campus.decorator.ts\n\n\n### Guard\n**File**: src/infra/http/guards/campus.guard.ts\n- Extract campusId from request (header/path/token)\n- Verify campus exists and is active\n- Verify user has at least one role in that campus (or is global admin)\n- Attach campus to request for downstream use\n\n### Interceptor (optional)\n- Could add campus context to response headers\n- Could log campus context for auditing\n\n### Request Context\n**File**: src/infra/http/context/request-context.ts (or similar)\n- Store current campusId in async local storage or request object\n- Make accessible throughout request lifecycle\n\n## Controller Integration\n\nAll campus-scoped controllers should:\n1. Use @RequireCampusAccess() guard\n2. Use @CampusContext() to extract campusId\n3. Pass campusId to use cases\n\nExample:\n\n\n## Error Handling\n- 400 Bad Request: Missing campus context\n- 403 Forbidden: User has no access to campus\n- 404 Not Found: Campus does not exist\n\n## Testing Considerations\n- Test with valid campus access\n- Test without campus header\n- Test with invalid campus\n- Test with campus user doesn't have access to",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "auth",
+          "campus-context",
+          "guard",
+          "decorator",
+          "phase-5"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus decorator created (@CampusContext)"
+          },
+          {
+            "completed": false,
+            "text": "Campus guard created (@RequireCampusAccess)"
+          },
+          {
+            "completed": false,
+            "text": "Campus extraction from header implemented"
+          },
+          {
+            "completed": false,
+            "text": "Fallback to user's default campus (if configured)"
+          },
+          {
+            "completed": false,
+            "text": "Campus existence validation in guard"
+          },
+          {
+            "completed": false,
+            "text": "User campus access verification in guard"
+          },
+          {
+            "completed": false,
+            "text": "Campus ID available throughout request lifecycle"
+          },
+          {
+            "completed": false,
+            "text": "Clear error messages for missing/invalid campus"
+          },
+          {
+            "completed": false,
+            "text": "All campus-scoped controllers updated to use decorators"
+          },
+          {
+            "completed": false,
+            "text": "E2E tests for campus context scenarios"
+          }
+        ],
+        "implementationPlan": "1. Create campus decorator: src/infra/http/decorators/campus.decorator.ts\n   - @CampusContext() - Parameter decorator to extract campusId\n   - Reads from X-Campus-Id header\n   - Falls back to user's default campus if configured\n\n2. Create campus guard: src/infra/http/guards/campus.guard.ts\n   - Extract campusId from request header\n   - Validate campus exists and is active\n   - Verify user has at least one role in that campus\n   - Exception for global admins (campus_id = null roles)\n   - Attach campusId to request object\n\n3. Create @RequireCampusAccess() decorator\n   - Combines with UseGuards(CampusGuard)\n   - Makes it easy to apply to controllers/routes\n\n4. Create request context helper: src/infra/http/context/campus-context.ts\n   - Helper to get/set current campus in request\n   - Consider AsyncLocalStorage for deep access\n\n5. Update existing guards: src/infra/http/guards/roles.guard.ts\n   - Check roles within current campus context\n   - Global roles (campus_id = null) should pass for any campus\n\n6. Create interceptor (optional): src/infra/http/interceptors/campus.interceptor.ts\n   - Add campus context to response headers\n   - Log campus context for auditing\n\n7. Update all campus-scoped controllers:\n   - Add @RequireCampusAccess() at controller level\n   - Use @CampusContext() to extract campusId\n   - Pass campusId to use cases\n\n8. Add E2E tests:\n   - Request with valid X-Campus-Id header\n   - Request without header (should fail)\n   - Request with invalid campus ID\n   - Request to campus user has no access to\n   - Global admin accessing any campus"
+      }
+    }
+  ]
+}

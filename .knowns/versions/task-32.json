@@ -1,0 +1,66 @@
+{
+  "taskId": "32",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "32",
+      "version": 1,
+      "timestamp": "2026-01-09T03:11:55.456Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create use cases in src/application/content-management/use-cases/reaction/:\n   a. TogglePostReactionUseCase:\n      - Inject PostReactionRepository, PostRepository\n      - Validate post exists and is published\n      - Check if user already reacted\n      - If exists: delete and return {hearted: false, count: count-1}\n      - If not exists: create and return {hearted: true, count: count+1}\n   b. GetPostReactionCountUseCase:\n      - Return count from repository\n   c. GetPostReactionStatusUseCase:\n      - Check if current user has reacted\n      - Return {hearted: boolean, count: number}\n2. Create DTOs in src/infra/http/dtos/content-management/reaction/:\n   - PostReactionResponse: hearted (boolean), count (number)\n3. Add endpoints to PostController:\n   - POST /posts/:id/heart - toggle (requires auth)\n   - GET /posts/:id/heart - get status (requires auth for hearted, public for count)\n4. Extract user from ClerkAuthGuard context\n5. Handle unauthorized access (return count only, hearted=null)\n6. Add repository binding to module"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Reactions Feature - Heart toggle use case and API",
+        "description": "Implement Heart reaction feature for posts.\n\n**Context:**\n- Only HEART reaction type (simplified from PRD)\n- One reaction per user per post (toggle behavior)\n- Count reactions per post\n- Follow existing use case patterns\n- Reference: @doc/patterns/use-case-pattern\n\n**Use Cases:**\n1. TogglePostReactionUseCase - creates if not exists, deletes if exists\n2. GetPostReactionCountUseCase - returns count\n3. GetPostReactionStatusUseCase - returns if current user has reacted\n\n**API Endpoints:**\n- POST /posts/:id/heart - toggle reaction\n- GET /posts/:id/heart - get reaction status and count",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "reactions",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "TogglePostReactionUseCase creates reaction if not exists"
+          },
+          {
+            "completed": false,
+            "text": "TogglePostReactionUseCase deletes reaction if exists (toggle)"
+          },
+          {
+            "completed": false,
+            "text": "TogglePostReactionUseCase returns new state (hearted: boolean, count: number)"
+          },
+          {
+            "completed": false,
+            "text": "GetPostReactionCountUseCase returns total heart count"
+          },
+          {
+            "completed": false,
+            "text": "GetPostReactionStatusUseCase returns current user reaction status"
+          },
+          {
+            "completed": false,
+            "text": "API endpoints added to PostController"
+          },
+          {
+            "completed": false,
+            "text": "Response DTO created (PostReactionResponse with hearted, count)"
+          },
+          {
+            "completed": false,
+            "text": "Proper user context extraction from auth"
+          }
+        ],
+        "implementationPlan": "1. Create use cases in src/application/content-management/use-cases/reaction/:\n   a. TogglePostReactionUseCase:\n      - Inject PostReactionRepository, PostRepository\n      - Validate post exists and is published\n      - Check if user already reacted\n      - If exists: delete and return {hearted: false, count: count-1}\n      - If not exists: create and return {hearted: true, count: count+1}\n   b. GetPostReactionCountUseCase:\n      - Return count from repository\n   c. GetPostReactionStatusUseCase:\n      - Check if current user has reacted\n      - Return {hearted: boolean, count: number}\n2. Create DTOs in src/infra/http/dtos/content-management/reaction/:\n   - PostReactionResponse: hearted (boolean), count (number)\n3. Add endpoints to PostController:\n   - POST /posts/:id/heart - toggle (requires auth)\n   - GET /posts/:id/heart - get status (requires auth for hearted, public for count)\n4. Extract user from ClerkAuthGuard context\n5. Handle unauthorized access (return count only, hearted=null)\n6. Add repository binding to module"
+      }
+    }
+  ]
+}

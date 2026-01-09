@@ -1,0 +1,74 @@
+{
+  "taskId": "34",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "34",
+      "version": 1,
+      "timestamp": "2026-01-09T03:12:55.042Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create use cases in src/application/content-management/use-cases/approval/:\n   a. SubmitPostForApprovalUseCase:\n      - Inject PostRepository, PostApprovalRequestRepository, CampusSettingRepository\n      - Validate post is in DRAFT status\n      - Check campus setting requireTeacherApproval\n      - If approval not required, skip to APPROVED status\n      - Create PostApprovalRequest with:\n        - titleSnapshot: post.title\n        - contentSnapshot: post.content (JSON)\n        - status: PENDING\n        - submittedById, submittedAt\n      - Transition post to PENDING_APPROVAL\n      - Save both and return\n   b. ApprovePostUseCase:\n      - Validate caller is admin\n      - Find latest pending approval request\n      - Update request: status=APPROVED, reviewedById, reviewedAt\n      - Transition post to APPROVED status\n      - Save both and return\n   c. RejectPostUseCase:\n      - Validate caller is admin\n      - Validate reviewNote is provided\n      - Find latest pending approval request\n      - Update request: status=REJECTED, reviewedById, reviewedAt, reviewNote\n      - Transition post back to DRAFT\n      - Save both and return\n   d. GetPendingApprovalsUseCase:\n      - Validate caller is admin\n      - Query pending requests with post details\n      - Filter by campusId\n      - Return paginated list\n   e. GetPostApprovalHistoryUseCase:\n      - Find all requests for post\n      - Return chronological list\n2. Create DTOs:\n   - SubmitForApprovalResponse: postId, requestId, status\n   - ApprovePostRequest: note? (optional)\n   - RejectPostRequest: note (required)\n   - ApprovalRequestResponse: id, postId, status, submittedBy, reviewedBy, reviewNote, titleSnapshot, createdAt\n   - PendingApprovalResponse: request info + post summary\n3. Add endpoints to PostController:\n   - POST /posts/:id/submit\n   - POST /posts/:id/approve\n   - POST /posts/:id/reject\n   - GET /posts/pending-approval\n   - GET /posts/:id/approval-history\n4. Add permission checks (admin guard for approve/reject)\n5. Add repository bindings"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Approval Workflow - Separate approval request tracking",
+        "description": "Implement enhanced approval workflow with separate request tracking.\n\n**Context:**\n- Teachers submit posts for admin approval\n- Each submission creates PostApprovalRequest with content snapshot\n- Supports multiple rounds (reject -> edit -> resubmit)\n- Campus setting controls if approval is required\n- Reference: @doc/prds/post-and-content-management\n\n**Use Cases:**\n1. SubmitPostForApprovalUseCase - create approval request with snapshot\n2. ApprovePostUseCase - approve and transition post status\n3. RejectPostUseCase - reject with required reason\n4. GetPendingApprovalsUseCase - list pending for admin\n5. GetPostApprovalHistoryUseCase - get all approval requests for a post\n\n**API Endpoints:**\n- POST /posts/:id/submit - submit for approval\n- POST /posts/:id/approve - approve (admin)\n- POST /posts/:id/reject - reject with reason (admin)\n- GET /posts/pending-approval - list pending (admin)\n- GET /posts/:id/approval-history - get approval history",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "approval",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "SubmitPostForApprovalUseCase creates request with title/content snapshot"
+          },
+          {
+            "completed": false,
+            "text": "SubmitPostForApprovalUseCase transitions post to PENDING_APPROVAL status"
+          },
+          {
+            "completed": false,
+            "text": "ApprovePostUseCase validates admin permission"
+          },
+          {
+            "completed": false,
+            "text": "ApprovePostUseCase updates request status and transitions post to APPROVED"
+          },
+          {
+            "completed": false,
+            "text": "RejectPostUseCase requires reviewNote"
+          },
+          {
+            "completed": false,
+            "text": "RejectPostUseCase transitions post back to DRAFT for editing"
+          },
+          {
+            "completed": false,
+            "text": "GetPendingApprovalsUseCase returns paginated list scoped to campus"
+          },
+          {
+            "completed": false,
+            "text": "Multiple approval rounds supported (full history preserved)"
+          },
+          {
+            "completed": false,
+            "text": "Campus setting checked for requireTeacherApproval"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created"
+          }
+        ],
+        "implementationPlan": "1. Create use cases in src/application/content-management/use-cases/approval/:\n   a. SubmitPostForApprovalUseCase:\n      - Inject PostRepository, PostApprovalRequestRepository, CampusSettingRepository\n      - Validate post is in DRAFT status\n      - Check campus setting requireTeacherApproval\n      - If approval not required, skip to APPROVED status\n      - Create PostApprovalRequest with:\n        - titleSnapshot: post.title\n        - contentSnapshot: post.content (JSON)\n        - status: PENDING\n        - submittedById, submittedAt\n      - Transition post to PENDING_APPROVAL\n      - Save both and return\n   b. ApprovePostUseCase:\n      - Validate caller is admin\n      - Find latest pending approval request\n      - Update request: status=APPROVED, reviewedById, reviewedAt\n      - Transition post to APPROVED status\n      - Save both and return\n   c. RejectPostUseCase:\n      - Validate caller is admin\n      - Validate reviewNote is provided\n      - Find latest pending approval request\n      - Update request: status=REJECTED, reviewedById, reviewedAt, reviewNote\n      - Transition post back to DRAFT\n      - Save both and return\n   d. GetPendingApprovalsUseCase:\n      - Validate caller is admin\n      - Query pending requests with post details\n      - Filter by campusId\n      - Return paginated list\n   e. GetPostApprovalHistoryUseCase:\n      - Find all requests for post\n      - Return chronological list\n2. Create DTOs:\n   - SubmitForApprovalResponse: postId, requestId, status\n   - ApprovePostRequest: note? (optional)\n   - RejectPostRequest: note (required)\n   - ApprovalRequestResponse: id, postId, status, submittedBy, reviewedBy, reviewNote, titleSnapshot, createdAt\n   - PendingApprovalResponse: request info + post summary\n3. Add endpoints to PostController:\n   - POST /posts/:id/submit\n   - POST /posts/:id/approve\n   - POST /posts/:id/reject\n   - GET /posts/pending-approval\n   - GET /posts/:id/approval-history\n4. Add permission checks (admin guard for approve/reject)\n5. Add repository bindings"
+      }
+    }
+  ]
+}

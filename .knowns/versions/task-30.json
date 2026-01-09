@@ -1,0 +1,65 @@
+{
+  "taskId": "30",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "30",
+      "version": 1,
+      "timestamp": "2026-01-09T03:11:44.961Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create PrismaPostCategoryRepository in src/infra/persistence/prisma/repositories/:\n   - Inject PrismaService, PrismaQueryService\n   - findById: findUnique with id\n   - findByCampusId: executeQuery with campus filter, include pagination\n   - findByNameInCampus: findFirst with campusId + name\n   - findActivesByCampusId: findMany with isActive=true, ordered by order\n   - save: create with mapper\n   - update: update with mapper\n   - delete: delete by id\n2. Create PrismaPostReactionRepository:\n   - findByPostAndUser: findUnique with composite key\n   - countByPost: count with postId filter\n   - findUsersByPost: findMany select userId\n   - save: create with mapper\n   - delete: delete with composite key\n3. Create PrismaPostCommentRepository:\n   - findById: findUnique with user relation\n   - findByPostId: executeQuery with postId filter, ordered by createdAt\n   - findRootCommentsByPostId: findMany where parentCommentId=null\n   - findRepliesByCommentId: findMany where parentCommentId=id\n   - countByPost: count with postId and isDeleted=false\n   - save: create with mapper\n   - update: update with mapper\n   - softDelete: update isDeleted=true, deletedAt, deletedById\n4. Create PrismaPostApprovalRequestRepository:\n   - findById: findUnique with submitter/reviewer relations\n   - findByPostId: findMany ordered by submittedAt desc\n   - findLatestByPostId: findFirst ordered by submittedAt desc\n   - findPendingByCampus: join with Post, filter status=PENDING\n   - save: create with mapper\n   - update: update with mapper\n5. Create PrismaCampusSettingRepository:\n   - findByCampusId: findUnique\n   - save: create (upsert pattern)\n   - update: update\n6. Add @Injectable() to all repositories\n7. Export from index.ts"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Infrastructure - Create Prisma repository implementations",
+        "description": "Create Prisma repository implementations for new Post & CMS entities.\n\n**Context:**\n- Implement abstract repository ports created in task-28\n- Follow existing patterns (see PrismaStaffRepository, PrismaGuardianRepository)\n- Use PrismaQueryService for pagination/filtering\n- Inject via module providers\n- Reference: @doc/patterns/repository-pattern\n\n**Repositories to Create:**\n1. PrismaPostCategoryRepository\n2. PrismaPostReactionRepository\n3. PrismaPostCommentRepository (handle tree queries)\n4. PrismaPostApprovalRequestRepository\n5. PrismaCampusSettingRepository",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "infrastructure",
+          "repository",
+          "phase-3"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "PrismaPostCategoryRepository implements all port methods with proper Prisma queries"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostReactionRepository implements toggle pattern (upsert/delete)"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostCommentRepository implements tree queries for nested comments"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostApprovalRequestRepository implements pending queue queries"
+          },
+          {
+            "completed": false,
+            "text": "PrismaCampusSettingRepository implements upsert pattern"
+          },
+          {
+            "completed": false,
+            "text": "All repositories use mappers for domain conversion"
+          },
+          {
+            "completed": false,
+            "text": "Proper field whitelisting for filter/sort operations"
+          },
+          {
+            "completed": false,
+            "text": "All repositories are @Injectable()"
+          }
+        ],
+        "implementationPlan": "1. Create PrismaPostCategoryRepository in src/infra/persistence/prisma/repositories/:\n   - Inject PrismaService, PrismaQueryService\n   - findById: findUnique with id\n   - findByCampusId: executeQuery with campus filter, include pagination\n   - findByNameInCampus: findFirst with campusId + name\n   - findActivesByCampusId: findMany with isActive=true, ordered by order\n   - save: create with mapper\n   - update: update with mapper\n   - delete: delete by id\n2. Create PrismaPostReactionRepository:\n   - findByPostAndUser: findUnique with composite key\n   - countByPost: count with postId filter\n   - findUsersByPost: findMany select userId\n   - save: create with mapper\n   - delete: delete with composite key\n3. Create PrismaPostCommentRepository:\n   - findById: findUnique with user relation\n   - findByPostId: executeQuery with postId filter, ordered by createdAt\n   - findRootCommentsByPostId: findMany where parentCommentId=null\n   - findRepliesByCommentId: findMany where parentCommentId=id\n   - countByPost: count with postId and isDeleted=false\n   - save: create with mapper\n   - update: update with mapper\n   - softDelete: update isDeleted=true, deletedAt, deletedById\n4. Create PrismaPostApprovalRequestRepository:\n   - findById: findUnique with submitter/reviewer relations\n   - findByPostId: findMany ordered by submittedAt desc\n   - findLatestByPostId: findFirst ordered by submittedAt desc\n   - findPendingByCampus: join with Post, filter status=PENDING\n   - save: create with mapper\n   - update: update with mapper\n5. Create PrismaCampusSettingRepository:\n   - findByCampusId: findUnique\n   - save: create (upsert pattern)\n   - update: update\n6. Add @Injectable() to all repositories\n7. Export from index.ts"
+      }
+    }
+  ]
+}

@@ -17,7 +17,8 @@
     "visibleColumns": [
       "todo",
       "in-progress",
-      "done"
+      "done",
+      "on-hold"
     ],
     "statusColors": {
       "todo": "gray",

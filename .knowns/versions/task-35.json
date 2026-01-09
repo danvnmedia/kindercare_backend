@@ -1,0 +1,70 @@
+{
+  "taskId": "35",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "35",
+      "version": 1,
+      "timestamp": "2026-01-09T03:12:56.540Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create use cases in src/application/content-management/use-cases/pin/:\n   a. PinPostUseCase:\n      - Inject PostRepository, CampusSettingRepository\n      - Validate caller is admin\n      - Validate post is PUBLISHED\n      - Get campus setting for maxPinnedPosts\n      - Count current pinned posts (not expired)\n      - If count >= max, return 400 with message\n      - Call post.pin(pinnedById, pinnedUntil) entity method\n      - Save and return\n   b. UnpinPostUseCase:\n      - Validate caller is admin\n      - Validate post is currently pinned\n      - Call post.unpin() entity method\n      - Save and return\n   c. GetPinnedPostsUseCase:\n      - Query posts where isPinned=true AND (pinnedUntil is null OR pinnedUntil > now)\n      - Filter by campusId\n      - Order by pinnedAt or createdAt\n      - Return list\n2. Update Post entity:\n   - Add pin(pinnedById, pinnedUntil?) method\n   - Add unpin() method\n   - Add isPinnedAndActive() check method\n3. Update ListPostsUseCase:\n   - Modify query to return pinned posts first\n   - Add isPinned to response\n4. Create DTOs:\n   - PinPostRequest: pinnedUntil? (optional DateTime)\n   - PinnedPostResponse: extends PostResponse with isPinned, pinnedUntil, pinnedBy\n5. Add endpoints to PostController:\n   - POST /posts/:id/pin\n   - DELETE /posts/:id/pin\n   - GET /posts/pinned\n6. Add admin permission guard for pin/unpin operations"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Pinning Feature - Pin posts to top of feed",
+        "description": "Implement post pinning feature for campus admins.\n\n**Context:**\n- Only admin can pin/unpin posts\n- Maximum 3 pinned posts per campus (configurable in CampusSetting)\n- Optional expiration date for pins\n- Pinned posts appear at top of feed\n- Reference: @doc/prds/post-and-content-management\n\n**Use Cases:**\n1. PinPostUseCase - pin post with optional expiration\n2. UnpinPostUseCase - unpin post\n3. GetPinnedPostsUseCase - list pinned posts for campus\n\n**API Endpoints:**\n- POST /posts/:id/pin - pin post (admin)\n- DELETE /posts/:id/pin - unpin post (admin)\n- GET /posts/pinned - list pinned posts\n\n**Feed Integration:**\n- Update ListPostsUseCase to return pinned posts first",
+        "status": "todo",
+        "priority": "low",
+        "labels": [
+          "post",
+          "pinning",
+          "use-case",
+          "controller",
+          "phase-5"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "PinPostUseCase validates admin permission"
+          },
+          {
+            "completed": false,
+            "text": "PinPostUseCase checks max pinned limit from CampusSetting"
+          },
+          {
+            "completed": false,
+            "text": "PinPostUseCase returns 400 if limit exceeded with helpful message"
+          },
+          {
+            "completed": false,
+            "text": "PinPostUseCase sets isPinned, pinnedUntil, pinnedById"
+          },
+          {
+            "completed": false,
+            "text": "UnpinPostUseCase clears pinning fields"
+          },
+          {
+            "completed": false,
+            "text": "GetPinnedPostsUseCase returns active pinned posts (not expired)"
+          },
+          {
+            "completed": false,
+            "text": "ListPostsUseCase updated to return pinned posts first in feed"
+          },
+          {
+            "completed": false,
+            "text": "Expired pins automatically excluded from pinned list"
+          },
+          {
+            "completed": false,
+            "text": "Request DTO allows optional pinnedUntil date"
+          }
+        ],
+        "implementationPlan": "1. Create use cases in src/application/content-management/use-cases/pin/:\n   a. PinPostUseCase:\n      - Inject PostRepository, CampusSettingRepository\n      - Validate caller is admin\n      - Validate post is PUBLISHED\n      - Get campus setting for maxPinnedPosts\n      - Count current pinned posts (not expired)\n      - If count >= max, return 400 with message\n      - Call post.pin(pinnedById, pinnedUntil) entity method\n      - Save and return\n   b. UnpinPostUseCase:\n      - Validate caller is admin\n      - Validate post is currently pinned\n      - Call post.unpin() entity method\n      - Save and return\n   c. GetPinnedPostsUseCase:\n      - Query posts where isPinned=true AND (pinnedUntil is null OR pinnedUntil > now)\n      - Filter by campusId\n      - Order by pinnedAt or createdAt\n      - Return list\n2. Update Post entity:\n   - Add pin(pinnedById, pinnedUntil?) method\n   - Add unpin() method\n   - Add isPinnedAndActive() check method\n3. Update ListPostsUseCase:\n   - Modify query to return pinned posts first\n   - Add isPinned to response\n4. Create DTOs:\n   - PinPostRequest: pinnedUntil? (optional DateTime)\n   - PinnedPostResponse: extends PostResponse with isPinned, pinnedUntil, pinnedBy\n5. Add endpoints to PostController:\n   - POST /posts/:id/pin\n   - DELETE /posts/:id/pin\n   - GET /posts/pinned\n6. Add admin permission guard for pin/unpin operations"
+      }
+    }
+  ]
+}

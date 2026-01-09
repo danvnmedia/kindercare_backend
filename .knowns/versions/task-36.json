@@ -1,0 +1,58 @@
+{
+  "taskId": "36",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "36",
+      "version": 1,
+      "timestamp": "2026-01-09T03:13:47.050Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create use cases in src/application/content-management/use-cases/settings/:\n   a. GetCampusSettingUseCase:\n      - Inject CampusSettingRepository\n      - Find by campusId\n      - If not exists, create default:\n        - requireTeacherApproval: true\n        - maxPinnedPosts: 3\n        - allowParentComments: true\n        - allowReactions: true\n      - Return settings\n   b. UpdateCampusSettingUseCase:\n      - Validate caller is admin\n      - Get existing settings (or create default)\n      - Update only provided fields via entity method\n      - Save and return\n2. Create DTOs in src/infra/http/dtos/content-management/settings/:\n   - UpdateCampusSettingRequest: all fields optional\n   - CampusSettingResponse: all fields\n3. Create CampusSettingController:\n   - GET /campus-settings - get (with x-campus-id header)\n   - PATCH /campus-settings - update (admin only)\n4. Add admin guard to PATCH endpoint\n5. Integrate with other features:\n   - SubmitPostForApprovalUseCase checks requireTeacherApproval\n   - CreatePostCommentUseCase checks allowParentComments\n   - TogglePostReactionUseCase checks allowReactions\n   - PinPostUseCase checks maxPinnedPosts\n6. Add repository binding to module"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Campus Settings - Configuration for post features",
+        "description": "Implement campus-level settings for Post & CMS features.\n\n**Context:**\n- Each campus can configure post-related settings\n- Settings control: approval requirement, max pinned posts, comments, reactions\n- Admin-only management\n- Reference: @doc/prds/post-and-content-management\n\n**Settings:**\n- requireTeacherApproval: boolean (default true)\n- maxPinnedPosts: number (default 3)\n- allowParentComments: boolean (default true)\n- allowReactions: boolean (default true)\n\n**Use Cases:**\n1. GetCampusSettingUseCase - get settings for campus (create default if not exists)\n2. UpdateCampusSettingUseCase - update settings\n\n**API Endpoints:**\n- GET /campus-settings - get current campus settings\n- PATCH /campus-settings - update settings (admin)",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "settings",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GetCampusSettingUseCase returns existing or creates default settings"
+          },
+          {
+            "completed": false,
+            "text": "UpdateCampusSettingUseCase validates admin permission"
+          },
+          {
+            "completed": false,
+            "text": "UpdateCampusSettingUseCase updates only provided fields"
+          },
+          {
+            "completed": false,
+            "text": "Settings used by other use cases (approval, comments, reactions, pinning)"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created"
+          },
+          {
+            "completed": false,
+            "text": "Admin guard on update endpoint"
+          }
+        ],
+        "implementationPlan": "1. Create use cases in src/application/content-management/use-cases/settings/:\n   a. GetCampusSettingUseCase:\n      - Inject CampusSettingRepository\n      - Find by campusId\n      - If not exists, create default:\n        - requireTeacherApproval: true\n        - maxPinnedPosts: 3\n        - allowParentComments: true\n        - allowReactions: true\n      - Return settings\n   b. UpdateCampusSettingUseCase:\n      - Validate caller is admin\n      - Get existing settings (or create default)\n      - Update only provided fields via entity method\n      - Save and return\n2. Create DTOs in src/infra/http/dtos/content-management/settings/:\n   - UpdateCampusSettingRequest: all fields optional\n   - CampusSettingResponse: all fields\n3. Create CampusSettingController:\n   - GET /campus-settings - get (with x-campus-id header)\n   - PATCH /campus-settings - update (admin only)\n4. Add admin guard to PATCH endpoint\n5. Integrate with other features:\n   - SubmitPostForApprovalUseCase checks requireTeacherApproval\n   - CreatePostCommentUseCase checks allowParentComments\n   - TogglePostReactionUseCase checks allowReactions\n   - PinPostUseCase checks maxPinnedPosts\n6. Add repository binding to module"
+      }
+    }
+  ]
+}

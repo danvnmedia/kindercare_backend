@@ -1,0 +1,65 @@
+{
+  "taskId": "38",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "38",
+      "version": 1,
+      "timestamp": "2026-01-09T03:13:50.357Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Update src/infra/http/modules/content-management.module.ts:\n   a. Add repository bindings:\n      - { provide: 'POST_CATEGORY_REPOSITORY', useClass: PrismaPostCategoryRepository }\n      - { provide: 'POST_REACTION_REPOSITORY', useClass: PrismaPostReactionRepository }\n      - { provide: 'POST_COMMENT_REPOSITORY', useClass: PrismaPostCommentRepository }\n      - { provide: 'POST_APPROVAL_REQUEST_REPOSITORY', useClass: PrismaPostApprovalRequestRepository }\n      - { provide: 'CAMPUS_SETTING_REPOSITORY', useClass: PrismaCampusSettingRepository }\n   b. Add use case providers:\n      - All category use cases\n      - All reaction use cases\n      - All comment use cases\n      - All approval use cases\n      - All pinning use cases\n      - All settings use cases\n   c. Add controllers:\n      - PostCategoryController\n      - CommentController (or extend PostController)\n      - CampusSettingController\n2. Export repositories that may be needed by other modules\n3. Ensure PrismaModule is imported\n4. Ensure AuthModule is imported (for guards)\n5. Test module compilation:\n   - npm run build\n   - Check for circular dependency warnings\n   - Verify all @Inject tokens resolve\n6. Test API endpoints:\n   - Swagger docs accessible\n   - Each endpoint returns expected structure\n   - Error handling works correctly\n7. Add missing imports/exports to barrel files"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Module Integration and Dependency Wiring",
+        "description": "Wire up all new components in NestJS modules with proper dependency injection.\n\n**Context:**\n- All new repositories, use cases need module bindings\n- Follow existing module patterns (see UserManagementModule, ClassManagementModule)\n- Ensure proper exports for cross-module usage\n- Reference: @doc/patterns/module-pattern\n\n**Tasks:**\n1. Update ContentManagementModule with new providers\n2. Add repository bindings with string tokens\n3. Export necessary repositories\n4. Create new controllers or add to existing\n5. Ensure all dependencies resolve correctly",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "module",
+          "integration",
+          "phase-5"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "All new repositories bound with @Inject tokens"
+          },
+          {
+            "completed": false,
+            "text": "All new use cases registered as providers"
+          },
+          {
+            "completed": false,
+            "text": "PostCategoryController added to module"
+          },
+          {
+            "completed": false,
+            "text": "CommentController added (or endpoints in PostController)"
+          },
+          {
+            "completed": false,
+            "text": "CampusSettingController added"
+          },
+          {
+            "completed": false,
+            "text": "Module compiles without errors"
+          },
+          {
+            "completed": false,
+            "text": "All endpoints accessible and return proper responses"
+          },
+          {
+            "completed": false,
+            "text": "Swagger documentation generated correctly"
+          }
+        ],
+        "implementationPlan": "1. Update src/infra/http/modules/content-management.module.ts:\n   a. Add repository bindings:\n      - { provide: 'POST_CATEGORY_REPOSITORY', useClass: PrismaPostCategoryRepository }\n      - { provide: 'POST_REACTION_REPOSITORY', useClass: PrismaPostReactionRepository }\n      - { provide: 'POST_COMMENT_REPOSITORY', useClass: PrismaPostCommentRepository }\n      - { provide: 'POST_APPROVAL_REQUEST_REPOSITORY', useClass: PrismaPostApprovalRequestRepository }\n      - { provide: 'CAMPUS_SETTING_REPOSITORY', useClass: PrismaCampusSettingRepository }\n   b. Add use case providers:\n      - All category use cases\n      - All reaction use cases\n      - All comment use cases\n      - All approval use cases\n      - All pinning use cases\n      - All settings use cases\n   c. Add controllers:\n      - PostCategoryController\n      - CommentController (or extend PostController)\n      - CampusSettingController\n2. Export repositories that may be needed by other modules\n3. Ensure PrismaModule is imported\n4. Ensure AuthModule is imported (for guards)\n5. Test module compilation:\n   - npm run build\n   - Check for circular dependency warnings\n   - Verify all @Inject tokens resolve\n6. Test API endpoints:\n   - Swagger docs accessible\n   - Each endpoint returns expected structure\n   - Error handling works correctly\n7. Add missing imports/exports to barrel files"
+      }
+    }
+  ]
+}

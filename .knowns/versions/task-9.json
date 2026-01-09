@@ -1,0 +1,408 @@
+{
+  "taskId": "9",
+  "currentVersion": 5,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "9",
+      "version": 1,
+      "timestamp": "2026-01-06T04:38:02.034Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "1. Create domain entity: src/domain/campus/entities/campus.entity.ts\n   - Extend Entity base class\n   - Properties: name, address, phoneNumber, isActive\n   - Factory method with validation\n   - Domain methods: update(), activate(), deactivate()\n\n2. Create repository port: src/application/campus/ports/campus.repository.ts\n   - Define abstract class with standard CRUD methods\n   - Add exists(id) method for validation\n\n3. Create use cases: src/application/campus/use-cases/\n   - create-campus.use-case.ts\n   - get-campus-by-id.use-case.ts  \n   - get-all-campuses.use-case.ts\n   - update-campus.use-case.ts\n   - delete-campus.use-case.ts (soft delete via isActive)\n\n4. Create Prisma mapper: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n   - toDomain(), toPrisma(), toPrismaUpdate()\n\n5. Create Prisma repository: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n   - Implement CampusRepository port\n   - Use PrismaQueryService for filtering\n\n6. Create DTOs: src/infra/http/dtos/campus/\n   - create-campus.request.ts (validation decorators)\n   - update-campus.request.ts\n   - campus.response.ts (@Expose decorators)\n\n7. Create controller: src/infra/http/controllers/campus.controller.ts\n   - CRUD endpoints with @StandardResponse\n\n8. Create module: src/infra/http/modules/campus.module.ts\n   - Register all providers\n   - Add to HttpModule imports\n\n9. Write unit tests for entity and use cases"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 2.1: Create Campus Domain Module",
+        "description": "Create the Campus domain module following clean architecture patterns established in the codebase.\n\nDepends on @task-8 (Prisma schema must be migrated first).\nSee @doc/migrations/multi-campus-migration for context.\nSee @doc/patterns/entity-pattern for entity patterns.\nSee @doc/patterns/repository-pattern for repository patterns.\n\n## Domain Layer\n\n### Entity: Campus\n**File**: src/domain/campus/entities/campus.entity.ts\n- Properties: name, address, phoneNumber, isActive\n- Factory method: Campus.create(props, id?)\n- Domain methods: update(), activate(), deactivate()\n- Validation: name required, phoneNumber E.164 format\n\n### Value Objects (if needed)\n- Consider PhoneNumber value object reuse\n\n## Application Layer\n\n### Repository Port\n**File**: src/application/campus/ports/campus.repository.ts\n- findById(id): Promise<Campus | null>\n- findByName(name): Promise<Campus | null>\n- findAll(params: StandardRequest): Promise<PaginatedResult<Campus>>\n- save(campus: Campus): Promise<Campus>\n- update(campus: Campus): Promise<Campus>\n- delete(id: string): Promise<void>\n- exists(id: string): Promise<boolean>\n\n### Use Cases\n**Files**: src/application/campus/use-cases/\n- create-campus.use-case.ts\n- get-campus-by-id.use-case.ts\n- get-all-campuses.use-case.ts\n- update-campus.use-case.ts\n- delete-campus.use-case.ts (soft delete via isActive=false)\n\n## Infrastructure Layer\n\n### Prisma Repository\n**File**: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n- Implements CampusRepository port\n- Uses PrismaQueryService for filtering/pagination\n\n### Mapper\n**File**: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- toDomain(), toPrisma(), toPrismaUpdate()\n\n## HTTP Layer\n\n### Controller\n**File**: src/infra/http/controllers/campus.controller.ts\n- POST /campuses - Create campus\n- GET /campuses - List campuses\n- GET /campuses/:id - Get campus\n- PATCH /campuses/:id - Update campus\n- DELETE /campuses/:id - Deactivate campus\n\n### DTOs\n**Files**: src/infra/http/dtos/campus/\n- create-campus.request.ts\n- update-campus.request.ts\n- campus.response.ts\n\n### Module\n**File**: src/infra/http/modules/campus.module.ts\n- Register controller, use cases, repository",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "domain",
+          "campus",
+          "clean-architecture",
+          "phase-2"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus entity created with proper validation and domain methods"
+          },
+          {
+            "completed": false,
+            "text": "CampusRepository port interface defined"
+          },
+          {
+            "completed": false,
+            "text": "All 5 use cases created (CRUD + list)"
+          },
+          {
+            "completed": false,
+            "text": "Prisma repository implementation created"
+          },
+          {
+            "completed": false,
+            "text": "Prisma mapper created with all mapping methods"
+          },
+          {
+            "completed": false,
+            "text": "Controller created with all endpoints"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": false,
+            "text": "CampusModule configured and registered in HttpModule"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests created for entity and use cases"
+          }
+        ],
+        "implementationPlan": "1. Create domain entity: src/domain/campus/entities/campus.entity.ts\n   - Extend Entity base class\n   - Properties: name, address, phoneNumber, isActive\n   - Factory method with validation\n   - Domain methods: update(), activate(), deactivate()\n\n2. Create repository port: src/application/campus/ports/campus.repository.ts\n   - Define abstract class with standard CRUD methods\n   - Add exists(id) method for validation\n\n3. Create use cases: src/application/campus/use-cases/\n   - create-campus.use-case.ts\n   - get-campus-by-id.use-case.ts  \n   - get-all-campuses.use-case.ts\n   - update-campus.use-case.ts\n   - delete-campus.use-case.ts (soft delete via isActive)\n\n4. Create Prisma mapper: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n   - toDomain(), toPrisma(), toPrismaUpdate()\n\n5. Create Prisma repository: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n   - Implement CampusRepository port\n   - Use PrismaQueryService for filtering\n\n6. Create DTOs: src/infra/http/dtos/campus/\n   - create-campus.request.ts (validation decorators)\n   - update-campus.request.ts\n   - campus.response.ts (@Expose decorators)\n\n7. Create controller: src/infra/http/controllers/campus.controller.ts\n   - CRUD endpoints with @StandardResponse\n\n8. Create module: src/infra/http/modules/campus.module.ts\n   - Register all providers\n   - Add to HttpModule imports\n\n9. Write unit tests for entity and use cases"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "9",
+      "version": 2,
+      "timestamp": "2026-01-06T22:27:16.221Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 2.1: Create Campus Domain Module",
+        "description": "Create the Campus domain module following clean architecture patterns established in the codebase.\n\nDepends on @task-8 (Prisma schema must be migrated first).\nSee @doc/migrations/multi-campus-migration for context.\nSee @doc/patterns/entity-pattern for entity patterns.\nSee @doc/patterns/repository-pattern for repository patterns.\n\n## Domain Layer\n\n### Entity: Campus\n**File**: src/domain/campus/entities/campus.entity.ts\n- Properties: name, address, phoneNumber, isActive\n- Factory method: Campus.create(props, id?)\n- Domain methods: update(), activate(), deactivate()\n- Validation: name required, phoneNumber E.164 format\n\n### Value Objects (if needed)\n- Consider PhoneNumber value object reuse\n\n## Application Layer\n\n### Repository Port\n**File**: src/application/campus/ports/campus.repository.ts\n- findById(id): Promise<Campus | null>\n- findByName(name): Promise<Campus | null>\n- findAll(params: StandardRequest): Promise<PaginatedResult<Campus>>\n- save(campus: Campus): Promise<Campus>\n- update(campus: Campus): Promise<Campus>\n- delete(id: string): Promise<void>\n- exists(id: string): Promise<boolean>\n\n### Use Cases\n**Files**: src/application/campus/use-cases/\n- create-campus.use-case.ts\n- get-campus-by-id.use-case.ts\n- get-all-campuses.use-case.ts\n- update-campus.use-case.ts\n- delete-campus.use-case.ts (soft delete via isActive=false)\n\n## Infrastructure Layer\n\n### Prisma Repository\n**File**: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n- Implements CampusRepository port\n- Uses PrismaQueryService for filtering/pagination\n\n### Mapper\n**File**: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- toDomain(), toPrisma(), toPrismaUpdate()\n\n## HTTP Layer\n\n### Controller\n**File**: src/infra/http/controllers/campus.controller.ts\n- POST /campuses - Create campus\n- GET /campuses - List campuses\n- GET /campuses/:id - Get campus\n- PATCH /campuses/:id - Update campus\n- DELETE /campuses/:id - Deactivate campus\n\n### DTOs\n**Files**: src/infra/http/dtos/campus/\n- create-campus.request.ts\n- update-campus.request.ts\n- campus.response.ts\n\n### Module\n**File**: src/infra/http/modules/campus.module.ts\n- Register controller, use cases, repository",
+        "status": "in-progress",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "domain",
+          "campus",
+          "clean-architecture",
+          "phase-2"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus entity created with proper validation and domain methods"
+          },
+          {
+            "completed": false,
+            "text": "CampusRepository port interface defined"
+          },
+          {
+            "completed": false,
+            "text": "All 5 use cases created (CRUD + list)"
+          },
+          {
+            "completed": false,
+            "text": "Prisma repository implementation created"
+          },
+          {
+            "completed": false,
+            "text": "Prisma mapper created with all mapping methods"
+          },
+          {
+            "completed": false,
+            "text": "Controller created with all endpoints"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": false,
+            "text": "CampusModule configured and registered in HttpModule"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests created for entity and use cases"
+          }
+        ],
+        "implementationPlan": "1. Create domain entity: src/domain/campus/entities/campus.entity.ts\n   - Extend Entity base class\n   - Properties: name, address, phoneNumber, isActive\n   - Factory method with validation\n   - Domain methods: update(), activate(), deactivate()\n\n2. Create repository port: src/application/campus/ports/campus.repository.ts\n   - Define abstract class with standard CRUD methods\n   - Add exists(id) method for validation\n\n3. Create use cases: src/application/campus/use-cases/\n   - create-campus.use-case.ts\n   - get-campus-by-id.use-case.ts  \n   - get-all-campuses.use-case.ts\n   - update-campus.use-case.ts\n   - delete-campus.use-case.ts (soft delete via isActive)\n\n4. Create Prisma mapper: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n   - toDomain(), toPrisma(), toPrismaUpdate()\n\n5. Create Prisma repository: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n   - Implement CampusRepository port\n   - Use PrismaQueryService for filtering\n\n6. Create DTOs: src/infra/http/dtos/campus/\n   - create-campus.request.ts (validation decorators)\n   - update-campus.request.ts\n   - campus.response.ts (@Expose decorators)\n\n7. Create controller: src/infra/http/controllers/campus.controller.ts\n   - CRUD endpoints with @StandardResponse\n\n8. Create module: src/infra/http/modules/campus.module.ts\n   - Register all providers\n   - Add to HttpModule imports\n\n9. Write unit tests for entity and use cases"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "9",
+      "version": 3,
+      "timestamp": "2026-01-06T23:12:15.705Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Campus entity created with proper validation and domain methods"
+            },
+            {
+              "completed": false,
+              "text": "CampusRepository port interface defined"
+            },
+            {
+              "completed": false,
+              "text": "All 5 use cases created (CRUD + list)"
+            },
+            {
+              "completed": false,
+              "text": "Prisma repository implementation created"
+            },
+            {
+              "completed": false,
+              "text": "Prisma mapper created with all mapping methods"
+            },
+            {
+              "completed": false,
+              "text": "Controller created with all endpoints"
+            },
+            {
+              "completed": false,
+              "text": "Request/Response DTOs created with validation"
+            },
+            {
+              "completed": false,
+              "text": "CampusModule configured and registered in HttpModule"
+            },
+            {
+              "completed": false,
+              "text": "Unit tests created for entity and use cases"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "Campus entity created with proper validation and domain methods"
+            },
+            {
+              "completed": true,
+              "text": "CampusRepository port interface defined"
+            },
+            {
+              "completed": true,
+              "text": "All 5 use cases created (CRUD + list)"
+            },
+            {
+              "completed": true,
+              "text": "Prisma repository implementation created"
+            },
+            {
+              "completed": true,
+              "text": "Prisma mapper created with all mapping methods"
+            },
+            {
+              "completed": true,
+              "text": "Controller created with all endpoints"
+            },
+            {
+              "completed": true,
+              "text": "Request/Response DTOs created with validation"
+            },
+            {
+              "completed": true,
+              "text": "CampusModule configured and registered in HttpModule"
+            },
+            {
+              "completed": true,
+              "text": "Unit tests created for entity and use cases"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 2.1: Create Campus Domain Module",
+        "description": "Create the Campus domain module following clean architecture patterns established in the codebase.\n\nDepends on @task-8 (Prisma schema must be migrated first).\nSee @doc/migrations/multi-campus-migration for context.\nSee @doc/patterns/entity-pattern for entity patterns.\nSee @doc/patterns/repository-pattern for repository patterns.\n\n## Domain Layer\n\n### Entity: Campus\n**File**: src/domain/campus/entities/campus.entity.ts\n- Properties: name, address, phoneNumber, isActive\n- Factory method: Campus.create(props, id?)\n- Domain methods: update(), activate(), deactivate()\n- Validation: name required, phoneNumber E.164 format\n\n### Value Objects (if needed)\n- Consider PhoneNumber value object reuse\n\n## Application Layer\n\n### Repository Port\n**File**: src/application/campus/ports/campus.repository.ts\n- findById(id): Promise<Campus | null>\n- findByName(name): Promise<Campus | null>\n- findAll(params: StandardRequest): Promise<PaginatedResult<Campus>>\n- save(campus: Campus): Promise<Campus>\n- update(campus: Campus): Promise<Campus>\n- delete(id: string): Promise<void>\n- exists(id: string): Promise<boolean>\n\n### Use Cases\n**Files**: src/application/campus/use-cases/\n- create-campus.use-case.ts\n- get-campus-by-id.use-case.ts\n- get-all-campuses.use-case.ts\n- update-campus.use-case.ts\n- delete-campus.use-case.ts (soft delete via isActive=false)\n\n## Infrastructure Layer\n\n### Prisma Repository\n**File**: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n- Implements CampusRepository port\n- Uses PrismaQueryService for filtering/pagination\n\n### Mapper\n**File**: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- toDomain(), toPrisma(), toPrismaUpdate()\n\n## HTTP Layer\n\n### Controller\n**File**: src/infra/http/controllers/campus.controller.ts\n- POST /campuses - Create campus\n- GET /campuses - List campuses\n- GET /campuses/:id - Get campus\n- PATCH /campuses/:id - Update campus\n- DELETE /campuses/:id - Deactivate campus\n\n### DTOs\n**Files**: src/infra/http/dtos/campus/\n- create-campus.request.ts\n- update-campus.request.ts\n- campus.response.ts\n\n### Module\n**File**: src/infra/http/modules/campus.module.ts\n- Register controller, use cases, repository",
+        "status": "in-progress",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "domain",
+          "campus",
+          "clean-architecture",
+          "phase-2"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus entity created with proper validation and domain methods"
+          },
+          {
+            "completed": true,
+            "text": "CampusRepository port interface defined"
+          },
+          {
+            "completed": true,
+            "text": "All 5 use cases created (CRUD + list)"
+          },
+          {
+            "completed": true,
+            "text": "Prisma repository implementation created"
+          },
+          {
+            "completed": true,
+            "text": "Prisma mapper created with all mapping methods"
+          },
+          {
+            "completed": true,
+            "text": "Controller created with all endpoints"
+          },
+          {
+            "completed": true,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": true,
+            "text": "CampusModule configured and registered in HttpModule"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests created for entity and use cases"
+          }
+        ],
+        "implementationPlan": "1. Create domain entity: src/domain/campus/entities/campus.entity.ts\n   - Extend Entity base class\n   - Properties: name, address, phoneNumber, isActive\n   - Factory method with validation\n   - Domain methods: update(), activate(), deactivate()\n\n2. Create repository port: src/application/campus/ports/campus.repository.ts\n   - Define abstract class with standard CRUD methods\n   - Add exists(id) method for validation\n\n3. Create use cases: src/application/campus/use-cases/\n   - create-campus.use-case.ts\n   - get-campus-by-id.use-case.ts  \n   - get-all-campuses.use-case.ts\n   - update-campus.use-case.ts\n   - delete-campus.use-case.ts (soft delete via isActive)\n\n4. Create Prisma mapper: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n   - toDomain(), toPrisma(), toPrismaUpdate()\n\n5. Create Prisma repository: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n   - Implement CampusRepository port\n   - Use PrismaQueryService for filtering\n\n6. Create DTOs: src/infra/http/dtos/campus/\n   - create-campus.request.ts (validation decorators)\n   - update-campus.request.ts\n   - campus.response.ts (@Expose decorators)\n\n7. Create controller: src/infra/http/controllers/campus.controller.ts\n   - CRUD endpoints with @StandardResponse\n\n8. Create module: src/infra/http/modules/campus.module.ts\n   - Register all providers\n   - Add to HttpModule imports\n\n9. Write unit tests for entity and use cases"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "9",
+      "version": 4,
+      "timestamp": "2026-01-06T23:12:37.206Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Summary\nCreated the Campus domain module following clean architecture patterns established in the codebase.\n\n## Files Created\n\n### Domain Layer\n- src/domain/campus/entities/campus.entity.ts\n  - Props: name, address, phoneNumber, isActive, createdAt, updatedAt\n  - Factory method with validation (name required, phoneNumber E.164 format)\n  - Domain methods: update(), activate(), deactivate()\n\n### Application Layer\n- src/application/campus/ports/campus.repository.ts\n  - Abstract class with standard CRUD methods\n  - findById, findByName, findAll (paginated), save, update, delete, exists\n\n- src/application/campus/use-cases/\n  - create-campus.use-case.ts (with name uniqueness check)\n  - get-campus-by-id.use-case.ts\n  - get-all-campuses.use-case.ts (paginated)\n  - update-campus.use-case.ts (with name uniqueness check)\n  - delete-campus.use-case.ts (soft delete via isActive=false)\n\n### Infrastructure Layer\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n  - toDomain, toPrisma, toPrismaUpdate, toDomainArray\n\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n  - Uses PrismaQueryService for filtering/pagination\n  - Allowed filters: name, address, phoneNumber, isActive\n\n### HTTP Layer\n- src/infra/http/dtos/campus/\n  - create-campus.request.ts (validation decorators)\n  - update-campus.request.ts\n  - campus.response.ts (@Expose decorators)\n\n- src/infra/http/controllers/campus.controller.ts\n  - POST /campuses - Create campus\n  - GET /campuses - List campuses (paginated)\n  - GET /campuses/:id - Get by ID\n  - PATCH /campuses/:id - Update\n  - DELETE /campuses/:id - Deactivate (soft delete)\n\n- src/infra/http/modules/campus.module.ts\n  - Exports CAMPUS_REPOSITORY for other modules\n\n### Tests (40 tests passing)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/*.spec.ts\n\n## Configuration Changes\n- Updated package.json jest config with moduleNameMapper for @/ path alias\n- Registered CampusModule in HttpModule"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 2.1: Create Campus Domain Module",
+        "description": "Create the Campus domain module following clean architecture patterns established in the codebase.\n\nDepends on @task-8 (Prisma schema must be migrated first).\nSee @doc/migrations/multi-campus-migration for context.\nSee @doc/patterns/entity-pattern for entity patterns.\nSee @doc/patterns/repository-pattern for repository patterns.\n\n## Domain Layer\n\n### Entity: Campus\n**File**: src/domain/campus/entities/campus.entity.ts\n- Properties: name, address, phoneNumber, isActive\n- Factory method: Campus.create(props, id?)\n- Domain methods: update(), activate(), deactivate()\n- Validation: name required, phoneNumber E.164 format\n\n### Value Objects (if needed)\n- Consider PhoneNumber value object reuse\n\n## Application Layer\n\n### Repository Port\n**File**: src/application/campus/ports/campus.repository.ts\n- findById(id): Promise<Campus | null>\n- findByName(name): Promise<Campus | null>\n- findAll(params: StandardRequest): Promise<PaginatedResult<Campus>>\n- save(campus: Campus): Promise<Campus>\n- update(campus: Campus): Promise<Campus>\n- delete(id: string): Promise<void>\n- exists(id: string): Promise<boolean>\n\n### Use Cases\n**Files**: src/application/campus/use-cases/\n- create-campus.use-case.ts\n- get-campus-by-id.use-case.ts\n- get-all-campuses.use-case.ts\n- update-campus.use-case.ts\n- delete-campus.use-case.ts (soft delete via isActive=false)\n\n## Infrastructure Layer\n\n### Prisma Repository\n**File**: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n- Implements CampusRepository port\n- Uses PrismaQueryService for filtering/pagination\n\n### Mapper\n**File**: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- toDomain(), toPrisma(), toPrismaUpdate()\n\n## HTTP Layer\n\n### Controller\n**File**: src/infra/http/controllers/campus.controller.ts\n- POST /campuses - Create campus\n- GET /campuses - List campuses\n- GET /campuses/:id - Get campus\n- PATCH /campuses/:id - Update campus\n- DELETE /campuses/:id - Deactivate campus\n\n### DTOs\n**Files**: src/infra/http/dtos/campus/\n- create-campus.request.ts\n- update-campus.request.ts\n- campus.response.ts\n\n### Module\n**File**: src/infra/http/modules/campus.module.ts\n- Register controller, use cases, repository",
+        "status": "in-progress",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "domain",
+          "campus",
+          "clean-architecture",
+          "phase-2"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus entity created with proper validation and domain methods"
+          },
+          {
+            "completed": true,
+            "text": "CampusRepository port interface defined"
+          },
+          {
+            "completed": true,
+            "text": "All 5 use cases created (CRUD + list)"
+          },
+          {
+            "completed": true,
+            "text": "Prisma repository implementation created"
+          },
+          {
+            "completed": true,
+            "text": "Prisma mapper created with all mapping methods"
+          },
+          {
+            "completed": true,
+            "text": "Controller created with all endpoints"
+          },
+          {
+            "completed": true,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": true,
+            "text": "CampusModule configured and registered in HttpModule"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests created for entity and use cases"
+          }
+        ],
+        "implementationPlan": "1. Create domain entity: src/domain/campus/entities/campus.entity.ts\n   - Extend Entity base class\n   - Properties: name, address, phoneNumber, isActive\n   - Factory method with validation\n   - Domain methods: update(), activate(), deactivate()\n\n2. Create repository port: src/application/campus/ports/campus.repository.ts\n   - Define abstract class with standard CRUD methods\n   - Add exists(id) method for validation\n\n3. Create use cases: src/application/campus/use-cases/\n   - create-campus.use-case.ts\n   - get-campus-by-id.use-case.ts  \n   - get-all-campuses.use-case.ts\n   - update-campus.use-case.ts\n   - delete-campus.use-case.ts (soft delete via isActive)\n\n4. Create Prisma mapper: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n   - toDomain(), toPrisma(), toPrismaUpdate()\n\n5. Create Prisma repository: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n   - Implement CampusRepository port\n   - Use PrismaQueryService for filtering\n\n6. Create DTOs: src/infra/http/dtos/campus/\n   - create-campus.request.ts (validation decorators)\n   - update-campus.request.ts\n   - campus.response.ts (@Expose decorators)\n\n7. Create controller: src/infra/http/controllers/campus.controller.ts\n   - CRUD endpoints with @StandardResponse\n\n8. Create module: src/infra/http/modules/campus.module.ts\n   - Register all providers\n   - Add to HttpModule imports\n\n9. Write unit tests for entity and use cases",
+        "implementationNotes": "## Summary\nCreated the Campus domain module following clean architecture patterns established in the codebase.\n\n## Files Created\n\n### Domain Layer\n- src/domain/campus/entities/campus.entity.ts\n  - Props: name, address, phoneNumber, isActive, createdAt, updatedAt\n  - Factory method with validation (name required, phoneNumber E.164 format)\n  - Domain methods: update(), activate(), deactivate()\n\n### Application Layer\n- src/application/campus/ports/campus.repository.ts\n  - Abstract class with standard CRUD methods\n  - findById, findByName, findAll (paginated), save, update, delete, exists\n\n- src/application/campus/use-cases/\n  - create-campus.use-case.ts (with name uniqueness check)\n  - get-campus-by-id.use-case.ts\n  - get-all-campuses.use-case.ts (paginated)\n  - update-campus.use-case.ts (with name uniqueness check)\n  - delete-campus.use-case.ts (soft delete via isActive=false)\n\n### Infrastructure Layer\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n  - toDomain, toPrisma, toPrismaUpdate, toDomainArray\n\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n  - Uses PrismaQueryService for filtering/pagination\n  - Allowed filters: name, address, phoneNumber, isActive\n\n### HTTP Layer\n- src/infra/http/dtos/campus/\n  - create-campus.request.ts (validation decorators)\n  - update-campus.request.ts\n  - campus.response.ts (@Expose decorators)\n\n- src/infra/http/controllers/campus.controller.ts\n  - POST /campuses - Create campus\n  - GET /campuses - List campuses (paginated)\n  - GET /campuses/:id - Get by ID\n  - PATCH /campuses/:id - Update\n  - DELETE /campuses/:id - Deactivate (soft delete)\n\n- src/infra/http/modules/campus.module.ts\n  - Exports CAMPUS_REPOSITORY for other modules\n\n### Tests (40 tests passing)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/*.spec.ts\n\n## Configuration Changes\n- Updated package.json jest config with moduleNameMapper for @/ path alias\n- Registered CampusModule in HttpModule"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "9",
+      "version": 5,
+      "timestamp": "2026-01-06T23:12:40.560Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 2.1: Create Campus Domain Module",
+        "description": "Create the Campus domain module following clean architecture patterns established in the codebase.\n\nDepends on @task-8 (Prisma schema must be migrated first).\nSee @doc/migrations/multi-campus-migration for context.\nSee @doc/patterns/entity-pattern for entity patterns.\nSee @doc/patterns/repository-pattern for repository patterns.\n\n## Domain Layer\n\n### Entity: Campus\n**File**: src/domain/campus/entities/campus.entity.ts\n- Properties: name, address, phoneNumber, isActive\n- Factory method: Campus.create(props, id?)\n- Domain methods: update(), activate(), deactivate()\n- Validation: name required, phoneNumber E.164 format\n\n### Value Objects (if needed)\n- Consider PhoneNumber value object reuse\n\n## Application Layer\n\n### Repository Port\n**File**: src/application/campus/ports/campus.repository.ts\n- findById(id): Promise<Campus | null>\n- findByName(name): Promise<Campus | null>\n- findAll(params: StandardRequest): Promise<PaginatedResult<Campus>>\n- save(campus: Campus): Promise<Campus>\n- update(campus: Campus): Promise<Campus>\n- delete(id: string): Promise<void>\n- exists(id: string): Promise<boolean>\n\n### Use Cases\n**Files**: src/application/campus/use-cases/\n- create-campus.use-case.ts\n- get-campus-by-id.use-case.ts\n- get-all-campuses.use-case.ts\n- update-campus.use-case.ts\n- delete-campus.use-case.ts (soft delete via isActive=false)\n\n## Infrastructure Layer\n\n### Prisma Repository\n**File**: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n- Implements CampusRepository port\n- Uses PrismaQueryService for filtering/pagination\n\n### Mapper\n**File**: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- toDomain(), toPrisma(), toPrismaUpdate()\n\n## HTTP Layer\n\n### Controller\n**File**: src/infra/http/controllers/campus.controller.ts\n- POST /campuses - Create campus\n- GET /campuses - List campuses\n- GET /campuses/:id - Get campus\n- PATCH /campuses/:id - Update campus\n- DELETE /campuses/:id - Deactivate campus\n\n### DTOs\n**Files**: src/infra/http/dtos/campus/\n- create-campus.request.ts\n- update-campus.request.ts\n- campus.response.ts\n\n### Module\n**File**: src/infra/http/modules/campus.module.ts\n- Register controller, use cases, repository",
+        "status": "done",
+        "priority": "high",
+        "assignee": "@me",
+        "labels": [
+          "domain",
+          "campus",
+          "clean-architecture",
+          "phase-2"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus entity created with proper validation and domain methods"
+          },
+          {
+            "completed": true,
+            "text": "CampusRepository port interface defined"
+          },
+          {
+            "completed": true,
+            "text": "All 5 use cases created (CRUD + list)"
+          },
+          {
+            "completed": true,
+            "text": "Prisma repository implementation created"
+          },
+          {
+            "completed": true,
+            "text": "Prisma mapper created with all mapping methods"
+          },
+          {
+            "completed": true,
+            "text": "Controller created with all endpoints"
+          },
+          {
+            "completed": true,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": true,
+            "text": "CampusModule configured and registered in HttpModule"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests created for entity and use cases"
+          }
+        ],
+        "implementationPlan": "1. Create domain entity: src/domain/campus/entities/campus.entity.ts\n   - Extend Entity base class\n   - Properties: name, address, phoneNumber, isActive\n   - Factory method with validation\n   - Domain methods: update(), activate(), deactivate()\n\n2. Create repository port: src/application/campus/ports/campus.repository.ts\n   - Define abstract class with standard CRUD methods\n   - Add exists(id) method for validation\n\n3. Create use cases: src/application/campus/use-cases/\n   - create-campus.use-case.ts\n   - get-campus-by-id.use-case.ts  \n   - get-all-campuses.use-case.ts\n   - update-campus.use-case.ts\n   - delete-campus.use-case.ts (soft delete via isActive)\n\n4. Create Prisma mapper: src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n   - toDomain(), toPrisma(), toPrismaUpdate()\n\n5. Create Prisma repository: src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n   - Implement CampusRepository port\n   - Use PrismaQueryService for filtering\n\n6. Create DTOs: src/infra/http/dtos/campus/\n   - create-campus.request.ts (validation decorators)\n   - update-campus.request.ts\n   - campus.response.ts (@Expose decorators)\n\n7. Create controller: src/infra/http/controllers/campus.controller.ts\n   - CRUD endpoints with @StandardResponse\n\n8. Create module: src/infra/http/modules/campus.module.ts\n   - Register all providers\n   - Add to HttpModule imports\n\n9. Write unit tests for entity and use cases",
+        "implementationNotes": "## Summary\nCreated the Campus domain module following clean architecture patterns established in the codebase.\n\n## Files Created\n\n### Domain Layer\n- src/domain/campus/entities/campus.entity.ts\n  - Props: name, address, phoneNumber, isActive, createdAt, updatedAt\n  - Factory method with validation (name required, phoneNumber E.164 format)\n  - Domain methods: update(), activate(), deactivate()\n\n### Application Layer\n- src/application/campus/ports/campus.repository.ts\n  - Abstract class with standard CRUD methods\n  - findById, findByName, findAll (paginated), save, update, delete, exists\n\n- src/application/campus/use-cases/\n  - create-campus.use-case.ts (with name uniqueness check)\n  - get-campus-by-id.use-case.ts\n  - get-all-campuses.use-case.ts (paginated)\n  - update-campus.use-case.ts (with name uniqueness check)\n  - delete-campus.use-case.ts (soft delete via isActive=false)\n\n### Infrastructure Layer\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n  - toDomain, toPrisma, toPrismaUpdate, toDomainArray\n\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts\n  - Uses PrismaQueryService for filtering/pagination\n  - Allowed filters: name, address, phoneNumber, isActive\n\n### HTTP Layer\n- src/infra/http/dtos/campus/\n  - create-campus.request.ts (validation decorators)\n  - update-campus.request.ts\n  - campus.response.ts (@Expose decorators)\n\n- src/infra/http/controllers/campus.controller.ts\n  - POST /campuses - Create campus\n  - GET /campuses - List campuses (paginated)\n  - GET /campuses/:id - Get by ID\n  - PATCH /campuses/:id - Update\n  - DELETE /campuses/:id - Deactivate (soft delete)\n\n- src/infra/http/modules/campus.module.ts\n  - Exports CAMPUS_REPOSITORY for other modules\n\n### Tests (40 tests passing)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/*.spec.ts\n\n## Configuration Changes\n- Updated package.json jest config with moduleNameMapper for @/ path alias\n- Registered CampusModule in HttpModule"
+      }
+    }
+  ]
+}
