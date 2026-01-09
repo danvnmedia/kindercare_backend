@@ -10,14 +10,62 @@ datasource db {
 }
 
 // ==========================================
+// CAMPUS (ROOT ENTITY)
+// ==========================================
+
+model Campus {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  address     String?
+  phoneNumber String? @map("phone_number")
+  isActive    Boolean @default(true) @map("is_active")
+
+  // Relations - RBAC
+  roles                Role[]
+  userRoles            UserRole[]
+  staffTypes           StaffType[]
+  studentCodeSequences StudentCodeSequence[]
+
+  // Relations - Profiles
+  staff     Staff[]
+  guardians Guardian[]
+  students  Student[]
+
+  // Relations - Academic
+  gradeLevels        GradeLevel[]
+  subjects           Subject[]
+  schoolYears        SchoolYear[]
+  classes            Class[]
+  studentAttendances StudentAttendance[]
+
+  // Relations - Content
+  posts          Post[]
+  postAudiences  PostAudience[]
+  postCategories PostCategory[]
+  files          File[]
+
+  // Settings (one-to-one)
+  campusSetting CampusSetting?
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("campus")
+}
+
+// ==========================================
 // SEQUENCE TABLES
 // ==========================================
 
 model StudentCodeSequence {
-  year       Int      @id
+  campusId   String   @map("campus_id") @db.Uuid
+  year       Int
   lastNumber Int      @default(0) @map("last_number")
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  @@id([campusId, year])
   @@map("student_code_sequence")
 }
 
@@ -35,18 +83,77 @@ model GuardianRelationship {
   @@map("guardian_relationship")
 }
 
-model Role {
-  id          String  @id @db.Text
-  name        String  @unique
-  description String?
-  permissions Json
+// ==========================================
+// ACCESS CONTROL (RBAC)
+// ==========================================
 
-  userRoles UserRole[]
+model Permission {
+  id          String  @id @db.Text
+  module      String
+  description String?
+
+  rolePermissions RolePermission[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([module])
+  @@map("permission")
+}
+
+model Role {
+  id              String  @id @default(uuid()) @db.Uuid
+  campusId        String? @map("campus_id") @db.Uuid
+  name            String
+  description     String?
+  isSystemDefault Boolean @default(false) @map("is_system_default")
+  permissions     Json    @default("{}") // Deprecated: Use RolePermission instead
+
+  campus          Campus?          @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+  staffTypes      StaffType[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([campusId, name])
+  @@index([campusId])
   @@map("role")
+}
+
+model RolePermission {
+  roleId       String @map("role_id") @db.Uuid
+  permissionId String @map("permission_id") @db.Text
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permission")
+}
+
+model StaffType {
+  id            String  @id @default(uuid()) @db.Uuid
+  campusId      String  @map("campus_id") @db.Uuid
+  name          String
+  description   String?
+  defaultRoleId String? @map("default_role_id") @db.Uuid
+  isActive      Boolean @default(true) @map("is_active")
+
+  campus      Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  defaultRole Role?   @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
+  staff       Staff[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([campusId, name])
+  @@index([campusId])
+  @@index([defaultRoleId])
+  @@map("staff_type")
 }
 
 // ==========================================
@@ -58,18 +165,32 @@ model User {
   clerkUid String  @unique @map("clerk_uid")
   isActive Boolean @default(true) @map("is_active")
 
-  // User can be either Guardian or Staff
-  guardian Guardian?
-  staff    Staff?
+  // User can have Guardian and/or Staff profiles at multiple campuses
+  guardians Guardian[]
+  staffs    Staff[]
 
   // Authorization
   userRoles UserRole[]
 
-  // Content Management
-  posts             Post[]
-  postHistories     PostHistory[]
-  postStatusChanges PostHistoryStatus[]
-  uploadedFiles     File[]
+  // Content Management - Posts
+  posts       Post[]
+  pinnedPosts Post[] @relation("PinnedPosts")
+
+  // Content Management - History & Audit
+  postEdits         PostHistory[]       @relation("PostEdits")
+  postStatusChanges PostHistoryStatus[] @relation("PostStatusChanges")
+
+  // Content Management - Engagement
+  postReactions   PostReaction[] @relation("PostReactions")
+  postComments    PostComment[]  @relation("PostComments")
+  deletedComments PostComment[]  @relation("DeletedComments")
+
+  // Content Management - Approval
+  postApprovalSubmissions PostApprovalRequest[] @relation("PostApprovalSubmissions")
+  postApprovalReviews     PostApprovalRequest[] @relation("PostApprovalReviews")
+
+  // Files
+  uploadedFiles File[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -79,14 +200,23 @@ model User {
 }
 
 model UserRole {
+  id String @id @default(uuid()) @db.Uuid
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @map("user_id") @db.Uuid
 
   role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId String @map("role_id") @db.Text
+  roleId String @map("role_id") @db.Uuid
 
-  @@id([userId, roleId])
+  campus   Campus? @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  campusId String? @map("campus_id") @db.Uuid
+
+  assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  @@unique([userId, roleId, campusId])
+  @@index([userId])
   @@index([roleId])
+  @@index([campusId])
   @@map("user_roles")
 }
 
@@ -96,7 +226,7 @@ model UserRole {
 
 model Student {
   id          String    @id @default(uuid()) @db.Uuid
-  studentCode String    @unique @map("student_code")
+  studentCode String    @map("student_code")
   fullName    String    @map("full_name")
   email       String?   @db.Citext
   phoneNumber String?   @map("phone_number")
@@ -106,6 +236,10 @@ model Student {
   gender      String?
   status      String    @default("WAITING") // DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED
   isArchived  Boolean   @default(false) @map("is_archived")
+
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
   // Guardians relationship
   guardians GuardianStudent[]
@@ -118,6 +252,10 @@ model Student {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Campus-scoped unique constraint
+  @@unique([campusId, studentCode])
+  // Indexes
+  @@index([campusId])
   @@index([email])
   @@index([phoneNumber])
   @@index([status])
@@ -128,16 +266,24 @@ model Student {
 model Staff {
   id          String    @id @default(uuid()) @db.Uuid
   fullName    String    @map("full_name")
-  email       String    @unique @db.Citext
-  phoneNumber String    @unique @map("phone_number")
+  email       String    @db.Citext
+  phoneNumber String    @map("phone_number")
   address     String?
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
   startDate   DateTime? @map("start_date") @db.Date
-  staffType   String    @default("TEACHER") @map("staff_type")
   isArchived  Boolean   @default(false) @map("is_archived")
 
-  userId String? @unique @map("user_id") @db.Uuid
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  // Staff type (replaces staffType text field)
+  staffTypeId String?    @map("staff_type_id") @db.Uuid
+  staffType   StaffType? @relation(fields: [staffTypeId], references: [id], onDelete: SetNull)
+
+  // User relationship
+  userId String? @map("user_id") @db.Uuid
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Staff class assignments
@@ -146,19 +292,22 @@ model Staff {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@index([email])
-  @@index([phoneNumber])
-  @@index([userId])
+  // Campus-scoped unique constraints
+  @@unique([campusId, email])
+  @@unique([campusId, phoneNumber])
+  @@unique([campusId, userId])
+  // Indexes
+  @@index([campusId])
+  @@index([staffTypeId])
   @@index([isArchived])
-  @@index([staffType])
   @@map("staff")
 }
 
 model Guardian {
   id          String    @id @default(uuid()) @db.Uuid
   fullName    String    @map("full_name")
-  email       String?   @unique @db.Citext
-  phoneNumber String    @unique @map("phone_number")
+  email       String?   @db.Citext
+  phoneNumber String    @map("phone_number")
   address     String?
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
@@ -166,13 +315,13 @@ model Guardian {
   workAddress String?   @map("work_address")
   isArchived  Boolean   @default(false) @map("is_archived")
 
-  userId String? @unique @map("user_id") @db.Uuid
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  // Spouse relationship
-  spouse   Guardian? @relation("SpouseRelation", fields: [spouseId], references: [id], onDelete: SetNull)
-  spouseId String?   @unique @map("spouse_id") @db.Uuid
-  spouseOf Guardian? @relation("SpouseRelation")
+  // User relationship
+  userId String? @map("user_id") @db.Uuid
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Children relationship
   children GuardianStudent[]
@@ -180,10 +329,12 @@ model Guardian {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@index([email])
-  @@index([phoneNumber])
-  @@index([userId])
-  @@index([spouseId])
+  // Campus-scoped unique constraints
+  @@unique([campusId, email])
+  @@unique([campusId, phoneNumber])
+  @@unique([campusId, userId])
+  // Indexes
+  @@index([campusId])
   @@index([isArchived])
   @@map("guardian")
 }
@@ -217,9 +368,13 @@ model GuardianStudent {
 
 model GradeLevel {
   id         String  @id @default(uuid()) @db.Uuid
-  name       String  @unique
-  order      Int     @unique
+  name       String
+  order      Int
   isArchived Boolean @default(false) @map("is_archived")
+
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
   classes       Class[]
   postAudiences PostAudience[]
@@ -227,34 +382,55 @@ model GradeLevel {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Campus-scoped unique constraints
+  @@unique([campusId, name])
+  @@unique([campusId, order])
+  // Indexes
+  @@index([campusId])
   @@index([isArchived])
   @@map("grade_level")
 }
 
 model Subject {
   id   String @id @default(uuid()) @db.Uuid
-  name String @unique
+  name String
+
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
   classes ClassStaff[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Campus-scoped unique constraint
+  @@unique([campusId, name])
+  // Indexes
+  @@index([campusId])
   @@map("subject")
 }
 
 model SchoolYear {
   id         String   @id @default(uuid()) @db.Uuid
-  name       String   @unique
+  name       String
   startDate  DateTime @map("start_date") @db.Date
   endDate    DateTime @map("end_date") @db.Date
   isArchived Boolean  @default(false) @map("is_archived")
+
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
   classes Class[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  // Campus-scoped unique constraint
+  @@unique([campusId, name])
+  // Indexes
+  @@index([campusId])
   @@index([isArchived])
   @@map("school_year")
 }
@@ -263,6 +439,10 @@ model Class {
   id          String  @id @default(uuid()) @db.Uuid
   name        String
   description String?
+
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
   gradeLevel   GradeLevel @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
   gradeLevelId String     @map("grade_level_id") @db.Uuid
@@ -277,7 +457,10 @@ model Class {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([schoolYearId, gradeLevelId, name])
+  // Campus-scoped unique constraint
+  @@unique([campusId, schoolYearId, gradeLevelId, name])
+  // Indexes
+  @@index([campusId])
   @@index([gradeLevelId])
   @@index([schoolYearId])
   @@map("class")
@@ -339,6 +522,10 @@ model StudentAttendance {
   reason     String?
   note       String?
 
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
 
@@ -346,6 +533,7 @@ model StudentAttendance {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([studentId, date])
+  @@index([campusId])
   @@index([classId])
   @@index([date])
   @@index([status])
@@ -357,68 +545,91 @@ model StudentAttendance {
 // ==========================================
 
 model Post {
-  id        String    @id @default(uuid()) @db.Uuid
-  authorId  String    @map("author_id") @db.Uuid
-  title     String
-  content   String?   @db.Text
-  status    String    @default("DRAFT")
-  publishAt DateTime? @map("publish_at") @db.Timestamptz(6)
+  id             String    @id @default(uuid()) @db.Uuid
+  authorId       String    @map("author_id") @db.Uuid
+  title          String
+  content        Json?
+  contentText    String?   @map("content_text") @db.Text
+  contentVersion Int       @default(1) @map("content_version")
+  status         String    @default("DRAFT")
+  publishAt      DateTime? @map("publish_at") @db.Timestamptz(6)
 
-  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  // Pinning fields
+  isPinned    Boolean   @default(false) @map("is_pinned")
+  pinnedUntil DateTime? @map("pinned_until") @db.Timestamptz(6)
+  pinnedById  String?   @map("pinned_by_id") @db.Uuid
 
-  history     PostHistory[]
-  statusLog   PostHistoryStatus[]
-  audiences   PostAudience[]
-  attachments Attachment[]
+  // Approval workflow
+  requiresApproval Boolean @default(true) @map("requires_approval")
+
+  // Soft delete
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  author   User  @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  pinnedBy User? @relation("PinnedPosts", fields: [pinnedById], references: [id], onDelete: SetNull)
+
+  history          PostHistory[]
+  statusLog        PostHistoryStatus[]
+  audiences        PostAudience[]
+  attachments      Attachment[]
+  categories       PostCategoryLink[]
+  reactions        PostReaction[]
+  comments         PostComment[]
+  approvalRequests PostApprovalRequest[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([campusId])
   @@index([authorId])
   @@index([status])
   @@index([publishAt])
   @@index([createdAt])
+  @@index([campusId, status, publishAt])
+  @@index([campusId, isPinned])
+  @@index([isDeleted])
   @@map("post")
 }
 
 model PostHistory {
-  id        String    @id @default(uuid()) @db.Uuid
-  postId    String    @map("post_id") @db.Uuid
-  authorId  String    @map("author_id") @db.Uuid
-  audience  String?
-  title     String
-  content   String?   @db.Text
-  status    String
-  publishAt DateTime? @map("publish_at") @db.Timestamptz(6)
+  id         String @id @default(uuid()) @db.Uuid
+  postId     String @map("post_id") @db.Uuid
+  editedById String @map("edited_by_id") @db.Uuid
+  title      String
+  content    Json?
 
-  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  editedBy User @relation("PostEdits", fields: [editedById], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([postId])
-  @@index([authorId])
+  @@index([editedById])
   @@index([createdAt])
   @@map("post_history")
 }
 
 model PostHistoryStatus {
-  id      String  @id @default(uuid()) @db.Uuid
-  postId  String  @map("post_id") @db.Uuid
-  userId  String  @map("user_id") @db.Uuid
-  status  String
-  comment String? @db.Text
+  id             String  @id @default(uuid()) @db.Uuid
+  postId         String  @map("post_id") @db.Uuid
+  changedById    String  @map("changed_by_id") @db.Uuid
+  previousStatus String? @map("previous_status")
+  newStatus      String  @map("new_status")
+  reason         String? @db.Text
 
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  post      Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  changedBy User @relation("PostStatusChanges", fields: [changedById], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([postId])
-  @@index([userId])
-  @@index([status])
+  @@index([changedById])
+  @@index([newStatus])
   @@index([createdAt])
   @@map("post_history_status")
 }
@@ -431,17 +642,151 @@ model PostAudience {
   studentId    String? @map("student_id") @db.Uuid
   gradeLevelId String? @map("grade_level_id") @db.Uuid
 
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
   post       Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
   class      Class?      @relation(fields: [classId], references: [id], onDelete: Cascade)
   student    Student?    @relation(fields: [studentId], references: [id], onDelete: Cascade)
   gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: Cascade)
 
+  @@index([campusId])
   @@index([postId])
   @@index([classId])
   @@index([studentId])
   @@index([gradeLevelId])
   @@index([type])
   @@map("post_audience")
+}
+
+model PostCategory {
+  id       String  @id @default(uuid()) @db.Uuid
+  campusId String  @map("campus_id") @db.Uuid
+  name     String
+  color    String
+  icon     String?
+  order    Int     @default(0)
+  isActive Boolean @default(true) @map("is_active")
+
+  campus Campus             @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  posts  PostCategoryLink[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([campusId, name])
+  @@index([campusId, isActive])
+  @@index([campusId, order])
+  @@map("post_category")
+}
+
+model PostCategoryLink {
+  postId     String @map("post_id") @db.Uuid
+  categoryId String @map("category_id") @db.Uuid
+
+  post     Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  category PostCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([postId, categoryId])
+  @@index([categoryId])
+  @@map("post_category_link")
+}
+
+model PostReaction {
+  id     String @id @default(uuid()) @db.Uuid
+  postId String @map("post_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation("PostReactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+  @@map("post_reaction")
+}
+
+model PostComment {
+  id              String  @id @default(uuid()) @db.Uuid
+  postId          String  @map("post_id") @db.Uuid
+  userId          String  @map("user_id") @db.Uuid
+  parentCommentId String? @map("parent_comment_id") @db.Uuid
+  depth           Int     @default(0)
+  content         String  @db.Text
+
+  // Soft delete
+  isDeleted   Boolean   @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedById String?   @map("deleted_by_id") @db.Uuid
+
+  post          Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user          User          @relation("PostComments", fields: [userId], references: [id], onDelete: Cascade)
+  parentComment PostComment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       PostComment[] @relation("CommentReplies")
+  deletedBy     User?         @relation("DeletedComments", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([postId, createdAt])
+  @@index([postId, parentCommentId])
+  @@index([parentCommentId])
+  @@index([userId])
+  @@index([isDeleted])
+  @@index([depth])
+  @@map("post_comment")
+}
+
+model PostApprovalRequest {
+  id     String @id @default(uuid()) @db.Uuid
+  postId String @map("post_id") @db.Uuid
+
+  // Submission
+  submittedById String   @map("submitted_by_id") @db.Uuid
+  submittedAt   DateTime @map("submitted_at") @db.Timestamptz(6)
+
+  // Review
+  status       String    @default("PENDING")
+  reviewedById String?   @map("reviewed_by_id") @db.Uuid
+  reviewedAt   DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote   String?   @map("review_note") @db.Text
+
+  // Snapshot of post content at submission time
+  titleSnapshot   String @map("title_snapshot")
+  contentSnapshot Json?  @map("content_snapshot")
+
+  post        Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  submittedBy User  @relation("PostApprovalSubmissions", fields: [submittedById], references: [id], onDelete: Restrict)
+  reviewedBy  User? @relation("PostApprovalReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([postId])
+  @@index([status, submittedAt])
+  @@index([submittedById])
+  @@index([reviewedById])
+  @@map("post_approval_request")
+}
+
+model CampusSetting {
+  id                     String  @id @default(uuid()) @db.Uuid
+  campusId               String  @unique @map("campus_id") @db.Uuid
+  requireTeacherApproval Boolean @default(true) @map("require_teacher_approval")
+  maxPinnedPosts         Int     @default(3) @map("max_pinned_posts")
+  allowParentComments    Boolean @default(true) @map("allow_parent_comments")
+  allowReactions         Boolean @default(true) @map("allow_reactions")
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("campus_setting")
 }
 
 // ==========================================
@@ -457,12 +802,17 @@ model File {
   status     String @default("PENDING")
   uploadedBy String @map("uploaded_by") @db.Uuid
 
+  // Campus scoping
+  campusId String @map("campus_id") @db.Uuid
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
   uploader    User         @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
   attachments Attachment[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([campusId])
   @@index([uploadedBy])
   @@index([status])
   @@index([createdAt])
