@@ -1,8 +1,15 @@
-import { User } from "../../../domain/user-management/user.entity";
+import {
+  User,
+  RoleAssignmentInput,
+} from "../../../domain/user-management/user.entity";
+import { Role } from "../../../domain/user-management/role.entity";
 import {
   PaginatedResult,
   QueryOptions,
 } from "@/core/modules/standard-response/dto/query.dto";
+
+// Re-export RoleAssignmentInput for consumers
+export { RoleAssignmentInput };
 
 export interface FindAllUsersParams extends QueryOptions {
   page?: number;
@@ -54,14 +61,29 @@ export abstract class UserRepository {
   abstract delete(id: string): Promise<void>;
 
   /**
-   * Assign roles to user
+   * Assign roles to user with campus context
+   *
+   * @param userId - The user to assign roles to
+   * @param roleAssignments - Array of role assignments, each with roleId and optional campusId
+   *   - campusId = undefined/null: Global assignment (role applies everywhere)
+   *   - campusId = string: Campus-specific assignment (role only applies in that campus)
    */
-  abstract assignRoles(userId: string, roleIds: string[]): Promise<void>;
+  abstract assignRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void>;
 
   /**
-   * Remove roles from user
+   * Remove roles from user with campus context
+   *
+   * @param userId - The user to remove roles from
+   * @param roleAssignments - Array of role assignments to remove
+   *   - Must match both roleId AND campusId to remove
    */
-  abstract removeRoles(userId: string, roleIds: string[]): Promise<void>;
+  abstract removeRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void>;
 
   /**
    * Get user roles (paginated)
@@ -71,4 +93,16 @@ export abstract class UserRepository {
     page: number,
     limit: number,
   ): Promise<any>;
+
+  /**
+   * Get user roles for a specific campus
+   * Returns roles assigned globally (campusId = null) + roles assigned to the specific campus
+   *
+   * @param userId - The user ID
+   * @param campusId - The campus to get roles for (null returns only global roles)
+   */
+  abstract getUserRolesForCampus(
+    userId: string,
+    campusId: string | null,
+  ): Promise<Role[]>;
 }

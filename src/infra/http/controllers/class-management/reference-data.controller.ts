@@ -6,8 +6,20 @@ import {
   Delete,
   Body,
   Param,
+  Query,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam } from "@nestjs/swagger";
+import {
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+  ApiQuery,
+  ApiHeader,
+} from "@nestjs/swagger";
+import {
+  CampusContext,
+  RequireCampusAccess,
+  CAMPUS_ID_HEADER,
+} from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
@@ -62,6 +74,7 @@ export class ReferenceDataController {
   // ==================== Grade Level Endpoints ====================
 
   @Get("grade-levels")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Grade levels retrieved successfully",
     type: GradeLevelResponse,
@@ -72,8 +85,17 @@ export class ReferenceDataController {
     description:
       "Retrieve all grade levels with pagination, filtering, and sorting. Supports filtering by name, order, isArchived. Default sort by order ascending.",
   })
-  async getGradeLevels(@StandardRequestParam() query: StandardRequestDto) {
-    return await this.getAllGradeLevelsUseCase.execute(query);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID to filter grade levels",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getGradeLevels(
+    @CampusContext() campusId: string,
+    @StandardRequestParam() query: StandardRequestDto,
+  ) {
+    return await this.getAllGradeLevelsUseCase.execute(campusId, query);
   }
 
   @Post("grade-levels")
@@ -148,6 +170,7 @@ export class ReferenceDataController {
   // ==================== School Year Endpoints ====================
 
   @Get("school-years")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "School years retrieved successfully",
     type: SchoolYearResponse,
@@ -158,8 +181,17 @@ export class ReferenceDataController {
     description:
       "Retrieve all school years with pagination, filtering, and sorting. Supports filtering by name, isArchived, startDate, endDate. Default sort by startDate descending.",
   })
-  async getSchoolYears(@StandardRequestParam() query: StandardRequestDto) {
-    return await this.getAllSchoolYearsUseCase.execute(query);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID to filter school years",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getSchoolYears(
+    @CampusContext() campusId: string,
+    @StandardRequestParam() query: StandardRequestDto,
+  ) {
+    return await this.getAllSchoolYearsUseCase.execute(campusId, query);
   }
 
   @Post("school-years")
@@ -174,6 +206,7 @@ export class ReferenceDataController {
   async createSchoolYear(@Body() dto: CreateSchoolYearRequest) {
     return await this.createSchoolYearUseCase.execute({
       name: dto.name,
+      campusId: dto.campusId,
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
       isArchived: dto.isArchived,
@@ -229,6 +262,7 @@ export class ReferenceDataController {
   // ==================== Subject Endpoints ====================
 
   @Get("subjects")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Subjects retrieved successfully",
     type: SubjectResponse,
@@ -238,7 +272,13 @@ export class ReferenceDataController {
     summary: "Get all subjects",
     description: "Retrieve all subjects ordered by name.",
   })
-  async getSubjects() {
-    return await this.getAllSubjectsUseCase.execute();
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID to filter subjects",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getSubjects(@CampusContext() campusId: string) {
+    return await this.getAllSubjectsUseCase.execute(campusId);
   }
 }

@@ -6,21 +6,55 @@ import { PostAudience } from "./post-audience.entity";
 import { Attachment } from "./attachment.entity";
 import { User } from "@/domain/user-management/user.entity";
 
+/**
+ * Maximum length for post title.
+ */
+export const MAX_POST_TITLE_LENGTH = 200;
+
+/**
+ * Content type for rich text content (Tiptap/ProseMirror JSON format).
+ */
+export type PostContent = Record<string, unknown> | null;
+
 export interface PostProps {
+  campusId: string;
   authorId: string;
   author?: User;
   title: string;
-  content: string | null;
+  content: PostContent;
+  contentText: string | null;
+  contentVersion: number;
   status: PostStatus;
   publishAt: Date | null;
+  // Pinning
+  isPinned: boolean;
+  pinnedUntil: Date | null;
+  pinnedById: string | null;
+  // Approval workflow
+  requiresApproval: boolean;
+  // Soft delete
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  // Relations
   audiences: PostAudience[];
   attachments: Attachment[];
   createdAt: Date;
   updatedAt: Date;
 }
 
+/**
+ * Data for updating a post.
+ */
+export type UpdatePostData = Partial<
+  Pick<PostProps, "title" | "content" | "contentText" | "publishAt">
+>;
+
 export class Post extends Entity<PostProps> {
   // --- Getters ---
+
+  get campusId(): string {
+    return this.props.campusId;
+  }
 
   get authorId(): string {
     return this.props.authorId;
@@ -34,8 +68,16 @@ export class Post extends Entity<PostProps> {
     return this.props.title;
   }
 
-  get content(): string | null {
+  get content(): PostContent {
     return this.props.content;
+  }
+
+  get contentText(): string | null {
+    return this.props.contentText;
+  }
+
+  get contentVersion(): number {
+    return this.props.contentVersion;
   }
 
   get status(): PostStatus {
@@ -44,6 +86,30 @@ export class Post extends Entity<PostProps> {
 
   get publishAt(): Date | null {
     return this.props.publishAt;
+  }
+
+  get isPinned(): boolean {
+    return this.props.isPinned;
+  }
+
+  get pinnedUntil(): Date | null {
+    return this.props.pinnedUntil;
+  }
+
+  get pinnedById(): string | null {
+    return this.props.pinnedById;
+  }
+
+  get requiresApproval(): boolean {
+    return this.props.requiresApproval;
+  }
+
+  get isDeleted(): boolean {
+    return this.props.isDeleted;
+  }
+
+  get deletedAt(): Date | null {
+    return this.props.deletedAt;
   }
 
   get audiences(): PostAudience[] {
@@ -71,19 +137,38 @@ export class Post extends Entity<PostProps> {
     if (!title || title.trim().length === 0) {
       throw new Error("Post title cannot be empty");
     }
-    if (title.length > 500) {
-      throw new Error("Post title cannot exceed 500 characters");
+    if (title.length > MAX_POST_TITLE_LENGTH) {
+      throw new Error(
+        `Post title cannot exceed ${MAX_POST_TITLE_LENGTH} characters`,
+      );
     }
     this.props.title = title.trim();
+    this.incrementContentVersion();
     this.touch();
   }
 
   /**
-   * Update post content
+   * Update post content (JSON format) and optional plain text for search.
+   * @param content - The rich text content in JSON format.
+   * @param contentText - The plain text version for full-text search.
    */
-  public updateContent(content: string | null): void {
+  public updateContent(
+    content: PostContent,
+    contentText?: string | null,
+  ): void {
     this.props.content = content;
+    if (contentText !== undefined) {
+      this.props.contentText = contentText;
+    }
+    this.incrementContentVersion();
     this.touch();
+  }
+
+  /**
+   * Increments the content version for tracking edits.
+   */
+  private incrementContentVersion(): void {
+    this.props.contentVersion += 1;
   }
 
   /**
@@ -91,6 +176,9 @@ export class Post extends Entity<PostProps> {
    * Only draft posts can be published
    */
   public publish(publishAt?: Date): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot publish a deleted post");
+    }
     if (this.props.status !== PostStatus.DRAFT) {
       throw new Error(
         `Cannot publish post with status ${this.props.status}. Only draft posts can be published.`,
@@ -105,6 +193,9 @@ export class Post extends Entity<PostProps> {
    * Archive the post
    */
   public archive(): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot archive a deleted post");
+    }
     this.props.status = PostStatus.ARCHIVED;
     this.touch();
   }
@@ -113,6 +204,9 @@ export class Post extends Entity<PostProps> {
    * Move post to draft status
    */
   public moveToDraft(): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot move a deleted post to draft");
+    }
     this.props.status = PostStatus.DRAFT;
     this.props.publishAt = null;
     this.touch();
@@ -123,6 +217,9 @@ export class Post extends Entity<PostProps> {
    * Only draft posts can be submitted for review
    */
   public submitForReview(): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot submit a deleted post for review");
+    }
     if (this.props.status !== PostStatus.DRAFT) {
       throw new Error("Only draft posts can be submitted for review");
     }
@@ -135,6 +232,9 @@ export class Post extends Entity<PostProps> {
    * Only pending posts can be approved
    */
   public approve(publishAt?: Date): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot approve a deleted post");
+    }
     if (this.props.status !== PostStatus.PENDING_REVIEW) {
       throw new Error("Only pending posts can be approved");
     }
@@ -148,6 +248,9 @@ export class Post extends Entity<PostProps> {
    * Only pending posts can be rejected
    */
   public reject(): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot reject a deleted post");
+    }
     if (this.props.status !== PostStatus.PENDING_REVIEW) {
       throw new Error("Only pending posts can be rejected");
     }
@@ -162,6 +265,91 @@ export class Post extends Entity<PostProps> {
     this.props.publishAt = publishAt;
     this.touch();
   }
+
+  // --- Pinning Methods ---
+
+  /**
+   * Pins the post to the top of the feed.
+   * @param pinnedById - The ID of the user who pinned the post.
+   * @param pinnedUntil - Optional expiration date for the pin.
+   */
+  public pin(pinnedById: string, pinnedUntil?: Date | null): void {
+    if (this.props.isDeleted) {
+      throw new Error("Cannot pin a deleted post");
+    }
+    if (!this.isPublished()) {
+      throw new Error("Only published posts can be pinned");
+    }
+    if (!pinnedById) {
+      throw new Error("Pinner ID is required");
+    }
+
+    this.props.isPinned = true;
+    this.props.pinnedById = pinnedById;
+    this.props.pinnedUntil = pinnedUntil ?? null;
+    this.touch();
+  }
+
+  /**
+   * Unpins the post from the top of the feed.
+   */
+  public unpin(): void {
+    if (!this.props.isPinned) {
+      return; // Already unpinned
+    }
+
+    this.props.isPinned = false;
+    this.props.pinnedById = null;
+    this.props.pinnedUntil = null;
+    this.touch();
+  }
+
+  /**
+   * Checks if the pin has expired.
+   * @returns True if the post is pinned but the pin has expired.
+   */
+  public isPinExpired(): boolean {
+    if (!this.props.isPinned || !this.props.pinnedUntil) {
+      return false;
+    }
+    return this.props.pinnedUntil < new Date();
+  }
+
+  // --- Soft Delete Methods ---
+
+  /**
+   * Soft deletes the post.
+   * Posts are soft deleted to preserve audit trail.
+   */
+  public softDelete(): void {
+    if (this.props.isDeleted) {
+      return; // Already deleted
+    }
+
+    // Unpin if pinned
+    if (this.props.isPinned) {
+      this.unpin();
+    }
+
+    this.props.isDeleted = true;
+    this.props.deletedAt = new Date();
+    this.touch();
+  }
+
+  /**
+   * Restores a soft-deleted post.
+   */
+  public restore(): void {
+    if (!this.props.isDeleted) {
+      return; // Not deleted
+    }
+
+    this.props.isDeleted = false;
+    this.props.deletedAt = null;
+    this.touch();
+  }
+
+  // --- Audience Management ---
 
   /**
    * Add audience to post
@@ -189,6 +377,8 @@ export class Post extends Entity<PostProps> {
     this.touch();
   }
 
+  // --- Attachment Management ---
+
   /**
    * Add attachment to post
    */
@@ -214,6 +404,8 @@ export class Post extends Entity<PostProps> {
     this.props.attachments = attachments;
     this.touch();
   }
+
+  // --- Status Checks ---
 
   /**
    * Check if post is published
@@ -244,6 +436,22 @@ export class Post extends Entity<PostProps> {
   }
 
   /**
+   * Check if post can be edited.
+   * Posts can be edited if they are not deleted.
+   */
+  public canEdit(): boolean {
+    return !this.props.isDeleted;
+  }
+
+  /**
+   * Check if post can receive reactions/comments.
+   * Only published, non-deleted posts can receive engagement.
+   */
+  public canReceiveEngagement(): boolean {
+    return this.isPublished() && !this.props.isDeleted;
+  }
+
+  /**
    * Update the 'updatedAt' timestamp
    */
   private touch(): void {
@@ -264,13 +472,29 @@ export class Post extends Entity<PostProps> {
       | "audiences"
       | "attachments"
       | "content"
+      | "contentText"
+      | "contentVersion"
       | "publishAt"
+      | "isPinned"
+      | "pinnedUntil"
+      | "pinnedById"
+      | "isDeleted"
+      | "deletedAt"
+      | "requiresApproval"
     >,
     id?: string,
   ): Post {
     // Validation
+    if (!props.campusId) {
+      throw new Error("Campus ID is required for post");
+    }
     if (!props.title || props.title.trim().length === 0) {
       throw new Error("Post title is required");
+    }
+    if (props.title.length > MAX_POST_TITLE_LENGTH) {
+      throw new Error(
+        `Post title cannot exceed ${MAX_POST_TITLE_LENGTH} characters`,
+      );
     }
     if (!props.authorId) {
       throw new Error("Post must have an author");
@@ -278,12 +502,21 @@ export class Post extends Entity<PostProps> {
 
     return new Post(
       {
+        campusId: props.campusId,
         authorId: props.authorId,
         author: props.author,
-        title: props.title,
+        title: props.title.trim(),
         content: props.content ?? null,
+        contentText: props.contentText ?? null,
+        contentVersion: props.contentVersion ?? 1,
         publishAt: props.publishAt ?? null,
         status: props.status ?? PostStatus.DRAFT,
+        isPinned: props.isPinned ?? false,
+        pinnedUntil: props.pinnedUntil ?? null,
+        pinnedById: props.pinnedById ?? null,
+        requiresApproval: props.requiresApproval ?? true,
+        isDeleted: props.isDeleted ?? false,
+        deletedAt: props.deletedAt ?? null,
         audiences: props.audiences ?? [],
         attachments: props.attachments ?? [],
         createdAt: props.createdAt ?? new Date(),

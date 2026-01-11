@@ -3,6 +3,7 @@ import {
   Inject,
   ConflictException,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import {
   Role,
@@ -10,19 +11,25 @@ import {
   RoleEntity,
 } from "../../../../domain/user-management/role.entity";
 import { RoleRepository } from "../../ports/role.repository";
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 
 export interface CreateRoleInput {
   name: string;
   description?: string;
-  permissions: Record<string, any>;
-  isActive?: boolean;
+  campusId?: string | null; // null for system default roles
+  isSystemDefault?: boolean;
+  permissionIds?: string[]; // Permission IDs to assign
 }
 
 @Injectable()
 export class CreateRoleUseCase {
+  private readonly logger = new Logger(CreateRoleUseCase.name);
+
   constructor(
     @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
+    @Inject("CAMPUS_REPOSITORY")
+    private readonly campusRepository: CampusRepository,
   ) {}
 
   async execute(input: CreateRoleInput): Promise<Role> {
@@ -41,41 +48,57 @@ export class CreateRoleUseCase {
         );
       }
 
-      // 2. Check name uniqueness
-      const existingRole = await this.roleRepository.findByName(input.name);
+      // 2. Validate campusId if provided
+      const campusId = input.campusId ?? null;
+      if (campusId !== null) {
+        RoleEntity.validateCampusId(campusId);
+        const campusExists = await this.campusRepository.exists(campusId);
+        if (!campusExists) {
+          throw new BadRequestException(`Campus with ID ${campusId} not found`);
+        }
+      }
+
+      // 3. Check name uniqueness within campus scope
+      const existingRole = await this.roleRepository.findByName(
+        input.name,
+        campusId,
+      );
       if (existingRole) {
+        const scopeMsg = campusId ? `campus ${campusId}` : "system defaults";
         throw new ConflictException(
-          `Role with name "${input.name}" already exists`,
+          `Role with name "${input.name}" already exists in ${scopeMsg}`,
         );
       }
+
+      // 4. Check ID uniqueness
       const existingRoleById = await this.roleRepository.findById(roleId);
       if (existingRoleById) {
         throw new ConflictException(`Role with id "${roleId}" already exists`);
       }
 
-      // 3. Validate permissions structure
-      RoleEntity.validatePermissions(input.permissions);
-
-      // 4. Prepare role data
+      // 5. Prepare role data
       const roleData: CreateRoleData = {
         id: roleId,
         name: normalizedName,
         description: input.description?.trim() || null,
-        permissions: input.permissions,
-        isActive: input.isActive ?? true,
+        campusId,
+        isSystemDefault: input.isSystemDefault ?? false,
+        permissionIds: input.permissionIds,
       };
 
-      // 5. Save role
+      // 6. Save role
       const savedRole = await this.roleRepository.save(roleData);
+
+      this.logger.log(
+        `Created role ${savedRole.id} (campus: ${savedRole.campusId ?? "system"})`,
+      );
+
       return savedRole;
     } catch (error) {
       if (
-        error.message.includes("cannot be empty") ||
-        error.message.includes("must be at least")
+        error.message?.includes("cannot be empty") ||
+        error.message?.includes("must be at least")
       ) {
-        throw new BadRequestException(error.message);
-      }
-      if (error.message.includes("must be a valid object")) {
         throw new BadRequestException(error.message);
       }
       throw error;

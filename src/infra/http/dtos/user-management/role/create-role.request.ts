@@ -1,17 +1,19 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import {
+  IsArray,
+  IsBoolean,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from "class-validator";
 
 export class CreateRoleRequest {
   @ApiProperty({
-    description: "Role name (unique)",
-    example: "ADMIN",
+    description: "Role name (unique within campus scope)",
+    example: "Campus Admin",
     minLength: 2,
     maxLength: 50,
   })
@@ -21,21 +23,40 @@ export class CreateRoleRequest {
   @MaxLength(50)
   name: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: "Role description",
-    example: "Administrator with full access",
-    required: false,
+    example: "Administrator for a specific campus",
   })
   @IsOptional()
   @IsString()
   @MaxLength(255)
   description?: string;
 
-  @ApiProperty({
-    description: "Permissions object",
-    example: { users: ["create", "read", "update", "delete"], roles: ["read"] },
+  @ApiPropertyOptional({
+    description: "Campus ID (null for system-wide roles)",
+    example: "550e8400-e29b-41d4-a716-446655440000",
+    nullable: true,
   })
-  @IsNotEmpty()
-  @IsObject()
-  permissions: Record<string, any>;
+  @IsOptional()
+  @IsUUID(4)
+  campusId?: string | null;
+
+  @ApiPropertyOptional({
+    description: "Whether this is a system default role (cannot be modified)",
+    example: false,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isSystemDefault?: boolean;
+
+  @ApiPropertyOptional({
+    description: "Permission IDs to assign to this role",
+    example: ["student.create", "student.read", "student.list"],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  permissionIds?: string[];
 }

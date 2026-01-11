@@ -6,6 +6,7 @@ import { StudentStatus } from "../enums/student-status.enum";
 
 // Properties of the Student entity
 export interface StudentProps {
+  campusId: string;
   studentCode: string;
   fullName: string;
   email: string | null;
@@ -20,12 +21,18 @@ export interface StudentProps {
   updatedAt: Date;
 }
 
-// Data for updating a student
+// Data for updating a student (campusId is immutable)
 export type UpdateStudentData = Partial<
-  Omit<StudentProps, "id" | "createdAt" | "updatedAt" | "isArchived">
+  Omit<
+    StudentProps,
+    "id" | "campusId" | "createdAt" | "updatedAt" | "isArchived"
+  >
 >;
 
 export class Student extends Entity<StudentProps> {
+  get campusId(): string {
+    return this.props.campusId;
+  }
   get studentCode(): string {
     return this.props.studentCode;
   }
@@ -124,6 +131,10 @@ export class Student extends Entity<StudentProps> {
     >,
     id?: string,
   ): Student {
+    // Campus validation
+    if (!props.campusId) {
+      throw new Error("Campus ID is required for student.");
+    }
     // Basic validation
     if (!props.fullName || props.fullName.trim().length < 2) {
       throw new Error(

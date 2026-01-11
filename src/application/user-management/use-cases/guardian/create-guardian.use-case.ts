@@ -14,6 +14,7 @@ import { GuardianRepository } from "../../ports/guardian.repository";
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateGuardianInput {
+  campusId: string;
   fullName: string;
   dateOfBirth: Date;
   gender: Gender;
@@ -40,7 +41,9 @@ export class CreateGuardianUseCase {
   ) {}
 
   async execute(input: CreateGuardianInput): Promise<Guardian> {
-    this.logger.log(`Creating guardian: ${input.fullName}`);
+    this.logger.log(
+      `Creating guardian: ${input.fullName} in campus: ${input.campusId}`,
+    );
 
     // Step 1: Validate age
     if (input.dateOfBirth && this.calculateAge(input.dateOfBirth) < 18) {
@@ -66,6 +69,7 @@ export class CreateGuardianUseCase {
 
         // Create Guardian domain entity with userId already linked
         const guardianEntity = Guardian.create({
+          campusId: input.campusId,
           fullName: input.fullName,
           email: input.email || null,
           phoneNumber: input.phoneNumber,
@@ -74,13 +78,13 @@ export class CreateGuardianUseCase {
           gender: input.gender,
           occupation: input.occupation || null,
           workAddress: input.workAddress || null,
-          spouseId: null,
           userId: user.id, // Link immediately - no separate update needed
         });
 
         // Persist Guardian using transaction context
         const createdGuardian = await tx.createGuardian({
           id: guardianEntity.id,
+          campusId: guardianEntity.campusId,
           fullName: guardianEntity.fullName,
           email: guardianEntity.email,
           phoneNumber: guardianEntity.phoneNumber,
@@ -89,7 +93,6 @@ export class CreateGuardianUseCase {
           gender: guardianEntity.gender,
           occupation: guardianEntity.occupation,
           workAddress: guardianEntity.workAddress,
-          spouseId: guardianEntity.spouseId,
           userId: guardianEntity.userId,
           isArchived: guardianEntity.isArchived,
           createdAt: guardianEntity.createdAt,
@@ -97,14 +100,14 @@ export class CreateGuardianUseCase {
         });
 
         this.logger.log(
-          `Guardian created in transaction: ${createdGuardian.id}`,
+          `Guardian created in transaction: ${createdGuardian.id} for campus: ${guardianEntity.campusId}`,
         );
 
         return guardianEntity;
       });
 
       this.logger.log(
-        `Guardian and User account created successfully for: ${identifier}`,
+        `Guardian and User account created successfully for: ${identifier} in campus: ${input.campusId}`,
       );
       return guardian;
     } catch (error) {
@@ -142,24 +145,28 @@ export class CreateGuardianUseCase {
   private async checkGuardianUniqueness(
     input: CreateGuardianInput,
   ): Promise<void> {
-    // Check email uniqueness only if email is provided
+    // Check email uniqueness only if email is provided (campus-scoped)
     if (input.email) {
-      const existingByEmail = await this.guardianRepository.findByEmail(
+      const existingByEmail = await this.guardianRepository.findByEmailInCampus(
+        input.campusId,
         input.email,
       );
       if (existingByEmail) {
         throw new ConflictException(
-          `Guardian with email ${input.email} already exists`,
+          `Guardian with email ${input.email} already exists in this campus`,
         );
       }
     }
 
-    const existingByPhone = await this.guardianRepository.findByPhoneNumber(
-      input.phoneNumber,
-    );
+    // Check phone uniqueness (campus-scoped)
+    const existingByPhone =
+      await this.guardianRepository.findByPhoneNumberInCampus(
+        input.campusId,
+        input.phoneNumber,
+      );
     if (existingByPhone) {
       throw new ConflictException(
-        `Guardian with phone number ${input.phoneNumber} already exists`,
+        `Guardian with phone number ${input.phoneNumber} already exists in this campus`,
       );
     }
   }

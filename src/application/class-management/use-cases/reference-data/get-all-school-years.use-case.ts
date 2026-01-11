@@ -13,13 +13,16 @@ export class GetAllSchoolYearsUseCase {
     private readonly schoolYearRepository: SchoolYearRepository,
   ) {}
 
-  async execute(params: StandardRequest): Promise<PaginatedResult<SchoolYear>> {
+  async execute(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<SchoolYear>> {
     try {
       this.logger.log(
         `Fetching school years: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
       );
 
-      const result = await this.schoolYearRepository.findAll(params);
+      const result = await this.schoolYearRepository.findAll(campusId, params);
 
       this.logger.log(
         `Found ${result.pagination.count} school years, returning page ${result.pagination.currentPage}`,

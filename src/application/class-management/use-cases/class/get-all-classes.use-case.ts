@@ -4,6 +4,11 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { Class } from "@/domain/class-management/entities/class.entity";
 
+export interface GetAllClassesInput {
+  campusId: string;
+  params: StandardRequest;
+}
+
 @Injectable()
 export class GetAllClassesUseCase {
   private readonly logger = new Logger(GetAllClassesUseCase.name);
@@ -13,13 +18,16 @@ export class GetAllClassesUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(params: StandardRequest): Promise<PaginatedResult<Class>> {
+  async execute(input: GetAllClassesInput): Promise<PaginatedResult<Class>> {
     try {
       this.logger.log(
-        `Fetching classes: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
+        `Fetching classes for campus ${input.campusId}: offset=${input.params.offset ?? 0}, limit=${input.params.limit ?? 10}`,
       );
 
-      const result = await this.classRepository.findAll(params);
+      const result = await this.classRepository.findAll(
+        input.campusId,
+        input.params,
+      );
 
       this.logger.log(
         `Found ${result.pagination.count} classes, returning page ${result.pagination.currentPage}`,

@@ -7,6 +7,7 @@ export interface SchoolYearProps {
   startDate: Date;
   endDate: Date;
   isArchived: boolean;
+  campusId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,10 @@ export class SchoolYear extends Entity<SchoolYearProps> {
 
   get isArchived(): boolean {
     return this.props.isArchived;
+  }
+
+  get campusId(): string {
+    return this.props.campusId;
   }
 
   get createdAt(): Date {
@@ -108,6 +113,9 @@ export class SchoolYear extends Entity<SchoolYearProps> {
     }
     if (props.startDate >= props.endDate) {
       throw new Error("Start date must be before end date");
+    }
+    if (!props.campusId || props.campusId.trim().length < 1) {
+      throw new Error("Campus ID is required");
     }
 
     const schoolYearProps: SchoolYearProps = {

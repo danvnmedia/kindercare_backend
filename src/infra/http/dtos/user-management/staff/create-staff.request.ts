@@ -5,11 +5,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import {
   IsE164Phone,
   IsAdultDateOfBirth,
@@ -18,6 +18,16 @@ import {
 } from "@/core/validators";
 
 export class CreateStaffRequest {
+  // ========== Campus & Type ==========
+
+  @ApiProperty({
+    description: "Campus ID where the staff belongs",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @IsNotEmpty()
+  @IsUUID("4", { message: "Campus ID must be a valid UUID" })
+  campusId: string;
+
   // ========== Personal Information ==========
 
   @ApiProperty({
@@ -50,15 +60,13 @@ export class CreateStaffRequest {
   phoneNumber: string;
 
   @ApiProperty({
-    description: "Staff type (TEACHER, NURSE, PRINCIPAL, STAFF)",
-    enum: StaffType,
-    example: StaffType.TEACHER,
+    description: "Staff type ID (references staff_type table)",
+    example: "123e4567-e89b-12d3-a456-426614174001",
+    required: false,
   })
-  @IsNotEmpty()
-  @IsEnum(StaffType, {
-    message: "Staff type must be TEACHER, NURSE, PRINCIPAL, or STAFF",
-  })
-  staffType: StaffType;
+  @IsOptional()
+  @IsUUID("4", { message: "Staff type ID must be a valid UUID" })
+  staffTypeId?: string;
 
   // ========== Optional Information ==========
 

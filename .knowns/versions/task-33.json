@@ -1,6 +1,6 @@
 {
   "taskId": "33",
-  "currentVersion": 1,
+  "currentVersion": 9,
   "versions": [
     {
       "id": "v1",
@@ -68,6 +68,781 @@
           }
         ],
         "implementationPlan": "1. Create use cases in src/application/content-management/use-cases/comment/:\n   a. CreatePostCommentUseCase:\n      - Inject PostCommentRepository, PostRepository, CampusSettingRepository\n      - Validate post exists and is published\n      - Check campus setting allowParentComments\n      - Create comment with depth=0, parentCommentId=null\n      - Save and return with user info\n   b. CreateCommentReplyUseCase:\n      - Find parent comment\n      - Validate parent not deleted\n      - Validate parent.depth < 3 (max depth check)\n      - Create reply with depth=parent.depth+1, parentCommentId=parent.id\n      - Save and return\n   c. UpdatePostCommentUseCase:\n      - Find comment\n      - Validate user owns comment OR is admin\n      - Update content via entity method\n      - Save and return\n   d. DeletePostCommentUseCase:\n      - Find comment\n      - Validate user owns comment OR is post author OR is admin\n      - Call softDelete(deletedById) on entity\n      - Save (preserves replies)\n   e. GetPostCommentsUseCase:\n      - Fetch all comments for post\n      - Build nested tree structure in memory\n      - Return with user info and reply counts\n2. Create DTOs:\n   - CreateCommentRequest: content (max 1000 chars)\n   - UpdateCommentRequest: content (max 1000 chars)\n   - PostCommentResponse: id, postId, userId, userName, parentCommentId, depth, content, isDeleted, createdAt, updatedAt, replies[]\n3. Create endpoints in PostController or separate CommentController:\n   - GET /posts/:id/comments\n   - POST /posts/:id/comments\n   - POST /comments/:id/replies\n   - PATCH /comments/:id\n   - DELETE /comments/:id\n4. Handle deleted comment display (show 'This comment has been deleted' placeholder)\n5. Add repository bindings"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "33",
+      "version": 2,
+      "timestamp": "2026-01-10T01:53:24.673Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum depth of 3 levels (0=root, 1=reply, 2=reply-to-reply, 3=max)\n- Soft delete preserves audit trail\n- Author/admin can delete any comment\n- Reference: @doc/prds/post-and-content-management\n\n**Use Cases:**\n1. CreatePostCommentUseCase - create root comment (depth=0)\n2. CreateCommentReplyUseCase - create reply with depth check\n3. UpdatePostCommentUseCase - edit own comment\n4. DeletePostCommentUseCase - soft delete\n5. GetPostCommentsUseCase - get comments tree\n\n**API Endpoints:**\n- GET /posts/:id/comments - list comments (nested tree)\n- POST /posts/:id/comments - add root comment\n- POST /comments/:id/replies - add reply\n- PATCH /comments/:id - edit comment\n- DELETE /comments/:id - soft delete",
+          "newValue": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": false,
+            "text": "CreateCommentReplyUseCase validates parent exists and depth < 3"
+          },
+          {
+            "completed": false,
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+          },
+          {
+            "completed": false,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": false,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": false,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": false,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          }
+        ],
+        "implementationPlan": "1. Create use cases in src/application/content-management/use-cases/comment/:\n   a. CreatePostCommentUseCase:\n      - Inject PostCommentRepository, PostRepository, CampusSettingRepository\n      - Validate post exists and is published\n      - Check campus setting allowParentComments\n      - Create comment with depth=0, parentCommentId=null\n      - Save and return with user info\n   b. CreateCommentReplyUseCase:\n      - Find parent comment\n      - Validate parent not deleted\n      - Validate parent.depth < 3 (max depth check)\n      - Create reply with depth=parent.depth+1, parentCommentId=parent.id\n      - Save and return\n   c. UpdatePostCommentUseCase:\n      - Find comment\n      - Validate user owns comment OR is admin\n      - Update content via entity method\n      - Save and return\n   d. DeletePostCommentUseCase:\n      - Find comment\n      - Validate user owns comment OR is post author OR is admin\n      - Call softDelete(deletedById) on entity\n      - Save (preserves replies)\n   e. GetPostCommentsUseCase:\n      - Fetch all comments for post\n      - Build nested tree structure in memory\n      - Return with user info and reply counts\n2. Create DTOs:\n   - CreateCommentRequest: content (max 1000 chars)\n   - UpdateCommentRequest: content (max 1000 chars)\n   - PostCommentResponse: id, postId, userId, userName, parentCommentId, depth, content, isDeleted, createdAt, updatedAt, replies[]\n3. Create endpoints in PostController or separate CommentController:\n   - GET /posts/:id/comments\n   - POST /posts/:id/comments\n   - POST /comments/:id/replies\n   - PATCH /comments/:id\n   - DELETE /comments/:id\n4. Handle deleted comment display (show 'This comment has been deleted' placeholder)\n5. Add repository bindings"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "33",
+      "version": 3,
+      "timestamp": "2026-01-10T02:00:49.035Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": "1. Create use cases in src/application/content-management/use-cases/comment/:\n   a. CreatePostCommentUseCase:\n      - Inject PostCommentRepository, PostRepository, CampusSettingRepository\n      - Validate post exists and is published\n      - Check campus setting allowParentComments\n      - Create comment with depth=0, parentCommentId=null\n      - Save and return with user info\n   b. CreateCommentReplyUseCase:\n      - Find parent comment\n      - Validate parent not deleted\n      - Validate parent.depth < 3 (max depth check)\n      - Create reply with depth=parent.depth+1, parentCommentId=parent.id\n      - Save and return\n   c. UpdatePostCommentUseCase:\n      - Find comment\n      - Validate user owns comment OR is admin\n      - Update content via entity method\n      - Save and return\n   d. DeletePostCommentUseCase:\n      - Find comment\n      - Validate user owns comment OR is post author OR is admin\n      - Call softDelete(deletedById) on entity\n      - Save (preserves replies)\n   e. GetPostCommentsUseCase:\n      - Fetch all comments for post\n      - Build nested tree structure in memory\n      - Return with user info and reply counts\n2. Create DTOs:\n   - CreateCommentRequest: content (max 1000 chars)\n   - UpdateCommentRequest: content (max 1000 chars)\n   - PostCommentResponse: id, postId, userId, userName, parentCommentId, depth, content, isDeleted, createdAt, updatedAt, replies[]\n3. Create endpoints in PostController or separate CommentController:\n   - GET /posts/:id/comments\n   - POST /posts/:id/comments\n   - POST /comments/:id/replies\n   - PATCH /comments/:id\n   - DELETE /comments/:id\n4. Handle deleted comment display (show 'This comment has been deleted' placeholder)\n5. Add repository bindings",
+          "newValue": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": false,
+            "text": "CreateCommentReplyUseCase validates parent exists and depth < 3"
+          },
+          {
+            "completed": false,
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+          },
+          {
+            "completed": false,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": false,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": false,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": false,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "33",
+      "version": 4,
+      "timestamp": "2026-01-10T02:00:55.005Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "CreatePostCommentUseCase creates root comment with depth=0"
+            },
+            {
+              "completed": false,
+              "text": "CreateCommentReplyUseCase validates parent exists and depth < 3"
+            },
+            {
+              "completed": false,
+              "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+            },
+            {
+              "completed": false,
+              "text": "UpdatePostCommentUseCase validates user owns comment"
+            },
+            {
+              "completed": false,
+              "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+            },
+            {
+              "completed": false,
+              "text": "GetPostCommentsUseCase returns nested tree structure"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to comment at max depth"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to deleted comment"
+            },
+            {
+              "completed": false,
+              "text": "Deleted comments show placeholder text but replies remain visible"
+            },
+            {
+              "completed": false,
+              "text": "Request/Response DTOs created with validation"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "CreatePostCommentUseCase creates root comment with depth=0"
+            },
+            {
+              "completed": false,
+              "text": "UpdatePostCommentUseCase validates user owns comment"
+            },
+            {
+              "completed": false,
+              "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+            },
+            {
+              "completed": false,
+              "text": "GetPostCommentsUseCase returns nested tree structure"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to comment at max depth"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to deleted comment"
+            },
+            {
+              "completed": false,
+              "text": "Deleted comments show placeholder text but replies remain visible"
+            },
+            {
+              "completed": false,
+              "text": "Request/Response DTOs created with validation"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": false,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": false,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": false,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": false,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "33",
+      "version": 5,
+      "timestamp": "2026-01-10T02:01:00.915Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "CreatePostCommentUseCase creates root comment with depth=0"
+            },
+            {
+              "completed": false,
+              "text": "UpdatePostCommentUseCase validates user owns comment"
+            },
+            {
+              "completed": false,
+              "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+            },
+            {
+              "completed": false,
+              "text": "GetPostCommentsUseCase returns nested tree structure"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to comment at max depth"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to deleted comment"
+            },
+            {
+              "completed": false,
+              "text": "Deleted comments show placeholder text but replies remain visible"
+            },
+            {
+              "completed": false,
+              "text": "Request/Response DTOs created with validation"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "CreatePostCommentUseCase creates root comment with depth=0"
+            },
+            {
+              "completed": false,
+              "text": "UpdatePostCommentUseCase validates user owns comment"
+            },
+            {
+              "completed": false,
+              "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+            },
+            {
+              "completed": false,
+              "text": "GetPostCommentsUseCase returns nested tree structure"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to comment at max depth"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to deleted comment"
+            },
+            {
+              "completed": false,
+              "text": "Deleted comments show placeholder text but replies remain visible"
+            },
+            {
+              "completed": false,
+              "text": "Request/Response DTOs created with validation"
+            },
+            {
+              "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)",
+              "completed": false
+            },
+            {
+              "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": false,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": false,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": false,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": false,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)",
+            "completed": false
+          },
+          {
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1",
+            "completed": false
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "33",
+      "version": 6,
+      "timestamp": "2026-01-10T02:01:12.559Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "in-progress",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": false,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": false,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": false,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": false,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": false,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": false,
+            "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)"
+          },
+          {
+            "completed": false,
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)"
+      }
+    },
+    {
+      "id": "v7",
+      "taskId": "33",
+      "version": 7,
+      "timestamp": "2026-01-10T02:16:21.681Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "CreatePostCommentUseCase creates root comment with depth=0"
+            },
+            {
+              "completed": false,
+              "text": "UpdatePostCommentUseCase validates user owns comment"
+            },
+            {
+              "completed": false,
+              "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+            },
+            {
+              "completed": false,
+              "text": "GetPostCommentsUseCase returns nested tree structure"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to comment at max depth"
+            },
+            {
+              "completed": false,
+              "text": "API returns 400 when replying to deleted comment"
+            },
+            {
+              "completed": false,
+              "text": "Deleted comments show placeholder text but replies remain visible"
+            },
+            {
+              "completed": false,
+              "text": "Request/Response DTOs created with validation"
+            },
+            {
+              "completed": false,
+              "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)"
+            },
+            {
+              "completed": false,
+              "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "CreatePostCommentUseCase creates root comment with depth=0"
+            },
+            {
+              "completed": true,
+              "text": "UpdatePostCommentUseCase validates user owns comment"
+            },
+            {
+              "completed": true,
+              "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+            },
+            {
+              "completed": true,
+              "text": "GetPostCommentsUseCase returns nested tree structure"
+            },
+            {
+              "completed": true,
+              "text": "API returns 400 when replying to comment at max depth"
+            },
+            {
+              "completed": true,
+              "text": "API returns 400 when replying to deleted comment"
+            },
+            {
+              "completed": true,
+              "text": "Deleted comments show placeholder text but replies remain visible"
+            },
+            {
+              "completed": true,
+              "text": "Request/Response DTOs created with validation"
+            },
+            {
+              "completed": true,
+              "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)"
+            },
+            {
+              "completed": true,
+              "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "in-progress",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": true,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": true,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": true,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": true,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": true,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": true,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": true,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": true,
+            "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)"
+          },
+          {
+            "completed": true,
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)"
+      }
+    },
+    {
+      "id": "v8",
+      "taskId": "33",
+      "version": 8,
+      "timestamp": "2026-01-10T02:22:00.889Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Implementation Complete (2026-01-09)\n\n### Files Created:\n\n**Use Cases (5):**\n- src/application/content-management/use-cases/comment/create-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/create-comment-reply.use-case.ts\n- src/application/content-management/use-cases/comment/update-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/delete-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/get-post-comments.use-case.ts\n- src/application/content-management/use-cases/comment/index.ts\n\n**DTOs (4):**\n- src/infra/http/dtos/comment/create-comment.request.ts\n- src/infra/http/dtos/comment/update-comment.request.ts\n- src/infra/http/dtos/comment/comment.response.ts\n- src/infra/http/dtos/comment/index.ts\n\n**Controller (1):**\n- src/infra/http/controllers/comment.controller.ts\n\n### Files Modified:\n- src/application/content-management/use-cases/index.ts (added comment export)\n- src/infra/http/modules/content-management.module.ts (registered controller, use cases, repository)\n\n### API Endpoints:\n- GET /posts/:postId/comments - List comments with nested tree\n- POST /posts/:postId/comments - Create root comment\n- POST /comments/:commentId/replies - Reply to comment\n- PATCH /comments/:commentId - Edit comment\n- DELETE /comments/:commentId - Soft delete comment\n\n### Key Implementation Details:\n- Uses existing PostComment entity with canReply() method for depth validation (depth < 2)\n- Tree structure built in-memory in GetPostCommentsUseCase\n- Soft delete preserves replies with deletedById audit trail\n- Authorization: owner can edit/delete, post author and admin can delete any comment"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "in-progress",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": true,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": true,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": true,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": true,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": true,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": true,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": true,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": true,
+            "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)"
+          },
+          {
+            "completed": true,
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)",
+        "implementationNotes": "## Implementation Complete (2026-01-09)\n\n### Files Created:\n\n**Use Cases (5):**\n- src/application/content-management/use-cases/comment/create-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/create-comment-reply.use-case.ts\n- src/application/content-management/use-cases/comment/update-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/delete-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/get-post-comments.use-case.ts\n- src/application/content-management/use-cases/comment/index.ts\n\n**DTOs (4):**\n- src/infra/http/dtos/comment/create-comment.request.ts\n- src/infra/http/dtos/comment/update-comment.request.ts\n- src/infra/http/dtos/comment/comment.response.ts\n- src/infra/http/dtos/comment/index.ts\n\n**Controller (1):**\n- src/infra/http/controllers/comment.controller.ts\n\n### Files Modified:\n- src/application/content-management/use-cases/index.ts (added comment export)\n- src/infra/http/modules/content-management.module.ts (registered controller, use cases, repository)\n\n### API Endpoints:\n- GET /posts/:postId/comments - List comments with nested tree\n- POST /posts/:postId/comments - Create root comment\n- POST /comments/:commentId/replies - Reply to comment\n- PATCH /comments/:commentId - Edit comment\n- DELETE /comments/:commentId - Soft delete comment\n\n### Key Implementation Details:\n- Uses existing PostComment entity with canReply() method for depth validation (depth < 2)\n- Tree structure built in-memory in GetPostCommentsUseCase\n- Soft delete preserves replies with deletedById audit trail\n- Authorization: owner can edit/delete, post author and admin can delete any comment"
+      }
+    },
+    {
+      "id": "v9",
+      "taskId": "33",
+      "version": 9,
+      "timestamp": "2026-01-10T02:22:08.233Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Comments Feature - Nested comments with depth limit",
+        "description": "Implement nested comments feature for posts with 3-level depth limit.\n\n**Analysis Summary:**\nThe PostComment entity, repository port, Prisma repository, and mapper already exist with full implementation:\n- Entity has MAX_COMMENT_DEPTH=3 constant and canReply() checking depth < 2 (allows 3 levels: 0, 1, 2)\n- Repository port has all needed methods: findById, findByPostId, findRootCommentsByPostId, findRepliesByCommentId, countByPost, countActiveByPost, save, update, softDelete\n- Prisma schema includes indexes on (postId, createdAt), (postId, parentCommentId), (parentCommentId), (userId), (isDeleted), (depth)\n- CampusSetting.allowParentComments controls whether parent/guardians can comment\n\n**What Needs to be Created:**\n1. 5 Use Cases for comment operations\n2. 3 DTOs (CreateCommentRequest, UpdateCommentRequest, PostCommentResponse)\n3. CommentController with 5 endpoints\n4. Module registration for new use cases and repository\n\n**Context:**\n- Comments support nesting via parent_comment_id\n- Maximum 3 levels (depth 0=root, 1=reply, 2=reply-to-reply)\n- Entity's canReply() returns false when depth >= 2 (cannot reply to depth 2 comments)\n- Soft delete preserves audit trail with deletedById tracking\n- Reference: @doc/prds/post-and-content-management",
+        "status": "done",
+        "priority": "medium",
+        "labels": [
+          "post",
+          "comments",
+          "use-case",
+          "controller",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "CreatePostCommentUseCase creates root comment with depth=0"
+          },
+          {
+            "completed": true,
+            "text": "UpdatePostCommentUseCase validates user owns comment"
+          },
+          {
+            "completed": true,
+            "text": "DeletePostCommentUseCase soft deletes with deletedById tracking"
+          },
+          {
+            "completed": true,
+            "text": "GetPostCommentsUseCase returns nested tree structure"
+          },
+          {
+            "completed": true,
+            "text": "API returns 400 when replying to comment at max depth"
+          },
+          {
+            "completed": true,
+            "text": "API returns 400 when replying to deleted comment"
+          },
+          {
+            "completed": true,
+            "text": "Deleted comments show placeholder text but replies remain visible"
+          },
+          {
+            "completed": true,
+            "text": "Request/Response DTOs created with validation"
+          },
+          {
+            "completed": true,
+            "text": "CreateCommentReplyUseCase uses parent.canReply() to validate depth < 2 (max 3 levels)"
+          },
+          {
+            "completed": true,
+            "text": "CreateCommentReplyUseCase sets depth = parent.depth + 1"
+          }
+        ],
+        "implementationPlan": "## Phase 1: Create Comment Use Cases\n\nCreate use cases in src/application/content-management/use-cases/comment/:\n\n### 1.1 CreatePostCommentUseCase\n- Inject PostCommentRepository, PostRepository, CampusSettingRepository\n- Validate post exists and is published (canReceiveEngagement)\n- Check campus setting allowParentComments if user is parent/guardian\n- Create comment with depth=0, parentCommentId=null using PostComment.create()\n- Save and return with comment data\n\n### 1.2 CreateCommentReplyUseCase\n- Find parent comment by ID\n- Validate parent not deleted\n- Use parent.canReply() to check depth (returns false if depth >= 2)\n- Throw BadRequestException if cannot reply (deleted or max depth)\n- Create reply with depth=parent.depth+1, parentCommentId=parent.id\n- Save and return\n\n### 1.3 UpdatePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment (comment.userId === currentUser.id)\n- Call comment.updateContent(newContent) - entity validates not deleted\n- Save and return updated comment\n\n### 1.4 DeletePostCommentUseCase\n- Find comment by ID\n- Validate user owns comment OR is post author OR has admin role\n- Call comment.softDelete(currentUser.id) on entity\n- Save (preserves replies, replies remain visible)\n\n### 1.5 GetPostCommentsUseCase\n- Fetch all comments for post using findByPostId with pagination\n- Build nested tree structure in memory:\n  - Group comments by parentCommentId\n  - Recursively attach children to parents\n- Mark deleted comments with placeholder indicator\n- Return tree with reply counts\n\n## Phase 2: Create DTOs\n\nCreate in src/infra/http/dtos/comment/:\n\n### 2.1 CreateCommentRequest\n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.2 UpdateCommentRequest  \n- content: string, @IsNotEmpty, @MaxLength(1000)\n\n### 2.3 PostCommentResponse\n- id, postId, userId, parentCommentId, depth\n- content (or placeholder if deleted)\n- isDeleted, createdAt, updatedAt\n- replies: PostCommentResponse[] (nested)\n- replyCount: number\n\n## Phase 3: Create CommentController\n\nCreate src/infra/http/controllers/comment.controller.ts:\n\n### Endpoints:\n- GET /posts/:postId/comments - GetPostCommentsUseCase\n- POST /posts/:postId/comments - CreatePostCommentUseCase\n- POST /comments/:commentId/replies - CreateCommentReplyUseCase\n- PATCH /comments/:commentId - UpdatePostCommentUseCase  \n- DELETE /comments/:commentId - DeletePostCommentUseCase\n\n### Guards:\n- @UseGuards(ClerkAuthGuard) on controller class\n- @CurrentUser() decorator for use case calls\n\n## Phase 4: Module Registration\n\nUpdate src/infra/http/modules/content-management.module.ts:\n\n### Providers to add:\n- CreatePostCommentUseCase\n- CreateCommentReplyUseCase\n- UpdatePostCommentUseCase\n- DeletePostCommentUseCase\n- GetPostCommentsUseCase\n- { provide: \"POST_COMMENT_REPOSITORY\", useClass: PrismaPostCommentRepository }\n\n### Exports:\n- POST_COMMENT_REPOSITORY (for potential use in other modules)",
+        "implementationNotes": "## Implementation Complete (2026-01-09)\n\n### Files Created:\n\n**Use Cases (5):**\n- src/application/content-management/use-cases/comment/create-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/create-comment-reply.use-case.ts\n- src/application/content-management/use-cases/comment/update-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/delete-post-comment.use-case.ts\n- src/application/content-management/use-cases/comment/get-post-comments.use-case.ts\n- src/application/content-management/use-cases/comment/index.ts\n\n**DTOs (4):**\n- src/infra/http/dtos/comment/create-comment.request.ts\n- src/infra/http/dtos/comment/update-comment.request.ts\n- src/infra/http/dtos/comment/comment.response.ts\n- src/infra/http/dtos/comment/index.ts\n\n**Controller (1):**\n- src/infra/http/controllers/comment.controller.ts\n\n### Files Modified:\n- src/application/content-management/use-cases/index.ts (added comment export)\n- src/infra/http/modules/content-management.module.ts (registered controller, use cases, repository)\n\n### API Endpoints:\n- GET /posts/:postId/comments - List comments with nested tree\n- POST /posts/:postId/comments - Create root comment\n- POST /comments/:commentId/replies - Reply to comment\n- PATCH /comments/:commentId - Edit comment\n- DELETE /comments/:commentId - Soft delete comment\n\n### Key Implementation Details:\n- Uses existing PostComment entity with canReply() method for depth validation (depth < 2)\n- Tree structure built in-memory in GetPostCommentsUseCase\n- Soft delete preserves replies with deletedById audit trail\n- Authorization: owner can edit/delete, post author and admin can delete any comment"
       }
     }
   ]

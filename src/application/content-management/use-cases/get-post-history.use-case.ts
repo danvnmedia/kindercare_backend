@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from "@nestjs/common";
 import { PostHistoryStatusRepository } from "../ports/post-history-status.repository";
 import { PostHistoryStatus } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
@@ -14,13 +20,23 @@ export class GetPostHistoryUseCase {
     private readonly postRepository: PostRepository,
   ) {}
 
-  async execute(postId: string): Promise<PostHistoryStatus[]> {
+  async execute(
+    campusId: string,
+    postId: string,
+  ): Promise<PostHistoryStatus[]> {
     try {
       this.logger.log(`Getting post history for post: ${postId}`);
 
       const post = await this.postRepository.findById(postId);
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      // Verify the post belongs to the specified campus
+      if (post.campusId !== campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
       }
 
       const history =

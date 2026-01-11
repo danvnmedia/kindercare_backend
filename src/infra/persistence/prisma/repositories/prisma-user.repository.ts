@@ -5,8 +5,10 @@ import {
   FindAllUsersParams,
   PaginatedUsers,
 } from "@/application/user-management/ports/user.repository";
-import { User } from "@/domain/user-management";
+import { User, RoleAssignmentInput } from "@/domain/user-management";
+import { Role } from "@/domain/user-management/role.entity";
 import { PrismaUserMapper } from "../mapper/prisma-user.mapper";
+import { PrismaRoleMapper } from "../mapper/prisma-role.mapper";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 @Injectable()
@@ -31,13 +33,13 @@ export class PrismaUserRepository implements UserRepository {
       where: {
         OR: [
           {
-            guardian: {
-              email: email,
+            guardians: {
+              some: { email: email },
             },
           },
           {
-            staff: {
-              email: email,
+            staffs: {
+              some: { email: email },
             },
           },
         ],
@@ -101,20 +103,35 @@ export class PrismaUserRepository implements UserRepository {
     });
   }
 
-  async assignRoles(userId: string, roleIds: string[]): Promise<void> {
+  async assignRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void> {
     await this.prisma.userRole.createMany({
-      data: roleIds.map((roleId) => ({ userId, roleId })),
+      data: roleAssignments.map((assignment) => ({
+        userId,
+        roleId: assignment.roleId,
+        campusId: assignment.campusId ?? null, // null for global assignment
+      })),
       skipDuplicates: true,
     });
   }
 
-  async removeRoles(userId: string, roleIds: string[]): Promise<void> {
-    await this.prisma.userRole.deleteMany({
-      where: {
-        userId,
-        roleId: { in: roleIds },
-      },
-    });
+  async removeRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void> {
+    // Delete each role assignment individually to match the exact campusId
+    // Cannot use deleteMany with OR on composite conditions reliably
+    for (const assignment of roleAssignments) {
+      await this.prisma.userRole.deleteMany({
+        where: {
+          userId,
+          roleId: assignment.roleId,
+          campusId: assignment.campusId ?? null,
+        },
+      });
+    }
   }
 
   async getUserRoles(
@@ -131,7 +148,15 @@ export class PrismaUserRepository implements UserRepository {
         },
         skip,
         take: limit,
-        include: { role: true },
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: { permission: true },
+              },
+            },
+          },
+        },
       }),
       this.prisma.userRole.count({
         where: { userId },
@@ -139,11 +164,42 @@ export class PrismaUserRepository implements UserRepository {
     ]);
 
     return {
-      data: roles.map((item) => item.role),
+      data: roles.map((item) => ({
+        ...item.role,
+        assignmentCampusId: item.campusId, // Include the campus context of the assignment
+      })),
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async getUserRolesForCampus(
+    userId: string,
+    campusId: string | null,
+  ): Promise<Role[]> {
+    // Get roles that are:
+    // 1. Assigned globally (campusId = null) - these apply everywhere
+    // 2. Assigned specifically to this campus (campusId = campusId)
+    const whereCondition =
+      campusId === null
+        ? { userId, campusId: null } // Only global roles
+        : { userId, OR: [{ campusId: null }, { campusId }] }; // Global + campus-specific
+
+    const userRoles = await this.prisma.userRole.findMany({
+      where: whereCondition,
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
+            },
+          },
+        },
+      },
+    });
+
+    return userRoles.map((ur) => PrismaRoleMapper.toDomain(ur.role));
   }
 }

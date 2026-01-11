@@ -26,9 +26,9 @@ export class DeleteStaffUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, campusId: string): Promise<void> {
     try {
-      this.logger.log(`Deleting staff: ${id}`);
+      this.logger.log(`Deleting staff: ${id} in campus ${campusId}`);
 
       // Step 1: Verify staff exists
       const staff = await this.staffRepository.findById(id);
@@ -36,7 +36,14 @@ export class DeleteStaffUseCase {
         throw new NotFoundException(`Staff with ID ${id} not found`);
       }
 
-      // Step 2: Delete associated user account and Clerk identity (if exists)
+      // Step 2: Verify staff belongs to the specified campus
+      if (staff.campusId !== campusId) {
+        throw new NotFoundException(
+          `Staff with ID ${id} not found in this campus`,
+        );
+      }
+
+      // Step 3: Delete associated user account and Clerk identity (if exists)
       if (staff.userId) {
         await this.deleteUserAccount(staff.userId);
       }

@@ -16,11 +16,12 @@ export class PrismaPostHistoryStatusMapper {
     return PostHistoryStatus.create(
       {
         postId: prismaPostHistoryStatus.postId,
-        userId: prismaPostHistoryStatus.userId,
-        status: prismaPostHistoryStatus.status as PostStatus,
-        comment: prismaPostHistoryStatus.comment,
+        changedById: prismaPostHistoryStatus.changedById,
+        previousStatus:
+          prismaPostHistoryStatus.previousStatus as PostStatus | null,
+        newStatus: prismaPostHistoryStatus.newStatus as PostStatus,
+        reason: prismaPostHistoryStatus.reason,
         createdAt: prismaPostHistoryStatus.createdAt,
-        updatedAt: prismaPostHistoryStatus.updatedAt,
       },
       prismaPostHistoryStatus.id,
     );
@@ -45,11 +46,11 @@ export class PrismaPostHistoryStatusMapper {
     return {
       id: postHistoryStatus.id,
       postId: postHistoryStatus.postId,
-      userId: postHistoryStatus.userId,
-      status: postHistoryStatus.status,
-      comment: postHistoryStatus.comment ?? null,
+      changedById: postHistoryStatus.changedById,
+      previousStatus: postHistoryStatus.previousStatus ?? null,
+      newStatus: postHistoryStatus.newStatus,
+      reason: postHistoryStatus.reason ?? null,
       createdAt: postHistoryStatus.createdAt,
-      updatedAt: postHistoryStatus.updatedAt ?? new Date(),
     };
   }
 

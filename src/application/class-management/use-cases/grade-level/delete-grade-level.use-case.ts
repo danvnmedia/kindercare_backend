@@ -30,8 +30,10 @@ export class DeleteGradeLevelUseCase {
       }
 
       // Step 2: Check for dependent classes
-      const dependentClasses =
-        await this.classRepository.findByGradeLevelId(id);
+      const dependentClasses = await this.classRepository.findByGradeLevelId(
+        id,
+        gradeLevel.campusId,
+      );
       if (dependentClasses.length > 0) {
         throw new ConflictException(
           `Cannot delete grade level: ${dependentClasses.length} class(es) are associated with it`,

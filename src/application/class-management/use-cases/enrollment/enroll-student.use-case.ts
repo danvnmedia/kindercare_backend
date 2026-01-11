@@ -12,6 +12,7 @@ import { ClassRepository } from "../../ports/class.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 
 export interface EnrollStudentInput {
+  campusId: string;
   classId: string;
   studentId: string;
   enrollmentDate: Date;
@@ -43,11 +44,23 @@ export class EnrollStudentUseCase {
         throw new NotFoundException(`Class with ID ${input.classId} not found`);
       }
 
+      // Step 1b: Validate class belongs to the specified campus
+      if (classEntity.campusId !== input.campusId) {
+        throw new BadRequestException(`Class does not belong to this campus`);
+      }
+
       // Step 2: Validate student exists
       const student = await this.studentRepository.findById(input.studentId);
       if (!student) {
         throw new NotFoundException(
           `Student with ID ${input.studentId} not found`,
+        );
+      }
+
+      // Step 2b: Validate student belongs to the same campus as the class
+      if (student.campusId !== input.campusId) {
+        throw new BadRequestException(
+          `Cannot enroll student from a different campus into this class`,
         );
       }
 

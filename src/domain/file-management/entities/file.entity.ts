@@ -9,6 +9,7 @@ export interface FileProps {
   size: bigint;
   status: "PENDING" | "ACTIVE" | "DELETED";
   uploadedBy: string;
+  campusId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +37,10 @@ export class File extends Entity<FileProps> {
 
   get uploadedBy() {
     return this.props.uploadedBy;
+  }
+
+  get campusId() {
+    return this.props.campusId;
   }
 
   get createdAt() {

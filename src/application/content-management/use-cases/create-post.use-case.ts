@@ -9,10 +9,19 @@ import { PostRepository } from "../ports/post.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
+import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
+import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import { PostContent } from "@/domain/content-management/entities/post.entity";
+import {
+  extractTextFromTiptap,
+  validateAudiencesBelongToCampus,
+} from "../utils";
 
 export interface CreatePostInput {
+  campusId: string;
   title: string;
-  content?: string;
+  content?: PostContent;
   publishAt?: Date;
   audiences: {
     audienceType: AudienceType;
@@ -29,6 +38,12 @@ export class CreatePostUseCase {
     private readonly postRepository: PostRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
+    @Inject("GRADE_LEVEL_REPOSITORY")
+    private readonly gradeLevelRepository: GradeLevelRepository,
+    @Inject("STUDENT_REPOSITORY")
+    private readonly studentRepository: StudentRepository,
   ) {}
 
   async execute(input: CreatePostInput, currentUser: User): Promise<Post> {
@@ -38,6 +53,13 @@ export class CreatePostUseCase {
       );
 
       this.validateInput(input);
+
+      // Validate that audience targets belong to the specified campus
+      await validateAudiencesBelongToCampus(input.audiences, input.campusId, {
+        classRepository: this.classRepository,
+        gradeLevelRepository: this.gradeLevelRepository,
+        studentRepository: this.studentRepository,
+      });
 
       const author = await this.userRepository.findById(currentUser.id);
       if (!author) {
@@ -57,6 +79,10 @@ export class CreatePostUseCase {
   }
 
   private validateInput(input: CreatePostInput): void {
+    if (!input.campusId) {
+      throw new BadRequestException("Campus ID is required");
+    }
+
     if (!input.title || input.title.trim().length === 0) {
       throw new BadRequestException("Post title cannot be empty");
     }
@@ -67,11 +93,19 @@ export class CreatePostUseCase {
   }
 
   private createPostEntity(input: CreatePostInput, author: User): Post {
+    // Extract plain text from JSON content for search
+    const contentText = input.content
+      ? extractTextFromTiptap(input.content)
+      : null;
+
     const postProps = {
+      campusId: input.campusId,
       authorId: author.id,
       author: author,
       title: input.title,
-      content: input.content,
+      content: input.content ?? null,
+      contentText: contentText,
+      contentVersion: 1,
       publishAt: input.publishAt,
       status: PostStatus.DRAFT,
       audiences: [],
@@ -79,6 +113,19 @@ export class CreatePostUseCase {
       createdAt: new Date(),
     };
 
-    return Post.create(postProps);
+    const post = Post.create(postProps);
+
+    // Create PostAudience entities with the post's campusId
+    const audiences = input.audiences.map((audience) =>
+      PostAudience.create({
+        postId: post.id,
+        campusId: input.campusId,
+        audienceType: audience.audienceType,
+        audienceId: audience.audienceId,
+      }),
+    );
+    post.setAudiences(audiences);
+
+    return post;
   }
 }

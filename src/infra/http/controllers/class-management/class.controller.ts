@@ -8,7 +8,18 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam } from "@nestjs/swagger";
+import {
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+  ApiQuery,
+  ApiHeader,
+} from "@nestjs/swagger";
+import {
+  CampusContext,
+  RequireCampusAccess,
+  CAMPUS_ID_HEADER,
+} from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 
@@ -67,6 +78,7 @@ export class ClassController {
   }
 
   @Get()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Classes retrieved successfully",
     type: ClassResponse,
@@ -77,8 +89,20 @@ export class ClassController {
     description:
       "Retrieve all classes with advanced filtering, sorting, and pagination. Supports filtering by name, description, gradeLevelId, schoolYearId.",
   })
-  async findAll(@Query() query: StandardRequestDto) {
-    return await this.getAllClassesUseCase.execute(query);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID to filter classes",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async findAll(
+    @CampusContext() campusId: string,
+    @Query() query: StandardRequestDto,
+  ) {
+    return await this.getAllClassesUseCase.execute({
+      campusId,
+      params: query,
+    });
   }
 
   @Get(":id")
@@ -140,6 +164,7 @@ export class ClassController {
   // ==================== Enrollment Endpoints ====================
 
   @Post(":id/enrollments")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Student enrolled successfully",
     type: EnrollmentResponse,
@@ -149,16 +174,24 @@ export class ClassController {
     description:
       "Enroll a student in this class with the specified enrollment date.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   async enrollStudent(
+    @CampusContext() campusId: string,
     @Param("id") classId: string,
     @Body() dto: EnrollStudentRequest,
   ) {
     return await this.enrollStudentUseCase.execute({
+      campusId,
       classId,
       studentId: dto.studentId,
       enrollmentDate: new Date(dto.enrollmentDate),
@@ -212,6 +245,7 @@ export class ClassController {
   // ==================== Staff Assignment Endpoints ====================
 
   @Post(":id/staff")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Staff assigned successfully",
     type: ClassStaffResponse,
@@ -221,16 +255,24 @@ export class ClassController {
     description:
       "Assign a staff member to teach a specific subject in this class.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   async assignStaff(
+    @CampusContext() campusId: string,
     @Param("id") classId: string,
     @Body() dto: AssignStaffRequest,
   ) {
     return await this.assignStaffToClassUseCase.execute({
+      campusId,
       classId,
       staffId: dto.staffId,
       subjectId: dto.subjectId,

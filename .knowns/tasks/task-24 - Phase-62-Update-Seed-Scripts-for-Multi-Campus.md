@@ -1,7 +1,7 @@
 ---
 id: '24'
 title: 'Phase 6.2: Update Seed Scripts for Multi-Campus'
-status: todo
+status: blocked
 priority: medium
 labels:
   - seed
@@ -9,7 +9,7 @@ labels:
   - migration
   - phase-6
 createdAt: '2026-01-06T04:37:06.262Z'
-updatedAt: '2026-01-06T04:37:06.262Z'
+updatedAt: '2026-01-11T03:23:18.632Z'
 timeSpent: 0
 ---
 # Phase 6.2: Update Seed Scripts for Multi-Campus

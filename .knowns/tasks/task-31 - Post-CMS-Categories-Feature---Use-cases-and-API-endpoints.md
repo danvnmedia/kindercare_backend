@@ -1,7 +1,7 @@
 ---
 id: '31'
 title: 'Post & CMS: Categories Feature - Use cases and API endpoints'
-status: todo
+status: done
 priority: medium
 labels:
   - post
@@ -10,8 +10,8 @@ labels:
   - controller
   - phase-4
 createdAt: '2026-01-09T03:11:14.402Z'
-updatedAt: '2026-01-09T03:11:50.441Z'
-timeSpent: 0
+updatedAt: '2026-01-10T02:11:32.329Z'
+timeSpent: 39
 ---
 # Post & CMS: Categories Feature - Use cases and API endpoints
 
@@ -44,15 +44,15 @@ Implement complete Categories feature for Post & CMS.
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 CreatePostCategoryUseCase validates uniqueness within campus
-- [ ] #2 UpdatePostCategoryUseCase updates name, color, icon
-- [ ] #3 DeletePostCategoryUseCase deactivates category (soft delete)
-- [ ] #4 GetAllPostCategoriesUseCase returns paginated list with campus scoping
-- [ ] #5 ReorderPostCategoriesUseCase updates order for multiple categories
-- [ ] #6 PostCategoryController created with all endpoints
-- [ ] #7 Request DTOs created with validation (CreatePostCategoryRequest, UpdatePostCategoryRequest)
-- [ ] #8 Response DTO created (PostCategoryResponse)
-- [ ] #9 Module bindings added to ContentManagementModule
+- [x] #1 CreatePostCategoryUseCase validates uniqueness within campus
+- [x] #2 UpdatePostCategoryUseCase updates name, color, icon
+- [x] #3 DeletePostCategoryUseCase deactivates category (soft delete)
+- [x] #4 GetAllPostCategoriesUseCase returns paginated list with campus scoping
+- [x] #5 ReorderPostCategoriesUseCase updates order for multiple categories
+- [x] #6 PostCategoryController created with all endpoints
+- [x] #7 Request DTOs created with validation (CreatePostCategoryRequest, UpdatePostCategoryRequest)
+- [x] #8 Response DTO created (PostCategoryResponse)
+- [x] #9 Module bindings added to ContentManagementModule
 <!-- AC:END -->
 
 ## Implementation Plan
@@ -94,4 +94,23 @@ Implement complete Categories feature for Post & CMS.
 4. Add to ContentManagementModule providers and repository bindings
 5. Export DTOs from index
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## Implementation Completed
+
+Implemented the complete Categories feature for Post & CMS:
+
+### Files Created:
+- 5 Use Cases: CreatePostCategoryUseCase, UpdatePostCategoryUseCase, DeletePostCategoryUseCase, GetAllPostCategoriesUseCase, ReorderPostCategoriesUseCase
+- 4 DTOs: CreatePostCategoryRequest, UpdatePostCategoryRequest, ReorderPostCategoriesRequest, PostCategoryResponse
+- 1 Controller: PostCategoryController with 5 endpoints
+
+### Repository Updates:
+- Added reorder() method to PostCategoryRepository interface and implementation
+
+### Module Updates:
+- Added PostCategoryController, use cases, and POST_CATEGORY_REPOSITORY binding
+<!-- SECTION:NOTES:END -->
 

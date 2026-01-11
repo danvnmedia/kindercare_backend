@@ -11,11 +11,11 @@ export class GetAllSubjectsUseCase {
     private readonly subjectRepository: SubjectRepository,
   ) {}
 
-  async execute(): Promise<Subject[]> {
+  async execute(campusId: string): Promise<Subject[]> {
     try {
       this.logger.log("Fetching all subjects");
 
-      const result = await this.subjectRepository.findAll();
+      const result = await this.subjectRepository.findAll(campusId);
 
       this.logger.log(`Found ${result.length} subjects`);
 

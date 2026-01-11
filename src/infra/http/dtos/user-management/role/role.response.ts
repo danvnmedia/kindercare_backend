@@ -1,34 +1,63 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Expose } from "class-transformer";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Expose, Type } from "class-transformer";
+import { PermissionResponse } from "../../rbac/permission.response";
 
 export class RoleResponse {
   @Expose()
-  @ApiProperty({ example: "admin" })
+  @ApiProperty({
+    description: "Role ID",
+    example: "campus_admin",
+  })
   id: string;
 
   @Expose()
-  @ApiProperty({ example: "ADMIN" })
+  @ApiProperty({
+    description: "Role name",
+    example: "Campus Admin",
+  })
   name: string;
 
   @Expose()
-  @ApiProperty({ example: "Administrator with full access" })
-  description?: string;
+  @ApiPropertyOptional({
+    description: "Role description",
+    example: "Administrator for a specific campus",
+  })
+  description: string | null;
+
+  @Expose()
+  @ApiPropertyOptional({
+    description: "Campus ID (null for system-wide roles)",
+    example: "550e8400-e29b-41d4-a716-446655440000",
+    nullable: true,
+  })
+  campusId: string | null;
 
   @Expose()
   @ApiProperty({
-    example: { users: ["create", "read", "update", "delete"] },
+    description: "Whether this is a system default role",
+    example: false,
   })
-  permissions: Record<string, any>;
+  isSystemDefault: boolean;
 
   @Expose()
-  @ApiProperty({ example: true })
-  isActive: boolean;
+  @Type(() => PermissionResponse)
+  @ApiProperty({
+    description: "Permissions assigned to this role",
+    type: [PermissionResponse],
+  })
+  permissions: PermissionResponse[];
 
   @Expose()
-  @ApiProperty({ example: "2025-11-01T00:00:00.000Z" })
+  @ApiProperty({
+    description: "Creation timestamp",
+    example: "2025-11-01T00:00:00.000Z",
+  })
   createdAt: Date;
 
   @Expose()
-  @ApiProperty({ example: "2025-11-01T00:00:00.000Z" })
+  @ApiProperty({
+    description: "Last update timestamp",
+    example: "2025-11-01T00:00:00.000Z",
+  })
   updatedAt: Date;
 }

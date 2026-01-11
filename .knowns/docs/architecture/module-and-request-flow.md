@@ -1,7 +1,7 @@
 ---
 title: Module and Request Flow
 createdAt: '2026-01-03T19:51:47.531Z'
-updatedAt: '2026-01-03T20:03:35.402Z'
+updatedAt: '2026-01-11T05:19:13.356Z'
 description: Module import hierarchy and request processing flow documentation
 tags:
   - architecture
@@ -178,3 +178,120 @@ constructor(private readonly identityPort: IdentityPort) {}
 - **Application** depends only on Domain, defines Ports (interfaces)
 - **Infrastructure** implements Ports, handles external concerns
 - **Dependency Rule**: Dependencies point inward (toward Domain)
+
+
+
+## 5. Campus Context Flow
+
+The multi-campus architecture adds campus isolation to the request processing flow. All campus-scoped endpoints require a validated campus context.
+
+### Campus Context Extraction
+
+Campus ID is extracted from requests in this priority order:
+1. **Header**: `X-Campus-Id` (preferred)
+2. **Route parameter**: `:campusId`
+3. **Query parameter**: `?campusId=`
+
+### Campus-Aware Request Flow
+
+```
+HTTP Request (with X-Campus-Id header)
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 1. ValidationPipe (Global)              │
+│    - whitelist: true                    │
+│    - forbidNonWhitelisted: true         │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 2. ClerkAuthGuard                       │
+│    - Verify JWT token                   │
+│    - Set request.clerkId                │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 3. UserInterceptor                      │
+│    - Fetch User entity by clerkId       │
+│    - Set request.user (with roles)      │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 4. CampusGuard (@RequireCampusAccess)   │
+│    - Extract campusId from request      │
+│    - Validate UUID format               │
+│    - Check campus exists & is active    │
+│    - Verify user has campus access      │
+│    - Set request.campusId               │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 5. RolesGuard / PermissionsGuard        │
+│    - Get roles for campus context       │
+│    - Check required roles/permissions   │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 6. Controller                           │
+│    - @CampusContext() extracts campusId │
+│    - Passes to use case input           │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 7. Use Case (Campus-Scoped)             │
+│    - Validates campus ownership         │
+│    - Cross-campus prevention checks     │
+│    - Campus-filtered repository calls   │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 8. Repository (Campus-Filtered)         │
+│    - Applies where: { campusId }        │
+│    - Campus-scoped uniqueness checks    │
+└─────────────────────────────────────────┘
+```
+
+### Campus Module in Module Hierarchy
+
+```
+AppModule
+├── ConfigModule.forRoot()
+├── StandardResponseModule
+├── HttpModule
+│   ├── AuthModule
+│   ├── CampusModule            # NEW: Campus CRUD
+│   ├── UserManagementModule
+│   ├── FileManagementModule
+│   ├── ClassManagementModule
+│   ├── ContentManagementModule
+│   ├── RBACModule              # NEW: Permissions & Roles
+│   └── AttendanceModule
+├── QueueModule
+└── CronjobModule
+```
+
+### Campus Guard Configuration
+
+```typescript
+@RequireCampusAccess({
+  required: true,        // Throw 400 if missing
+  requireActive: true,   // Campus must be active
+  checkUserAccess: true, // Verify user has access
+  allowGlobalAdmin: true // Admin bypass enabled
+})
+```
+
+### Campus Isolation Principles
+
+1. **Global User Identity**: Users are global, authenticated via Clerk
+2. **Campus-Scoped Everything Else**: Staff, students, classes, posts are campus-scoped
+3. **Role-Based Campus Access**: Users have roles assigned per-campus
+4. **Global Roles**: System default roles (campusId: null) apply everywhere
+5. **Immutable Campus Binding**: Entity campusId cannot change after creation

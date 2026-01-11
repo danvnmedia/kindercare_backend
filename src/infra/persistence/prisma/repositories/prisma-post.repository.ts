@@ -69,8 +69,8 @@ export class PrismaPostRepository implements PostRepository {
       include: {
         author: {
           include: {
-            guardian: true,
-            staff: true,
+            guardians: true,
+            staffs: true,
           },
         },
         audiences: true,
@@ -87,8 +87,16 @@ export class PrismaPostRepository implements PostRepository {
       "type",
       "status",
       "authorId",
+      "isPinned",
+      "campusId",
     ];
-    query.allowedSortFields = ["createdAt", "updatedAt", "title", "publishAt"];
+    query.allowedSortFields = [
+      "createdAt",
+      "updatedAt",
+      "title",
+      "publishAt",
+      "isPinned",
+    ];
 
     return await this.queryService.executeQuery<Post>(
       this.prisma,
@@ -108,5 +116,42 @@ export class PrismaPostRepository implements PostRepository {
       },
       PrismaPostMapper,
     );
+  }
+
+  async countPinnedByCampus(campusId: string): Promise<number> {
+    const now = new Date();
+    return await this.prisma.post.count({
+      where: {
+        campusId,
+        isPinned: true,
+        isDeleted: false,
+        OR: [{ pinnedUntil: null }, { pinnedUntil: { gt: now } }],
+      },
+    });
+  }
+
+  async findPinnedByCampus(campusId: string): Promise<Post[]> {
+    const now = new Date();
+    const posts = (await this.prisma.post.findMany({
+      where: {
+        campusId,
+        isPinned: true,
+        isDeleted: false,
+        OR: [{ pinnedUntil: null }, { pinnedUntil: { gt: now } }],
+      },
+      orderBy: { createdAt: "desc" },
+      include: {
+        author: {
+          include: {
+            guardians: true,
+            staffs: true,
+          },
+        },
+        audiences: true,
+        attachments: true,
+      },
+    })) as PrismaPostWithRelations[];
+
+    return posts.map((post) => PrismaPostMapper.toDomain(post));
   }
 }

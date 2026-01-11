@@ -1,23 +1,65 @@
-# NestJS Clean Architecture Boilerplate
+# Kindercare Multi-Campus Backend
 
-A production-ready NestJS boilerplate following Clean Architecture principles with advanced standard response formatting, filtering, sorting, pagination, queue processing, and cron jobs.
+A production-ready NestJS backend for managing multiple school campuses with Clean Architecture principles, RBAC, content management, and comprehensive API features.
 
-**Author**: [@howznguyen](https://github.com/howznguyen)  
-**Repository**: [GitHub](https://github.com/howznguyen/nestjs-clean-architecture-boilerplate)
+**Based on**: [NestJS Clean Architecture Boilerplate](https://github.com/howznguyen/nestjs-clean-architecture-boilerplate) by [@howznguyen](https://github.com/howznguyen)
 
 ## Features
 
-- ✅ **Clean Architecture**: Domain-driven design with clear separation of concerns
-- ✅ **Advanced Standard Response**: Consistent API response format with filtering, sorting & pagination
-- ✅ **Mapper Pattern**: Clean separation between domain and persistence layers
-- ✅ **Queue Processing**: Bull/BullMQ integration with Redis for background jobs
-- ✅ **Cron Jobs**: Scheduled tasks using `@nestjs/schedule`
-- ✅ **Database**: PostgreSQL with Prisma ORM and relationship handling
-- ✅ **Docker**: Full containerization with environment variables
-- ✅ **API Documentation**: Auto-generated OpenAPI/Swagger with query examples
-- ✅ **Validation**: Request/response validation with class-validator
-- ✅ **TypeScript**: Full TypeScript support
-- ✅ **Testing**: Jest testing framework setup
+- **Multi-Campus Architecture**: Federated campus isolation with global user identity
+- **Role-Based Access Control (RBAC)**: Granular permissions with campus-scoped roles
+- **Clean Architecture**: Domain-driven design with clear separation of concerns
+- **Content Management System**: Posts, categories, comments, reactions, and approval workflows
+- **Advanced Standard Response**: Consistent API response format with filtering, sorting & pagination
+- **Queue Processing**: Bull/BullMQ integration with Redis for background jobs
+- **Database**: PostgreSQL with Prisma ORM and relationship handling
+- **Docker**: Full containerization with environment variables
+- **API Documentation**: Auto-generated OpenAPI/Swagger with campus context
+- **Authentication**: Clerk integration for user identity management
+- **TypeScript**: Full TypeScript support with strict typing
+
+## Multi-Campus Architecture
+
+The backend uses a **federated multi-campus architecture** that enables a single application instance to serve multiple school campuses while maintaining strict data isolation.
+
+### Core Principle
+
+**Global User Identity + Campus-Scoped Everything Else**
+
+```
+┌─────────────────────────────────────────┐
+│            GLOBAL LAYER                  │
+│  User (Clerk) │ Permission │ System Roles│
+└─────────────────────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────────────┐
+│            CAMPUS LAYER                  │
+│  ┌─────────────────────────────────┐    │
+│  │  Staff  │ Students │ Classes    │    │
+│  │  Posts  │ Files    │ Attendance │    │
+│  │  Grades │ Subjects │ SchoolYears│    │
+│  └─────────────────────────────────┘    │
+└─────────────────────────────────────────┘
+```
+
+### Campus Context
+
+Most API endpoints require an `X-Campus-Id` header to scope requests:
+
+```bash
+curl -X GET "http://localhost:3000/api/students" \
+  -H "Authorization: Bearer <jwt>" \
+  -H "X-Campus-Id: <campus-uuid>"
+```
+
+### Entity Classification
+
+| Type | Examples | campusId |
+|------|----------|----------|
+| Global | User, Permission | None |
+| Campus-Scoped | Staff, Student, Class, Post | Required (immutable) |
+| Hybrid | Role, UserRole | Optional (null = global) |
 
 ## Architecture
 
@@ -25,15 +67,21 @@ A production-ready NestJS boilerplate following Clean Architecture principles wi
 src/
 ├── core/                           # Core utilities and shared modules
 │   ├── entities/                   # Base entities and value objects
-│   └── modules/                    
+│   └── modules/
 │       └── standard-response/      # Standard response formatting
 ├── domain/                         # Business logic layer
-│   └── user-management/            # User domain entities
+│   ├── campus/                     # Campus domain
+│   ├── user-management/            # Users, Staff, Students, Guardians
+│   ├── class-management/           # Classes, Grades, Subjects
+│   ├── content-management/         # Posts, Categories, Comments
+│   ├── file-management/            # File uploads
+│   ├── attendance/                 # Student attendance
+│   └── rbac/                       # Permissions and roles
 ├── application/                    # Use cases layer
-│   └── user-management/            # User use cases and ports
+│   └── {module}/                   # Use cases and ports per domain
 └── infra/                          # Infrastructure layer
-    ├── http/                       # HTTP controllers and DTOs
-    ├── persistence/                # Database repositories
+    ├── http/                       # Controllers, Guards, DTOs
+    ├── persistence/                # Prisma repositories and mappers
     ├── queue/                      # Background job processing
     └── cronjob/                    # Scheduled tasks
 ```
@@ -42,7 +90,7 @@ src/
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - Docker & Docker Compose
 - PostgreSQL (if running locally)
 - Redis (if running locally)
@@ -52,7 +100,7 @@ src/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd nestjs-boilerplate
+   cd kindercare-backend
    ```
 
 2. **Install dependencies**
@@ -70,7 +118,7 @@ src/
    ```bash
    # Development mode
    docker-compose up app-dev
-   
+
    # Production mode
    docker-compose up app
    ```
@@ -79,10 +127,13 @@ src/
    ```bash
    # Generate Prisma client
    npm run prisma:generate
-   
+
    # Run migrations
    npm run prisma:migrate:dev
-   
+
+   # Seed initial data
+   npm run prisma:seed
+
    # Start development server
    npm run start:dev
    ```
@@ -90,7 +141,46 @@ src/
 ## API Documentation
 
 Once the application is running, visit:
-- **Swagger UI**: http://localhost:3000/api/docs
+- **Swagger UI**: http://localhost:3000/docs
+
+### Authentication
+
+All protected endpoints require a JWT token from Clerk:
+- Header: `Authorization: Bearer <jwt>`
+
+### Campus Context
+
+Campus-scoped endpoints require:
+- Header: `X-Campus-Id: <campus-uuid>`
+
+The system validates:
+1. Campus exists and is active
+2. User has roles assigned in that campus
+3. Global admins can access any campus
+
+## RBAC (Role-Based Access Control)
+
+### Permissions
+
+Atomic, code-based identifiers: `{module}.{action}`
+- Examples: `student.create`, `class.read`, `post.delete`
+
+### Roles
+
+| Type | campusId | Scope |
+|------|----------|-------|
+| System Default | null | All campuses |
+| Campus-Specific | UUID | One campus only |
+
+### User Role Assignments
+
+Users can have different roles per campus:
+```
+User 'John'
+├── Global: super_admin (applies everywhere)
+├── Campus A: teacher
+└── Campus B: principal
+```
 
 ## Standard Response Format
 
@@ -101,76 +191,18 @@ All API responses follow a consistent format:
   "success": true,
   "message": "Operation completed successfully",
   "data": { ... },
-  "pagination": { ... }, // Only for paginated responses
-  "timestamp": "2023-01-01T00:00:00.000Z"
-}
-```
-
-### Using Standard Response Decorator
-
-```typescript
-@Controller('users')
-export class UserController {
-  @Get()
-  @StandardResponse({
-    message: 'Users retrieved successfully',
-    type: UserResponseDto,
-  })
-  async getUsers() {
-    return await this.userService.findAll();
-  }
-}
-```
-
-## Queue Processing
-
-The boilerplate includes Bull/BullMQ for background job processing:
-
-```typescript
-// Adding jobs to queue
-await this.queueService.addEmailJob({
-  to: 'user@example.com',
-  subject: 'Welcome!',
-  text: 'Welcome to our platform'
-});
-```
-
-## Cron Jobs
-
-Schedule tasks using decorators:
-
-```typescript
-@Injectable()
-export class TasksService {
-  @Cron(CronExpression.EVERY_HOUR)
-  handleHourlyTask() {
-    // Task logic here
-  }
+  "pagination": { ... },
+  "timestamp": "2026-01-01T00:00:00.000Z"
 }
 ```
 
 ## Database Operations
 
-### Using Repositories
-
-```typescript
-@Injectable()
-export class CreateUserUseCase {
-  constructor(private userRepository: UserRepository) {}
-
-  async execute(dto: CreateUserDto): Promise<User> {
-    const user = User.create(dto);
-    await this.userRepository.save(user);
-    return user;
-  }
-}
-```
-
 ### Prisma Migrations
 
 ```bash
 # Create migration
-npm run prisma:migrate:dev --name add_users_table
+npm run prisma:migrate:dev --name add_feature
 
 # Deploy migrations
 npm run prisma:migrate:deploy
@@ -178,6 +210,10 @@ npm run prisma:migrate:deploy
 # Reset database
 npm run prisma:migrate:reset
 ```
+
+### Database Diagram
+
+See `diagram/dbdiagram.dbml` for the current schema in DBML format.
 
 ## Testing
 
@@ -192,39 +228,6 @@ npm run test:e2e
 npm run test:cov
 ```
 
-## Docker Commands
-
-### Development
-```bash
-# Start development environment
-docker-compose up app-dev
-
-# View logs
-docker-compose logs -f app-dev
-
-# Execute commands in container
-docker-compose exec app-dev npm run prisma:migrate:dev
-```
-
-### Production
-```bash
-# Build and start production
-docker-compose up --build app
-
-# Scale services
-docker-compose up --scale app=3
-```
-
-## Available Scripts
-
-- `npm run start` - Start production server
-- `npm run start:dev` - Start development server with hot reload
-- `npm run start:debug` - Start with debugging enabled
-- `npm run build` - Build for production
-- `npm run lint` - Lint code
-- `npm run test` - Run unit tests
-- `npm run test:e2e` - Run integration tests
-
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -235,34 +238,26 @@ docker-compose up --scale app=3
 | `REDIS_HOST` | Redis host | `localhost` |
 | `REDIS_PORT` | Redis port | `6379` |
 | `CORS_ORIGIN` | CORS origin | `true` |
+| `CLERK_SECRET_KEY` | Clerk authentication secret | Required |
 
-## Project Structure Details
+## Available Scripts
 
-### Core Layer
-- **Entities**: Base classes for domain entities
-- **Standard Response**: Automatic response formatting and validation
+- `npm run start` - Start production server
+- `npm run start:dev` - Start development server with hot reload
+- `npm run start:debug` - Start with debugging enabled
+- `npm run build` - Build for production
+- `npm run lint` - Lint code
+- `npm run test` - Run unit tests
+- `npm run test:e2e` - Run integration tests
+- `npm run prisma:seed` - Seed database with initial data
 
-### Domain Layer
-- **Entities**: Business entities with domain logic
-- **Value Objects**: Immutable objects representing domain concepts
+## Documentation
 
-### Application Layer
-- **Use Cases**: Application business logic
-- **Ports**: Interfaces for external dependencies
-
-### Infrastructure Layer
-- **HTTP**: REST API controllers and DTOs
-- **Persistence**: Database implementations
-- **Queue**: Background job processing
-- **Cronjob**: Scheduled task implementations
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+See `.knowns/docs/` for detailed documentation:
+- `architecture/` - System architecture docs
+- `patterns/` - Code patterns and conventions
+- `guides/` - Developer guides
+- `migrations/` - Migration documentation
 
 ## License
 

@@ -12,6 +12,26 @@ import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Role } from "./role.entity";
 
 /**
+ * Represents a role assignment with campus context
+ * campusId indicates which campus the role is assigned for:
+ * - null: global assignment (role applies everywhere)
+ * - string: role only applies within that specific campus
+ */
+export interface UserRoleAssignment {
+  role: Role;
+  campusId: string | null; // The campus context for this assignment (null = global)
+  assignedAt: Date;
+}
+
+/**
+ * Input for assigning roles with campus context
+ */
+export interface RoleAssignmentInput {
+  roleId: string;
+  campusId?: string | null; // undefined or null = global assignment
+}
+
+/**
  * User entity properties
  */
 export interface UserProps {
@@ -19,7 +39,8 @@ export interface UserProps {
   isActive: boolean;
   name?: string;
   email?: string;
-  roles?: Role[];
+  roles?: Role[]; // Kept for backward compatibility
+  roleAssignments?: UserRoleAssignment[]; // New: role assignments with campus context
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,6 +90,10 @@ export class User extends Entity<UserProps> {
 
   get roles(): Role[] | undefined {
     return this.props.roles;
+  }
+
+  get roleAssignments(): UserRoleAssignment[] | undefined {
+    return this.props.roleAssignments;
   }
 
   get createdAt(): Date {
@@ -135,6 +160,96 @@ export class User extends Entity<UserProps> {
   }
 
   /**
+   * Check if user has a specific role in a specific campus context
+   * Returns true if:
+   * - User has the role assigned globally (campusId = null in assignment), OR
+   * - User has the role assigned specifically to the given campus
+   *
+   * @param roleId - The role ID to check
+   * @param campusId - The campus context to check (null to check for global assignment only)
+   */
+  public hasRoleInCampus(roleId: string, campusId: string | null): boolean {
+    const assignments = this.props.roleAssignments;
+    if (!assignments || assignments.length === 0) {
+      return false;
+    }
+
+    return assignments.some((assignment) => {
+      if (assignment.role.id !== roleId) {
+        return false;
+      }
+      // Global assignment (null) grants access everywhere
+      if (assignment.campusId === null) {
+        return true;
+      }
+      // Campus-specific assignment matches the requested campus
+      return assignment.campusId === campusId;
+    });
+  }
+
+  /**
+   * Get all roles that apply to a specific campus
+   * Returns:
+   * - Roles assigned globally (campusId = null in assignment)
+   * - Roles assigned specifically to the given campus
+   *
+   * @param campusId - The campus to get roles for (null returns only globally assigned roles)
+   */
+  public getRolesForCampus(campusId: string | null): Role[] {
+    const assignments = this.props.roleAssignments;
+    if (!assignments || assignments.length === 0) {
+      return [];
+    }
+
+    return assignments
+      .filter((assignment) => {
+        // Include global assignments (apply everywhere)
+        if (assignment.campusId === null) {
+          return true;
+        }
+        // Include campus-specific assignments that match
+        return assignment.campusId === campusId;
+      })
+      .map((assignment) => assignment.role);
+  }
+
+  /**
+   * Get all globally assigned roles (campusId = null in assignment)
+   * These roles apply across all campuses
+   */
+  public getGlobalRoles(): Role[] {
+    const assignments = this.props.roleAssignments;
+    if (!assignments || assignments.length === 0) {
+      return [];
+    }
+
+    return assignments
+      .filter((assignment) => assignment.campusId === null)
+      .map((assignment) => assignment.role);
+  }
+
+  /**
+   * Get role assignments for a specific campus (including global)
+   */
+  public getRoleAssignmentsForCampus(
+    campusId: string | null,
+  ): UserRoleAssignment[] {
+    const assignments = this.props.roleAssignments;
+    if (!assignments || assignments.length === 0) {
+      return [];
+    }
+
+    return assignments.filter((assignment) => {
+      // Include global assignments
+      if (assignment.campusId === null) {
+        return true;
+      }
+      // Include campus-specific assignments that match
+      return assignment.campusId === campusId;
+    });
+  }
+
+  /**
    * Update the 'updatedAt' timestamp
    */
   private touch(): void {
@@ -178,6 +293,7 @@ export class User extends Entity<UserProps> {
       name: props.name,
       email: props.email,
       roles: [],
+      roleAssignments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

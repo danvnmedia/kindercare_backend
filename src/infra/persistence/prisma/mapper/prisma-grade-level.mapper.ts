@@ -17,6 +17,7 @@ export class PrismaGradeLevelMapper {
         name: prismaGradeLevel.name,
         order: prismaGradeLevel.order,
         isArchived: prismaGradeLevel.isArchived,
+        campusId: prismaGradeLevel.campusId,
         createdAt: prismaGradeLevel.createdAt,
         updatedAt: prismaGradeLevel.updatedAt,
       },
@@ -32,6 +33,7 @@ export class PrismaGradeLevelMapper {
         name: prismaGradeLevel.name,
         order: prismaGradeLevel.order,
         isArchived: prismaGradeLevel.isArchived,
+        campusId: prismaGradeLevel.campusId,
         classes: prismaGradeLevel.classes
           ? prismaGradeLevel.classes.map((c) =>
               PrismaClassMapper.toDomainSimple(c),
@@ -52,6 +54,7 @@ export class PrismaGradeLevelMapper {
       name: gradeLevel.name,
       order: gradeLevel.order,
       isArchived: gradeLevel.isArchived,
+      campusId: gradeLevel.campusId,
       createdAt: gradeLevel.createdAt,
       updatedAt: gradeLevel.updatedAt,
     };

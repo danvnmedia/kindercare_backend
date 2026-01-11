@@ -27,13 +27,24 @@ export class ArchivePostUseCase {
     private readonly postHistoryStatusRepository: PostHistoryStatusRepository,
   ) {}
 
-  async execute(postId: string, currentUser: User): Promise<Post> {
+  async execute(
+    campusId: string,
+    postId: string,
+    currentUser: User,
+  ): Promise<Post> {
     try {
       this.logger.log(`Archiving post: ${postId}`);
       const post = await this.postRepository.findById(postId);
 
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      // Verify the request campus matches the post's campus
+      if (post.campusId !== campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
       }
 
       const isAdmin = currentUser.roles?.some((role) => role.name === "Admin");
@@ -47,14 +58,15 @@ export class ArchivePostUseCase {
         );
       }
 
+      const previousStatus = post.status;
       post.archive();
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({
         postId: postId,
-        userId: currentUser.id,
-        status: PostStatus.ARCHIVED,
-        createdAt: new Date(),
+        changedById: currentUser.id,
+        previousStatus,
+        newStatus: PostStatus.ARCHIVED,
       });
       await this.postHistoryStatusRepository.create(history);
 

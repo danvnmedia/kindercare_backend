@@ -15,14 +15,40 @@ export abstract class GuardianRepository {
   abstract findById(id: string): Promise<Guardian | null>;
 
   /**
-   * Find guardian by email
+   * Find guardian by email (global search across all campuses)
    */
   abstract findByEmail(email: string): Promise<Guardian | null>;
 
   /**
-   * Find guardian by phone number
+   * Find guardian by email within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByEmailInCampus(
+    campusId: string,
+    email: string,
+  ): Promise<Guardian | null>;
+
+  /**
+   * Find guardian by phone number (global search across all campuses)
    */
   abstract findByPhoneNumber(phoneNumber: string): Promise<Guardian | null>;
+
+  /**
+   * Find guardian by phone number within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByPhoneNumberInCampus(
+    campusId: string,
+    phoneNumber: string,
+  ): Promise<Guardian | null>;
+
+  /**
+   * Find guardian by user ID
+   */
+  abstract findByUserId(userId: string): Promise<Guardian | null>;
+
+  /**
+   * Find guardians by campus ID
+   */
+  abstract findByCampusId(campusId: string): Promise<Guardian[]>;
 
   /**
    * Find all guardians with filtering, sorting, pagination using StandardRequest

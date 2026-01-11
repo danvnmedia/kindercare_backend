@@ -32,8 +32,8 @@ export class RestoreStaffUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<Staff> {
-    this.logger.log(`Restoring staff: ${id}`);
+  async execute(id: string, campusId: string): Promise<Staff> {
+    this.logger.log(`Restoring staff: ${id} in campus ${campusId}`);
 
     // Step 1: Find existing staff
     const staff = await this.staffRepository.findById(id);
@@ -41,7 +41,14 @@ export class RestoreStaffUseCase {
       throw new NotFoundException(`Staff with ID ${id} not found`);
     }
 
-    // Step 2: Verify staff is archived
+    // Step 2: Verify staff belongs to the specified campus
+    if (staff.campusId !== campusId) {
+      throw new NotFoundException(
+        `Staff with ID ${id} not found in this campus`,
+      );
+    }
+
+    // Step 3: Verify staff is archived
     if (!staff.isArchived) {
       throw new BadRequestException(`Staff with ID ${id} is not archived`);
     }

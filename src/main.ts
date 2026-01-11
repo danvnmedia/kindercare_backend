@@ -28,9 +28,10 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle("NestJS Boilerplate API")
+    .setTitle("Kindercare Multi-Campus API")
     .setDescription(
-      "API documentation for NestJS Clean Architecture Boilerplate",
+      "API documentation for Kindercare multi-campus school management system. " +
+        "Most endpoints require X-Campus-Id header to scope requests to a specific campus.",
     )
     .setVersion("1.0")
     .addBearerAuth(
@@ -39,10 +40,20 @@ async function bootstrap() {
         scheme: "bearer",
         bearerFormat: "JWT",
         name: "JWT",
-        description: "Enter JWT token",
+        description: "Enter JWT token from Clerk authentication",
         in: "header",
       },
       "JWT",
+    )
+    .addApiKey(
+      {
+        type: "apiKey",
+        name: "x-campus-id",
+        in: "header",
+        description:
+          "Campus UUID to scope the request. Required for most campus-scoped endpoints.",
+      },
+      "X-Campus-Id",
     )
     .build();
 
@@ -56,7 +67,7 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.CORS_ORIGIN || true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-campus-id"],
     credentials: true,
   });
 

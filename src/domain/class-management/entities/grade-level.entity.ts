@@ -7,6 +7,7 @@ export interface GradeLevelProps {
   name: string;
   order: number;
   isArchived: boolean;
+  campusId: string;
   classes?: Class[];
   createdAt: Date;
   updatedAt: Date;
@@ -33,6 +34,10 @@ export class GradeLevel extends Entity<GradeLevelProps> {
 
   get isArchived(): boolean {
     return this.props.isArchived;
+  }
+
+  get campusId(): string {
+    return this.props.campusId;
   }
 
   get createdAt(): Date {
@@ -94,6 +99,9 @@ export class GradeLevel extends Entity<GradeLevelProps> {
     }
     if (props.order < 0) {
       throw new Error("Order must be a non-negative number");
+    }
+    if (!props.campusId || props.campusId.trim().length < 1) {
+      throw new Error("Campus ID is required");
     }
 
     const gradeLevelProps: GradeLevelProps = {

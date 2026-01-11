@@ -12,6 +12,7 @@ import { User } from "@/domain/user-management/user.entity";
 
 export interface ReorderAttachmentsInput {
   postId: string;
+  campusId: string;
   orders: { id: string; order: number }[];
 }
 
@@ -36,6 +37,13 @@ export class ReorderAttachmentsUseCase {
 
       if (!post) {
         throw new NotFoundException(`Post with ID ${input.postId} not found`);
+      }
+
+      // Verify the post belongs to the specified campus
+      if (post.campusId !== input.campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();

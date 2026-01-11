@@ -15,15 +15,19 @@ export class PrismaSubjectRepository implements SubjectRepository {
     return prismaSubject ? PrismaSubjectMapper.toDomain(prismaSubject) : null;
   }
 
-  async findByName(name: string): Promise<Subject | null> {
+  async findByNameAndCampus(
+    name: string,
+    campusId: string,
+  ): Promise<Subject | null> {
     const prismaSubject = await this.prisma.subject.findFirst({
-      where: { name },
+      where: { name, campusId },
     });
     return prismaSubject ? PrismaSubjectMapper.toDomain(prismaSubject) : null;
   }
 
-  async findAll(): Promise<Subject[]> {
+  async findAll(campusId: string): Promise<Subject[]> {
     const prismaSubjects = await this.prisma.subject.findMany({
+      where: { campusId },
       orderBy: { name: "asc" },
     });
     return PrismaSubjectMapper.toDomainArray(prismaSubjects);

@@ -15,6 +15,7 @@ export class PrismaFileMapper {
         size: prismaFile.size,
         status: prismaFile.status as "PENDING" | "ACTIVE" | "DELETED",
         uploadedBy: prismaFile.uploadedBy,
+        campusId: prismaFile.campusId,
         createdAt: prismaFile.createdAt,
         updatedAt: prismaFile.updatedAt,
       },
@@ -35,6 +36,7 @@ export class PrismaFileMapper {
         size: prismaFile.size,
         status: prismaFile.status as "PENDING" | "ACTIVE" | "DELETED",
         uploadedBy: prismaFile.uploadedBy,
+        campusId: prismaFile.campusId,
         createdAt: prismaFile.createdAt,
         updatedAt: prismaFile.updatedAt,
       },
@@ -54,6 +56,7 @@ export class PrismaFileMapper {
       size: domainFile.size,
       status: domainFile.status,
       uploadedBy: domainFile.uploadedBy.toString(),
+      campusId: domainFile.campusId,
       createdAt: domainFile.createdAt,
       updatedAt: domainFile.updatedAt,
     };

@@ -1,0 +1,828 @@
+{
+  "taskId": "19",
+  "currentVersion": 9,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "19",
+      "version": 1,
+      "timestamp": "2026-01-10T05:04:59.142Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Add campus scoping to the StudentAttendance model. Note: The attendance domain logic is currently minimal (schema exists but limited use cases).\n\nDepends on @task-8 (Schema), @task-9 (Campus module).\nSee @doc/migrations/multi-campus-migration for context.\n\n## Current State\n- StudentAttendance model exists in Prisma schema\n- Limited/no domain entity, repository, or use cases implemented\n\n## Changes Required\n\n### Prisma Schema\n- Already includes campus_id in migration task (@task-7)\n- Ensure FK and index are properly defined\n\n### Domain Layer (if entity exists or needs creation)\n**File**: src/domain/attendance/entities/student-attendance.entity.ts (create if needed)\n- Add: campusId property (required)\n- Properties: studentId, classId, date, checkinAt, checkoutAt, status, reason, note\n\n### Application Layer (if repository exists or needs creation)\n**Port**: attendance.repository.ts (create if needed)\n- findByCampusId(campusId, params)\n- findByStudent(studentId, dateRange)\n- findByClass(classId, date)\n- Campus filtering on all queries\n\n### Infrastructure Layer\n**Repository**: prisma-student-attendance.repository.ts (update or create)\n- Include campus filtering\n- Validate student and class belong to same campus\n\n### HTTP Layer (if endpoints exist or need creation)\n- Attendance endpoints should be campus-scoped\n- DTOs should include campusId\n\n## Validation Rules\n- Attendance records must reference student and class from same campus\n- campusId must match student's campus",
+          "newValue": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create StudentAttendance domain entity with campusId\n2. Create attendance repository port with campus-aware methods\n3. Create Prisma repository and mapper\n4. Validate student and class belong to same campus\n5. Create DTOs with campusId\n6. Create HTTP endpoints (if planned for this phase)\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete."
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create StudentAttendance domain entity with campusId\n2. Create attendance repository port with campus-aware methods\n3. Create Prisma repository and mapper\n4. Validate student and class belong to same campus\n5. Create DTOs with campusId\n6. Create HTTP endpoints (if planned for this phase)\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "StudentAttendance has campusId in schema"
+          },
+          {
+            "completed": false,
+            "text": "Attendance entity (if exists) has campusId property"
+          },
+          {
+            "completed": false,
+            "text": "Attendance repository (if exists) is campus-aware"
+          },
+          {
+            "completed": false,
+            "text": "Attendance queries filtered by campus"
+          },
+          {
+            "completed": false,
+            "text": "Student and class validated to be in same campus"
+          },
+          {
+            "completed": false,
+            "text": "Mapper handles campusId"
+          },
+          {
+            "completed": false,
+            "text": "DTOs include campusId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "19",
+      "version": 2,
+      "timestamp": "2026-01-11T02:42:15.034Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create StudentAttendance domain entity with campusId\n2. Create attendance repository port with campus-aware methods\n3. Create Prisma repository and mapper\n4. Validate student and class belong to same campus\n5. Create DTOs with campusId\n6. Create HTTP endpoints (if planned for this phase)\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.",
+          "newValue": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "StudentAttendance has campusId in schema"
+          },
+          {
+            "completed": false,
+            "text": "Attendance entity (if exists) has campusId property"
+          },
+          {
+            "completed": false,
+            "text": "Attendance repository (if exists) is campus-aware"
+          },
+          {
+            "completed": false,
+            "text": "Attendance queries filtered by campus"
+          },
+          {
+            "completed": false,
+            "text": "Student and class validated to be in same campus"
+          },
+          {
+            "completed": false,
+            "text": "Mapper handles campusId"
+          },
+          {
+            "completed": false,
+            "text": "DTOs include campusId"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "19",
+      "version": 3,
+      "timestamp": "2026-01-11T02:42:51.810Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "StudentAttendance has campusId in schema"
+          },
+          {
+            "completed": false,
+            "text": "Attendance entity (if exists) has campusId property"
+          },
+          {
+            "completed": false,
+            "text": "Attendance repository (if exists) is campus-aware"
+          },
+          {
+            "completed": false,
+            "text": "Attendance queries filtered by campus"
+          },
+          {
+            "completed": false,
+            "text": "Student and class validated to be in same campus"
+          },
+          {
+            "completed": false,
+            "text": "Mapper handles campusId"
+          },
+          {
+            "completed": false,
+            "text": "DTOs include campusId"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "19",
+      "version": 4,
+      "timestamp": "2026-01-11T02:42:58.464Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "StudentAttendance has campusId in schema"
+            },
+            {
+              "completed": false,
+              "text": "Attendance entity (if exists) has campusId property"
+            },
+            {
+              "completed": false,
+              "text": "Attendance repository (if exists) is campus-aware"
+            },
+            {
+              "completed": false,
+              "text": "Attendance queries filtered by campus"
+            },
+            {
+              "completed": false,
+              "text": "Student and class validated to be in same campus"
+            },
+            {
+              "completed": false,
+              "text": "Mapper handles campusId"
+            },
+            {
+              "completed": false,
+              "text": "DTOs include campusId"
+            }
+          ],
+          "newValue": []
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "19",
+      "version": 5,
+      "timestamp": "2026-01-11T02:43:09.240Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [],
+          "newValue": [
+            {
+              "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED",
+              "completed": false
+            },
+            {
+              "text": "StudentAttendance entity has campusId property with validation",
+              "completed": false
+            },
+            {
+              "text": "StudentAttendance repository port is campus-aware",
+              "completed": false
+            },
+            {
+              "text": "PrismaStudentAttendanceMapper has all 5 required methods",
+              "completed": false
+            },
+            {
+              "text": "PrismaStudentAttendanceRepository implements port with campus filtering",
+              "completed": false
+            },
+            {
+              "text": "RecordAttendance use case validates student/class belong to same campus",
+              "completed": false
+            },
+            {
+              "text": "UpdateAttendance use case allows updating status/checkout/notes",
+              "completed": false
+            },
+            {
+              "text": "GetClassAttendance use case returns daily attendance for a class",
+              "completed": false
+            },
+            {
+              "text": "GetStudentAttendance use case returns student history with date range",
+              "completed": false
+            },
+            {
+              "text": "BulkRecordAttendance use case handles multiple students at once",
+              "completed": false
+            },
+            {
+              "text": "DTOs include proper validation and Swagger documentation",
+              "completed": false
+            },
+            {
+              "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators",
+              "completed": false
+            },
+            {
+              "text": "AttendanceModule registered in http.module.ts",
+              "completed": false
+            },
+            {
+              "text": "All use cases log operations properly",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED",
+            "completed": false
+          },
+          {
+            "text": "StudentAttendance entity has campusId property with validation",
+            "completed": false
+          },
+          {
+            "text": "StudentAttendance repository port is campus-aware",
+            "completed": false
+          },
+          {
+            "text": "PrismaStudentAttendanceMapper has all 5 required methods",
+            "completed": false
+          },
+          {
+            "text": "PrismaStudentAttendanceRepository implements port with campus filtering",
+            "completed": false
+          },
+          {
+            "text": "RecordAttendance use case validates student/class belong to same campus",
+            "completed": false
+          },
+          {
+            "text": "UpdateAttendance use case allows updating status/checkout/notes",
+            "completed": false
+          },
+          {
+            "text": "GetClassAttendance use case returns daily attendance for a class",
+            "completed": false
+          },
+          {
+            "text": "GetStudentAttendance use case returns student history with date range",
+            "completed": false
+          },
+          {
+            "text": "BulkRecordAttendance use case handles multiple students at once",
+            "completed": false
+          },
+          {
+            "text": "DTOs include proper validation and Swagger documentation",
+            "completed": false
+          },
+          {
+            "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators",
+            "completed": false
+          },
+          {
+            "text": "AttendanceModule registered in http.module.ts",
+            "completed": false
+          },
+          {
+            "text": "All use cases log operations properly",
+            "completed": false
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "19",
+      "version": 6,
+      "timestamp": "2026-01-11T02:43:15.960Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "newValue": "Claude"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "Claude",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED"
+          },
+          {
+            "completed": false,
+            "text": "StudentAttendance entity has campusId property with validation"
+          },
+          {
+            "completed": false,
+            "text": "StudentAttendance repository port is campus-aware"
+          },
+          {
+            "completed": false,
+            "text": "PrismaStudentAttendanceMapper has all 5 required methods"
+          },
+          {
+            "completed": false,
+            "text": "PrismaStudentAttendanceRepository implements port with campus filtering"
+          },
+          {
+            "completed": false,
+            "text": "RecordAttendance use case validates student/class belong to same campus"
+          },
+          {
+            "completed": false,
+            "text": "UpdateAttendance use case allows updating status/checkout/notes"
+          },
+          {
+            "completed": false,
+            "text": "GetClassAttendance use case returns daily attendance for a class"
+          },
+          {
+            "completed": false,
+            "text": "GetStudentAttendance use case returns student history with date range"
+          },
+          {
+            "completed": false,
+            "text": "BulkRecordAttendance use case handles multiple students at once"
+          },
+          {
+            "completed": false,
+            "text": "DTOs include proper validation and Swagger documentation"
+          },
+          {
+            "completed": false,
+            "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators"
+          },
+          {
+            "completed": false,
+            "text": "AttendanceModule registered in http.module.ts"
+          },
+          {
+            "completed": false,
+            "text": "All use cases log operations properly"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT"
+      }
+    },
+    {
+      "id": "v7",
+      "taskId": "19",
+      "version": 7,
+      "timestamp": "2026-01-11T03:22:19.782Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Implementation Complete - 2026-01-10\n\n### Files Created:\n\n**Domain Layer:**\n- src/domain/attendance/enums/attendance-status.enum.ts - PRESENT, ABSENT, LATE, EXCUSED\n- src/domain/attendance/entities/student-attendance.entity.ts - Entity with campusId property\n- src/domain/attendance/index.ts - Barrel export\n\n**Application Layer:**\n- src/application/attendance/ports/student-attendance.repository.ts - Campus-aware repository port\n- src/application/attendance/use-cases/record-attendance.use-case.ts - Validates student/class belong to same campus\n- src/application/attendance/use-cases/update-attendance.use-case.ts - Update status/checkout/notes\n- src/application/attendance/use-cases/get-attendance-by-id.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts - Daily attendance for a class\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts - Student history with date range\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts - Multiple students at once\n- src/application/attendance/index.ts - Barrel export\n\n**Infrastructure Layer:**\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts - All 5 methods\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts - Campus filtering\n- src/infra/http/dtos/attendance/record-attendance.request.ts\n- src/infra/http/dtos/attendance/update-attendance.request.ts\n- src/infra/http/dtos/attendance/bulk-record-attendance.request.ts\n- src/infra/http/dtos/attendance/student-attendance.response.ts\n- src/infra/http/dtos/attendance/index.ts\n- src/infra/http/controllers/attendance.controller.ts - Uses RequireCampusAccess/CampusContext decorators\n- src/infra/http/modules/attendance.module.ts\n\n**Updated Files:**\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/index.ts\n- src/infra/http/http.module.ts\n\n### API Endpoints:\n- POST /attendance - Record attendance (requires campus)\n- POST /attendance/bulk - Bulk record (requires campus)\n- GET /attendance/:id - Get by ID\n- PATCH /attendance/:id - Update attendance\n- GET /attendance/class/:classId?date=YYYY-MM-DD - Class daily attendance (requires campus)\n- GET /attendance/student/:studentId?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD - Student history (requires campus)\n\n### Build Status:\nAttendance module builds successfully. Pre-existing errors in content-management module are unrelated."
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "Claude",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED"
+          },
+          {
+            "completed": false,
+            "text": "StudentAttendance entity has campusId property with validation"
+          },
+          {
+            "completed": false,
+            "text": "StudentAttendance repository port is campus-aware"
+          },
+          {
+            "completed": false,
+            "text": "PrismaStudentAttendanceMapper has all 5 required methods"
+          },
+          {
+            "completed": false,
+            "text": "PrismaStudentAttendanceRepository implements port with campus filtering"
+          },
+          {
+            "completed": false,
+            "text": "RecordAttendance use case validates student/class belong to same campus"
+          },
+          {
+            "completed": false,
+            "text": "UpdateAttendance use case allows updating status/checkout/notes"
+          },
+          {
+            "completed": false,
+            "text": "GetClassAttendance use case returns daily attendance for a class"
+          },
+          {
+            "completed": false,
+            "text": "GetStudentAttendance use case returns student history with date range"
+          },
+          {
+            "completed": false,
+            "text": "BulkRecordAttendance use case handles multiple students at once"
+          },
+          {
+            "completed": false,
+            "text": "DTOs include proper validation and Swagger documentation"
+          },
+          {
+            "completed": false,
+            "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators"
+          },
+          {
+            "completed": false,
+            "text": "AttendanceModule registered in http.module.ts"
+          },
+          {
+            "completed": false,
+            "text": "All use cases log operations properly"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT",
+        "implementationNotes": "## Implementation Complete - 2026-01-10\n\n### Files Created:\n\n**Domain Layer:**\n- src/domain/attendance/enums/attendance-status.enum.ts - PRESENT, ABSENT, LATE, EXCUSED\n- src/domain/attendance/entities/student-attendance.entity.ts - Entity with campusId property\n- src/domain/attendance/index.ts - Barrel export\n\n**Application Layer:**\n- src/application/attendance/ports/student-attendance.repository.ts - Campus-aware repository port\n- src/application/attendance/use-cases/record-attendance.use-case.ts - Validates student/class belong to same campus\n- src/application/attendance/use-cases/update-attendance.use-case.ts - Update status/checkout/notes\n- src/application/attendance/use-cases/get-attendance-by-id.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts - Daily attendance for a class\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts - Student history with date range\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts - Multiple students at once\n- src/application/attendance/index.ts - Barrel export\n\n**Infrastructure Layer:**\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts - All 5 methods\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts - Campus filtering\n- src/infra/http/dtos/attendance/record-attendance.request.ts\n- src/infra/http/dtos/attendance/update-attendance.request.ts\n- src/infra/http/dtos/attendance/bulk-record-attendance.request.ts\n- src/infra/http/dtos/attendance/student-attendance.response.ts\n- src/infra/http/dtos/attendance/index.ts\n- src/infra/http/controllers/attendance.controller.ts - Uses RequireCampusAccess/CampusContext decorators\n- src/infra/http/modules/attendance.module.ts\n\n**Updated Files:**\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/index.ts\n- src/infra/http/http.module.ts\n\n### API Endpoints:\n- POST /attendance - Record attendance (requires campus)\n- POST /attendance/bulk - Bulk record (requires campus)\n- GET /attendance/:id - Get by ID\n- PATCH /attendance/:id - Update attendance\n- GET /attendance/class/:classId?date=YYYY-MM-DD - Class daily attendance (requires campus)\n- GET /attendance/student/:studentId?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD - Student history (requires campus)\n\n### Build Status:\nAttendance module builds successfully. Pre-existing errors in content-management module are unrelated."
+      }
+    },
+    {
+      "id": "v8",
+      "taskId": "19",
+      "version": 8,
+      "timestamp": "2026-01-11T03:22:29.232Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED"
+            },
+            {
+              "completed": false,
+              "text": "StudentAttendance entity has campusId property with validation"
+            },
+            {
+              "completed": false,
+              "text": "StudentAttendance repository port is campus-aware"
+            },
+            {
+              "completed": false,
+              "text": "PrismaStudentAttendanceMapper has all 5 required methods"
+            },
+            {
+              "completed": false,
+              "text": "PrismaStudentAttendanceRepository implements port with campus filtering"
+            },
+            {
+              "completed": false,
+              "text": "RecordAttendance use case validates student/class belong to same campus"
+            },
+            {
+              "completed": false,
+              "text": "UpdateAttendance use case allows updating status/checkout/notes"
+            },
+            {
+              "completed": false,
+              "text": "GetClassAttendance use case returns daily attendance for a class"
+            },
+            {
+              "completed": false,
+              "text": "GetStudentAttendance use case returns student history with date range"
+            },
+            {
+              "completed": false,
+              "text": "BulkRecordAttendance use case handles multiple students at once"
+            },
+            {
+              "completed": false,
+              "text": "DTOs include proper validation and Swagger documentation"
+            },
+            {
+              "completed": false,
+              "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators"
+            },
+            {
+              "completed": false,
+              "text": "AttendanceModule registered in http.module.ts"
+            },
+            {
+              "completed": false,
+              "text": "All use cases log operations properly"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED"
+            },
+            {
+              "completed": true,
+              "text": "StudentAttendance entity has campusId property with validation"
+            },
+            {
+              "completed": true,
+              "text": "StudentAttendance repository port is campus-aware"
+            },
+            {
+              "completed": true,
+              "text": "PrismaStudentAttendanceMapper has all 5 required methods"
+            },
+            {
+              "completed": true,
+              "text": "PrismaStudentAttendanceRepository implements port with campus filtering"
+            },
+            {
+              "completed": true,
+              "text": "RecordAttendance use case validates student/class belong to same campus"
+            },
+            {
+              "completed": true,
+              "text": "UpdateAttendance use case allows updating status/checkout/notes"
+            },
+            {
+              "completed": true,
+              "text": "GetClassAttendance use case returns daily attendance for a class"
+            },
+            {
+              "completed": true,
+              "text": "GetStudentAttendance use case returns student history with date range"
+            },
+            {
+              "completed": true,
+              "text": "BulkRecordAttendance use case handles multiple students at once"
+            },
+            {
+              "completed": true,
+              "text": "DTOs include proper validation and Swagger documentation"
+            },
+            {
+              "completed": true,
+              "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators"
+            },
+            {
+              "completed": true,
+              "text": "AttendanceModule registered in http.module.ts"
+            },
+            {
+              "completed": true,
+              "text": "All use cases log operations properly"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "Claude",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED"
+          },
+          {
+            "completed": true,
+            "text": "StudentAttendance entity has campusId property with validation"
+          },
+          {
+            "completed": true,
+            "text": "StudentAttendance repository port is campus-aware"
+          },
+          {
+            "completed": true,
+            "text": "PrismaStudentAttendanceMapper has all 5 required methods"
+          },
+          {
+            "completed": true,
+            "text": "PrismaStudentAttendanceRepository implements port with campus filtering"
+          },
+          {
+            "completed": true,
+            "text": "RecordAttendance use case validates student/class belong to same campus"
+          },
+          {
+            "completed": true,
+            "text": "UpdateAttendance use case allows updating status/checkout/notes"
+          },
+          {
+            "completed": true,
+            "text": "GetClassAttendance use case returns daily attendance for a class"
+          },
+          {
+            "completed": true,
+            "text": "GetStudentAttendance use case returns student history with date range"
+          },
+          {
+            "completed": true,
+            "text": "BulkRecordAttendance use case handles multiple students at once"
+          },
+          {
+            "completed": true,
+            "text": "DTOs include proper validation and Swagger documentation"
+          },
+          {
+            "completed": true,
+            "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators"
+          },
+          {
+            "completed": true,
+            "text": "AttendanceModule registered in http.module.ts"
+          },
+          {
+            "completed": true,
+            "text": "All use cases log operations properly"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT",
+        "implementationNotes": "## Implementation Complete - 2026-01-10\n\n### Files Created:\n\n**Domain Layer:**\n- src/domain/attendance/enums/attendance-status.enum.ts - PRESENT, ABSENT, LATE, EXCUSED\n- src/domain/attendance/entities/student-attendance.entity.ts - Entity with campusId property\n- src/domain/attendance/index.ts - Barrel export\n\n**Application Layer:**\n- src/application/attendance/ports/student-attendance.repository.ts - Campus-aware repository port\n- src/application/attendance/use-cases/record-attendance.use-case.ts - Validates student/class belong to same campus\n- src/application/attendance/use-cases/update-attendance.use-case.ts - Update status/checkout/notes\n- src/application/attendance/use-cases/get-attendance-by-id.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts - Daily attendance for a class\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts - Student history with date range\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts - Multiple students at once\n- src/application/attendance/index.ts - Barrel export\n\n**Infrastructure Layer:**\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts - All 5 methods\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts - Campus filtering\n- src/infra/http/dtos/attendance/record-attendance.request.ts\n- src/infra/http/dtos/attendance/update-attendance.request.ts\n- src/infra/http/dtos/attendance/bulk-record-attendance.request.ts\n- src/infra/http/dtos/attendance/student-attendance.response.ts\n- src/infra/http/dtos/attendance/index.ts\n- src/infra/http/controllers/attendance.controller.ts - Uses RequireCampusAccess/CampusContext decorators\n- src/infra/http/modules/attendance.module.ts\n\n**Updated Files:**\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/index.ts\n- src/infra/http/http.module.ts\n\n### API Endpoints:\n- POST /attendance - Record attendance (requires campus)\n- POST /attendance/bulk - Bulk record (requires campus)\n- GET /attendance/:id - Get by ID\n- PATCH /attendance/:id - Update attendance\n- GET /attendance/class/:classId?date=YYYY-MM-DD - Class daily attendance (requires campus)\n- GET /attendance/student/:studentId?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD - Student history (requires campus)\n\n### Build Status:\nAttendance module builds successfully. Pre-existing errors in content-management module are unrelated."
+      }
+    },
+    {
+      "id": "v9",
+      "taskId": "19",
+      "version": 9,
+      "timestamp": "2026-01-11T03:22:37.692Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4.3: Student Attendance Campus Scoping",
+        "description": "**FULL IMPLEMENTATION TASK** - Create Student Attendance module with campus scoping.\n\n**Current State:**\n- Prisma schema has StudentAttendance model with campusId (READY)\n- NO domain layer exists (entity + enum needed)\n- NO application layer exists (repository port + use cases needed)\n- NO infrastructure layer exists (Prisma repository + mapper needed)\n- NO HTTP layer exists (controller + DTOs needed)\n\n**Scope:**\nThis is NOT just a \"campus scoping\" update - it requires building the entire attendance feature from scratch with campus awareness built in from the start.\n\n**Key Requirements:**\n1. Create AttendanceStatus enum (PRESENT, ABSENT, LATE, EXCUSED)\n2. Create StudentAttendance domain entity with campusId\n3. Create attendance repository port with campus-aware methods\n4. Create Prisma mapper (5 methods) and repository implementation\n5. Validate student and class belong to same campus\n6. Create DTOs with campusId-aware patterns\n7. Create HTTP controller with campus-scoped endpoints\n\n**Dependencies:** Tasks 14 (Student), 16 (Class) must be complete.\n\n**Files to Create:**\n- src/domain/attendance/entities/student-attendance.entity.ts\n- src/domain/attendance/enums/attendance-status.enum.ts\n- src/domain/attendance/index.ts\n- src/application/attendance/ports/student-attendance.repository.ts\n- src/application/attendance/use-cases/record-attendance.use-case.ts\n- src/application/attendance/use-cases/update-attendance.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/http/dtos/attendance/*.ts\n- src/infra/http/controllers/attendance.controller.ts\n- src/infra/http/modules/attendance.module.ts",
+        "status": "done",
+        "priority": "medium",
+        "assignee": "Claude",
+        "labels": [
+          "domain",
+          "attendance",
+          "campus-scoping",
+          "phase-4"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "AttendanceStatus enum created with PRESENT, ABSENT, LATE, EXCUSED"
+          },
+          {
+            "completed": true,
+            "text": "StudentAttendance entity has campusId property with validation"
+          },
+          {
+            "completed": true,
+            "text": "StudentAttendance repository port is campus-aware"
+          },
+          {
+            "completed": true,
+            "text": "PrismaStudentAttendanceMapper has all 5 required methods"
+          },
+          {
+            "completed": true,
+            "text": "PrismaStudentAttendanceRepository implements port with campus filtering"
+          },
+          {
+            "completed": true,
+            "text": "RecordAttendance use case validates student/class belong to same campus"
+          },
+          {
+            "completed": true,
+            "text": "UpdateAttendance use case allows updating status/checkout/notes"
+          },
+          {
+            "completed": true,
+            "text": "GetClassAttendance use case returns daily attendance for a class"
+          },
+          {
+            "completed": true,
+            "text": "GetStudentAttendance use case returns student history with date range"
+          },
+          {
+            "completed": true,
+            "text": "BulkRecordAttendance use case handles multiple students at once"
+          },
+          {
+            "completed": true,
+            "text": "DTOs include proper validation and Swagger documentation"
+          },
+          {
+            "completed": true,
+            "text": "AttendanceController uses RequireCampusAccess and CampusContext decorators"
+          },
+          {
+            "completed": true,
+            "text": "AttendanceModule registered in http.module.ts"
+          },
+          {
+            "completed": true,
+            "text": "All use cases log operations properly"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Domain Layer\n1. Create src/domain/attendance/enums/attendance-status.enum.ts\n   - Define PRESENT, ABSENT, LATE, EXCUSED statuses\n   \n2. Create src/domain/attendance/entities/student-attendance.entity.ts\n   - Props: studentId, classId, campusId, date, checkinAt, checkoutAt, status, reason, note\n   - Getters for all properties\n   - Domain methods: checkin(), checkout(), updateStatus()\n   - Factory method with validation (require campusId)\n   - Optional relations: student, class\n\n3. Create src/domain/attendance/index.ts barrel export\n\n### Phase 2: Application Layer (Repository Port)\n4. Create src/application/attendance/ports/student-attendance.repository.ts\n   - findById, findByStudentAndDate (unique constraint)\n   - findByClassAndDate (for daily class attendance)\n   - findByStudentDateRange (student attendance history)\n   - findByCampus with pagination\n   - save, update, delete methods\n\n### Phase 3: Application Layer (Use Cases)\n5. Create record-attendance.use-case.ts\n   - Input: campusId, studentId, classId, date, status, checkinAt\n   - Validate student exists and belongs to campus\n   - Validate class exists and belongs to campus\n   - Check for duplicate (unique studentId+date)\n   - Create and save attendance record\n\n6. Create update-attendance.use-case.ts\n   - Input: attendanceId, checkoutAt?, status?, reason?, note?\n   - Validate attendance exists\n   - Update fields and persist\n\n7. Create get-class-attendance.use-case.ts\n   - Input: campusId, classId, date\n   - Validate class belongs to campus\n   - Return all attendance records for that class/date\n\n8. Create get-student-attendance.use-case.ts\n   - Input: campusId, studentId, startDate, endDate\n   - Validate student belongs to campus\n   - Return attendance records in date range\n\n9. Create bulk-record-attendance.use-case.ts\n   - Input: campusId, classId, date, records[]\n   - Validate all students belong to campus\n   - Create/update attendance in bulk\n\n### Phase 4: Infrastructure Layer (Persistence)\n10. Create prisma-student-attendance.mapper.ts\n    - toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray\n\n11. Create prisma-student-attendance.repository.ts\n    - Implement all port methods\n    - Include student and class relations\n    - Campus-aware filtering\n\n### Phase 5: Infrastructure Layer (HTTP)\n12. Create DTOs in src/infra/http/dtos/attendance/\n    - record-attendance.request.ts\n    - update-attendance.request.ts\n    - bulk-record-attendance.request.ts\n    - student-attendance.response.ts\n    - index.ts\n\n13. Create attendance.controller.ts\n    - POST /attendance - record attendance (requires campus)\n    - POST /attendance/bulk - bulk record (requires campus)\n    - PATCH /attendance/:id - update attendance\n    - GET /classes/:classId/attendance - class daily attendance (requires campus)\n    - GET /students/:studentId/attendance - student history (requires campus)\n\n### Phase 6: Module Integration\n14. Create src/infra/http/modules/attendance.module.ts\n    - Import dependencies (PrismaModule, StandardResponseModule, UserManagementModule, ClassManagementModule)\n    - Register all use cases\n    - Bind repository port to implementation\n    - Export repository for potential use by other modules\n\n15. Register AttendanceModule in http.module.ts\n\n### Testing Considerations\n- Student and class must belong to same campus for attendance\n- One attendance record per student per date (unique constraint)\n- Checkin/checkout times are optional\n- Status defaults to PRESENT",
+        "implementationNotes": "## Implementation Complete - 2026-01-10\n\n### Files Created:\n\n**Domain Layer:**\n- src/domain/attendance/enums/attendance-status.enum.ts - PRESENT, ABSENT, LATE, EXCUSED\n- src/domain/attendance/entities/student-attendance.entity.ts - Entity with campusId property\n- src/domain/attendance/index.ts - Barrel export\n\n**Application Layer:**\n- src/application/attendance/ports/student-attendance.repository.ts - Campus-aware repository port\n- src/application/attendance/use-cases/record-attendance.use-case.ts - Validates student/class belong to same campus\n- src/application/attendance/use-cases/update-attendance.use-case.ts - Update status/checkout/notes\n- src/application/attendance/use-cases/get-attendance-by-id.use-case.ts\n- src/application/attendance/use-cases/get-class-attendance.use-case.ts - Daily attendance for a class\n- src/application/attendance/use-cases/get-student-attendance.use-case.ts - Student history with date range\n- src/application/attendance/use-cases/bulk-record-attendance.use-case.ts - Multiple students at once\n- src/application/attendance/index.ts - Barrel export\n\n**Infrastructure Layer:**\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts - All 5 methods\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts - Campus filtering\n- src/infra/http/dtos/attendance/record-attendance.request.ts\n- src/infra/http/dtos/attendance/update-attendance.request.ts\n- src/infra/http/dtos/attendance/bulk-record-attendance.request.ts\n- src/infra/http/dtos/attendance/student-attendance.response.ts\n- src/infra/http/dtos/attendance/index.ts\n- src/infra/http/controllers/attendance.controller.ts - Uses RequireCampusAccess/CampusContext decorators\n- src/infra/http/modules/attendance.module.ts\n\n**Updated Files:**\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/index.ts\n- src/infra/http/http.module.ts\n\n### API Endpoints:\n- POST /attendance - Record attendance (requires campus)\n- POST /attendance/bulk - Bulk record (requires campus)\n- GET /attendance/:id - Get by ID\n- PATCH /attendance/:id - Update attendance\n- GET /attendance/class/:classId?date=YYYY-MM-DD - Class daily attendance (requires campus)\n- GET /attendance/student/:studentId?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD - Student history (requires campus)\n\n### Build Status:\nAttendance module builds successfully. Pre-existing errors in content-management module are unrelated."
+      }
+    }
+  ]
+}

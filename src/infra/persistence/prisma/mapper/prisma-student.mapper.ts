@@ -23,6 +23,7 @@ type PrismaStudentWithRelations = PrismaStudent & {
 export class PrismaStudentMapper {
   static toDomain(prismaStudent: PrismaStudentWithRelations): Student {
     const studentProps = {
+      campusId: prismaStudent.campusId,
       studentCode: prismaStudent.studentCode,
       fullName: prismaStudent.fullName,
       email: prismaStudent.email,
@@ -44,6 +45,7 @@ export class PrismaStudentMapper {
 
   static toDomainSimple(prismaStudent: PrismaStudent): Student {
     const studentProps = {
+      campusId: prismaStudent.campusId,
       studentCode: prismaStudent.studentCode,
       fullName: prismaStudent.fullName,
       email: prismaStudent.email,
@@ -63,6 +65,7 @@ export class PrismaStudentMapper {
   static toPrisma(student: Student): Prisma.StudentUncheckedCreateInput {
     return {
       id: student.id,
+      campusId: student.campusId,
       studentCode: student.studentCode,
       fullName: student.fullName,
       email: student.email,
@@ -79,6 +82,7 @@ export class PrismaStudentMapper {
   }
 
   static toPrismaUpdate(student: Student): Prisma.StudentUpdateInput {
+    // Note: campusId is not included in updates - it's immutable
     return {
       studentCode: student.studentCode,
       fullName: student.fullName,

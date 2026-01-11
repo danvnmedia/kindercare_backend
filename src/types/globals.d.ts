@@ -2,6 +2,10 @@ declare global {
   namespace Express {
     interface Request {
       user?: UserPayload;
+      /**
+       * Campus ID from validated campus context (set by CampusGuard)
+       */
+      campusId?: string;
     }
   }
 }

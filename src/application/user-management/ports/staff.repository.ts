@@ -5,7 +5,6 @@
  */
 
 import { Staff } from "@/domain/user-management/entities/staff.entity";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -16,14 +15,30 @@ export abstract class StaffRepository {
   abstract findById(id: string): Promise<Staff | null>;
 
   /**
-   * Find staff by email
+   * Find staff by email (global search across all campuses)
    */
   abstract findByEmail(email: string): Promise<Staff | null>;
 
   /**
-   * Find staff by phone number
+   * Find staff by email within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByEmailInCampus(
+    campusId: string,
+    email: string,
+  ): Promise<Staff | null>;
+
+  /**
+   * Find staff by phone number (global search across all campuses)
    */
   abstract findByPhoneNumber(phoneNumber: string): Promise<Staff | null>;
+
+  /**
+   * Find staff by phone number within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByPhoneNumberInCampus(
+    campusId: string,
+    phoneNumber: string,
+  ): Promise<Staff | null>;
 
   /**
    * Find staff by user ID
@@ -31,9 +46,14 @@ export abstract class StaffRepository {
   abstract findByUserId(userId: string): Promise<Staff | null>;
 
   /**
-   * Find staff by type
+   * Find staff by staff type ID
    */
-  abstract findByType(type: StaffType): Promise<Staff[]>;
+  abstract findByStaffTypeId(staffTypeId: string): Promise<Staff[]>;
+
+  /**
+   * Find staff by campus ID
+   */
+  abstract findByCampusId(campusId: string): Promise<Staff[]>;
 
   /**
    * Find multiple staff by IDs

@@ -5,6 +5,7 @@ import { StorageService } from "../ports/storage.service";
 
 export interface DeleteFileUseCaseRequest {
   fileId: UniqueEntityID;
+  campusId: string;
 }
 
 export type DeleteFileUseCaseResponse = Either<Error, void>;
@@ -17,8 +18,13 @@ export class DeleteFileUseCase {
 
   async execute({
     fileId,
+    campusId,
   }: DeleteFileUseCaseRequest): Promise<DeleteFileUseCaseResponse> {
-    const file = await this.fileRepository.findById(fileId.toString());
+    // Find file with campus verification to ensure user can only delete files in their campus
+    const file = await this.fileRepository.findByIdAndCampus(
+      fileId.toString(),
+      campusId,
+    );
 
     if (!file) {
       return left(new Error("File not found."));

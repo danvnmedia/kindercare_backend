@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  Logger,
+  ConflictException,
+} from "@nestjs/common";
 import {
   Class,
   UpdateClassData,
@@ -24,10 +30,26 @@ export class UpdateClassUseCase {
         throw new NotFoundException(`Class with ID ${id} not found`);
       }
 
-      // Step 2: Update class
+      // Step 2: Check name uniqueness if name is being changed
+      if (input.name && input.name.trim() !== classEntity.name) {
+        const existingClass =
+          await this.classRepository.findByNameInContextAndCampus(
+            input.name,
+            classEntity.campusId,
+            classEntity.schoolYearId,
+            classEntity.gradeLevelId,
+          );
+        if (existingClass && existingClass.id !== id) {
+          throw new ConflictException(
+            `Class "${input.name}" already exists in this grade level and school year`,
+          );
+        }
+      }
+
+      // Step 3: Update class
       classEntity.update(input);
 
-      // Step 3: Save updated class
+      // Step 4: Save updated class
       const updatedClass = await this.classRepository.update(classEntity);
 
       this.logger.log(`Class updated successfully: ${id}`);

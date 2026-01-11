@@ -13,9 +13,23 @@ export class ListPostsUseCase {
     private readonly postRepository: PostRepository,
   ) {}
 
-  async execute(query: StandardRequestDto): Promise<PaginatedResult<Post>> {
+  async execute(
+    campusId: string,
+    query: StandardRequestDto,
+  ): Promise<PaginatedResult<Post>> {
     try {
-      this.logger.log("Listing posts");
+      this.logger.log(`Listing posts for campus: ${campusId}`);
+
+      // Force campus filter - parse existing filter or create new one
+      const existingFilter = query.filter ? JSON.parse(query.filter) : {};
+      existingFilter.campusId = campusId;
+      query.filter = JSON.stringify(existingFilter);
+
+      // Default sort: pinned posts first, then by most recent
+      if (!query.sort) {
+        query.sort = "-isPinned,-createdAt";
+      }
+
       return this.postRepository.findMany(query);
     } catch (error) {
       this.logger.error(`Failed to list posts: ${error.message}`, error.stack);

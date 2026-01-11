@@ -1,0 +1,394 @@
+{
+  "taskId": "jg8iyc",
+  "currentVersion": 3,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "jg8iyc",
+      "version": 1,
+      "timestamp": "2026-01-10T21:00:26.269Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [],
+          "newValue": [
+            {
+              "text": "staff.controller.ts updated (6 methods)",
+              "completed": false
+            },
+            {
+              "text": "reference-data.controller.ts updated (3 methods)",
+              "completed": false
+            },
+            {
+              "text": "post.controller.ts updated (2 methods)",
+              "completed": false
+            },
+            {
+              "text": "campus-setting.controller.ts updated (2 methods)",
+              "completed": false
+            },
+            {
+              "text": "post-category.controller.ts updated (2 methods)",
+              "completed": false
+            },
+            {
+              "text": "class.controller.ts updated (1 method)",
+              "completed": false
+            },
+            {
+              "text": "file.controller.ts updated (1 method)",
+              "completed": false
+            },
+            {
+              "text": "staff-type.controller.ts updated (1 method)",
+              "completed": false
+            },
+            {
+              "text": "danger-staff.controller.ts updated (1 method)",
+              "completed": false
+            },
+            {
+              "text": "All manual requireCampusId() helpers removed",
+              "completed": false
+            },
+            {
+              "text": "Swagger documentation updated to reflect x-campus-id header",
+              "completed": false
+            },
+            {
+              "text": "Build passes with no errors",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update all campus-scoped controllers to use @RequireCampusAccess and @CampusContext decorators",
+        "description": "Migrate all remaining campus-scoped controllers to use the new campus context decorators created in task 21.\n\n## Background\nTask 21 created the campus context mechanism with @RequireCampusAccess() guard decorator and @CampusContext() param decorator. Only student.controller.ts and guardian.controller.ts were updated as examples. This task completes the migration for all remaining controllers.\n\n## Controllers to Update (9 controllers, 19 methods)\n\n### 1. staff.controller.ts (6 methods)\n- findAll() - @Headers('x-campus-id') -> @CampusContext()\n- findById() - @Headers('x-campus-id') -> @CampusContext()\n- update() - @Headers('x-campus-id') -> @CampusContext()\n- archive() - @Headers('x-campus-id') -> @CampusContext()\n- restore() - @Headers('x-campus-id') -> @CampusContext()\n- create() - campusId in body (keep as-is, body takes precedence)\n- Remove requireCampusId() helper method\n\n### 2. reference-data.controller.ts (3 methods)\n- getGradeLevels() - @Query('campusId') -> @CampusContext()\n- getSchoolYears() - @Query('campusId') -> @CampusContext()\n- getSubjects() - @Query('campusId') -> @CampusContext()\n\n### 3. post.controller.ts (2 methods)\n- getPendingApprovals() - @Query('campusId') -> @CampusContext()\n- getPinnedPosts() - @Query('campusId') -> @CampusContext()\n\n### 4. campus-setting.controller.ts (2 methods)\n- getCampusSettings() - @Query('campusId') -> @CampusContext()\n- updateCampusSettings() - @Query('campusId') -> @CampusContext()\n\n### 5. post-category.controller.ts (2 methods)\n- findAll() - @Query('campusId') -> @CampusContext()\n- create() - campusId in body (keep as-is)\n\n### 6. class.controller.ts (1 method)\n- findAll() - @Query('campusId') -> @CampusContext()\n\n### 7. file.controller.ts (1 method)\n- initiateUpload() - campusId in body (keep as-is, but add @RequireCampusAccess for validation)\n\n### 8. staff-type.controller.ts (1 method)\n- create() - campusId in body (keep as-is)\n\n### 9. danger-staff.controller.ts (1 method)\n- hardDelete() - @Headers('x-campus-id') -> @CampusContext()\n- Remove requireCampusId() helper method\n\n## Migration Pattern\n\nFor each method:\n1. Add @RequireCampusAccess() decorator\n2. Replace @Query('campusId')/@Headers('x-campus-id') with @CampusContext()\n3. Update @ApiQuery to @ApiHeader where applicable\n4. Remove manual validation helper methods\n5. Ensure module imports CampusModule and registers guards\n\n## Notes\n- Methods with campusId in request body should keep body extraction but can add @RequireCampusAccess() for access validation\n- Standardize on x-campus-id header as primary extraction source\n- Update Swagger docs to reflect header-based approach\n\nDepends on @task-21",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "campus-context",
+          "controllers",
+          "phase-5"
+        ],
+        "acceptanceCriteria": [
+          {
+            "text": "staff.controller.ts updated (6 methods)",
+            "completed": false
+          },
+          {
+            "text": "reference-data.controller.ts updated (3 methods)",
+            "completed": false
+          },
+          {
+            "text": "post.controller.ts updated (2 methods)",
+            "completed": false
+          },
+          {
+            "text": "campus-setting.controller.ts updated (2 methods)",
+            "completed": false
+          },
+          {
+            "text": "post-category.controller.ts updated (2 methods)",
+            "completed": false
+          },
+          {
+            "text": "class.controller.ts updated (1 method)",
+            "completed": false
+          },
+          {
+            "text": "file.controller.ts updated (1 method)",
+            "completed": false
+          },
+          {
+            "text": "staff-type.controller.ts updated (1 method)",
+            "completed": false
+          },
+          {
+            "text": "danger-staff.controller.ts updated (1 method)",
+            "completed": false
+          },
+          {
+            "text": "All manual requireCampusId() helpers removed",
+            "completed": false
+          },
+          {
+            "text": "Swagger documentation updated to reflect x-campus-id header",
+            "completed": false
+          },
+          {
+            "text": "Build passes with no errors",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "jg8iyc",
+      "version": 2,
+      "timestamp": "2026-01-10T21:05:10.389Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "implementationPlan",
+          "newValue": "## Verified Implementation Plan\n\n### Analysis Summary\nAfter thorough code analysis, the task description is accurate. Here's the detailed breakdown:\n\n### Controllers to Update (15 methods needing @CampusContext conversion)\n\n**Pattern for each method:**\n1. Add `@RequireCampusAccess()` decorator\n2. Replace `@Query('campusId')` or `@Headers('x-campus-id')` with `@CampusContext()`\n3. Replace `@ApiQuery` with `@ApiHeader` using `CAMPUS_ID_HEADER` constant\n4. Remove any manual `requireCampusId()` helper methods\n5. Update imports to include decorators from `../../decorators`\n\n### Phase 1: Staff Controllers (High Impact)\n**1. staff.controller.ts** - 5 methods with headers + 1 body method\n- Remove `requireCampusId()` helper (lines 46-65)\n- Remove local CAMPUS_ID_HEADER constant (line 32)\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll(), findById(), update(), archive(), restore()\n- Keep: create() uses body (unchanged)\n\n**2. danger-staff.controller.ts** - 1 method\n- Remove `requireCampusId()` helper (lines 41-55)\n- Remove local CAMPUS_ID_HEADER constant (line 21)\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: hardDelete()\n\n### Phase 2: Reference Data Controllers\n**3. reference-data.controller.ts** - 3 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Add `ApiHeader` to imports from swagger\n- Update: getGradeLevels(), getSchoolYears(), getSubjects()\n- Change @ApiQuery to @ApiHeader for campusId\n\n### Phase 3: Content Management Controllers\n**4. post.controller.ts** - 2 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Add @ApiHeader decorator\n- Update: getPendingApprovals(), getPinnedPosts()\n\n**5. campus-setting.controller.ts** - 2 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: getCampusSettings(), updateCampusSettings()\n- Change @ApiQuery to @ApiHeader\n\n**6. post-category.controller.ts** - 1 method\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll()\n- Keep: create() uses body (unchanged)\n\n### Phase 4: Class & File Controllers\n**7. class.controller.ts** - 1 method\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll()\n\n**8. file.controller.ts** - 1 method (special case)\n- Import: `RequireCampusAccess` from decorators\n- Add @RequireCampusAccess() to initiateUpload() for validation only\n- Keep campusId extraction from body (no @CampusContext needed)\n\n**9. staff-type.controller.ts** - verify only\n- create() uses body - no changes needed, just verify pattern is correct\n\n### Build Verification\n- Run `npm run build` to verify no TypeScript errors\n- All 12 acceptance criteria must pass"
+        }
+      ],
+      "snapshot": {
+        "title": "Update all campus-scoped controllers to use @RequireCampusAccess and @CampusContext decorators",
+        "description": "Migrate all remaining campus-scoped controllers to use the new campus context decorators created in task 21.\n\n## Background\nTask 21 created the campus context mechanism with @RequireCampusAccess() guard decorator and @CampusContext() param decorator. Only student.controller.ts and guardian.controller.ts were updated as examples. This task completes the migration for all remaining controllers.\n\n## Controllers to Update (9 controllers, 19 methods)\n\n### 1. staff.controller.ts (6 methods)\n- findAll() - @Headers('x-campus-id') -> @CampusContext()\n- findById() - @Headers('x-campus-id') -> @CampusContext()\n- update() - @Headers('x-campus-id') -> @CampusContext()\n- archive() - @Headers('x-campus-id') -> @CampusContext()\n- restore() - @Headers('x-campus-id') -> @CampusContext()\n- create() - campusId in body (keep as-is, body takes precedence)\n- Remove requireCampusId() helper method\n\n### 2. reference-data.controller.ts (3 methods)\n- getGradeLevels() - @Query('campusId') -> @CampusContext()\n- getSchoolYears() - @Query('campusId') -> @CampusContext()\n- getSubjects() - @Query('campusId') -> @CampusContext()\n\n### 3. post.controller.ts (2 methods)\n- getPendingApprovals() - @Query('campusId') -> @CampusContext()\n- getPinnedPosts() - @Query('campusId') -> @CampusContext()\n\n### 4. campus-setting.controller.ts (2 methods)\n- getCampusSettings() - @Query('campusId') -> @CampusContext()\n- updateCampusSettings() - @Query('campusId') -> @CampusContext()\n\n### 5. post-category.controller.ts (2 methods)\n- findAll() - @Query('campusId') -> @CampusContext()\n- create() - campusId in body (keep as-is)\n\n### 6. class.controller.ts (1 method)\n- findAll() - @Query('campusId') -> @CampusContext()\n\n### 7. file.controller.ts (1 method)\n- initiateUpload() - campusId in body (keep as-is, but add @RequireCampusAccess for validation)\n\n### 8. staff-type.controller.ts (1 method)\n- create() - campusId in body (keep as-is)\n\n### 9. danger-staff.controller.ts (1 method)\n- hardDelete() - @Headers('x-campus-id') -> @CampusContext()\n- Remove requireCampusId() helper method\n\n## Migration Pattern\n\nFor each method:\n1. Add @RequireCampusAccess() decorator\n2. Replace @Query('campusId')/@Headers('x-campus-id') with @CampusContext()\n3. Update @ApiQuery to @ApiHeader where applicable\n4. Remove manual validation helper methods\n5. Ensure module imports CampusModule and registers guards\n\n## Notes\n- Methods with campusId in request body should keep body extraction but can add @RequireCampusAccess() for access validation\n- Standardize on x-campus-id header as primary extraction source\n- Update Swagger docs to reflect header-based approach\n\nDepends on @task-21",
+        "status": "in-progress",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "campus-context",
+          "controllers",
+          "phase-5"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "staff.controller.ts updated (6 methods)"
+          },
+          {
+            "completed": false,
+            "text": "reference-data.controller.ts updated (3 methods)"
+          },
+          {
+            "completed": false,
+            "text": "post.controller.ts updated (2 methods)"
+          },
+          {
+            "completed": false,
+            "text": "campus-setting.controller.ts updated (2 methods)"
+          },
+          {
+            "completed": false,
+            "text": "post-category.controller.ts updated (2 methods)"
+          },
+          {
+            "completed": false,
+            "text": "class.controller.ts updated (1 method)"
+          },
+          {
+            "completed": false,
+            "text": "file.controller.ts updated (1 method)"
+          },
+          {
+            "completed": false,
+            "text": "staff-type.controller.ts updated (1 method)"
+          },
+          {
+            "completed": false,
+            "text": "danger-staff.controller.ts updated (1 method)"
+          },
+          {
+            "completed": false,
+            "text": "All manual requireCampusId() helpers removed"
+          },
+          {
+            "completed": false,
+            "text": "Swagger documentation updated to reflect x-campus-id header"
+          },
+          {
+            "completed": false,
+            "text": "Build passes with no errors"
+          }
+        ],
+        "implementationPlan": "## Verified Implementation Plan\n\n### Analysis Summary\nAfter thorough code analysis, the task description is accurate. Here's the detailed breakdown:\n\n### Controllers to Update (15 methods needing @CampusContext conversion)\n\n**Pattern for each method:**\n1. Add `@RequireCampusAccess()` decorator\n2. Replace `@Query('campusId')` or `@Headers('x-campus-id')` with `@CampusContext()`\n3. Replace `@ApiQuery` with `@ApiHeader` using `CAMPUS_ID_HEADER` constant\n4. Remove any manual `requireCampusId()` helper methods\n5. Update imports to include decorators from `../../decorators`\n\n### Phase 1: Staff Controllers (High Impact)\n**1. staff.controller.ts** - 5 methods with headers + 1 body method\n- Remove `requireCampusId()` helper (lines 46-65)\n- Remove local CAMPUS_ID_HEADER constant (line 32)\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll(), findById(), update(), archive(), restore()\n- Keep: create() uses body (unchanged)\n\n**2. danger-staff.controller.ts** - 1 method\n- Remove `requireCampusId()` helper (lines 41-55)\n- Remove local CAMPUS_ID_HEADER constant (line 21)\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: hardDelete()\n\n### Phase 2: Reference Data Controllers\n**3. reference-data.controller.ts** - 3 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Add `ApiHeader` to imports from swagger\n- Update: getGradeLevels(), getSchoolYears(), getSubjects()\n- Change @ApiQuery to @ApiHeader for campusId\n\n### Phase 3: Content Management Controllers\n**4. post.controller.ts** - 2 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Add @ApiHeader decorator\n- Update: getPendingApprovals(), getPinnedPosts()\n\n**5. campus-setting.controller.ts** - 2 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: getCampusSettings(), updateCampusSettings()\n- Change @ApiQuery to @ApiHeader\n\n**6. post-category.controller.ts** - 1 method\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll()\n- Keep: create() uses body (unchanged)\n\n### Phase 4: Class & File Controllers\n**7. class.controller.ts** - 1 method\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll()\n\n**8. file.controller.ts** - 1 method (special case)\n- Import: `RequireCampusAccess` from decorators\n- Add @RequireCampusAccess() to initiateUpload() for validation only\n- Keep campusId extraction from body (no @CampusContext needed)\n\n**9. staff-type.controller.ts** - verify only\n- create() uses body - no changes needed, just verify pattern is correct\n\n### Build Verification\n- Run `npm run build` to verify no TypeScript errors\n- All 12 acceptance criteria must pass"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "jg8iyc",
+      "version": 3,
+      "timestamp": "2026-01-10T21:11:37.642Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        },
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "staff.controller.ts updated (6 methods)"
+            },
+            {
+              "completed": false,
+              "text": "reference-data.controller.ts updated (3 methods)"
+            },
+            {
+              "completed": false,
+              "text": "post.controller.ts updated (2 methods)"
+            },
+            {
+              "completed": false,
+              "text": "campus-setting.controller.ts updated (2 methods)"
+            },
+            {
+              "completed": false,
+              "text": "post-category.controller.ts updated (2 methods)"
+            },
+            {
+              "completed": false,
+              "text": "class.controller.ts updated (1 method)"
+            },
+            {
+              "completed": false,
+              "text": "file.controller.ts updated (1 method)"
+            },
+            {
+              "completed": false,
+              "text": "staff-type.controller.ts updated (1 method)"
+            },
+            {
+              "completed": false,
+              "text": "danger-staff.controller.ts updated (1 method)"
+            },
+            {
+              "completed": false,
+              "text": "All manual requireCampusId() helpers removed"
+            },
+            {
+              "completed": false,
+              "text": "Swagger documentation updated to reflect x-campus-id header"
+            },
+            {
+              "completed": false,
+              "text": "Build passes with no errors"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "staff.controller.ts updated (6 methods)"
+            },
+            {
+              "completed": true,
+              "text": "reference-data.controller.ts updated (3 methods)"
+            },
+            {
+              "completed": true,
+              "text": "post.controller.ts updated (2 methods)"
+            },
+            {
+              "completed": true,
+              "text": "campus-setting.controller.ts updated (2 methods)"
+            },
+            {
+              "completed": true,
+              "text": "post-category.controller.ts updated (2 methods)"
+            },
+            {
+              "completed": true,
+              "text": "class.controller.ts updated (1 method)"
+            },
+            {
+              "completed": true,
+              "text": "file.controller.ts updated (1 method)"
+            },
+            {
+              "completed": true,
+              "text": "staff-type.controller.ts updated (1 method)"
+            },
+            {
+              "completed": true,
+              "text": "danger-staff.controller.ts updated (1 method)"
+            },
+            {
+              "completed": true,
+              "text": "All manual requireCampusId() helpers removed"
+            },
+            {
+              "completed": true,
+              "text": "Swagger documentation updated to reflect x-campus-id header"
+            },
+            {
+              "completed": true,
+              "text": "Build passes with no errors"
+            }
+          ]
+        },
+        {
+          "field": "implementationNotes",
+          "newValue": "## Implementation Completed (2026-01-10)\n\n### Summary\nSuccessfully migrated all 9 campus-scoped controllers to use the new @RequireCampusAccess() and @CampusContext() decorators.\n\n### Changes Made\n\n**1. staff.controller.ts**\n- Removed manual requireCampusId() helper method\n- Removed local CAMPUS_ID_HEADER constant\n- Updated 5 methods: findAll(), findById(), update(), archive(), restore()\n- Added @RequireCampusAccess() and @CampusContext() decorators\n- create() kept as-is (uses campusId from body)\n\n**2. danger-staff.controller.ts**\n- Removed manual requireCampusId() helper method\n- Removed local CAMPUS_ID_HEADER constant\n- Updated hardDelete() method\n\n**3. reference-data.controller.ts**\n- Updated 3 methods: getGradeLevels(), getSchoolYears(), getSubjects()\n- Changed @ApiQuery to @ApiHeader for campusId\n\n**4. post.controller.ts**\n- Updated 2 methods: getPendingApprovals(), getPinnedPosts()\n- Added @ApiHeader decorators\n\n**5. campus-setting.controller.ts**\n- Updated 2 methods: getCampusSettings(), updateCampusSettings()\n- Changed @ApiQuery to @ApiHeader\n\n**6. post-category.controller.ts**\n- Updated findAll() method\n- create() kept as-is (uses campusId from body)\n\n**7. class.controller.ts**\n- Updated findAll() method\n\n**8. file.controller.ts**\n- Added @RequireCampusAccess() to initiateUpload() for validation\n- Kept campusId extraction from body\n\n**9. staff-type.controller.ts**\n- Verified: No changes needed (create() uses body)\n\n### Build Status: PASSED"
+        }
+      ],
+      "snapshot": {
+        "title": "Update all campus-scoped controllers to use @RequireCampusAccess and @CampusContext decorators",
+        "description": "Migrate all remaining campus-scoped controllers to use the new campus context decorators created in task 21.\n\n## Background\nTask 21 created the campus context mechanism with @RequireCampusAccess() guard decorator and @CampusContext() param decorator. Only student.controller.ts and guardian.controller.ts were updated as examples. This task completes the migration for all remaining controllers.\n\n## Controllers to Update (9 controllers, 19 methods)\n\n### 1. staff.controller.ts (6 methods)\n- findAll() - @Headers('x-campus-id') -> @CampusContext()\n- findById() - @Headers('x-campus-id') -> @CampusContext()\n- update() - @Headers('x-campus-id') -> @CampusContext()\n- archive() - @Headers('x-campus-id') -> @CampusContext()\n- restore() - @Headers('x-campus-id') -> @CampusContext()\n- create() - campusId in body (keep as-is, body takes precedence)\n- Remove requireCampusId() helper method\n\n### 2. reference-data.controller.ts (3 methods)\n- getGradeLevels() - @Query('campusId') -> @CampusContext()\n- getSchoolYears() - @Query('campusId') -> @CampusContext()\n- getSubjects() - @Query('campusId') -> @CampusContext()\n\n### 3. post.controller.ts (2 methods)\n- getPendingApprovals() - @Query('campusId') -> @CampusContext()\n- getPinnedPosts() - @Query('campusId') -> @CampusContext()\n\n### 4. campus-setting.controller.ts (2 methods)\n- getCampusSettings() - @Query('campusId') -> @CampusContext()\n- updateCampusSettings() - @Query('campusId') -> @CampusContext()\n\n### 5. post-category.controller.ts (2 methods)\n- findAll() - @Query('campusId') -> @CampusContext()\n- create() - campusId in body (keep as-is)\n\n### 6. class.controller.ts (1 method)\n- findAll() - @Query('campusId') -> @CampusContext()\n\n### 7. file.controller.ts (1 method)\n- initiateUpload() - campusId in body (keep as-is, but add @RequireCampusAccess for validation)\n\n### 8. staff-type.controller.ts (1 method)\n- create() - campusId in body (keep as-is)\n\n### 9. danger-staff.controller.ts (1 method)\n- hardDelete() - @Headers('x-campus-id') -> @CampusContext()\n- Remove requireCampusId() helper method\n\n## Migration Pattern\n\nFor each method:\n1. Add @RequireCampusAccess() decorator\n2. Replace @Query('campusId')/@Headers('x-campus-id') with @CampusContext()\n3. Update @ApiQuery to @ApiHeader where applicable\n4. Remove manual validation helper methods\n5. Ensure module imports CampusModule and registers guards\n\n## Notes\n- Methods with campusId in request body should keep body extraction but can add @RequireCampusAccess() for access validation\n- Standardize on x-campus-id header as primary extraction source\n- Update Swagger docs to reflect header-based approach\n\nDepends on @task-21",
+        "status": "done",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "campus-context",
+          "controllers",
+          "phase-5"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "staff.controller.ts updated (6 methods)"
+          },
+          {
+            "completed": true,
+            "text": "reference-data.controller.ts updated (3 methods)"
+          },
+          {
+            "completed": true,
+            "text": "post.controller.ts updated (2 methods)"
+          },
+          {
+            "completed": true,
+            "text": "campus-setting.controller.ts updated (2 methods)"
+          },
+          {
+            "completed": true,
+            "text": "post-category.controller.ts updated (2 methods)"
+          },
+          {
+            "completed": true,
+            "text": "class.controller.ts updated (1 method)"
+          },
+          {
+            "completed": true,
+            "text": "file.controller.ts updated (1 method)"
+          },
+          {
+            "completed": true,
+            "text": "staff-type.controller.ts updated (1 method)"
+          },
+          {
+            "completed": true,
+            "text": "danger-staff.controller.ts updated (1 method)"
+          },
+          {
+            "completed": true,
+            "text": "All manual requireCampusId() helpers removed"
+          },
+          {
+            "completed": true,
+            "text": "Swagger documentation updated to reflect x-campus-id header"
+          },
+          {
+            "completed": true,
+            "text": "Build passes with no errors"
+          }
+        ],
+        "implementationPlan": "## Verified Implementation Plan\n\n### Analysis Summary\nAfter thorough code analysis, the task description is accurate. Here's the detailed breakdown:\n\n### Controllers to Update (15 methods needing @CampusContext conversion)\n\n**Pattern for each method:**\n1. Add `@RequireCampusAccess()` decorator\n2. Replace `@Query('campusId')` or `@Headers('x-campus-id')` with `@CampusContext()`\n3. Replace `@ApiQuery` with `@ApiHeader` using `CAMPUS_ID_HEADER` constant\n4. Remove any manual `requireCampusId()` helper methods\n5. Update imports to include decorators from `../../decorators`\n\n### Phase 1: Staff Controllers (High Impact)\n**1. staff.controller.ts** - 5 methods with headers + 1 body method\n- Remove `requireCampusId()` helper (lines 46-65)\n- Remove local CAMPUS_ID_HEADER constant (line 32)\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll(), findById(), update(), archive(), restore()\n- Keep: create() uses body (unchanged)\n\n**2. danger-staff.controller.ts** - 1 method\n- Remove `requireCampusId()` helper (lines 41-55)\n- Remove local CAMPUS_ID_HEADER constant (line 21)\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: hardDelete()\n\n### Phase 2: Reference Data Controllers\n**3. reference-data.controller.ts** - 3 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Add `ApiHeader` to imports from swagger\n- Update: getGradeLevels(), getSchoolYears(), getSubjects()\n- Change @ApiQuery to @ApiHeader for campusId\n\n### Phase 3: Content Management Controllers\n**4. post.controller.ts** - 2 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Add @ApiHeader decorator\n- Update: getPendingApprovals(), getPinnedPosts()\n\n**5. campus-setting.controller.ts** - 2 methods\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: getCampusSettings(), updateCampusSettings()\n- Change @ApiQuery to @ApiHeader\n\n**6. post-category.controller.ts** - 1 method\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll()\n- Keep: create() uses body (unchanged)\n\n### Phase 4: Class & File Controllers\n**7. class.controller.ts** - 1 method\n- Import: `CampusContext, RequireCampusAccess, CAMPUS_ID_HEADER` from decorators\n- Update: findAll()\n\n**8. file.controller.ts** - 1 method (special case)\n- Import: `RequireCampusAccess` from decorators\n- Add @RequireCampusAccess() to initiateUpload() for validation only\n- Keep campusId extraction from body (no @CampusContext needed)\n\n**9. staff-type.controller.ts** - verify only\n- create() uses body - no changes needed, just verify pattern is correct\n\n### Build Verification\n- Run `npm run build` to verify no TypeScript errors\n- All 12 acceptance criteria must pass",
+        "implementationNotes": "## Implementation Completed (2026-01-10)\n\n### Summary\nSuccessfully migrated all 9 campus-scoped controllers to use the new @RequireCampusAccess() and @CampusContext() decorators.\n\n### Changes Made\n\n**1. staff.controller.ts**\n- Removed manual requireCampusId() helper method\n- Removed local CAMPUS_ID_HEADER constant\n- Updated 5 methods: findAll(), findById(), update(), archive(), restore()\n- Added @RequireCampusAccess() and @CampusContext() decorators\n- create() kept as-is (uses campusId from body)\n\n**2. danger-staff.controller.ts**\n- Removed manual requireCampusId() helper method\n- Removed local CAMPUS_ID_HEADER constant\n- Updated hardDelete() method\n\n**3. reference-data.controller.ts**\n- Updated 3 methods: getGradeLevels(), getSchoolYears(), getSubjects()\n- Changed @ApiQuery to @ApiHeader for campusId\n\n**4. post.controller.ts**\n- Updated 2 methods: getPendingApprovals(), getPinnedPosts()\n- Added @ApiHeader decorators\n\n**5. campus-setting.controller.ts**\n- Updated 2 methods: getCampusSettings(), updateCampusSettings()\n- Changed @ApiQuery to @ApiHeader\n\n**6. post-category.controller.ts**\n- Updated findAll() method\n- create() kept as-is (uses campusId from body)\n\n**7. class.controller.ts**\n- Updated findAll() method\n\n**8. file.controller.ts**\n- Added @RequireCampusAccess() to initiateUpload() for validation\n- Kept campusId extraction from body\n\n**9. staff-type.controller.ts**\n- Verified: No changes needed (create() uses body)\n\n### Build Status: PASSED"
+      }
+    }
+  ]
+}

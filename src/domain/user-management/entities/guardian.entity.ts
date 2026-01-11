@@ -23,6 +23,7 @@ export interface GuardianRelationshipType {
 
 // Properties of the Guardian entity
 export interface GuardianProps {
+  campusId: string;
   fullName: string;
   email: string | null;
   phoneNumber: string;
@@ -31,22 +32,26 @@ export interface GuardianProps {
   gender: Gender | null;
   occupation: string | null;
   workAddress: string | null;
-  spouseId: string | null; // ID of the spouse guardian
   userId: string | null; // ID of the associated user account
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
-  spouse?: Guardian; // Eager-loaded spouse data - handled by repository
   children?: GuardianStudent[]; // Eager-loaded children data - handled by repository
 }
 
-// Data for updating a guardian
+// Data for updating a guardian (campusId is immutable)
 export type UpdateGuardianData = Partial<
-  Omit<GuardianProps, "id" | "createdAt" | "updatedAt" | "isArchived">
+  Omit<
+    GuardianProps,
+    "id" | "campusId" | "createdAt" | "updatedAt" | "isArchived"
+  >
 >;
 
 export class Guardian extends Entity<GuardianProps> {
   // --- Getters ---
+  get campusId(): string {
+    return this.props.campusId;
+  }
   get fullName(): string {
     return this.props.fullName;
   }
@@ -71,9 +76,6 @@ export class Guardian extends Entity<GuardianProps> {
   get workAddress(): string | null {
     return this.props.workAddress;
   }
-  get spouseId(): string | null {
-    return this.props.spouseId;
-  }
   get userId(): string | null {
     return this.props.userId;
   }
@@ -94,11 +96,6 @@ export class Guardian extends Entity<GuardianProps> {
    * @param updates - The data to update.
    */
   public updateProfile(updates: UpdateGuardianData): void {
-    // Basic validation for spouseId if it's being updated
-    if (updates.spouseId && updates.spouseId === this.id) {
-      throw new Error("Guardian cannot be spouse of themselves");
-    }
-
     if (updates.fullName) this.props.fullName = updates.fullName;
     if (updates.email !== undefined) this.props.email = updates.email;
     if (updates.phoneNumber !== undefined)
@@ -111,27 +108,8 @@ export class Guardian extends Entity<GuardianProps> {
       this.props.occupation = updates.occupation;
     if (updates.workAddress !== undefined)
       this.props.workAddress = updates.workAddress;
-    if (updates.spouseId !== undefined) this.props.spouseId = updates.spouseId;
     if (updates.userId !== undefined) this.props.userId = updates.userId;
 
-    this.touch();
-  }
-
-  /**
-   * Links a spouse to this guardian.
-   * @param spouseId - The ID of the spouse guardian.
-   */
-  public linkSpouse(spouseId: string): void {
-    this.validateSelfSpouse(spouseId);
-    this.props.spouseId = spouseId;
-    this.touch();
-  }
-
-  /**
-   * Unlinks the spouse from this guardian.
-   */
-  public unlinkSpouse(): void {
-    this.props.spouseId = null;
     this.touch();
   }
 
@@ -152,13 +130,6 @@ export class Guardian extends Entity<GuardianProps> {
   }
 
   /**
-   * Checks if the guardian has a spouse.
-   */
-  public hasSpouse(): boolean {
-    return this.props.spouseId !== null;
-  }
-
-  /**
    * Checks if the guardian has an associated user account.
    */
   public hasUserAccount(): boolean {
@@ -172,26 +143,7 @@ export class Guardian extends Entity<GuardianProps> {
     this.props.updatedAt = new Date();
   }
 
-  /**
-   * Validates that spouse is not the same as guardian.
-   */
-  private validateSelfSpouse(spouseId: string): void {
-    if (this.id === spouseId) {
-      throw new Error("Guardian cannot be spouse of themselves");
-    }
-  }
-
   // --- Static Helper Methods ---
-
-  /**
-   * Checks if two guardians are spouses.
-   * Note: This checks for a one-way link. For a mutual link, check both directions.
-   */
-  public static areSpouses(guardian1: Guardian, guardian2: Guardian): boolean {
-    return (
-      guardian1.spouseId === guardian2.id || guardian2.spouseId === guardian1.id
-    );
-  }
 
   /**
    * Gets a display name for a guardian relationship ID.
@@ -222,10 +174,16 @@ export class Guardian extends Entity<GuardianProps> {
    * @returns A new Guardian instance.
    */
   public static create(
-    props: Optional<GuardianProps, "createdAt" | "updatedAt" | "isArchived">,
+    props: Optional<
+      GuardianProps,
+      "createdAt" | "updatedAt" | "isArchived" | "userId"
+    >,
     id?: string,
   ): Guardian {
-    // Basic validation
+    // Validation
+    if (!props.campusId) {
+      throw new Error("Campus ID is required for guardian.");
+    }
     if (!props.fullName || props.fullName.trim().length < 2) {
       throw new Error(
         "Full name is required and must be at least 2 characters.",
@@ -246,6 +204,7 @@ export class Guardian extends Entity<GuardianProps> {
 
     const guardianProps: GuardianProps = {
       ...props,
+      userId: props.userId ?? null,
       isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

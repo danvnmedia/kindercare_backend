@@ -1,7 +1,7 @@
 ---
 title: Repository Pattern
 createdAt: '2026-01-03T19:52:13.114Z'
-updatedAt: '2026-01-03T20:07:19.738Z'
+updatedAt: '2026-01-11T05:35:38.690Z'
 description: Data access abstraction pattern
 tags:
   - patterns
@@ -72,3 +72,33 @@ Use for standardized pagination, filtering, and sorting. It takes the Prisma cli
 4. Always include necessary relations in queries
 5. Let mapper handle all Prisma to domain conversion
 6. Use abstract class (not interface) for ports
+
+
+
+## Campus-Filtered Query Patterns
+
+In the multi-campus architecture, repositories must filter data by campus. All campus-scoped entities have a \ property.
+
+### Pattern 1: Campus-Scoped Find Methods
+
+Add methods that accept campusId for campus-scoped lookups:
+
+\
+### Pattern 2: Compound Key Lookups
+
+Use Prisma compound unique constraints for efficient campus-scoped lookups:
+
+\
+### Pattern 3: Paginated Campus-Scoped Queries
+
+Use PrismaQueryService with mandatory campus filter:
+
+\
+### Pattern 4: Global vs Campus-Scoped Entities
+
+Some entities (like Role) can be global or campus-scoped:
+
+\
+### Campus Validation in Repositories
+
+Repositories should NOT validate campus access - that's the use case's responsibility. Repositories simply filter by the campusId provided.

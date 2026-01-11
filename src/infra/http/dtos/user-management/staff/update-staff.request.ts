@@ -4,11 +4,11 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import { IsAdultDateOfBirth } from "@/core/validators";
 
 export class UpdateStaffRequest {
@@ -26,16 +26,14 @@ export class UpdateStaffRequest {
   fullName?: string;
 
   @ApiProperty({
-    description: "Staff type (TEACHER, NURSE, PRINCIPAL, STAFF)",
-    enum: StaffType,
-    example: StaffType.TEACHER,
+    description: "Staff type ID (references staff_type table)",
+    example: "123e4567-e89b-12d3-a456-426614174001",
     required: false,
+    nullable: true,
   })
   @IsOptional()
-  @IsEnum(StaffType, {
-    message: "Staff type must be TEACHER, NURSE, PRINCIPAL, or STAFF",
-  })
-  staffType?: StaffType;
+  @IsUUID("4", { message: "Staff type ID must be a valid UUID" })
+  staffTypeId?: string | null;
 
   @ApiProperty({
     description: "Staff address",

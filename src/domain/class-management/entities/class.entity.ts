@@ -7,6 +7,7 @@ import { SchoolYear } from "./school-year.entity";
 export interface ClassProps {
   name: string;
   description: string | null;
+  campusId: string;
   gradeLevelId: string;
   schoolYearId: string;
   // Optional loaded relations
@@ -30,6 +31,10 @@ export class Class extends Entity<ClassProps> {
 
   get description(): string | null {
     return this.props.description;
+  }
+
+  get campusId(): string {
+    return this.props.campusId;
   }
 
   get gradeLevelId(): string {
@@ -106,6 +111,9 @@ export class Class extends Entity<ClassProps> {
     // Validation
     if (!props.name || props.name.trim().length < 1) {
       throw new Error("Class name is required");
+    }
+    if (!props.campusId || props.campusId.trim().length < 1) {
+      throw new Error("Campus ID is required");
     }
     if (!props.gradeLevelId) {
       throw new Error("Grade level is required");

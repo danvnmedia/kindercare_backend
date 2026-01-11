@@ -4,6 +4,7 @@ import { AudienceType } from "../enums/audience-type.enum";
 
 export interface PostAudienceProps {
   postId: string;
+  campusId: string;
   audienceType: AudienceType;
   audienceId: string;
 }
@@ -11,6 +12,10 @@ export interface PostAudienceProps {
 export class PostAudience extends Entity<PostAudienceProps> {
   get postId() {
     return this.props.postId;
+  }
+
+  get campusId() {
+    return this.props.campusId;
   }
 
   get audienceType() {

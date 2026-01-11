@@ -19,6 +19,7 @@ import { UserRepository } from "../../ports/user.repository";
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateStudentInput {
+  campusId: string;
   fullName: string;
   nickname?: string;
   dateOfBirth?: Date;
@@ -48,19 +49,23 @@ export class CreateStudentUseCase {
 
   async execute(input: CreateStudentInput): Promise<Student> {
     try {
-      this.logger.log(`Creating student: ${input.fullName}`);
+      this.logger.log(
+        `Creating student: ${input.fullName} in campus: ${input.campusId}`,
+      );
 
       // Step 1: Validate guardians exist (if provided)
       if (input.guardianIds && input.guardianIds.length > 0) {
         await this.validateGuardians(input.guardianIds);
       }
 
-      // Step 2: Check Student uniqueness (email/phone)
+      // Step 2: Check Student uniqueness within campus (email/phone)
       await this.checkStudentUniqueness(input);
 
       // Step 3: Create and save the Student entity
       const student = await this.createAndSaveStudent(input);
-      this.logger.log(`Student created: ${student.id}`);
+      this.logger.log(
+        `Student created: ${student.id} in campus: ${input.campusId}`,
+      );
 
       // Step 4: Assign Guardians (if provided)
       if (input.guardianIds && input.guardianIds.length > 0) {
@@ -105,24 +110,29 @@ export class CreateStudentUseCase {
   private async checkStudentUniqueness(
     input: CreateStudentInput,
   ): Promise<void> {
+    // Check email uniqueness within campus (if email is provided)
     if (input.email) {
-      const existingByEmail = await this.studentRepository.findByEmail(
+      const existingByEmail = await this.studentRepository.findByEmailInCampus(
+        input.campusId,
         input.email,
       );
       if (existingByEmail) {
         throw new ConflictException(
-          `Student with email ${input.email} already exists`,
+          `Student with email ${input.email} already exists in this campus`,
         );
       }
     }
 
+    // Check phone uniqueness within campus (if phone is provided)
     if (input.phoneNumber) {
-      const existingByPhone = await this.studentRepository.findByPhoneNumber(
-        input.phoneNumber,
-      );
+      const existingByPhone =
+        await this.studentRepository.findByPhoneNumberInCampus(
+          input.campusId,
+          input.phoneNumber,
+        );
       if (existingByPhone) {
         throw new ConflictException(
-          `Student with phone number ${input.phoneNumber} already exists`,
+          `Student with phone number ${input.phoneNumber} already exists in this campus`,
         );
       }
     }
@@ -143,9 +153,13 @@ export class CreateStudentUseCase {
   private async createAndSaveStudent(
     input: CreateStudentInput,
   ): Promise<Student> {
-    const studentCode = await this.studentCodeGenerator.generateNextCode();
+    // Generate campus-scoped student code
+    const studentCode = await this.studentCodeGenerator.generateNextCode(
+      input.campusId,
+    );
 
     const studentEntity = Student.create({
+      campusId: input.campusId,
       studentCode,
       fullName: input.fullName,
       email: input.email || null,

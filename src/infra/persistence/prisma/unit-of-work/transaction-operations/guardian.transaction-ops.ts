@@ -13,6 +13,7 @@ export class GuardianTransactionOps {
    */
   async createGuardian(data: {
     id: string;
+    campusId: string;
     fullName: string;
     email: string | null;
     phoneNumber: string;
@@ -21,7 +22,6 @@ export class GuardianTransactionOps {
     gender: string | null;
     occupation: string | null;
     workAddress: string | null;
-    spouseId: string | null;
     userId: string | null;
     isArchived: boolean;
     createdAt: Date;
@@ -30,6 +30,7 @@ export class GuardianTransactionOps {
     const guardian = await this.tx.guardian.create({
       data: {
         id: data.id,
+        campusId: data.campusId,
         fullName: data.fullName,
         email: data.email,
         phoneNumber: data.phoneNumber,
@@ -38,7 +39,6 @@ export class GuardianTransactionOps {
         gender: data.gender,
         occupation: data.occupation,
         workAddress: data.workAddress,
-        spouseId: data.spouseId,
         userId: data.userId,
         isArchived: data.isArchived,
         createdAt: data.createdAt,

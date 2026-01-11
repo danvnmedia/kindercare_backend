@@ -14,9 +14,10 @@ import {
   PostStatus,
   AudienceType,
 } from "@/domain/content-management";
-import { User } from "@/domain/user-management/user.entity"; // Import the domain User interface
+import { User } from "@/domain/user-management/user.entity";
 import { PrismaAttachmentMapper } from "./prisma-attachment.mapper";
 import { PrismaUserMapper } from "./prisma-user.mapper";
+import { PostContent } from "@/domain/content-management/entities/post.entity";
 
 type PrismaUserWithProfile = PrismaUser & {
   guardian?: PrismaGuardian | null;
@@ -36,12 +37,21 @@ export class PrismaPostMapper {
   static toDomain(prismaPost: PrismaPostWithRelations): Post {
     return Post.create(
       {
+        campusId: prismaPost.campusId,
         authorId: prismaPost.authorId,
         author: PrismaUserMapper.toDomain(prismaPost.author),
         title: prismaPost.title,
-        content: prismaPost.content,
+        content: prismaPost.content as PostContent,
+        contentText: prismaPost.contentText,
+        contentVersion: prismaPost.contentVersion,
         status: prismaPost.status as PostStatus,
         publishAt: prismaPost.publishAt,
+        isPinned: prismaPost.isPinned,
+        pinnedUntil: prismaPost.pinnedUntil,
+        pinnedById: prismaPost.pinnedById,
+        requiresApproval: prismaPost.requiresApproval,
+        isDeleted: prismaPost.isDeleted,
+        deletedAt: prismaPost.deletedAt,
         audiences: [],
         attachments: PrismaAttachmentMapper.toDomainArray(
           prismaPost.attachments,
@@ -60,12 +70,21 @@ export class PrismaPostMapper {
   static toDomainSimple(prismaPost: PrismaPostWithRelations): Post {
     return Post.create(
       {
+        campusId: prismaPost.campusId,
         authorId: prismaPost.authorId,
         author: PrismaUserMapper.toDomainSimple(prismaPost.author),
         title: prismaPost.title,
-        content: prismaPost.content,
+        content: prismaPost.content as PostContent,
+        contentText: prismaPost.contentText,
+        contentVersion: prismaPost.contentVersion,
         status: prismaPost.status as PostStatus,
         publishAt: prismaPost.publishAt,
+        isPinned: prismaPost.isPinned,
+        pinnedUntil: prismaPost.pinnedUntil,
+        pinnedById: prismaPost.pinnedById,
+        requiresApproval: prismaPost.requiresApproval,
+        isDeleted: prismaPost.isDeleted,
+        deletedAt: prismaPost.deletedAt,
         createdAt: prismaPost.createdAt,
         updatedAt: prismaPost.updatedAt,
       },
@@ -79,11 +98,23 @@ export class PrismaPostMapper {
   static toPrisma(post: Post): Prisma.PostUncheckedCreateInput {
     return {
       id: post.id,
+      campusId: post.campusId,
       authorId: post.authorId,
       title: post.title,
-      content: post.content ?? null,
+      content:
+        post.content === null
+          ? Prisma.JsonNull
+          : (post.content as Prisma.InputJsonValue),
+      contentText: post.contentText,
+      contentVersion: post.contentVersion,
       status: post.status,
       publishAt: post.publishAt ?? null,
+      isPinned: post.isPinned,
+      pinnedUntil: post.pinnedUntil ?? null,
+      pinnedById: post.pinnedById ?? null,
+      requiresApproval: post.requiresApproval,
+      isDeleted: post.isDeleted,
+      deletedAt: post.deletedAt ?? null,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt ?? new Date(),
     };
@@ -93,13 +124,32 @@ export class PrismaPostMapper {
    * Convert Domain entity to Prisma update input
    */
   static toPrismaUpdate(post: Post): Prisma.PostUpdateInput {
-    return {
+    const updateData: Prisma.PostUpdateInput = {
       title: post.title,
-      content: post.content ?? null,
+      content:
+        post.content === null
+          ? Prisma.JsonNull
+          : (post.content as Prisma.InputJsonValue),
+      contentText: post.contentText,
+      contentVersion: post.contentVersion,
       status: post.status,
       publishAt: post.publishAt ?? null,
+      isPinned: post.isPinned,
+      pinnedUntil: post.pinnedUntil ?? null,
+      requiresApproval: post.requiresApproval,
+      isDeleted: post.isDeleted,
+      deletedAt: post.deletedAt ?? null,
       updatedAt: post.updatedAt ?? new Date(),
     };
+
+    // Handle pinnedBy relation
+    if (post.pinnedById) {
+      updateData.pinnedBy = { connect: { id: post.pinnedById } };
+    } else {
+      updateData.pinnedBy = { disconnect: true };
+    }
+
+    return updateData;
   }
 
   /**
@@ -116,6 +166,7 @@ export class PrismaPostMapper {
       id: postAudience.id.toString(),
       type: postAudience.audienceType,
       postId: postAudience.postId.toString(),
+      campusId: postAudience.campusId,
       classId: null,
       studentId: null,
       gradeLevelId: null,
@@ -145,6 +196,7 @@ export class PrismaPostMapper {
     const result: Omit<PrismaPostAudience, "postId"> = {
       id: postAudience.id.toString(),
       type: postAudience.audienceType,
+      campusId: postAudience.campusId,
       classId: null,
       studentId: null,
       gradeLevelId: null,

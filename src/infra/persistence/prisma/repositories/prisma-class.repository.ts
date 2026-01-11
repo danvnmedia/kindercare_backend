@@ -25,14 +25,16 @@ export class PrismaClassRepository implements ClassRepository {
     return prismaClass ? PrismaClassMapper.toDomain(prismaClass) : null;
   }
 
-  async findByNameInContext(
+  async findByNameInContextAndCampus(
     name: string,
+    campusId: string,
     schoolYearId: string,
     gradeLevelId: string,
   ): Promise<Class | null> {
     const prismaClass = await this.prisma.class.findFirst({
       where: {
         name,
+        campusId,
         schoolYearId,
         gradeLevelId,
       },
@@ -44,9 +46,39 @@ export class PrismaClassRepository implements ClassRepository {
     return prismaClass ? PrismaClassMapper.toDomain(prismaClass) : null;
   }
 
-  async findByGradeLevelId(gradeLevelId: string): Promise<Class[]> {
+  async findByCampusId(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<Class>> {
+    params.allowedFilterFields = [
+      "name",
+      "description",
+      "gradeLevelId",
+      "schoolYearId",
+    ];
+    params.allowedSortFields = ["createdAt", "updatedAt", "name"];
+
+    return await this.queryService.executeQuery<Class>(
+      this.prisma,
+      "class",
+      params,
+      {
+        where: { campusId },
+        include: {
+          gradeLevel: true,
+          schoolYear: true,
+        },
+      },
+      PrismaClassMapper,
+    );
+  }
+
+  async findByGradeLevelId(
+    gradeLevelId: string,
+    campusId: string,
+  ): Promise<Class[]> {
     const prismaClasses = await this.prisma.class.findMany({
-      where: { gradeLevelId },
+      where: { gradeLevelId, campusId },
       include: {
         gradeLevel: true,
         schoolYear: true,
@@ -56,9 +88,12 @@ export class PrismaClassRepository implements ClassRepository {
     return PrismaClassMapper.toDomainArray(prismaClasses);
   }
 
-  async findBySchoolYearId(schoolYearId: string): Promise<Class[]> {
+  async findBySchoolYearId(
+    schoolYearId: string,
+    campusId: string,
+  ): Promise<Class[]> {
     const prismaClasses = await this.prisma.class.findMany({
-      where: { schoolYearId },
+      where: { schoolYearId, campusId },
       include: {
         gradeLevel: true,
         schoolYear: true,
@@ -79,7 +114,10 @@ export class PrismaClassRepository implements ClassRepository {
     return PrismaClassMapper.toDomainArray(prismaClasses);
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<Class>> {
+  async findAll(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<Class>> {
     params.allowedFilterFields = [
       "name",
       "description",
@@ -93,6 +131,7 @@ export class PrismaClassRepository implements ClassRepository {
       "class",
       params,
       {
+        where: { campusId },
         include: {
           gradeLevel: true,
           schoolYear: true,

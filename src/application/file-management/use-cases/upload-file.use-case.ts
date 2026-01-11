@@ -9,6 +9,7 @@ export interface UploadFileUseCaseRequest {
   mimeType: string;
   size: number;
   uploadedBy: string;
+  campusId: string;
 }
 
 export type UploadFileUseCaseResponse = Either<
@@ -27,6 +28,7 @@ export class UploadFileUseCase {
     mimeType,
     size,
     uploadedBy,
+    campusId,
   }: UploadFileUseCaseRequest): Promise<UploadFileUseCaseResponse> {
     // TODO: Add file validation (mime type, size limits) here or in a domain service
 
@@ -40,6 +42,7 @@ export class UploadFileUseCase {
         mimeType,
         size: BigInt(size),
         uploadedBy,
+        campusId,
       },
       fileId,
     );

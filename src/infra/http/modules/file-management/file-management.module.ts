@@ -10,9 +10,17 @@ import { PrismaFileRepository } from "../../../persistence/prisma/repositories/p
 import { PrismaService } from "../../../persistence/prisma/prisma.service";
 import { ClerkModule } from "../../../external-services/clerk/clerk.module";
 import { UserManagementModule } from "../user-management.module";
+import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
+import { CampusModule } from "../campus.module";
 
 @Module({
-  imports: [StorageModule, ClerkModule, UserManagementModule],
+  imports: [
+    StorageModule,
+    ClerkModule,
+    UserManagementModule,
+    StandardResponseModule,
+    CampusModule,
+  ],
   controllers: [FileController],
   providers: [
     PrismaService,
@@ -20,10 +28,15 @@ import { UserManagementModule } from "../user-management.module";
       provide: FileRepository,
       useClass: PrismaFileRepository,
     },
+    {
+      provide: "FILE_REPOSITORY",
+      useClass: PrismaFileRepository,
+    },
     UploadFileUseCase,
     DeleteFileUseCase,
     GetFileUseCase,
     CompleteUploadUseCase,
   ],
+  exports: ["FILE_REPOSITORY"],
 })
 export class FileManagementModule {}

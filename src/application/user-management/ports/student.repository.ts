@@ -15,14 +15,43 @@ export abstract class StudentRepository {
   abstract findById(id: string): Promise<Student | null>;
 
   /**
-   * Find student by email
+   * Find student by email (global search across all campuses)
    */
   abstract findByEmail(email: string): Promise<Student | null>;
 
   /**
-   * Find student by phone number
+   * Find student by email within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByEmailInCampus(
+    campusId: string,
+    email: string,
+  ): Promise<Student | null>;
+
+  /**
+   * Find student by phone number (global search across all campuses)
    */
   abstract findByPhoneNumber(phoneNumber: string): Promise<Student | null>;
+
+  /**
+   * Find student by phone number within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByPhoneNumberInCampus(
+    campusId: string,
+    phoneNumber: string,
+  ): Promise<Student | null>;
+
+  /**
+   * Find student by student code within a specific campus (campus-scoped uniqueness)
+   */
+  abstract findByStudentCodeInCampus(
+    campusId: string,
+    studentCode: string,
+  ): Promise<Student | null>;
+
+  /**
+   * Find students by campus ID
+   */
+  abstract findByCampusId(campusId: string): Promise<Student[]>;
 
   /**
    * Find multiple students by IDs

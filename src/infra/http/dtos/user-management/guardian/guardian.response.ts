@@ -41,24 +41,6 @@ export class GuardianStudentResponse {
   className: string | null; // This property is not mapped from the domain, will be null/undefined unless explicitly set
 }
 
-export class GuardianSpouseInfo {
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
-  id: string;
-
-  @Expose()
-  @ApiProperty({ example: "Nguyễn Văn C" })
-  fullName: string;
-
-  @Expose()
-  @ApiProperty({ example: "spouse@example.com", nullable: true })
-  email: string | null;
-
-  @Expose()
-  @ApiProperty({ example: "+84912345679", nullable: true })
-  phoneNumber: string | null;
-}
-
 export class GuardianResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
@@ -100,10 +82,9 @@ export class GuardianResponse {
 
   @Expose()
   @ApiProperty({
-    example: "123e4567-e89b-12d3-a456-426614174001",
-    nullable: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  spouseId: string | null;
+  campusId: string;
 
   @Expose()
   @ApiProperty({
@@ -117,11 +98,6 @@ export class GuardianResponse {
   isArchived: boolean;
 
   // Relations
-  @Expose()
-  @Type(() => GuardianSpouseInfo)
-  @ApiProperty({ type: GuardianSpouseInfo, nullable: true, required: false })
-  spouse?: GuardianSpouseInfo | null;
-
   @Expose()
   @Type(() => GuardianStudentResponse)
   @ApiProperty({ type: [GuardianStudentResponse], required: false })

@@ -3,16 +3,26 @@ import {
   Inject,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from "@nestjs/common";
 import { Post, PostAudience, PostStatus } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
+import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
+import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import { PostContent } from "@/domain/content-management/entities/post.entity";
+import {
+  extractTextFromTiptap,
+  validateAudiencesBelongToCampus,
+} from "../utils";
 
 export interface UpdatePostInput {
+  campusId: string; // For verifying request comes from correct campus
   title?: string;
-  content?: string;
+  content?: PostContent;
   status?: PostStatus;
   publishAt?: Date;
   audiences?: {
@@ -28,6 +38,12 @@ export class UpdatePostUseCase {
   constructor(
     @Inject("POST_REPOSITORY")
     private readonly postRepository: PostRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
+    @Inject("GRADE_LEVEL_REPOSITORY")
+    private readonly gradeLevelRepository: GradeLevelRepository,
+    @Inject("STUDENT_REPOSITORY")
+    private readonly studentRepository: StudentRepository,
   ) {}
 
   async execute(
@@ -44,9 +60,16 @@ export class UpdatePostUseCase {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
 
+      // Verify the request campus matches the post's campus
+      if (post.campusId !== input.campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
+      }
+
       this.checkAuthorization(post, currentUser);
 
-      this.updatePostProperties(post, input);
+      await this.updatePostProperties(post, input);
 
       const updatedPost = await this.postRepository.update(postId, post);
       this.logger.log(`Post updated: ${updatedPost.id.toString()}`);
@@ -69,12 +92,19 @@ export class UpdatePostUseCase {
     }
   }
 
-  private updatePostProperties(post: Post, input: UpdatePostInput): void {
+  private async updatePostProperties(
+    post: Post,
+    input: UpdatePostInput,
+  ): Promise<void> {
     if (input.title) {
       post.updateTitle(input.title);
     }
     if (input.content !== undefined) {
-      post.updateContent(input.content);
+      // Extract plain text from JSON content for search
+      const contentText = input.content
+        ? extractTextFromTiptap(input.content)
+        : null;
+      post.updateContent(input.content, contentText);
     }
     if (input.status) {
       // Note: Status transitions should use specific domain methods
@@ -87,9 +117,17 @@ export class UpdatePostUseCase {
       post.updatePublishDate(input.publishAt);
     }
     if (input.audiences) {
+      // Validate that new audiences belong to the post's campus
+      await validateAudiencesBelongToCampus(input.audiences, post.campusId, {
+        classRepository: this.classRepository,
+        gradeLevelRepository: this.gradeLevelRepository,
+        studentRepository: this.studentRepository,
+      });
+
       const audiences = input.audiences.map((audience) =>
         PostAudience.create({
           postId: post.id,
+          campusId: post.campusId,
           audienceType: audience.audienceType,
           audienceId: audience.audienceId,
         }),

@@ -1,20 +1,25 @@
-import { Staff as PrismaStaff, User as PrismaUser } from "@prisma/client";
+import {
+  Staff as PrismaStaff,
+  User as PrismaUser,
+  StaffType as PrismaStaffType,
+} from "@prisma/client";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import { Prisma } from "@prisma/client";
 
 type PrismaStaffWithRelations = PrismaStaff & {
   user?: PrismaUser | null;
+  staffType?: PrismaStaffType | null;
 };
 
 export class PrismaStaffMapper {
   static toDomain(prismaStaff: PrismaStaffWithRelations): Staff {
     const staffProps = {
+      campusId: prismaStaff.campusId,
       fullName: prismaStaff.fullName,
       email: prismaStaff.email,
       phoneNumber: prismaStaff.phoneNumber,
-      staffType: prismaStaff.staffType as StaffType,
+      staffTypeId: prismaStaff.staffTypeId,
       address: prismaStaff.address,
       dateOfBirth: prismaStaff.dateOfBirth,
       gender: prismaStaff.gender as Gender | null,
@@ -30,10 +35,11 @@ export class PrismaStaffMapper {
 
   static toDomainSimple(prismaStaff: PrismaStaff): Staff {
     const staffProps = {
+      campusId: prismaStaff.campusId,
       fullName: prismaStaff.fullName,
       email: prismaStaff.email,
       phoneNumber: prismaStaff.phoneNumber,
-      staffType: prismaStaff.staffType as StaffType,
+      staffTypeId: prismaStaff.staffTypeId,
       address: prismaStaff.address,
       dateOfBirth: prismaStaff.dateOfBirth,
       gender: prismaStaff.gender as Gender | null,
@@ -50,10 +56,11 @@ export class PrismaStaffMapper {
   static toPrisma(staff: Staff): Prisma.StaffUncheckedCreateInput {
     return {
       id: staff.id,
+      campusId: staff.campusId,
       fullName: staff.fullName,
       email: staff.email,
       phoneNumber: staff.phoneNumber,
-      staffType: staff.staffType,
+      staffTypeId: staff.staffTypeId,
       address: staff.address,
       dateOfBirth: staff.dateOfBirth,
       gender: staff.gender,
@@ -70,7 +77,6 @@ export class PrismaStaffMapper {
       fullName: staff.fullName,
       email: staff.email,
       phoneNumber: staff.phoneNumber,
-      staffType: staff.staffType,
       address: staff.address,
       dateOfBirth: staff.dateOfBirth,
       gender: staff.gender,
@@ -78,6 +84,13 @@ export class PrismaStaffMapper {
       isArchived: staff.isArchived,
       updatedAt: staff.updatedAt,
     };
+
+    // Handle staffType relation update
+    if (staff.staffTypeId) {
+      updateData.staffType = { connect: { id: staff.staffTypeId } };
+    } else {
+      updateData.staffType = { disconnect: true };
+    }
 
     // Handle user relation update
     if (staff.userId) {

@@ -10,6 +10,7 @@ import { SchoolYearRepository } from "../../ports/school-year.repository";
 
 export interface CreateSchoolYearInput {
   name: string;
+  campusId: string;
   startDate: Date;
   endDate: Date;
   isArchived?: boolean;
@@ -28,10 +29,12 @@ export class CreateSchoolYearUseCase {
     try {
       this.logger.log(`Creating school year: ${input.name}`);
 
-      // Step 1: Check for duplicate name
-      const existingSchoolYear = await this.schoolYearRepository.findByName(
-        input.name,
-      );
+      // Step 1: Check for duplicate name within campus
+      const existingSchoolYear =
+        await this.schoolYearRepository.findByNameAndCampus(
+          input.name,
+          input.campusId,
+        );
       if (existingSchoolYear) {
         throw new ConflictException(
           `School year "${input.name}" already exists`,
@@ -41,6 +44,7 @@ export class CreateSchoolYearUseCase {
       // Step 2: Create domain entity (validation happens in factory)
       const schoolYear = SchoolYear.create({
         name: input.name,
+        campusId: input.campusId,
         startDate: input.startDate,
         endDate: input.endDate,
         isArchived: input.isArchived ?? false,

@@ -8,6 +8,10 @@ import {
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "../decorators/roles.decorator";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
+import {
+  getCampusFromRequest,
+  getValidatedCampusId,
+} from "../context/campus-context";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -36,21 +40,36 @@ export class RolesGuard implements CanActivate {
       return false;
     }
 
-    // Fetch user with roles from the repository
+    // Get campus context - prefer validated campus from CampusGuard, fallback to extraction
+    const campusId =
+      getValidatedCampusId(request) ?? getCampusFromRequest(request);
+
+    // Fetch user with role assignments from the repository
     const fullUser = await this.userRepository.findById(user.id);
 
-    if (!fullUser || !fullUser.roles) {
-      this.logger.warn(`User ${user.id} has no roles assigned`);
+    if (!fullUser) {
+      this.logger.warn(`User ${user.id} not found`);
       return false;
     }
 
-    const hasRequiredRole = fullUser.roles.some((role) =>
+    // Get roles that apply to the current campus context
+    // This includes globally assigned roles (campusId = null) + campus-specific roles
+    const applicableRoles = fullUser.getRolesForCampus(campusId);
+
+    if (applicableRoles.length === 0) {
+      this.logger.warn(
+        `User ${user.id} has no roles assigned for campus ${campusId ?? "global"}`,
+      );
+      return false;
+    }
+
+    const hasRequiredRole = applicableRoles.some((role) =>
       requiredRoles.includes(role.name),
     );
 
     if (!hasRequiredRole) {
       this.logger.warn(
-        `User ${user.id} with roles [${fullUser.roles.map((r) => r.name).join(", ")}] does not have required roles [${requiredRoles.join(", ")}]`,
+        `User ${user.id} with roles [${applicableRoles.map((r) => r.name).join(", ")}] in campus ${campusId ?? "global"} does not have required roles [${requiredRoles.join(", ")}]`,
       );
     }
 

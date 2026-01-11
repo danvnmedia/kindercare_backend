@@ -7,6 +7,7 @@ export class PrismaSubjectMapper {
     return Subject.create(
       {
         name: prismaSubject.name,
+        campusId: prismaSubject.campusId,
         createdAt: prismaSubject.createdAt,
         updatedAt: prismaSubject.updatedAt,
       },
@@ -18,6 +19,7 @@ export class PrismaSubjectMapper {
     return {
       id: subject.id,
       name: subject.name,
+      campusId: subject.campusId,
       createdAt: subject.createdAt,
       updatedAt: subject.updatedAt,
     };

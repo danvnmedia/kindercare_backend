@@ -158,7 +158,4 @@ generated/
 .agents
 .claude
 
-# knowns (ignore all except docs)
-.knowns/*
-!.knowns/docs/
-!.knowns/docs/**
+

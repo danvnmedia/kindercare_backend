@@ -1,8 +1,18 @@
-import { Injectable, Inject, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  Logger,
+  BadRequestException,
+} from "@nestjs/common";
 import { StudentRepository } from "../../ports/student.repository";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { Student } from "@/domain/user-management/entities/student.entity";
+
+export interface GetAllStudentsInput {
+  campusId: string;
+  params: StandardRequest;
+}
 
 @Injectable()
 export class GetAllStudentsUseCase {
@@ -13,16 +23,44 @@ export class GetAllStudentsUseCase {
     private readonly studentRepository: StudentRepository,
   ) {}
 
-  async execute(params: StandardRequest): Promise<PaginatedResult<Student>> {
+  async execute(input: GetAllStudentsInput): Promise<PaginatedResult<Student>> {
+    const { campusId, params } = input;
+
+    if (!campusId) {
+      throw new BadRequestException("Campus ID is required to fetch students");
+    }
+
     try {
       this.logger.log(
-        `Fetching students: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
+        `Fetching students for campus ${campusId}: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
       );
 
-      const result = await this.studentRepository.findAll(params);
+      // Inject campusId filter to ensure campus scoping
+      // Parse existing filter string if present, add campusId, and re-stringify
+      let existingFilter: Record<string, unknown> = {};
+      if (params.filter) {
+        try {
+          existingFilter = JSON.parse(params.filter);
+        } catch {
+          // If filter is invalid JSON, ignore it
+          this.logger.warn(`Invalid filter JSON: ${params.filter}`);
+        }
+      }
+
+      const scopedFilter = {
+        ...existingFilter,
+        campusId: { eq: campusId },
+      };
+
+      const scopedParams: StandardRequest = {
+        ...params,
+        filter: JSON.stringify(scopedFilter),
+      };
+
+      const result = await this.studentRepository.findAll(scopedParams);
 
       this.logger.log(
-        `Found ${result.pagination.count} students, returning page ${result.pagination.currentPage}`,
+        `Found ${result.pagination.count} students in campus ${campusId}, returning page ${result.pagination.currentPage}`,
       );
 
       return result;

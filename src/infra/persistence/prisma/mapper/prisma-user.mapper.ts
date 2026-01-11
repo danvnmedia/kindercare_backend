@@ -10,33 +10,56 @@ import {
   User as PrismaUser,
   Role as PrismaRole,
   UserRole as PrismaUserRole,
+  RolePermission as PrismaRolePermission,
+  Permission as PrismaPermission,
 } from "@prisma/client";
-import { User } from "../../../../domain/user-management/user.entity";
+import {
+  User,
+  UserRoleAssignment,
+} from "../../../../domain/user-management/user.entity";
 import { Prisma } from "@prisma/client";
 import { PrismaRoleMapper } from "./prisma-role.mapper";
+
+/**
+ * Type for UserRole with full role data including permissions
+ */
+type PrismaUserRoleWithRole = PrismaUserRole & {
+  role: PrismaRole & {
+    rolePermissions?: Array<
+      PrismaRolePermission & {
+        permission: PrismaPermission;
+      }
+    >;
+  };
+};
 
 export class PrismaUserMapper {
   /**
    * Convert Prisma model to Domain entity (full)
-   * Supports eager-loaded roles
+   * Supports eager-loaded roles with campus context
    */
   static toDomain(
     prismaUser: PrismaUser & {
-      userRoles?: Array<
-        PrismaUserRole & {
-          role: PrismaRole;
-        }
-      >;
+      userRoles?: PrismaUserRoleWithRole[];
     },
   ): User {
+    // Build role assignments with campus context
+    const roleAssignments: UserRoleAssignment[] =
+      prismaUser.userRoles?.map((ur) => ({
+        role: PrismaRoleMapper.toDomain(ur.role),
+        campusId: ur.campusId, // Preserve the assignment campus context
+        assignedAt: ur.assignedAt,
+      })) ?? [];
+
+    // Also maintain backward-compatible roles array
+    const roles = roleAssignments.map((ra) => ra.role);
+
     return User.reconstitute(
       {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
-        roles:
-          prismaUser.userRoles?.map((ur) =>
-            PrismaRoleMapper.toDomain(ur.role),
-          ) ?? [],
+        roles,
+        roleAssignments,
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,
       },
@@ -54,6 +77,7 @@ export class PrismaUserMapper {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
         roles: [],
+        roleAssignments: [],
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,
       },

@@ -62,12 +62,12 @@ export class UpdateGuardianUseCase {
       throw new NotFoundException(`Guardian with ID ${id} not found`);
     }
 
-    // Step 2: Check uniqueness (email and phone)
+    // Step 2: Check uniqueness (email and phone) - campus-scoped
     if (input.email && input.email !== guardian.email) {
-      await this.checkEmailUniqueness(input.email, id);
+      await this.checkEmailUniqueness(guardian.campusId, input.email, id);
     }
     if (input.phoneNumber && input.phoneNumber !== guardian.phoneNumber) {
-      await this.checkPhoneUniqueness(input.phoneNumber, id);
+      await this.checkPhoneUniqueness(guardian.campusId, input.phoneNumber, id);
     }
 
     // Step 3: Detect Clerk-relevant changes
@@ -288,10 +288,14 @@ export class UpdateGuardianUseCase {
   }
 
   private async checkEmailUniqueness(
+    campusId: string,
     email: string,
     excludeId: string,
   ): Promise<void> {
-    const existingByEmail = await this.guardianRepository.findByEmail(email);
+    const existingByEmail = await this.guardianRepository.findByEmailInCampus(
+      campusId,
+      email,
+    );
     if (existingByEmail && existingByEmail.id !== excludeId) {
       throw new ConflictException(
         `Guardian with email ${email} already exists`,
@@ -300,11 +304,15 @@ export class UpdateGuardianUseCase {
   }
 
   private async checkPhoneUniqueness(
+    campusId: string,
     phoneNumber: string,
     excludeId: string,
   ): Promise<void> {
     const existingByPhone =
-      await this.guardianRepository.findByPhoneNumber(phoneNumber);
+      await this.guardianRepository.findByPhoneNumberInCampus(
+        campusId,
+        phoneNumber,
+      );
     if (existingByPhone && existingByPhone.id !== excludeId) {
       throw new ConflictException(
         `Guardian with phone number ${phoneNumber} already exists`,

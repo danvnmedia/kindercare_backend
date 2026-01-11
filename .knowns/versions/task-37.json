@@ -1,6 +1,6 @@
 {
   "taskId": "37",
-  "currentVersion": 2,
+  "currentVersion": 3,
   "versions": [
     {
       "id": "v1",
@@ -137,6 +137,80 @@
           }
         ],
         "implementationPlan": "1. Create content extraction utility in src/application/content-management/utils/:\n   - extractTextFromTiptap(json: object): string\n   - Recursively traverse Tiptap JSON structure\n   - Extract text from 'text' nodes\n   - Handle paragraphs, headings, lists, etc.\n   - Return concatenated plain text\n2. Update Post entity:\n   - Change content type from string to any/object\n   - Add contentText: string | null property\n   - Add contentVersion: number property (default 1)\n   - Update create() to accept JSON content\n   - Add updateContent(json, extractedText) method\n3. Update CreatePostUseCase:\n   - Accept content as JSON object in input\n   - Call extractTextFromTiptap() to get plain text\n   - Create entity with both content and contentText\n4. Update UpdatePostUseCase:\n   - Accept content as JSON object\n   - Re-extract plain text on content update\n   - Update both fields\n5. Update PrismaPostMapper:\n   - Handle Prisma.JsonValue for content field\n   - Map contentText and contentVersion\n6. Update DTOs:\n   - CreatePostRequest: content as object (not string)\n   - UpdatePostRequest: content as object\n   - PostResponse: content as object\n   - Add validation for content structure (optional, can be loose)\n7. Add contentText to search queries (if full-text search implemented)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "37",
+      "version": 3,
+      "timestamp": "2026-01-09T17:17:36.899Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        },
+        {
+          "field": "implementationNotes",
+          "newValue": "## Implementation Completed\n\n### Changes Made:\n1. Created extractTextFromTiptap utility in src/application/content-management/utils/\n2. Updated CreatePostUseCase: added campusId, JSON content type, text extraction\n3. Updated UpdatePostUseCase: JSON content type, text extraction\n4. Updated PrismaPostMapper: all missing fields (campusId, contentText, contentVersion, pinning, soft delete)\n5. Updated Request DTOs: content as object type\n6. Updated PostResponse DTO: content as object, added contentText and contentVersion\n7. Updated PostAudience entity: added campusId property\n\nAll TypeScript compilation errors for changed files are resolved."
+        }
+      ],
+      "snapshot": {
+        "title": "Post & CMS: Update Post Entity and Use Cases for JSON Content",
+        "description": "Update existing Post entity and use cases to support JSON content (Tiptap format).\n\n## Context\n- Post content should be stored as JSON (Tiptap/ProseMirror format)\n- Extract plain text for search functionality\n- Add content version for future migrations\n- Reference: @doc/prds/post-and-content-management\n\n## Current State Analysis\nThe Post entity and Prisma schema ALREADY have the correct structure:\n- `content: PostContent` (Record<string, unknown> | null)\n- `contentText: string | null`\n- `contentVersion: number`\n- `campusId: string` (required)\n\nWhat NEEDS UPDATE:\n1. **CreatePostUseCase**: content typed as string (should be PostContent), missing campusId\n2. **UpdatePostUseCase**: content typed as string (should be PostContent)\n3. **PrismaPostMapper**: missing contentText, contentVersion, campusId, pinning fields, soft delete fields\n4. **Request DTOs**: content typed as string (should be object)\n5. **PostResponse DTO**: content typed as string, missing contentText/contentVersion\n6. **Content Extraction Utility**: Does not exist yet\n\n## Changes Required\n1. Create content text extraction utility\n2. Update CreatePostUseCase to accept JSON content and campusId\n3. Update UpdatePostUseCase to handle JSON content\n4. Update PrismaPostMapper with all missing fields\n5. Update request/response DTOs for JSON content",
+        "status": "done",
+        "priority": "high",
+        "labels": [
+          "post",
+          "content",
+          "json",
+          "tiptap",
+          "phase-3"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Post entity content property handles JSON type"
+          },
+          {
+            "completed": false,
+            "text": "Post entity has contentText for search"
+          },
+          {
+            "completed": false,
+            "text": "Post entity has contentVersion field"
+          },
+          {
+            "completed": false,
+            "text": "CreatePostUseCase accepts content as JSON object"
+          },
+          {
+            "completed": false,
+            "text": "CreatePostUseCase extracts plain text from JSON to contentText"
+          },
+          {
+            "completed": false,
+            "text": "UpdatePostUseCase handles JSON content updates"
+          },
+          {
+            "completed": false,
+            "text": "Content text extraction utility created (extracts text from Tiptap JSON)"
+          },
+          {
+            "completed": false,
+            "text": "PrismaPostMapper handles Json type correctly"
+          },
+          {
+            "completed": false,
+            "text": "Request DTOs accept content as object (not string)"
+          },
+          {
+            "completed": false,
+            "text": "Response DTOs return content as object"
+          }
+        ],
+        "implementationPlan": "1. Create content extraction utility in src/application/content-management/utils/:\n   - extractTextFromTiptap(json: object): string\n   - Recursively traverse Tiptap JSON structure\n   - Extract text from 'text' nodes\n   - Handle paragraphs, headings, lists, etc.\n   - Return concatenated plain text\n2. Update Post entity:\n   - Change content type from string to any/object\n   - Add contentText: string | null property\n   - Add contentVersion: number property (default 1)\n   - Update create() to accept JSON content\n   - Add updateContent(json, extractedText) method\n3. Update CreatePostUseCase:\n   - Accept content as JSON object in input\n   - Call extractTextFromTiptap() to get plain text\n   - Create entity with both content and contentText\n4. Update UpdatePostUseCase:\n   - Accept content as JSON object\n   - Re-extract plain text on content update\n   - Update both fields\n5. Update PrismaPostMapper:\n   - Handle Prisma.JsonValue for content field\n   - Map contentText and contentVersion\n6. Update DTOs:\n   - CreatePostRequest: content as object (not string)\n   - UpdatePostRequest: content as object\n   - PostResponse: content as object\n   - Add validation for content structure (optional, can be loose)\n7. Add contentText to search queries (if full-text search implemented)",
+        "implementationNotes": "## Implementation Completed\n\n### Changes Made:\n1. Created extractTextFromTiptap utility in src/application/content-management/utils/\n2. Updated CreatePostUseCase: added campusId, JSON content type, text extraction\n3. Updated UpdatePostUseCase: JSON content type, text extraction\n4. Updated PrismaPostMapper: all missing fields (campusId, contentText, contentVersion, pinning, soft delete)\n5. Updated Request DTOs: content as object type\n6. Updated PostResponse DTO: content as object, added contentText and contentVersion\n7. Updated PostAudience entity: added campusId property\n\nAll TypeScript compilation errors for changed files are resolved."
       }
     }
   ]

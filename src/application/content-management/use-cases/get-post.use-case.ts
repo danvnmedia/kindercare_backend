@@ -1,4 +1,10 @@
-import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from "@nestjs/common";
 import { Post } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
 
@@ -11,7 +17,7 @@ export class GetPostUseCase {
     private readonly postRepository: PostRepository,
   ) {}
 
-  async execute(postId: string): Promise<Post> {
+  async execute(campusId: string, postId: string): Promise<Post> {
     try {
       this.logger.log(`Getting post: ${postId}`);
 
@@ -19,6 +25,13 @@ export class GetPostUseCase {
 
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      // Verify the post belongs to the specified campus
+      if (post.campusId !== campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
       }
 
       return post;

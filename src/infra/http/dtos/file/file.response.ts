@@ -11,6 +11,13 @@ export class FileResponse {
   id: string;
 
   @ApiProperty({
+    description: "The ID of the campus where the file belongs.",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @Expose()
+  campusId: string;
+
+  @ApiProperty({
     description: "The key of the file.",
     example: "path/to/file.jpg",
   })

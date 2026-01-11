@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 
 // Controllers
 import { RoleController } from "../controllers/user-management/role.controller";
@@ -70,6 +70,14 @@ import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
+import { RbacModule } from "./rbac.module";
+import { CampusModule } from "./campus.module";
+import { StaffTypeModule } from "./staff-type.module";
+
+// Guards
+import { CampusGuard } from "../guards/campus.guard";
+import { RolesGuard } from "../guards/roles.guard";
+import { PermissionsGuard } from "../guards/permissions.guard";
 
 /**
  * User Management Module
@@ -90,6 +98,9 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     PrismaModule, // Database access
     ClerkModule, // Authentication & Identity management
     StandardResponseModule, // Query service for filtering and pagination
+    RbacModule, // Permission management
+    CampusModule, // Campus repository for role campus validation
+    forwardRef(() => StaffTypeModule), // For STAFF_TYPE_REPOSITORY (circular dep with StaffTypeModule)
   ],
   controllers: [
     RoleController,
@@ -172,6 +183,11 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
       provide: "STAFF_REPOSITORY",
       useClass: PrismaStaffRepository,
     },
+
+    // Guards (with dependency injection)
+    CampusGuard,
+    RolesGuard,
+    PermissionsGuard,
   ],
   exports: [
     "USER_REPOSITORY",

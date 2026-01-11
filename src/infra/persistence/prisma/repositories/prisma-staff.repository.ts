@@ -3,7 +3,6 @@ import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto"
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import { Injectable } from "@nestjs/common";
 import { PrismaStaffMapper } from "../mapper/prisma-staff.mapper";
 import { PrismaService } from "../prisma.service";
@@ -20,6 +19,7 @@ export class PrismaStaffRepository implements StaffRepository {
       where: { id },
       include: {
         user: true,
+        staffType: true,
       },
     });
     return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
@@ -28,15 +28,51 @@ export class PrismaStaffRepository implements StaffRepository {
   async findByEmail(email: string): Promise<Staff | null> {
     const prismaStaff = await this.prisma.staff.findFirst({
       where: { email },
+      include: {
+        staffType: true,
+      },
     });
-    return prismaStaff ? PrismaStaffMapper.toDomainSimple(prismaStaff) : null;
+    return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
+  }
+
+  async findByEmailInCampus(
+    campusId: string,
+    email: string,
+  ): Promise<Staff | null> {
+    const prismaStaff = await this.prisma.staff.findUnique({
+      where: {
+        campusId_email: { campusId, email },
+      },
+      include: {
+        staffType: true,
+      },
+    });
+    return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
   }
 
   async findByPhoneNumber(phoneNumber: string): Promise<Staff | null> {
     const prismaStaff = await this.prisma.staff.findFirst({
       where: { phoneNumber },
+      include: {
+        staffType: true,
+      },
     });
-    return prismaStaff ? PrismaStaffMapper.toDomainSimple(prismaStaff) : null;
+    return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
+  }
+
+  async findByPhoneNumberInCampus(
+    campusId: string,
+    phoneNumber: string,
+  ): Promise<Staff | null> {
+    const prismaStaff = await this.prisma.staff.findUnique({
+      where: {
+        campusId_phoneNumber: { campusId, phoneNumber },
+      },
+      include: {
+        staffType: true,
+      },
+    });
+    return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
   }
 
   async findByUserId(userId: string): Promise<Staff | null> {
@@ -44,16 +80,29 @@ export class PrismaStaffRepository implements StaffRepository {
       where: { userId },
       include: {
         user: true,
+        staffType: true,
       },
     });
     return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
   }
 
-  async findByType(type: StaffType): Promise<Staff[]> {
+  async findByStaffTypeId(staffTypeId: string): Promise<Staff[]> {
     const prismaStaffs = await this.prisma.staff.findMany({
-      where: { staffType: type },
+      where: { staffTypeId },
       include: {
         user: true,
+        staffType: true,
+      },
+    });
+    return PrismaStaffMapper.toDomainArray(prismaStaffs);
+  }
+
+  async findByCampusId(campusId: string): Promise<Staff[]> {
+    const prismaStaffs = await this.prisma.staff.findMany({
+      where: { campusId },
+      include: {
+        user: true,
+        staffType: true,
       },
     });
     return PrismaStaffMapper.toDomainArray(prismaStaffs);
@@ -64,6 +113,7 @@ export class PrismaStaffRepository implements StaffRepository {
       where: { id: { in: ids } },
       include: {
         user: true,
+        staffType: true,
       },
     });
     return PrismaStaffMapper.toDomainArray(prismaStaffs);
@@ -75,7 +125,8 @@ export class PrismaStaffRepository implements StaffRepository {
       "fullName",
       "email",
       "phoneNumber",
-      "staffType",
+      "campusId",
+      "staffTypeId",
       "gender",
       "isArchived",
     ];
@@ -84,7 +135,6 @@ export class PrismaStaffRepository implements StaffRepository {
       "updatedAt",
       "fullName",
       "email",
-      "staffType",
       "startDate",
     ];
 
@@ -96,6 +146,7 @@ export class PrismaStaffRepository implements StaffRepository {
       {
         include: {
           user: true,
+          staffType: true,
         },
       },
       PrismaStaffMapper,
@@ -108,6 +159,7 @@ export class PrismaStaffRepository implements StaffRepository {
       data: prismaData,
       include: {
         user: true,
+        staffType: true,
       },
     });
     return PrismaStaffMapper.toDomain(created);
@@ -120,6 +172,7 @@ export class PrismaStaffRepository implements StaffRepository {
       data: prismaData,
       include: {
         user: true,
+        staffType: true,
       },
     });
     return PrismaStaffMapper.toDomain(updated);

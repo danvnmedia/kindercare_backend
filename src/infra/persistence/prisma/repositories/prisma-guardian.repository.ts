@@ -22,7 +22,6 @@ export class PrismaGuardianRepository implements GuardianRepository {
     const prismaGuardian = await this.prisma.guardian.findUnique({
       where: { id },
       include: {
-        spouse: true,
         children: {
           include: {
             student: true,
@@ -37,10 +36,9 @@ export class PrismaGuardianRepository implements GuardianRepository {
   }
 
   async findByEmail(email: string): Promise<Guardian | null> {
-    const prismaGuardian = await this.prisma.guardian.findUnique({
+    const prismaGuardian = await this.prisma.guardian.findFirst({
       where: { email },
       include: {
-        spouse: true,
         children: {
           include: {
             student: true,
@@ -55,10 +53,9 @@ export class PrismaGuardianRepository implements GuardianRepository {
   }
 
   async findByPhoneNumber(phoneNumber: string): Promise<Guardian | null> {
-    const prismaGuardian = await this.prisma.guardian.findUnique({
+    const prismaGuardian = await this.prisma.guardian.findFirst({
       where: { phoneNumber },
       include: {
-        spouse: true,
         children: {
           include: {
             student: true,
@@ -72,6 +69,78 @@ export class PrismaGuardianRepository implements GuardianRepository {
       : null;
   }
 
+  async findByEmailInCampus(
+    campusId: string,
+    email: string,
+  ): Promise<Guardian | null> {
+    const prismaGuardian = await this.prisma.guardian.findFirst({
+      where: { campusId, email },
+      include: {
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
+  }
+
+  async findByPhoneNumberInCampus(
+    campusId: string,
+    phoneNumber: string,
+  ): Promise<Guardian | null> {
+    const prismaGuardian = await this.prisma.guardian.findFirst({
+      where: { campusId, phoneNumber },
+      include: {
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
+  }
+
+  async findByUserId(userId: string): Promise<Guardian | null> {
+    const prismaGuardian = await this.prisma.guardian.findFirst({
+      where: { userId },
+      include: {
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
+  }
+
+  async findByCampusId(campusId: string): Promise<Guardian[]> {
+    const guardians = await this.prisma.guardian.findMany({
+      where: { campusId },
+      include: {
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+    return guardians.map(PrismaGuardianMapper.toDomain);
+  }
+
   async findAll(params: StandardRequest): Promise<PaginatedResult<Guardian>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
@@ -83,6 +152,7 @@ export class PrismaGuardianRepository implements GuardianRepository {
       "workAddress",
       "isArchived",
       "dateOfBirth",
+      "campusId",
     ];
     params.allowedSortFields = [
       "createdAt",
@@ -106,7 +176,6 @@ export class PrismaGuardianRepository implements GuardianRepository {
               guardianRelationship: true,
             },
           },
-          spouse: true,
         },
         orderBy: { createdAt: "desc" },
       },

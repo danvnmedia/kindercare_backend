@@ -27,6 +27,13 @@ export class PostAudienceResponse {
   postId: string;
 
   @ApiProperty({
+    description: "The campus ID this audience belongs to.",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @Expose()
+  campusId: string;
+
+  @ApiProperty({
     description: "The ID of the class.",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
     required: false,
@@ -105,6 +112,13 @@ export class PostResponse {
   id: string;
 
   @ApiProperty({
+    description: "The campus ID of the post.",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @Expose()
+  campusId: string;
+
+  @ApiProperty({
     description: "The title of the post.",
     example: "This is a post title.",
   })
@@ -112,11 +126,34 @@ export class PostResponse {
   title: string;
 
   @ApiProperty({
-    description: "The content of the post.",
-    example: "This is the post content.",
+    description: "The content of the post in Tiptap/ProseMirror JSON format.",
+    example: {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Hello World" }],
+        },
+      ],
+    },
   })
   @Expose()
-  content: string;
+  content: Record<string, unknown> | null;
+
+  @ApiProperty({
+    description: "Plain text extracted from content for search purposes.",
+    example: "Hello World",
+    required: false,
+  })
+  @Expose()
+  contentText: string | null;
+
+  @ApiProperty({
+    description: "Version number tracking content edits.",
+    example: 1,
+  })
+  @Expose()
+  contentVersion: number;
 
   @ApiProperty({
     description: "The status of the post.",
@@ -133,6 +170,28 @@ export class PostResponse {
   })
   @Expose()
   publishAt?: Date;
+
+  @ApiProperty({
+    description: "Whether the post is pinned to the top of the feed.",
+    example: false,
+  })
+  @Expose()
+  isPinned: boolean;
+
+  @ApiProperty({
+    description: "The date until which the post is pinned.",
+    example: "2021-01-01T00:00:00.000Z",
+    required: false,
+  })
+  @Expose()
+  pinnedUntil?: Date;
+
+  @ApiProperty({
+    description: "Whether the post requires approval before publishing.",
+    example: true,
+  })
+  @Expose()
+  requiresApproval: boolean;
 
   @ApiProperty({
     description: "The author of the post.",
@@ -154,6 +213,7 @@ export class PostResponse {
     type: [AttachmentResponse],
   })
   @Type(() => AttachmentResponse)
+  @Expose()
   attachments: AttachmentResponse[];
 
   @ApiProperty({

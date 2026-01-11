@@ -1,3 +1,5 @@
+import { RoleAssignmentInput } from "../user-management/ports/user.repository";
+
 /**
  * Unit of Work Port
  *
@@ -42,15 +44,24 @@ export interface TransactionContext {
   ): Promise<{ id: string }>;
 
   /**
-   * Assign roles to a user
+   * Assign roles to a user with campus context
+   *
+   * @param userId - The user to assign roles to
+   * @param roleAssignments - Array of role assignments with optional campusId
+   *   - campusId = undefined/null: Global assignment (role applies everywhere)
+   *   - campusId = string: Campus-specific assignment
    */
-  assignRoles(userId: string, roleIds: string[]): Promise<void>;
+  assignRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void>;
 
   /**
    * Execute a raw create operation for Guardian entity
    */
   createGuardian(data: {
     id: string;
+    campusId: string;
     fullName: string;
     email: string | null;
     phoneNumber: string;
@@ -59,7 +70,6 @@ export interface TransactionContext {
     gender: string | null;
     occupation: string | null;
     workAddress: string | null;
-    spouseId: string | null;
     userId: string | null;
     isArchived: boolean;
     createdAt: Date;
@@ -90,10 +100,11 @@ export interface TransactionContext {
    */
   createStaff(data: {
     id: string;
+    campusId: string;
     fullName: string;
     email: string;
     phoneNumber: string;
-    staffType: string;
+    staffTypeId: string | null;
     address: string | null;
     dateOfBirth: Date | null;
     gender: string | null;
@@ -113,7 +124,7 @@ export interface TransactionContext {
       fullName?: string;
       email?: string;
       phoneNumber?: string;
-      staffType?: string;
+      staffTypeId?: string | null;
       address?: string | null;
       dateOfBirth?: Date | null;
       gender?: string | null;

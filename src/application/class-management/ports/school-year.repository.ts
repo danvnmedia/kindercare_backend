@@ -15,19 +15,23 @@ export abstract class SchoolYearRepository {
   abstract findById(id: string): Promise<SchoolYear | null>;
 
   /**
-   * Find school year by name
+   * Find school year by name within a campus
    */
-  abstract findByName(name: string): Promise<SchoolYear | null>;
+  abstract findByNameAndCampus(
+    name: string,
+    campusId: string,
+  ): Promise<SchoolYear | null>;
 
   /**
-   * Find all non-archived school years
+   * Find all non-archived school years for a campus
    */
-  abstract findNonArchived(): Promise<SchoolYear[]>;
+  abstract findNonArchived(campusId: string): Promise<SchoolYear[]>;
 
   /**
-   * Find all school years with filtering, sorting, pagination
+   * Find all school years for a campus with filtering, sorting, pagination
    */
   abstract findAll(
+    campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<SchoolYear>>;
 

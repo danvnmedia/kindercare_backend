@@ -8,6 +8,7 @@ import { GradeLevel } from "@/domain/class-management/entities/grade-level.entit
 import { GradeLevelRepository } from "../../ports/grade-level.repository";
 
 export interface ReorderGradeLevelsInput {
+  campusId: string;
   ids: string[];
 }
 
@@ -38,8 +39,9 @@ export class ReorderGradeLevelsUseCase {
       );
     }
 
-    // Step 2: Reorder grade levels
+    // Step 2: Reorder grade levels within the campus
     const reorderedGradeLevels = await this.gradeLevelRepository.reorder(
+      input.campusId,
       input.ids,
     );
 

@@ -1,7 +1,15 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { ArrayMinSize, IsArray, IsUUID } from "class-validator";
+import { ArrayMinSize, IsArray, IsNotEmpty, IsUUID } from "class-validator";
 
 export class ReorderGradeLevelsRequest {
+  @ApiProperty({
+    description: "Campus ID to scope the reorder operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @IsUUID()
+  @IsNotEmpty()
+  campusId: string;
+
   @ApiProperty({
     description:
       "Array of grade level IDs in the desired order. The order field will be set based on the array index (index 0 = order 1, index 1 = order 2, etc.)",

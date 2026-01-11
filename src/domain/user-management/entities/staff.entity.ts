@@ -2,14 +2,14 @@ import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { Gender } from "../enums/gender.enum";
-import { StaffType } from "../enums/staff-type.enum";
 
 // Properties of the Staff entity
 export interface StaffProps {
+  campusId: string;
   fullName: string;
   email: string;
   phoneNumber: string;
-  staffType: StaffType;
+  staffTypeId: string | null;
   address: string | null;
   dateOfBirth: Date | null;
   gender: Gender | null;
@@ -24,12 +24,21 @@ export interface StaffProps {
 export type UpdateStaffData = Partial<
   Omit<
     StaffProps,
-    "id" | "createdAt" | "updatedAt" | "isArchived" | "email" | "phoneNumber"
+    | "id"
+    | "campusId"
+    | "createdAt"
+    | "updatedAt"
+    | "isArchived"
+    | "email"
+    | "phoneNumber"
   >
 >;
 
 export class Staff extends Entity<StaffProps> {
   // --- Getters ---
+  get campusId(): string {
+    return this.props.campusId;
+  }
   get fullName(): string {
     return this.props.fullName;
   }
@@ -39,8 +48,8 @@ export class Staff extends Entity<StaffProps> {
   get phoneNumber(): string {
     return this.props.phoneNumber;
   }
-  get staffType(): StaffType {
-    return this.props.staffType;
+  get staffTypeId(): string | null {
+    return this.props.staffTypeId;
   }
   get address(): string | null {
     return this.props.address;
@@ -75,7 +84,8 @@ export class Staff extends Entity<StaffProps> {
    */
   public updateProfile(updates: UpdateStaffData): void {
     if (updates.fullName) this.props.fullName = updates.fullName;
-    if (updates.staffType) this.props.staffType = updates.staffType;
+    if (updates.staffTypeId !== undefined)
+      this.props.staffTypeId = updates.staffTypeId;
     if (updates.address !== undefined) this.props.address = updates.address;
     if (updates.dateOfBirth !== undefined)
       this.props.dateOfBirth = updates.dateOfBirth;
@@ -88,11 +98,18 @@ export class Staff extends Entity<StaffProps> {
 
   /**
    * Changes the staff's type.
-   * @param newType - The new staff type.
+   * @param staffTypeId - The new staff type ID (or null to clear).
    */
-  public changeType(newType: StaffType): void {
-    this.props.staffType = newType;
+  public changeStaffType(staffTypeId: string | null): void {
+    this.props.staffTypeId = staffTypeId;
     this.touch();
+  }
+
+  /**
+   * Checks if the staff has a staff type assigned.
+   */
+  public hasStaffType(): boolean {
+    return this.props.staffTypeId !== null;
   }
 
   /**
@@ -142,36 +159,6 @@ export class Staff extends Entity<StaffProps> {
     this.props.updatedAt = new Date();
   }
 
-  // --- Static Helpers ---
-
-  /**
-   * Gets the display name for a staff type.
-   * @param type - The staff type.
-   */
-  public static getTypeDisplayName(type: StaffType): string {
-    const displayNames: Record<StaffType, string> = {
-      [StaffType.TEACHER]: "Giáo viên",
-      [StaffType.NURSE]: "Y tá",
-      [StaffType.PRINCIPAL]: "Hiệu trưởng",
-      [StaffType.STAFF]: "Nhân viên",
-    };
-    return displayNames[type];
-  }
-
-  /**
-   * Maps staff type to role ID.
-   * @param type - The staff type.
-   */
-  public static getStaffRoleId(type: StaffType): string {
-    const roleMap: Record<StaffType, string> = {
-      [StaffType.TEACHER]: "teacher",
-      [StaffType.NURSE]: "nurse",
-      [StaffType.PRINCIPAL]: "principal",
-      [StaffType.STAFF]: "staff",
-    };
-    return roleMap[type];
-  }
-
   // --- Factory Method ---
 
   /**
@@ -183,11 +170,14 @@ export class Staff extends Entity<StaffProps> {
   public static create(
     props: Optional<
       StaffProps,
-      "createdAt" | "updatedAt" | "isArchived" | "userId"
+      "createdAt" | "updatedAt" | "isArchived" | "userId" | "staffTypeId"
     >,
     id?: string,
   ): Staff {
     // Validation
+    if (!props.campusId) {
+      throw new Error("Campus ID is required for staff.");
+    }
     if (!props.fullName || props.fullName.trim().length < 2) {
       throw new Error(
         "Full name is required and must be at least 2 characters.",
@@ -201,15 +191,10 @@ export class Staff extends Entity<StaffProps> {
         "A valid phone number in E.164 format is required (e.g., +84912345678).",
       );
     }
-    if (
-      !props.staffType ||
-      !Object.values(StaffType).includes(props.staffType)
-    ) {
-      throw new Error("A valid staff type is required.");
-    }
 
     const staffProps: StaffProps = {
       ...props,
+      staffTypeId: props.staffTypeId ?? null,
       userId: props.userId ?? null,
       isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),

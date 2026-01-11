@@ -10,8 +10,18 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiHeader,
+} from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import {
+  CampusContext,
+  RequireCampusAccess,
+  CAMPUS_ID_HEADER,
+} from "../../decorators";
 
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
@@ -55,12 +65,20 @@ export class GuardianController {
   })
   async create(@Body() dto: CreateGuardianRequest) {
     return await this.createGuardianUseCase.execute({
-      ...dto,
+      campusId: dto.campusId,
+      fullName: dto.fullName,
+      dateOfBirth: dto.dateOfBirth,
+      email: dto.email,
+      phoneNumber: dto.phoneNumber,
+      occupation: dto.occupation,
+      workAddress: dto.workAddress,
+      address: dto.address,
       gender: dto.gender as Gender,
     });
   }
 
   @Get()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Guardians retrieved successfully",
     type: GuardianResponse,
@@ -69,10 +87,22 @@ export class GuardianController {
   @ApiOperation({
     summary: "Get all guardians",
     description:
-      "Retrieve all guardians with advanced filtering, sorting, and pagination. Supports filtering by fullName, occupation, workAddress. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
+      "Retrieve all guardians within a campus with advanced filtering, sorting, and pagination. Requires X-Campus-Id header. Supports filtering by fullName, occupation, workAddress. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
-  async findAll(@Query() query: StandardRequestDto) {
-    return await this.getAllGuardiansUseCase.execute(query);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the guardian list",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async findAll(
+    @CampusContext() campusId: string,
+    @Query() query: StandardRequestDto,
+  ) {
+    return await this.getAllGuardiansUseCase.execute({
+      campusId,
+      params: query,
+    });
   }
 
   @Get(":id")

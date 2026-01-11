@@ -36,11 +36,56 @@ export class PrismaStudentRepository implements StudentRepository {
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
   }
 
+  async findByEmailInCampus(
+    campusId: string,
+    email: string,
+  ): Promise<Student | null> {
+    const prismaStudent = await this.prisma.student.findFirst({
+      where: { campusId, email },
+    });
+    return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
+  }
+
   async findByPhoneNumber(phoneNumber: string): Promise<Student | null> {
     const prismaStudent = await this.prisma.student.findFirst({
       where: { phoneNumber },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
+  }
+
+  async findByPhoneNumberInCampus(
+    campusId: string,
+    phoneNumber: string,
+  ): Promise<Student | null> {
+    const prismaStudent = await this.prisma.student.findFirst({
+      where: { campusId, phoneNumber },
+    });
+    return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
+  }
+
+  async findByStudentCodeInCampus(
+    campusId: string,
+    studentCode: string,
+  ): Promise<Student | null> {
+    const prismaStudent = await this.prisma.student.findFirst({
+      where: { campusId, studentCode },
+    });
+    return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
+  }
+
+  async findByCampusId(campusId: string): Promise<Student[]> {
+    const students = await this.prisma.student.findMany({
+      where: { campusId },
+      include: {
+        guardians: {
+          include: {
+            guardian: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+    return students.map(PrismaStudentMapper.toDomain);
   }
 
   async findByIds(ids: string[]): Promise<Student[]> {
@@ -53,6 +98,7 @@ export class PrismaStudentRepository implements StudentRepository {
   async findAll(params: StandardRequest): Promise<PaginatedResult<Student>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
+      "campusId",
       "studentCode",
       "fullName",
       "email",

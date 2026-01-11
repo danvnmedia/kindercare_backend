@@ -5,11 +5,11 @@ import { Optional } from "@/core/types/optional";
 
 export interface PostHistoryStatusProps {
   postId: string;
-  userId: string;
-  status: PostStatus;
-  comment?: string | null;
+  changedById: string;
+  previousStatus?: PostStatus | null;
+  newStatus: PostStatus;
+  reason?: string | null;
   createdAt: Date;
-  updatedAt?: Date | null;
 }
 
 export class PostHistoryStatus extends Entity<PostHistoryStatusProps> {
@@ -17,39 +17,39 @@ export class PostHistoryStatus extends Entity<PostHistoryStatusProps> {
     return this.props.postId;
   }
 
-  get userId(): string {
-    return this.props.userId;
+  get changedById(): string {
+    return this.props.changedById;
   }
 
-  get status(): PostStatus {
-    return this.props.status;
+  get previousStatus(): PostStatus | null | undefined {
+    return this.props.previousStatus;
   }
 
-  get comment(): string | null | undefined {
-    return this.props.comment;
+  get newStatus(): PostStatus {
+    return this.props.newStatus;
+  }
+
+  get reason(): string | null | undefined {
+    return this.props.reason;
   }
 
   get createdAt(): Date {
     return this.props.createdAt;
   }
 
-  get updatedAt(): Date | null | undefined {
-    return this.props.updatedAt;
-  }
-
   static create(
     props: Optional<
       PostHistoryStatusProps,
-      "createdAt" | "updatedAt" | "comment"
+      "createdAt" | "previousStatus" | "reason"
     >,
     id?: string,
   ): PostHistoryStatus {
     return new PostHistoryStatus(
       {
         ...props,
-        comment: props.comment ?? null,
+        previousStatus: props.previousStatus ?? null,
+        reason: props.reason ?? null,
         createdAt: props.createdAt ?? new Date(),
-        updatedAt: props.updatedAt ?? null,
       },
       new UniqueEntityID(id),
     );

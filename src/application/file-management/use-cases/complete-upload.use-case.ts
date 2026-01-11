@@ -5,6 +5,7 @@ import { FileRepository } from "../ports/file.repository";
 
 export interface CompleteUploadUseCaseRequest {
   fileId: UniqueEntityID;
+  campusId: string;
 }
 
 export type CompleteUploadUseCaseResponse = Either<Error, File>;
@@ -14,8 +15,13 @@ export class CompleteUploadUseCase {
 
   async execute({
     fileId,
+    campusId,
   }: CompleteUploadUseCaseRequest): Promise<CompleteUploadUseCaseResponse> {
-    const file = await this.fileRepository.findById(fileId.toString());
+    // Find file with campus verification to ensure user can only complete uploads in their campus
+    const file = await this.fileRepository.findByIdAndCampus(
+      fileId.toString(),
+      campusId,
+    );
 
     if (!file) {
       return left(new Error("File not found."));

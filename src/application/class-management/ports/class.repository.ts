@@ -15,23 +15,39 @@ export abstract class ClassRepository {
   abstract findById(id: string): Promise<Class | null>;
 
   /**
-   * Find class by name within a school year and grade level
+   * Find class by name within a campus, school year, and grade level
+   * Used for uniqueness check: (campus_id, school_year_id, grade_level_id, name)
    */
-  abstract findByNameInContext(
+  abstract findByNameInContextAndCampus(
     name: string,
+    campusId: string,
     schoolYearId: string,
     gradeLevelId: string,
   ): Promise<Class | null>;
 
   /**
-   * Find classes by grade level
+   * Find classes by campus
    */
-  abstract findByGradeLevelId(gradeLevelId: string): Promise<Class[]>;
+  abstract findByCampusId(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<Class>>;
 
   /**
-   * Find classes by school year
+   * Find classes by grade level (within a campus)
    */
-  abstract findBySchoolYearId(schoolYearId: string): Promise<Class[]>;
+  abstract findByGradeLevelId(
+    gradeLevelId: string,
+    campusId: string,
+  ): Promise<Class[]>;
+
+  /**
+   * Find classes by school year (within a campus)
+   */
+  abstract findBySchoolYearId(
+    schoolYearId: string,
+    campusId: string,
+  ): Promise<Class[]>;
 
   /**
    * Find multiple classes by IDs
@@ -40,8 +56,13 @@ export abstract class ClassRepository {
 
   /**
    * Find all classes with filtering, sorting, pagination using StandardRequest
+   * @param campusId - Campus ID to filter by
+   * @param params - Standard request with pagination, filtering, sorting
    */
-  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Class>>;
+  abstract findAll(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<Class>>;
 
   /**
    * Save a new class

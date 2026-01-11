@@ -14,6 +14,7 @@ import { SchoolYearRepository } from "../../ports/school-year.repository";
 export interface CreateClassInput {
   name: string;
   description?: string;
+  campusId: string;
   gradeLevelId: string;
   schoolYearId: string;
 }
@@ -33,7 +34,9 @@ export class CreateClassUseCase {
 
   async execute(input: CreateClassInput): Promise<Class> {
     try {
-      this.logger.log(`Creating class: ${input.name}`);
+      this.logger.log(
+        `Creating class: ${input.name} in campus: ${input.campusId}`,
+      );
 
       // Step 1: Validate grade level exists
       const gradeLevel = await this.gradeLevelRepository.findById(
@@ -42,6 +45,13 @@ export class CreateClassUseCase {
       if (!gradeLevel) {
         throw new NotFoundException(
           `Grade level with ID ${input.gradeLevelId} not found`,
+        );
+      }
+
+      // Step 1b: Validate grade level belongs to the same campus
+      if (gradeLevel.campusId !== input.campusId) {
+        throw new BadRequestException(
+          `Grade level does not belong to the specified campus`,
         );
       }
 
@@ -55,12 +65,21 @@ export class CreateClassUseCase {
         );
       }
 
-      // Step 3: Check for duplicate class name in the same context
-      const existingClass = await this.classRepository.findByNameInContext(
-        input.name,
-        input.schoolYearId,
-        input.gradeLevelId,
-      );
+      // Step 2b: Validate school year belongs to the same campus
+      if (schoolYear.campusId !== input.campusId) {
+        throw new BadRequestException(
+          `School year does not belong to the specified campus`,
+        );
+      }
+
+      // Step 3: Check for duplicate class name in the same context (campus-scoped)
+      const existingClass =
+        await this.classRepository.findByNameInContextAndCampus(
+          input.name,
+          input.campusId,
+          input.schoolYearId,
+          input.gradeLevelId,
+        );
       if (existingClass) {
         throw new ConflictException(
           `Class "${input.name}" already exists in this grade level and school year`,
@@ -71,6 +90,7 @@ export class CreateClassUseCase {
       const classEntity = Class.create({
         name: input.name,
         description: input.description || null,
+        campusId: input.campusId,
         gradeLevelId: input.gradeLevelId,
         schoolYearId: input.schoolYearId,
       });

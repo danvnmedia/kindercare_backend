@@ -13,10 +13,11 @@ export class StaffTransactionOps {
    */
   async createStaff(data: {
     id: string;
+    campusId: string;
     fullName: string;
     email: string;
     phoneNumber: string;
-    staffType: string;
+    staffTypeId: string | null;
     address: string | null;
     dateOfBirth: Date | null;
     gender: string | null;
@@ -29,10 +30,11 @@ export class StaffTransactionOps {
     const staff = await this.tx.staff.create({
       data: {
         id: data.id,
+        campusId: data.campusId,
         fullName: data.fullName,
         email: data.email,
         phoneNumber: data.phoneNumber,
-        staffType: data.staffType,
+        staffTypeId: data.staffTypeId,
         address: data.address,
         dateOfBirth: data.dateOfBirth,
         gender: data.gender,
@@ -55,7 +57,7 @@ export class StaffTransactionOps {
       fullName?: string;
       email?: string;
       phoneNumber?: string;
-      staffType?: string;
+      staffTypeId?: string | null;
       address?: string | null;
       dateOfBirth?: Date | null;
       gender?: string | null;
@@ -71,7 +73,7 @@ export class StaffTransactionOps {
         fullName: data.fullName,
         email: data.email,
         phoneNumber: data.phoneNumber,
-        staffType: data.staffType,
+        staffTypeId: data.staffTypeId,
         address: data.address,
         dateOfBirth: data.dateOfBirth,
         gender: data.gender,

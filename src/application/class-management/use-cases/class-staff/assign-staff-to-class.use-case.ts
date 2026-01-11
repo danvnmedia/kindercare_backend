@@ -13,6 +13,7 @@ import { SubjectRepository } from "../../ports/subject.repository";
 import { StaffRepository } from "@/application/user-management/ports/staff.repository";
 
 export interface AssignStaffToClassInput {
+  campusId: string;
   classId: string;
   staffId: string;
   subjectId: string;
@@ -45,10 +46,20 @@ export class AssignStaffToClassUseCase {
         throw new NotFoundException(`Class with ID ${input.classId} not found`);
       }
 
+      // Step 1b: Validate class belongs to the specified campus
+      if (classEntity.campusId !== input.campusId) {
+        throw new BadRequestException(`Class does not belong to this campus`);
+      }
+
       // Step 2: Validate staff exists
       const staff = await this.staffRepository.findById(input.staffId);
       if (!staff) {
         throw new NotFoundException(`Staff with ID ${input.staffId} not found`);
+      }
+
+      // Step 2b: Validate staff belongs to the same campus as the class
+      if (staff.campusId !== input.campusId) {
+        throw new BadRequestException(`Staff does not belong to this campus`);
       }
 
       // Step 3: Validate subject exists
@@ -57,6 +68,11 @@ export class AssignStaffToClassUseCase {
         throw new NotFoundException(
           `Subject with ID ${input.subjectId} not found`,
         );
+      }
+
+      // Step 3b: Validate subject belongs to the same campus as the class
+      if (subject.campusId !== input.campusId) {
+        throw new BadRequestException(`Subject does not belong to this campus`);
       }
 
       // Step 4: Check for duplicate assignment

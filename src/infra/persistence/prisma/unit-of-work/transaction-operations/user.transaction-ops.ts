@@ -1,4 +1,5 @@
 import { PrismaTransactionClient } from "./base.transaction-ops";
+import { RoleAssignmentInput } from "@/application/user-management/ports/user.repository";
 
 /**
  * User Transaction Operations
@@ -43,13 +44,20 @@ export class UserTransactionOps {
   }
 
   /**
-   * Assign roles to a user within the transaction
+   * Assign roles to a user within the transaction with campus context
+   *
+   * @param userId - The user to assign roles to
+   * @param roleAssignments - Array of role assignments with optional campusId
    */
-  async assignRoles(userId: string, roleIds: string[]): Promise<void> {
+  async assignRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void> {
     await this.tx.userRole.createMany({
-      data: roleIds.map((roleId) => ({
+      data: roleAssignments.map((assignment) => ({
         userId,
-        roleId,
+        roleId: assignment.roleId,
+        campusId: assignment.campusId ?? null, // null for global assignment
       })),
       skipDuplicates: true,
     });

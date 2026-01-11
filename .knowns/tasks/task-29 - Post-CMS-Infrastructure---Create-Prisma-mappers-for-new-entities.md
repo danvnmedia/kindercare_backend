@@ -1,7 +1,7 @@
 ---
 id: '29'
 title: 'Post & CMS: Infrastructure - Create Prisma mappers for new entities'
-status: todo
+status: done
 priority: medium
 labels:
   - post
@@ -9,8 +9,8 @@ labels:
   - mapper
   - phase-3
 createdAt: '2026-01-09T03:10:11.358Z'
-updatedAt: '2026-01-09T03:10:45.883Z'
-timeSpent: 0
+updatedAt: '2026-01-09T17:36:17.624Z'
+timeSpent: 200
 ---
 # Post & CMS: Infrastructure - Create Prisma mappers for new entities
 

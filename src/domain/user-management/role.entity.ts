@@ -4,12 +4,15 @@
  * NO NestJS decorators allowed in this layer
  */
 
+import { Permission } from "../rbac";
+
 export interface Role {
   id: string;
   name: string;
   description: string | null;
-  permissions: Record<string, any>; // JSON field for permissions
-  isActive: boolean;
+  campusId: string | null; // null for system default roles
+  isSystemDefault: boolean; // true for built-in roles that cannot be modified
+  permissions: Permission[]; // Array of Permission entities
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,8 +24,9 @@ export interface CreateRoleData {
   id: string;
   name: string;
   description?: string | null;
-  permissions: Record<string, any>;
-  isActive?: boolean;
+  campusId?: string | null;
+  isSystemDefault?: boolean;
+  permissionIds?: string[]; // Permission IDs to assign
 }
 
 /**
@@ -31,16 +35,7 @@ export interface CreateRoleData {
 export interface UpdateRoleData {
   name?: string;
   description?: string | null;
-  permissions?: Record<string, any>;
-  isActive?: boolean;
-}
-
-/**
- * Permission structure (recommended format)
- */
-export interface Permission {
-  resource: string; // e.g., 'users', 'students', 'classes'
-  actions: string[]; // e.g., ['read', 'create', 'update', 'delete']
+  campusId?: string | null;
 }
 
 /**
@@ -60,128 +55,87 @@ export class RoleEntity {
   }
 
   /**
-   * Validate permissions structure
+   * Validate campusId format (UUID or null)
    */
-  static validatePermissions(permissions: Record<string, any>): void {
-    if (!permissions || typeof permissions !== "object") {
-      throw new Error("Permissions must be a valid object");
+  static validateCampusId(campusId: string | null): void {
+    if (campusId !== null) {
+      const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(campusId)) {
+        throw new Error("Campus ID must be a valid UUID");
+      }
     }
   }
 
   /**
    * Check if role has specific permission
    * @param role Role entity
-   * @param resource Resource name (e.g., 'users')
+   * @param module Module name (e.g., 'student')
    * @param action Action name (e.g., 'create')
    */
-  static hasPermission(role: Role, resource: string, action: string): boolean {
-    if (!role.permissions || typeof role.permissions !== "object") {
+  static hasPermission(role: Role, module: string, action: string): boolean {
+    if (!role.permissions || !Array.isArray(role.permissions)) {
       return false;
     }
 
-    // Check if permissions is an array of Permission objects
-    if (Array.isArray(role.permissions)) {
-      const permissions = role.permissions as Permission[];
-      const permission = permissions.find((p) => p.resource === resource);
-      return permission ? permission.actions.includes(action) : false;
-    }
-
-    // Check if permissions is a flat object: { "users:create": true }
-    const permissionKey = `${resource}:${action}`;
-    return Boolean(role.permissions[permissionKey]);
+    const permissionId = `${module}.${action}`;
+    return role.permissions.some((p) => p.id === permissionId);
   }
 
   /**
-   * Add permission to role
+   * Check if role has permission by ID
+   * @param role Role entity
+   * @param permissionId Permission ID (e.g., 'student.create')
    */
-  static addPermission(role: Role, resource: string, action: string): Role {
-    const updatedPermissions = { ...role.permissions };
+  static hasPermissionById(role: Role, permissionId: string): boolean {
+    if (!role.permissions || !Array.isArray(role.permissions)) {
+      return false;
+    }
 
-    // Handle array format
-    if (Array.isArray(updatedPermissions)) {
-      const permissions = updatedPermissions as Permission[];
-      const existingIndex = permissions.findIndex(
-        (p) => p.resource === resource,
-      );
+    return role.permissions.some((p) => p.id === permissionId);
+  }
 
-      if (existingIndex >= 0) {
-        if (!permissions[existingIndex].actions.includes(action)) {
-          permissions[existingIndex].actions.push(action);
+  /**
+   * Check if role is a system default role
+   */
+  static isSystemDefault(role: Role): boolean {
+    return role.isSystemDefault;
+  }
+
+  /**
+   * Check if role is campus-scoped
+   */
+  static isCampusScoped(role: Role): boolean {
+    return role.campusId !== null;
+  }
+
+  /**
+   * Get all permission IDs for a role
+   */
+  static getPermissionIds(role: Role): string[] {
+    if (!role.permissions || !Array.isArray(role.permissions)) {
+      return [];
+    }
+    return role.permissions.map((p) => p.id);
+  }
+
+  /**
+   * Get permissions grouped by module
+   */
+  static getPermissionsByModule(role: Role): Record<string, Permission[]> {
+    if (!role.permissions || !Array.isArray(role.permissions)) {
+      return {};
+    }
+
+    return role.permissions.reduce(
+      (acc, permission) => {
+        if (!acc[permission.module]) {
+          acc[permission.module] = [];
         }
-      } else {
-        permissions.push({ resource, actions: [action] });
-      }
-
-      return { ...role, permissions: permissions };
-    }
-
-    // Handle flat object format
-    updatedPermissions[`${resource}:${action}`] = true;
-    return { ...role, permissions: updatedPermissions };
-  }
-
-  /**
-   * Remove permission from role
-   */
-  static removePermission(role: Role, resource: string, action: string): Role {
-    const updatedPermissions = { ...role.permissions };
-
-    // Handle array format
-    if (Array.isArray(updatedPermissions)) {
-      const permissions = updatedPermissions as Permission[];
-      const existingIndex = permissions.findIndex(
-        (p) => p.resource === resource,
-      );
-
-      if (existingIndex >= 0) {
-        permissions[existingIndex].actions = permissions[
-          existingIndex
-        ].actions.filter((a) => a !== action);
-
-        // Remove resource if no actions left
-        if (permissions[existingIndex].actions.length === 0) {
-          permissions.splice(existingIndex, 1);
-        }
-      }
-
-      return { ...role, permissions: permissions };
-    }
-
-    // Handle flat object format
-    delete updatedPermissions[`${resource}:${action}`];
-    return { ...role, permissions: updatedPermissions };
-  }
-
-  /**
-   * Check if role is active
-   */
-  static isActive(role: Role): boolean {
-    return role.isActive;
-  }
-
-  /**
-   * Activate role
-   */
-  static activate(role: Role): Role {
-    return { ...role, isActive: true };
-  }
-
-  /**
-   * Deactivate role
-   */
-  static deactivate(role: Role): Role {
-    return { ...role, isActive: false };
-  }
-
-  /**
-   * Update role permissions
-   */
-  static updatePermissions(role: Role, permissions: Record<string, any>): Role {
-    RoleEntity.validatePermissions(permissions);
-    return {
-      ...role,
-      permissions,
-      updatedAt: new Date(),
-    };
+        acc[permission.module].push(permission);
+        return acc;
+      },
+      {} as Record<string, Permission[]>,
+    );
   }
 }

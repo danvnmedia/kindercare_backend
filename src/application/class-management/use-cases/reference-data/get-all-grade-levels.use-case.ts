@@ -13,13 +13,19 @@ export class GetAllGradeLevelsUseCase {
     private readonly gradeLevelRepository: GradeLevelRepository,
   ) {}
 
-  async execute(params: StandardRequest): Promise<PaginatedResult<GradeLevel>> {
+  async execute(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<GradeLevel>> {
     try {
       this.logger.log(
         `Fetching grade levels: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
       );
 
-      const result = await this.gradeLevelRepository.findAllPaginated(params);
+      const result = await this.gradeLevelRepository.findAllPaginated(
+        campusId,
+        params,
+      );
 
       this.logger.log(
         `Found ${result.pagination.count} grade levels, returning page ${result.pagination.currentPage}`,

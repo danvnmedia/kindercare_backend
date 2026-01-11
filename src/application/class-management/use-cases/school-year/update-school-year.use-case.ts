@@ -30,11 +30,13 @@ export class UpdateSchoolYearUseCase {
         throw new NotFoundException(`School year with ID ${id} not found`);
       }
 
-      // Step 2: Check for name uniqueness if name is being updated
+      // Step 2: Check for name uniqueness if name is being updated (within campus)
       if (input.name && input.name !== schoolYear.name) {
-        const existingByName = await this.schoolYearRepository.findByName(
-          input.name,
-        );
+        const existingByName =
+          await this.schoolYearRepository.findByNameAndCampus(
+            input.name,
+            schoolYear.campusId,
+          );
         if (existingByName) {
           throw new ConflictException(
             `School year "${input.name}" already exists`,

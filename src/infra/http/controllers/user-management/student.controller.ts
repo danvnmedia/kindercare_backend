@@ -7,7 +7,6 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -15,10 +14,12 @@ import {
   ApiTags,
   ApiBearerAuth,
   ApiParam,
+  ApiHeader,
 } from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { CampusContext, RequireCampusAccess } from "../../decorators";
 import {
   CreateStudentRequest,
   UpdateStudentRequest,
@@ -72,18 +73,27 @@ export class StudentController {
   }
 
   @Get()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Students retrieved successfully",
     type: StudentResponse,
     isPaginated: true,
   })
   @ApiOperation({
-    summary: "Get all students",
+    summary: "Get all students in a campus",
     description:
-      "Retrieve all students with advanced filtering, sorting, and pagination. Supports filtering by fullName, nickname, classId, gender, enrollmentDate. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
+      "Retrieve all students within a specific campus with advanced filtering, sorting, and pagination. Supports filtering by fullName, nickname, classId, gender, enrollmentDate. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
-  async findAll(@StandardRequestParam() query: StandardRequestDto) {
-    return this.getAllStudentsUseCase.execute(query);
+  @ApiHeader({
+    name: "x-campus-id",
+    description: "Campus ID to scope the request",
+    required: true,
+  })
+  async findAll(
+    @CampusContext() campusId: string,
+    @StandardRequestParam() query: StandardRequestDto,
+  ) {
+    return this.getAllStudentsUseCase.execute({ campusId, params: query });
   }
 
   @Patch(":id")

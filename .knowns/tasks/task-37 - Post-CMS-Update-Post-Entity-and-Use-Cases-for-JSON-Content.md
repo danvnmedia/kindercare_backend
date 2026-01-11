@@ -1,7 +1,7 @@
 ---
 id: '37'
 title: 'Post & CMS: Update Post Entity and Use Cases for JSON Content'
-status: todo
+status: done
 priority: high
 labels:
   - post
@@ -10,8 +10,8 @@ labels:
   - tiptap
   - phase-3
 createdAt: '2026-01-09T03:13:22.271Z'
-updatedAt: '2026-01-09T17:10:13.439Z'
-timeSpent: 0
+updatedAt: '2026-01-09T17:17:46.012Z'
+timeSpent: 467
 ---
 # Post & CMS: Update Post Entity and Use Cases for JSON Content
 
@@ -96,4 +96,21 @@ What NEEDS UPDATE:
    - Add validation for content structure (optional, can be loose)
 7. Add contentText to search queries (if full-text search implemented)
 <!-- SECTION:PLAN:END -->
+
+## Implementation Notes
+
+<!-- SECTION:NOTES:BEGIN -->
+## Implementation Completed
+
+### Changes Made:
+1. Created extractTextFromTiptap utility in src/application/content-management/utils/
+2. Updated CreatePostUseCase: added campusId, JSON content type, text extraction
+3. Updated UpdatePostUseCase: JSON content type, text extraction
+4. Updated PrismaPostMapper: all missing fields (campusId, contentText, contentVersion, pinning, soft delete)
+5. Updated Request DTOs: content as object type
+6. Updated PostResponse DTO: content as object, added contentText and contentVersion
+7. Updated PostAudience entity: added campusId property
+
+All TypeScript compilation errors for changed files are resolved.
+<!-- SECTION:NOTES:END -->
 

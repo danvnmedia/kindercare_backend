@@ -23,24 +23,30 @@ export class PrismaSchoolYearRepository implements SchoolYearRepository {
       : null;
   }
 
-  async findByName(name: string): Promise<SchoolYear | null> {
+  async findByNameAndCampus(
+    name: string,
+    campusId: string,
+  ): Promise<SchoolYear | null> {
     const prismaSchoolYear = await this.prisma.schoolYear.findFirst({
-      where: { name },
+      where: { name, campusId },
     });
     return prismaSchoolYear
       ? PrismaSchoolYearMapper.toDomain(prismaSchoolYear)
       : null;
   }
 
-  async findNonArchived(): Promise<SchoolYear[]> {
+  async findNonArchived(campusId: string): Promise<SchoolYear[]> {
     const prismaSchoolYears = await this.prisma.schoolYear.findMany({
-      where: { isArchived: false },
+      where: { isArchived: false, campusId },
       orderBy: { startDate: "desc" },
     });
     return PrismaSchoolYearMapper.toDomainArray(prismaSchoolYears);
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<SchoolYear>> {
+  async findAll(
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedResult<SchoolYear>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = ["name", "isArchived", "startDate", "endDate"];
     params.allowedSortFields = [
@@ -56,6 +62,7 @@ export class PrismaSchoolYearRepository implements SchoolYearRepository {
       "schoolYear",
       params,
       {
+        where: { campusId },
         orderBy: { startDate: "desc" }, // Default sort: most recent first
       },
       PrismaSchoolYearMapper,

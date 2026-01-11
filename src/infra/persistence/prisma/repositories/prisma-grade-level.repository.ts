@@ -23,40 +23,48 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
       : null;
   }
 
-  async findByName(name: string): Promise<GradeLevel | null> {
+  async findByNameAndCampus(
+    name: string,
+    campusId: string,
+  ): Promise<GradeLevel | null> {
     const prismaGradeLevel = await this.prisma.gradeLevel.findFirst({
-      where: { name },
+      where: { name, campusId },
     });
     return prismaGradeLevel
       ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel)
       : null;
   }
 
-  async findByOrder(order: number): Promise<GradeLevel | null> {
+  async findByOrderAndCampus(
+    order: number,
+    campusId: string,
+  ): Promise<GradeLevel | null> {
     const prismaGradeLevel = await this.prisma.gradeLevel.findFirst({
-      where: { order },
+      where: { order, campusId },
     });
     return prismaGradeLevel
       ? PrismaGradeLevelMapper.toDomain(prismaGradeLevel)
       : null;
   }
 
-  async findAll(): Promise<GradeLevel[]> {
+  async findAll(campusId: string): Promise<GradeLevel[]> {
     const prismaGradeLevels = await this.prisma.gradeLevel.findMany({
+      where: { campusId },
       orderBy: { order: "asc" },
     });
     return PrismaGradeLevelMapper.toDomainArray(prismaGradeLevels);
   }
 
-  async findNonArchived(): Promise<GradeLevel[]> {
+  async findNonArchived(campusId: string): Promise<GradeLevel[]> {
     const prismaGradeLevels = await this.prisma.gradeLevel.findMany({
-      where: { isArchived: false },
+      where: { isArchived: false, campusId },
       orderBy: { order: "asc" },
     });
     return PrismaGradeLevelMapper.toDomainArray(prismaGradeLevels);
   }
 
   async findAllPaginated(
+    campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<GradeLevel>> {
     params.allowedFilterFields = ["name", "order", "isArchived"];
@@ -67,6 +75,7 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
       "gradeLevel",
       params,
       {
+        where: { campusId },
         orderBy: { order: "asc" },
       },
       PrismaGradeLevelMapper,
@@ -74,6 +83,7 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
   }
 
   async findAllWithClasses(
+    campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<GradeLevel>> {
     // Define allowed fields for filtering and sorting
@@ -90,6 +100,7 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
       "gradeLevel",
       params,
       {
+        where: { campusId },
         include: { classes: true },
         orderBy: { order: "asc" }, // Default sort: by order
       },
@@ -97,9 +108,9 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
     );
   }
 
-  async findNonArchivedWithClasses(): Promise<GradeLevel[]> {
+  async findNonArchivedWithClasses(campusId: string): Promise<GradeLevel[]> {
     const prismaGradeLevels = await this.prisma.gradeLevel.findMany({
-      where: { isArchived: false },
+      where: { isArchived: false, campusId },
       orderBy: { order: "asc" },
       include: {
         classes: true,
@@ -147,14 +158,15 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
     return PrismaGradeLevelMapper.toDomain(updated);
   }
 
-  async getMaxOrder(): Promise<number> {
+  async getMaxOrder(campusId: string): Promise<number> {
     const result = await this.prisma.gradeLevel.aggregate({
+      where: { campusId },
       _max: { order: true },
     });
     return result._max.order ?? 0;
   }
 
-  async reorder(ids: string[]): Promise<GradeLevel[]> {
+  async reorder(campusId: string, ids: string[]): Promise<GradeLevel[]> {
     // Two-phase update to avoid unique constraint violation on 'order' field
     // Phase 1: Set all orders to negative temporary values (avoids collision)
     // Phase 2: Set all orders to final positive values
@@ -176,9 +188,9 @@ export class PrismaGradeLevelRepository implements GradeLevelRepository {
       ),
     ]);
 
-    // Fetch and return updated grade levels sorted by order
+    // Fetch and return updated grade levels sorted by order (within campus)
     const updated = await this.prisma.gradeLevel.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, campusId },
       orderBy: { order: "asc" },
     });
 

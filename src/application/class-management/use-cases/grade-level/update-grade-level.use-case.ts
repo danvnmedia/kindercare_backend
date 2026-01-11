@@ -30,11 +30,13 @@ export class UpdateGradeLevelUseCase {
         throw new NotFoundException(`Grade level with ID ${id} not found`);
       }
 
-      // Step 2: Check for name uniqueness if name is being updated
+      // Step 2: Check for name uniqueness if name is being updated (within campus)
       if (input.name && input.name !== gradeLevel.name) {
-        const existingByName = await this.gradeLevelRepository.findByName(
-          input.name,
-        );
+        const existingByName =
+          await this.gradeLevelRepository.findByNameAndCampus(
+            input.name,
+            gradeLevel.campusId,
+          );
         if (existingByName) {
           throw new ConflictException(
             `Grade level "${input.name}" already exists`,
@@ -42,11 +44,13 @@ export class UpdateGradeLevelUseCase {
         }
       }
 
-      // Step 3: Check for order uniqueness if order is being updated
+      // Step 3: Check for order uniqueness if order is being updated (within campus)
       if (input.order !== undefined && input.order !== gradeLevel.order) {
-        const existingByOrder = await this.gradeLevelRepository.findByOrder(
-          input.order,
-        );
+        const existingByOrder =
+          await this.gradeLevelRepository.findByOrderAndCampus(
+            input.order,
+            gradeLevel.campusId,
+          );
         if (existingByOrder) {
           throw new ConflictException(
             `Grade level with order ${input.order} already exists`,

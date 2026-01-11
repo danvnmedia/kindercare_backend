@@ -7,6 +7,10 @@ export class StaffResponse {
   id: string;
 
   @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
+  campusId: string;
+
+  @Expose()
   @ApiProperty({ example: "Nguyễn Văn A" })
   fullName: string;
 
@@ -20,10 +24,11 @@ export class StaffResponse {
 
   @Expose()
   @ApiProperty({
-    example: "TEACHER",
-    description: "Staff type: TEACHER, NURSE, PRINCIPAL, STAFF",
+    example: "123e4567-e89b-12d3-a456-426614174002",
+    description: "Staff type ID (references staff_type table)",
+    nullable: true,
   })
-  staffType: string;
+  staffTypeId: string | null;
 
   @Expose()
   @ApiProperty({ example: "123 Đường ABC, Quận 1, TP.HCM", nullable: true })

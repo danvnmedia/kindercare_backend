@@ -9,7 +9,6 @@ import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 
 type PrismaGuardianWithRelations = PrismaGuardian & {
-  spouse?: PrismaGuardian | null;
   children?: Array<
     PrismaGuardianStudent & {
       student: PrismaStudent;
@@ -21,7 +20,7 @@ type PrismaGuardianWithRelations = PrismaGuardian & {
 export class PrismaGuardianMapper {
   /**
    * Convert Prisma model to Domain entity (full)
-   * Supports eager-loaded spouse and children data
+   * Supports eager-loaded children data
    */
   static toDomain(prismaGuardian: PrismaGuardianWithRelations): Guardian {
     const guardianProps = {
@@ -33,7 +32,7 @@ export class PrismaGuardianMapper {
       gender: prismaGuardian.gender as Gender | null,
       occupation: prismaGuardian.occupation,
       workAddress: prismaGuardian.workAddress,
-      spouseId: prismaGuardian.spouseId,
+      campusId: prismaGuardian.campusId,
       userId: prismaGuardian.userId,
       isArchived: prismaGuardian.isArchived,
       createdAt: prismaGuardian.createdAt,
@@ -41,19 +40,6 @@ export class PrismaGuardianMapper {
     };
 
     const guardian = Guardian.create(guardianProps, prismaGuardian.id);
-
-    // Handle eager-loaded spouse (Note: this creates a new Guardian instance for spouse)
-    // The relation should be managed by the repository layer if it's not a direct value object.
-    // For now, if we need to hydrate 'spouse' as a full Guardian object, it would be here.
-    // However, the domain entity doesn't directly hold 'spouse: Guardian' in its props.
-    // It's better to keep the domain entity clean and let the repository build the aggregate.
-    // So, we don't try to attach a hydrated spouse here.
-
-    // Handle eager-loaded children
-    // The domain entity doesn't hold 'children: GuardianStudent[]' in its props.
-    // This is also a relation to be managed by the repository layer.
-    // For returning full aggregates, the repository would construct this after hydration.
-    // The existing GuardianStudent interface needs to be updated if it contains a 'Student' interface.
 
     return guardian;
   }
@@ -72,7 +58,7 @@ export class PrismaGuardianMapper {
       gender: prismaGuardian.gender as Gender | null,
       occupation: prismaGuardian.occupation,
       workAddress: prismaGuardian.workAddress,
-      spouseId: prismaGuardian.spouseId,
+      campusId: prismaGuardian.campusId,
       userId: prismaGuardian.userId,
       isArchived: prismaGuardian.isArchived,
       createdAt: prismaGuardian.createdAt,
@@ -96,7 +82,7 @@ export class PrismaGuardianMapper {
       occupation: guardian.occupation,
       workAddress: guardian.workAddress,
       isArchived: guardian.isArchived,
-      spouseId: guardian.spouseId,
+      campusId: guardian.campusId,
       userId: guardian.userId,
       createdAt: guardian.createdAt,
       updatedAt: guardian.updatedAt,
@@ -107,8 +93,6 @@ export class PrismaGuardianMapper {
    * Convert Domain entity to Prisma update input
    */
   static toPrismaUpdate(guardian: Guardian): Prisma.GuardianUpdateInput {
-    // Only include properties that are explicitly changed or are part of the entity's state.
-    // The entity's getters provide the current state.
     const data: Prisma.GuardianUpdateInput = {
       fullName: guardian.fullName,
       email: guardian.email,
@@ -122,18 +106,13 @@ export class PrismaGuardianMapper {
       updatedAt: guardian.updatedAt,
     };
 
-    // Handle explicit disconnects if userId or spouseId are set to null by the domain
     if (guardian.userId === null) {
       data.user = { disconnect: true };
     } else if (guardian.userId) {
       data.user = { connect: { id: guardian.userId } };
     }
 
-    if (guardian.spouseId === null) {
-      data.spouse = { disconnect: true };
-    } else if (guardian.spouseId) {
-      data.spouse = { connect: { id: guardian.spouseId } };
-    }
+    data.campus = { connect: { id: guardian.campusId } };
 
     return data;
   }

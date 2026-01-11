@@ -17,13 +17,13 @@ import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CreateRoleRequest,
   UpdateRoleRequest,
-  AssignRolesRequest,
   AssignUsersRequest,
   RoleResponse,
 } from "../../dtos/user-management/role";
+import { AssignPermissionsRequest, PermissionResponse } from "../../dtos/rbac";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 
-// Use Cases
+// Use Cases - Role
 import { CreateRoleUseCase } from "@/application/user-management/use-cases/role/create-role.use-case";
 import { GetRoleByIdUseCase } from "@/application/user-management/use-cases/role/get-role-by-id.use-case";
 import { GetAllRolesUseCase } from "@/application/user-management/use-cases/role/get-all-roles.use-case";
@@ -31,6 +31,13 @@ import { UpdateRoleUseCase } from "@/application/user-management/use-cases/role/
 import { DeleteRoleUseCase } from "@/application/user-management/use-cases/role/delete-role.use-case";
 import { AssignUsersToRoleUseCase } from "@/application/user-management/use-cases/role/assign-users-to-role.use-case";
 import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-cases/role/remove-users-from-role.use-case";
+
+// Use Cases - RBAC
+import {
+  GetAllPermissionsUseCase,
+  AssignPermissionsToRoleUseCase,
+  RemovePermissionsFromRoleUseCase,
+} from "@/application/rbac";
 
 @Controller("roles")
 @ApiTags("Roles")
@@ -45,6 +52,9 @@ export class RoleController {
     private readonly deleteRoleUseCase: DeleteRoleUseCase,
     private readonly assignUsersToRoleUseCase: AssignUsersToRoleUseCase,
     private readonly removeUsersFromRoleUseCase: RemoveUsersFromRoleUseCase,
+    private readonly getAllPermissionsUseCase: GetAllPermissionsUseCase,
+    private readonly assignPermissionsToRoleUseCase: AssignPermissionsToRoleUseCase,
+    private readonly removePermissionsFromRoleUseCase: RemovePermissionsFromRoleUseCase,
   ) {}
 
   @Post()
@@ -148,5 +158,64 @@ export class RoleController {
       normalizedId,
       dto.userIds,
     );
+  }
+
+  // =====================
+  // Permission Endpoints
+  // =====================
+
+  @Get("permissions/all")
+  @StandardResponse({
+    message: "Permissions retrieved successfully",
+    type: PermissionResponse,
+    isArray: true,
+  })
+  @ApiOperation({
+    summary: "Get all available permissions",
+    description:
+      "Retrieve all system permissions that can be assigned to roles",
+  })
+  async getAllPermissions() {
+    return await this.getAllPermissionsUseCase.execute();
+  }
+
+  @Post(":id/permissions")
+  @StandardResponse({
+    message: "Permissions assigned successfully",
+    type: null,
+  })
+  @ApiOperation({
+    summary: "Assign permissions to role",
+    description: "Assign multiple permissions to a role",
+  })
+  async assignPermissions(
+    @Param("id") id: string,
+    @Body() dto: AssignPermissionsRequest,
+  ) {
+    const normalizedId = id.toLowerCase();
+    await this.assignPermissionsToRoleUseCase.execute({
+      roleId: normalizedId,
+      permissionIds: dto.permissionIds,
+    });
+  }
+
+  @Delete(":id/permissions")
+  @StandardResponse({
+    message: "Permissions removed successfully",
+    type: null,
+  })
+  @ApiOperation({
+    summary: "Remove permissions from role",
+    description: "Remove multiple permissions from a role",
+  })
+  async removePermissions(
+    @Param("id") id: string,
+    @Body() dto: AssignPermissionsRequest,
+  ) {
+    const normalizedId = id.toLowerCase();
+    await this.removePermissionsFromRoleUseCase.execute({
+      roleId: normalizedId,
+      permissionIds: dto.permissionIds,
+    });
   }
 }

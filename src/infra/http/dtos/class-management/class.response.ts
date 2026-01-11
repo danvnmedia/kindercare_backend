@@ -21,6 +21,10 @@ export class GradeLevelResponse {
   id: string;
 
   @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
+  campusId: string;
+
+  @Expose()
   @ApiProperty({ example: "Lớp Mầm" })
   name: string;
 
@@ -37,6 +41,10 @@ export class SchoolYearResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
   id: string;
+
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
+  campusId: string;
 
   @Expose()
   @ApiProperty({ example: "2024-2025" })
@@ -61,6 +69,10 @@ export class SubjectResponse {
   id: string;
 
   @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
+  campusId: string;
+
+  @Expose()
   @ApiProperty({ example: "Toán" })
   name: string;
 }
@@ -80,10 +92,14 @@ export class ClassResponse {
 
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
-  gradeLevelId: string;
+  campusId: string;
 
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
+  gradeLevelId: string;
+
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174003" })
   schoolYearId: string;
 
   @Expose()

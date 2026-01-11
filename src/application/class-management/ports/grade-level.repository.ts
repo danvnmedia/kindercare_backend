@@ -15,43 +15,51 @@ export abstract class GradeLevelRepository {
   abstract findById(id: string): Promise<GradeLevel | null>;
 
   /**
-   * Find grade level by name
+   * Find grade level by name within a campus
    */
-  abstract findByName(name: string): Promise<GradeLevel | null>;
+  abstract findByNameAndCampus(
+    name: string,
+    campusId: string,
+  ): Promise<GradeLevel | null>;
 
   /**
-   * Find grade level by order
+   * Find grade level by order within a campus
    */
-  abstract findByOrder(order: number): Promise<GradeLevel | null>;
+  abstract findByOrderAndCampus(
+    order: number,
+    campusId: string,
+  ): Promise<GradeLevel | null>;
 
   /**
-   * Find all grade levels ordered by order field
+   * Find all grade levels for a campus, ordered by order field
    */
-  abstract findAll(): Promise<GradeLevel[]>;
+  abstract findAll(campusId: string): Promise<GradeLevel[]>;
 
   /**
-   * Find all non-archived grade levels
+   * Find all non-archived grade levels for a campus
    */
-  abstract findNonArchived(): Promise<GradeLevel[]>;
+  abstract findNonArchived(campusId: string): Promise<GradeLevel[]>;
 
   /**
-   * Find all grade levels with pagination, filtering, and sorting
+   * Find all grade levels for a campus with pagination, filtering, and sorting
    */
   abstract findAllPaginated(
+    campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<GradeLevel>>;
 
   /**
-   * Find all grade levels with their associated classes, with filtering, sorting, pagination
+   * Find all grade levels for a campus with their associated classes, with filtering, sorting, pagination
    */
   abstract findAllWithClasses(
+    campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<GradeLevel>>;
 
   /**
-   * Find all non-archived grade levels with their associated classes
+   * Find all non-archived grade levels for a campus with their associated classes
    */
-  abstract findNonArchivedWithClasses(): Promise<GradeLevel[]>;
+  abstract findNonArchivedWithClasses(campusId: string): Promise<GradeLevel[]>;
 
   /**
    * Save a new grade level
@@ -79,16 +87,17 @@ export abstract class GradeLevelRepository {
   abstract unarchive(id: string): Promise<GradeLevel>;
 
   /**
-   * Get the maximum order value among all grade levels
+   * Get the maximum order value among all grade levels for a campus
    * Returns 0 if no grade levels exist
    */
-  abstract getMaxOrder(): Promise<number>;
+  abstract getMaxOrder(campusId: string): Promise<number>;
 
   /**
-   * Reorder grade levels based on the provided array of IDs
+   * Reorder grade levels within a campus based on the provided array of IDs
    * The order field will be set based on the array index (index 0 = order 1, etc.)
+   * @param campusId - Campus to scope the reorder operation to
    * @param ids - Array of grade level IDs in the desired order
    * @returns Updated grade levels sorted by new order
    */
-  abstract reorder(ids: string[]): Promise<GradeLevel[]>;
+  abstract reorder(campusId: string, ids: string[]): Promise<GradeLevel[]>;
 }

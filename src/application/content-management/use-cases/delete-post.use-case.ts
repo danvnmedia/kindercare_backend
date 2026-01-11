@@ -17,7 +17,11 @@ export class DeletePostUseCase {
     private readonly postRepository: PostRepository,
   ) {}
 
-  async execute(postId: string, currentUser: User): Promise<void> {
+  async execute(
+    campusId: string,
+    postId: string,
+    currentUser: User,
+  ): Promise<void> {
     try {
       this.logger.log(`Deleting post: ${postId}`);
 
@@ -25,6 +29,13 @@ export class DeletePostUseCase {
 
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      // Verify the post belongs to the specified campus
+      if (post.campusId !== campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();

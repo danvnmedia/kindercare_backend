@@ -2,23 +2,25 @@ import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import {
   BadRequestException,
   ConflictException,
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import { StaffRepository } from "../../ports/staff.repository";
+import { StaffTypeRepository } from "../../ports/staff-type.repository";
 
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateStaffInput {
+  campusId: string;
   fullName: string;
   email: string;
   phoneNumber: string;
-  staffType: StaffType;
+  staffTypeId?: string;
   address?: string;
   dateOfBirth?: Date;
   gender?: Gender;
@@ -36,21 +38,53 @@ export class CreateStaffUseCase {
   constructor(
     @Inject("STAFF_REPOSITORY")
     private readonly staffRepository: StaffRepository,
+    @Inject("STAFF_TYPE_REPOSITORY")
+    private readonly staffTypeRepository: StaffTypeRepository,
     private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(input: CreateStaffInput): Promise<Staff> {
-    this.logger.log(`Creating staff: ${input.fullName} (${input.staffType})`);
+    this.logger.log(
+      `Creating staff: ${input.fullName} in campus ${input.campusId}`,
+    );
 
-    // Step 1: Check Staff uniqueness (email/phone)
+    // Step 1: Validate staffTypeId if provided (must exist and be active)
+    let defaultRoleId: string | null = null;
+    if (input.staffTypeId) {
+      const staffType = await this.staffTypeRepository.findById(
+        input.staffTypeId,
+      );
+      if (!staffType) {
+        throw new NotFoundException(
+          `Staff type with ID ${input.staffTypeId} not found`,
+        );
+      }
+      if (!staffType.isActive) {
+        throw new BadRequestException(
+          `Staff type ${staffType.name} is inactive`,
+        );
+      }
+      if (staffType.campusId !== input.campusId) {
+        throw new BadRequestException(
+          `Staff type ${staffType.name} does not belong to the specified campus`,
+        );
+      }
+      // Get default role for auto-assignment
+      defaultRoleId = staffType.defaultRoleId;
+      this.logger.log(
+        `Staff type validated: ${staffType.name}, defaultRoleId: ${defaultRoleId}`,
+      );
+    }
+
+    // Step 2: Check Staff uniqueness (email/phone within campus)
     await this.checkStaffUniqueness(input);
 
-    // Step 2: Create Clerk user FIRST (external service - most likely to fail)
+    // Step 3: Create Clerk user FIRST (external service - most likely to fail)
     const clerkUser = await this.createClerkUser(input);
 
     try {
-      // Step 3: DB Transaction - Create User + Staff + Role assignment atomically using UnitOfWork
+      // Step 4: DB Transaction - Create User + Staff + Role assignment atomically using UnitOfWork
       const staff = await this.unitOfWork.run(async (tx) => {
         // Create User entity with clerkUid
         const user = await tx.createUser({
@@ -61,10 +95,11 @@ export class CreateStaffUseCase {
 
         // Create Staff domain entity with userId already linked
         const staffEntity = Staff.create({
+          campusId: input.campusId,
           fullName: input.fullName,
           email: input.email,
           phoneNumber: input.phoneNumber,
-          staffType: input.staffType,
+          staffTypeId: input.staffTypeId || null,
           address: input.address || null,
           dateOfBirth: input.dateOfBirth || null,
           gender: input.gender || null,
@@ -75,10 +110,11 @@ export class CreateStaffUseCase {
         // Persist Staff using transaction context
         const createdStaff = await tx.createStaff({
           id: staffEntity.id,
+          campusId: staffEntity.campusId,
           fullName: staffEntity.fullName,
           email: staffEntity.email,
           phoneNumber: staffEntity.phoneNumber,
-          staffType: staffEntity.staffType,
+          staffTypeId: staffEntity.staffTypeId,
           address: staffEntity.address,
           dateOfBirth: staffEntity.dateOfBirth,
           gender: staffEntity.gender,
@@ -91,10 +127,16 @@ export class CreateStaffUseCase {
 
         this.logger.log(`Staff created in transaction: ${createdStaff.id}`);
 
-        // Assign role based on staffType
-        const roleId = Staff.getStaffRoleId(input.staffType);
-        await tx.assignRoles(user.id, [roleId]);
-        this.logger.log(`Assigned role ${roleId} to user ${user.id}`);
+        // Auto-assign role from staffType.defaultRoleId if available
+        // Role is scoped to the staff's campus
+        if (defaultRoleId) {
+          await tx.assignRoles(user.id, [
+            { roleId: defaultRoleId, campusId: input.campusId },
+          ]);
+          this.logger.log(
+            `Auto-assigned default role ${defaultRoleId} to user ${user.id} in campus ${input.campusId}`,
+          );
+        }
 
         return staffEntity;
       });
@@ -104,7 +146,7 @@ export class CreateStaffUseCase {
       );
       return staff;
     } catch (error) {
-      // Step 4: Compensation - Delete Clerk user if DB transaction fails
+      // Step 5: Compensation - Delete Clerk user if DB transaction fails
       this.logger.error(
         `DB transaction failed, compensating by deleting Clerk user: ${clerkUser.clerkUid}`,
       );
@@ -119,19 +161,26 @@ export class CreateStaffUseCase {
   }
 
   private async checkStaffUniqueness(input: CreateStaffInput): Promise<void> {
-    const existingByEmail = await this.staffRepository.findByEmail(input.email);
+    // Check email uniqueness within the same campus
+    const existingByEmail = await this.staffRepository.findByEmailInCampus(
+      input.campusId,
+      input.email,
+    );
     if (existingByEmail) {
       throw new ConflictException(
-        `Staff with email ${input.email} already exists`,
+        `Staff with email ${input.email} already exists in this campus`,
       );
     }
 
-    const existingByPhone = await this.staffRepository.findByPhoneNumber(
-      input.phoneNumber,
-    );
+    // Check phone uniqueness within the same campus
+    const existingByPhone =
+      await this.staffRepository.findByPhoneNumberInCampus(
+        input.campusId,
+        input.phoneNumber,
+      );
     if (existingByPhone) {
       throw new ConflictException(
-        `Staff with phone number ${input.phoneNumber} already exists`,
+        `Staff with phone number ${input.phoneNumber} already exists in this campus`,
       );
     }
   }

@@ -4,7 +4,6 @@ import {
   Staff,
   UpdateStaffData,
 } from "@/domain/user-management/entities/staff.entity";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
 import {
   BadRequestException,
   Inject,
@@ -14,10 +13,12 @@ import {
 } from "@nestjs/common";
 import { RoleRepository } from "../../ports/role.repository";
 import { StaffRepository } from "../../ports/staff.repository";
+import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { UserRepository } from "../../ports/user.repository";
 
 export interface UpdateStaffInput extends UpdateStaffData {
-  staffType?: StaffType;
+  campusId: string; // Required for campus verification
+  staffTypeId?: string | null;
 }
 
 interface ClerkChanges {
@@ -36,6 +37,8 @@ export class UpdateStaffUseCase {
   constructor(
     @Inject("STAFF_REPOSITORY")
     private readonly staffRepository: StaffRepository,
+    @Inject("STAFF_TYPE_REPOSITORY")
+    private readonly staffTypeRepository: StaffTypeRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     @Inject("ROLE_REPOSITORY")
@@ -45,7 +48,7 @@ export class UpdateStaffUseCase {
   ) {}
 
   async execute(id: string, input: UpdateStaffInput): Promise<Staff> {
-    this.logger.log(`Updating staff: ${id}`);
+    this.logger.log(`Updating staff: ${id} in campus ${input.campusId}`);
 
     // Step 1: Find existing staff
     const staff = await this.staffRepository.findById(id);
@@ -53,16 +56,60 @@ export class UpdateStaffUseCase {
       throw new NotFoundException(`Staff with ID ${id} not found`);
     }
 
-    // Step 2: Detect Clerk-relevant changes (only fullName for staff)
-    const clerkChanges = this.detectClerkChanges(staff, input);
-
-    // Step 3: If has User account AND has Clerk changes -> Saga pattern
-    if (staff.userId && clerkChanges.hasChanges) {
-      return await this.updateWithClerkSync(staff, input, clerkChanges);
+    // Step 2: Verify staff belongs to the specified campus
+    if (staff.campusId !== input.campusId) {
+      throw new NotFoundException(
+        `Staff with ID ${id} not found in this campus`,
+      );
     }
 
-    // Step 4: Otherwise, just update DB with transaction
-    return await this.updateDbOnly(staff, input);
+    // Step 3: Validate new staffTypeId if provided
+    let newDefaultRoleId: string | null = null;
+    if (
+      input.staffTypeId !== undefined &&
+      input.staffTypeId !== staff.staffTypeId
+    ) {
+      if (input.staffTypeId !== null) {
+        const newStaffType = await this.staffTypeRepository.findById(
+          input.staffTypeId,
+        );
+        if (!newStaffType) {
+          throw new NotFoundException(
+            `Staff type with ID ${input.staffTypeId} not found`,
+          );
+        }
+        if (!newStaffType.isActive) {
+          throw new BadRequestException(
+            `Staff type ${newStaffType.name} is inactive`,
+          );
+        }
+        if (newStaffType.campusId !== staff.campusId) {
+          throw new BadRequestException(
+            `Staff type ${newStaffType.name} does not belong to staff's campus`,
+          );
+        }
+        newDefaultRoleId = newStaffType.defaultRoleId;
+        this.logger.log(
+          `New staff type validated: ${newStaffType.name}, defaultRoleId: ${newDefaultRoleId}`,
+        );
+      }
+    }
+
+    // Step 3: Detect Clerk-relevant changes (only fullName for staff)
+    const clerkChanges = this.detectClerkChanges(staff, input);
+
+    // Step 4: If has User account AND has Clerk changes -> Saga pattern
+    if (staff.userId && clerkChanges.hasChanges) {
+      return await this.updateWithClerkSync(
+        staff,
+        input,
+        clerkChanges,
+        newDefaultRoleId,
+      );
+    }
+
+    // Step 5: Otherwise, just update DB with transaction
+    return await this.updateDbOnly(staff, input, newDefaultRoleId);
   }
 
   /**
@@ -91,6 +138,7 @@ export class UpdateStaffUseCase {
     staff: Staff,
     input: UpdateStaffInput,
     clerkChanges: ClerkChanges,
+    newDefaultRoleId: string | null,
   ): Promise<Staff> {
     // Get User to find clerkUid
     const user = await this.userRepository.findById(staff.userId!);
@@ -98,7 +146,7 @@ export class UpdateStaffUseCase {
       this.logger.warn(
         `User not found for staff ${staff.id}, falling back to DB-only update`,
       );
-      return await this.updateDbOnly(staff, input);
+      return await this.updateDbOnly(staff, input, newDefaultRoleId);
     }
 
     // Store original values for potential rollback
@@ -106,7 +154,7 @@ export class UpdateStaffUseCase {
       fullName: staff.fullName,
     };
 
-    const oldStaffType = staff.staffType;
+    const oldStaffTypeId = staff.staffTypeId;
 
     this.logger.log(
       `Updating Clerk user ${user.clerkUid} for staff ${staff.id}`,
@@ -132,16 +180,19 @@ export class UpdateStaffUseCase {
       // Update DB in transaction using UnitOfWork
       staff.updateProfile(input);
 
-      // Handle staffType change
-      if (input.staffType && input.staffType !== oldStaffType) {
-        staff.changeType(input.staffType);
+      // Handle staffTypeId change
+      if (
+        input.staffTypeId !== undefined &&
+        input.staffTypeId !== oldStaffTypeId
+      ) {
+        staff.changeStaffType(input.staffTypeId);
       }
 
       const updatedStaff = await this.unitOfWork.run(async (tx) => {
         // Update staff in transaction
         await tx.updateStaff(staff.id, {
           fullName: staff.fullName,
-          staffType: staff.staffType,
+          staffTypeId: staff.staffTypeId,
           address: staff.address,
           dateOfBirth: staff.dateOfBirth,
           gender: staff.gender,
@@ -150,14 +201,13 @@ export class UpdateStaffUseCase {
           updatedAt: staff.updatedAt,
         });
 
-        // Handle role update inside transaction if staffType changed
-        if (input.staffType && input.staffType !== oldStaffType) {
-          await this.updateUserRoleInTransaction(
-            tx,
-            staff,
-            oldStaffType,
-            input.staffType,
-          );
+        // Handle role update inside transaction if staffTypeId changed and new type has default role
+        if (
+          input.staffTypeId !== undefined &&
+          input.staffTypeId !== oldStaffTypeId &&
+          newDefaultRoleId
+        ) {
+          await this.assignDefaultRole(tx, staff, newDefaultRoleId);
         }
 
         this.logger.log(`Staff updated in DB: ${staff.id}`);
@@ -193,22 +243,26 @@ export class UpdateStaffUseCase {
   private async updateDbOnly(
     staff: Staff,
     input: UpdateStaffInput,
+    newDefaultRoleId: string | null,
   ): Promise<Staff> {
-    const oldStaffType = staff.staffType;
+    const oldStaffTypeId = staff.staffTypeId;
 
     try {
       staff.updateProfile(input);
 
-      // Handle staffType change
-      if (input.staffType && input.staffType !== oldStaffType) {
-        staff.changeType(input.staffType);
+      // Handle staffTypeId change
+      if (
+        input.staffTypeId !== undefined &&
+        input.staffTypeId !== oldStaffTypeId
+      ) {
+        staff.changeStaffType(input.staffTypeId);
       }
 
       const updatedStaff = await this.unitOfWork.run(async (tx) => {
         // Update staff in transaction
         await tx.updateStaff(staff.id, {
           fullName: staff.fullName,
-          staffType: staff.staffType,
+          staffTypeId: staff.staffTypeId,
           address: staff.address,
           dateOfBirth: staff.dateOfBirth,
           gender: staff.gender,
@@ -217,14 +271,13 @@ export class UpdateStaffUseCase {
           updatedAt: staff.updatedAt,
         });
 
-        // Handle role update inside transaction if staffType changed
-        if (input.staffType && input.staffType !== oldStaffType) {
-          await this.updateUserRoleInTransaction(
-            tx,
-            staff,
-            oldStaffType,
-            input.staffType,
-          );
+        // Handle role update inside transaction if staffTypeId changed and new type has default role
+        if (
+          input.staffTypeId !== undefined &&
+          input.staffTypeId !== oldStaffTypeId &&
+          newDefaultRoleId
+        ) {
+          await this.assignDefaultRole(tx, staff, newDefaultRoleId);
         }
 
         this.logger.log(`Staff updated (DB only): ${staff.id}`);
@@ -242,37 +295,35 @@ export class UpdateStaffUseCase {
   }
 
   /**
-   * Update user role within transaction context
+   * Assign default role from new staff type within transaction context
+   * Role is scoped to the staff's campus
    */
-  private async updateUserRoleInTransaction(
+  private async assignDefaultRole(
     tx: Parameters<Parameters<UnitOfWorkPort["run"]>[0]>[0],
     staff: Staff,
-    oldType: StaffType,
-    newType: StaffType,
+    newDefaultRoleId: string,
   ): Promise<void> {
     if (!staff.hasUserAccount()) {
-      this.logger.log("Staff has no user account, skipping role update");
+      this.logger.log("Staff has no user account, skipping role assignment");
       return;
     }
 
-    const oldRoleId = Staff.getStaffRoleId(oldType);
-    const newRoleId = Staff.getStaffRoleId(newType);
-
     // Verify new role exists
-    const newRole = await this.roleRepository.findById(newRoleId);
+    const newRole = await this.roleRepository.findById(newDefaultRoleId);
     if (!newRole) {
-      throw new BadRequestException(
-        `Role ${newRoleId} not found, cannot update staff type`,
+      this.logger.warn(
+        `Default role ${newDefaultRoleId} not found, skipping role assignment`,
       );
+      return;
     }
 
-    // Remove old role
-    await this.userRepository.removeRoles(staff.userId!, [oldRoleId]);
-    this.logger.log(`Removed role ${oldRoleId} from user ${staff.userId}`);
-
-    // Assign new role using transaction context
-    await tx.assignRoles(staff.userId!, [newRoleId]);
-    this.logger.log(`Assigned role ${newRoleId} to user ${staff.userId}`);
+    // Assign new default role using transaction context, scoped to staff's campus
+    await tx.assignRoles(staff.userId!, [
+      { roleId: newDefaultRoleId, campusId: staff.campusId },
+    ]);
+    this.logger.log(
+      `Assigned default role ${newDefaultRoleId} to user ${staff.userId} in campus ${staff.campusId}`,
+    );
   }
 
   /**

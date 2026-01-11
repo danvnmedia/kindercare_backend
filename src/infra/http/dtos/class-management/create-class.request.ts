@@ -33,8 +33,16 @@ export class CreateClassRequest {
   description?: string;
 
   @ApiProperty({
-    description: "Grade level ID",
+    description: "Campus ID",
     example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  campusId: string;
+
+  @ApiProperty({
+    description: "Grade level ID",
+    example: "123e4567-e89b-12d3-a456-426614174001",
   })
   @IsNotEmpty()
   @IsUUID()
@@ -42,7 +50,7 @@ export class CreateClassRequest {
 
   @ApiProperty({
     description: "School year ID",
-    example: "123e4567-e89b-12d3-a456-426614174001",
+    example: "123e4567-e89b-12d3-a456-426614174002",
   })
   @IsNotEmpty()
   @IsUUID()

@@ -42,17 +42,17 @@ export class UpdateStudentUseCase {
       throw new NotFoundException(`Student with ID ${id} not found`);
     }
 
-    // Step 2: Check email uniqueness (if email is being changed)
+    // Step 2: Check email uniqueness within campus (if email is being changed)
     if (input.email !== undefined && input.email !== student.email) {
-      await this.checkEmailUniqueness(input.email, id);
+      await this.checkEmailUniqueness(student.campusId, input.email, id);
     }
 
-    // Step 3: Check phone number uniqueness (if phone is being changed)
+    // Step 3: Check phone number uniqueness within campus (if phone is being changed)
     if (
       input.phoneNumber !== undefined &&
       input.phoneNumber !== student.phoneNumber
     ) {
-      await this.checkPhoneUniqueness(input.phoneNumber, id);
+      await this.checkPhoneUniqueness(student.campusId, input.phoneNumber, id);
     }
 
     // Step 4: Update student profile using entity method
@@ -77,28 +77,38 @@ export class UpdateStudentUseCase {
   }
 
   private async checkEmailUniqueness(
+    campusId: string,
     email: string | null,
     excludeId: string,
   ): Promise<void> {
     if (!email) return;
 
-    const existingStudent = await this.studentRepository.findByEmail(email);
+    const existingStudent = await this.studentRepository.findByEmailInCampus(
+      campusId,
+      email,
+    );
     if (existingStudent && existingStudent.id !== excludeId) {
-      throw new ConflictException(`Student with email ${email} already exists`);
+      throw new ConflictException(
+        `Student with email ${email} already exists in this campus`,
+      );
     }
   }
 
   private async checkPhoneUniqueness(
+    campusId: string,
     phoneNumber: string | null,
     excludeId: string,
   ): Promise<void> {
     if (!phoneNumber) return;
 
     const existingStudent =
-      await this.studentRepository.findByPhoneNumber(phoneNumber);
+      await this.studentRepository.findByPhoneNumberInCampus(
+        campusId,
+        phoneNumber,
+      );
     if (existingStudent && existingStudent.id !== excludeId) {
       throw new ConflictException(
-        `Student with phone number ${phoneNumber} already exists`,
+        `Student with phone number ${phoneNumber} already exists in this campus`,
       );
     }
   }

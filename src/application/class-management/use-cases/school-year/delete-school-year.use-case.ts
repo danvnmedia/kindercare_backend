@@ -30,8 +30,10 @@ export class DeleteSchoolYearUseCase {
       }
 
       // Step 2: Check for dependent classes
-      const dependentClasses =
-        await this.classRepository.findBySchoolYearId(id);
+      const dependentClasses = await this.classRepository.findBySchoolYearId(
+        id,
+        schoolYear.campusId,
+      );
       if (dependentClasses.length > 0) {
         throw new ConflictException(
           `Cannot delete school year: ${dependentClasses.length} class(es) are associated with it`,

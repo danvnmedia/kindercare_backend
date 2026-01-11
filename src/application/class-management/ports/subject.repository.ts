@@ -13,14 +13,17 @@ export abstract class SubjectRepository {
   abstract findById(id: string): Promise<Subject | null>;
 
   /**
-   * Find subject by name
+   * Find subject by name within a campus
    */
-  abstract findByName(name: string): Promise<Subject | null>;
+  abstract findByNameAndCampus(
+    name: string,
+    campusId: string,
+  ): Promise<Subject | null>;
 
   /**
-   * Find all subjects
+   * Find all subjects for a campus
    */
-  abstract findAll(): Promise<Subject[]>;
+  abstract findAll(campusId: string): Promise<Subject[]>;
 
   /**
    * Save a new subject

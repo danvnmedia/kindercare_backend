@@ -18,6 +18,7 @@ export class PrismaClassMapper {
     const classProps: any = {
       name: prismaClass.name,
       description: prismaClass.description,
+      campusId: prismaClass.campusId,
       gradeLevelId: prismaClass.gradeLevelId,
       schoolYearId: prismaClass.schoolYearId,
       createdAt: prismaClass.createdAt,
@@ -44,6 +45,7 @@ export class PrismaClassMapper {
       {
         name: prismaClass.name,
         description: prismaClass.description,
+        campusId: prismaClass.campusId,
         gradeLevelId: prismaClass.gradeLevelId,
         schoolYearId: prismaClass.schoolYearId,
         createdAt: prismaClass.createdAt,
@@ -58,6 +60,7 @@ export class PrismaClassMapper {
       id: classEntity.id,
       name: classEntity.name,
       description: classEntity.description,
+      campusId: classEntity.campusId,
       gradeLevelId: classEntity.gradeLevelId,
       schoolYearId: classEntity.schoolYearId,
       createdAt: classEntity.createdAt,

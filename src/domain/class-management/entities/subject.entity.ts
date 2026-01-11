@@ -4,6 +4,7 @@ import { Optional } from "@/core/types/optional";
 
 export interface SubjectProps {
   name: string;
+  campusId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -14,6 +15,10 @@ export class Subject extends Entity<SubjectProps> {
   // --- Getters ---
   get name(): string {
     return this.props.name;
+  }
+
+  get campusId(): string {
+    return this.props.campusId;
   }
 
   get createdAt(): Date {
@@ -47,6 +52,9 @@ export class Subject extends Entity<SubjectProps> {
     // Validation
     if (!props.name || props.name.trim().length < 1) {
       throw new Error("Subject name is required");
+    }
+    if (!props.campusId || props.campusId.trim().length < 1) {
+      throw new Error("Campus ID is required");
     }
 
     const subjectProps: SubjectProps = {

@@ -10,6 +10,7 @@ import { GradeLevelRepository } from "../../ports/grade-level.repository";
 
 export interface CreateGradeLevelInput {
   name: string;
+  campusId: string;
   order?: number;
   isArchived?: boolean;
 }
@@ -27,10 +28,12 @@ export class CreateGradeLevelUseCase {
     try {
       this.logger.log(`Creating grade level: ${input.name}`);
 
-      // Step 1: Check for duplicate name
-      const existingByName = await this.gradeLevelRepository.findByName(
-        input.name,
-      );
+      // Step 1: Check for duplicate name within campus
+      const existingByName =
+        await this.gradeLevelRepository.findByNameAndCampus(
+          input.name,
+          input.campusId,
+        );
       if (existingByName) {
         throw new ConflictException(
           `Grade level "${input.name}" already exists`,
@@ -41,9 +44,11 @@ export class CreateGradeLevelUseCase {
       let order: number;
       if (input.order !== undefined) {
         // Check for duplicate order if explicitly provided
-        const existingByOrder = await this.gradeLevelRepository.findByOrder(
-          input.order,
-        );
+        const existingByOrder =
+          await this.gradeLevelRepository.findByOrderAndCampus(
+            input.order,
+            input.campusId,
+          );
         if (existingByOrder) {
           throw new ConflictException(
             `Grade level with order ${input.order} already exists`,
@@ -52,7 +57,9 @@ export class CreateGradeLevelUseCase {
         order = input.order;
       } else {
         // Auto-calculate: next order after the current maximum
-        const maxOrder = await this.gradeLevelRepository.getMaxOrder();
+        const maxOrder = await this.gradeLevelRepository.getMaxOrder(
+          input.campusId,
+        );
         order = maxOrder + 1;
         this.logger.log(`Auto-assigned order: ${order}`);
       }
@@ -60,6 +67,7 @@ export class CreateGradeLevelUseCase {
       // Step 3: Create domain entity (validation happens in factory)
       const gradeLevel = GradeLevel.create({
         name: input.name,
+        campusId: input.campusId,
         order,
         isArchived: input.isArchived ?? false,
       });

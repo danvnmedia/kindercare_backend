@@ -8,4 +8,17 @@ export abstract class PostRepository {
   abstract delete(id: string): Promise<void>;
   abstract findById(id: string): Promise<Post | null>;
   abstract findMany(query: StandardRequestDto): Promise<PaginatedResult<Post>>;
+
+  /**
+   * Count the number of active pinned posts for a campus.
+   * Excludes posts with expired pins.
+   */
+  abstract countPinnedByCampus(campusId: string): Promise<number>;
+
+  /**
+   * Find all active pinned posts for a campus.
+   * Excludes posts with expired pins.
+   * Orders by createdAt descending.
+   */
+  abstract findPinnedByCampus(campusId: string): Promise<Post[]>;
 }

@@ -27,13 +27,24 @@ export class PublishPostUseCase {
     private readonly postHistoryStatusRepository: PostHistoryStatusRepository,
   ) {}
 
-  async execute(postId: string, currentUser: User): Promise<Post> {
+  async execute(
+    campusId: string,
+    postId: string,
+    currentUser: User,
+  ): Promise<Post> {
     try {
       this.logger.log(`Publishing post: ${postId}`);
       const post = await this.postRepository.findById(postId);
 
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
+      }
+
+      // Verify the request campus matches the post's campus
+      if (post.campusId !== campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this post in the specified campus",
+        );
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();
@@ -55,6 +66,7 @@ export class PublishPostUseCase {
         );
       }
 
+      const previousStatus = post.status;
       const publishDate = post.publishAt || new Date();
       if (post.status === PostStatus.DRAFT) {
         post.publish(publishDate);
@@ -66,9 +78,9 @@ export class PublishPostUseCase {
 
       const history = PostHistoryStatus.create({
         postId: postId,
-        userId: currentUser.id,
-        status: PostStatus.PUBLISHED,
-        createdAt: new Date(),
+        changedById: currentUser.id,
+        previousStatus,
+        newStatus: PostStatus.PUBLISHED,
       });
       await this.postHistoryStatusRepository.create(history);
 

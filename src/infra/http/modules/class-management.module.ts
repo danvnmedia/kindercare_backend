@@ -49,6 +49,7 @@ import { PrismaClassStaffRepository } from "@/infra/persistence/prisma/repositor
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { UserManagementModule } from "./user-management.module";
+import { CampusModule } from "./campus.module";
 
 /**
  * Class Management Module
@@ -60,7 +61,8 @@ import { UserManagementModule } from "./user-management.module";
   imports: [
     PrismaModule,
     StandardResponseModule,
-    UserManagementModule, // For STUDENT_REPOSITORY access
+    UserManagementModule, // For STUDENT_REPOSITORY, USER_REPOSITORY access
+    CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
   ],
   controllers: [ClassController, ReferenceDataController],
   providers: [
