@@ -44,6 +44,30 @@ async function main() {
     console.log(`  - ${campus.name} (${campus.id})`);
   });
 
+  // Seed Super Admin Role (global role with isSystemRole=true for admin bypass)
+  // UUID follows same pattern as campuses: valid v4 format
+  const superAdminRole = await prisma.role.upsert({
+    where: { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' },
+    update: {
+      isSystemRole: true,
+      isSystemDefault: true,
+    },
+    create: {
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      name: 'Super Admin',
+      description: 'Global system administrator with full access to all campuses',
+      campusId: null, // Global role (not campus-scoped)
+      isSystemDefault: true, // Cannot be modified
+      isSystemRole: true, // Grants global admin bypass
+      permissions: {},
+    },
+  });
+
+  console.log(`Created Super Admin role:`);
+  console.log(`  - ${superAdminRole.name} (${superAdminRole.id})`);
+  console.log(`    isSystemRole: ${superAdminRole.isSystemRole}`);
+  console.log(`    isSystemDefault: ${superAdminRole.isSystemDefault}`);
+
   console.log('Seeding completed.');
 }
 

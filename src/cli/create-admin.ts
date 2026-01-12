@@ -4,6 +4,9 @@ import { createClerkClient } from "@clerk/backend";
 
 const prisma = new PrismaClient();
 
+// Default Super Admin role ID (matches seed.ts)
+const DEFAULT_SUPER_ADMIN_ROLE_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
 // Initialize Clerk client
 const clerkClient = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
@@ -14,12 +17,15 @@ interface AdminInput {
   fullName: string;
   clerkUid?: string;
   phoneNumber?: string;
+  password?: string;
+  roleId?: string;
 }
 
 async function createClerkUser(
   email: string,
   fullName: string,
   phoneNumber?: string,
+  password?: string,
 ): Promise<string> {
   try {
     console.log("Creating user on Clerk...");
@@ -45,7 +51,8 @@ async function createClerkUser(
     const clerkUser = await clerkClient.users.createUser({
       emailAddress: [email],
       phoneNumber: phoneNumber ? [phoneNumber] : undefined,
-      skipPasswordRequirement: true, // No password required initially
+      password: password || undefined,
+      skipPasswordRequirement: !password, // Skip only if no password provided
       publicMetadata: { fullName: fullName.trim() },
     });
 
@@ -81,7 +88,7 @@ async function createClerkUser(
 
 async function createAdmin(input: AdminInput) {
   try {
-    console.log("Creating admin account...");
+    console.log("Creating Super Admin account...");
 
     // 1. Check if user with this clerkUid already exists in database
     const existingUserByClerk = input.clerkUid
@@ -116,44 +123,43 @@ async function createAdmin(input: AdminInput) {
           input.email,
           input.fullName,
           input.phoneNumber,
+          input.password,
         );
       }
     } else {
       console.log(`Using provided Clerk UID: ${clerkUid}`);
     }
 
-    // 3. Find or create ADMIN role
-    let adminRole = await prisma.role.findUnique({
-      where: { id: "admin" },
+    // 3. Find or create Super Admin role
+    const roleId = input.roleId || DEFAULT_SUPER_ADMIN_ROLE_ID;
+    let superAdminRole = await prisma.role.findUnique({
+      where: { id: roleId },
     });
 
-    if (!adminRole) {
-      console.log("Creating ADMIN role...");
-      adminRole = await prisma.role.create({
+    if (!superAdminRole) {
+      console.log(`Creating Super Admin role with ID: ${roleId}...`);
+      superAdminRole = await prisma.role.create({
         data: {
-          id: "admin",
-          name: "ADMIN",
-          description: "System Administrator",
+          id: roleId,
+          name: "Super Admin",
+          description: "Global system administrator with full access to all campuses",
+          campusId: null, // Global role
           isSystemDefault: true,
           isSystemRole: true, // Grants global admin bypass
-          permissions: {
-            users: ["create", "read", "update", "delete"],
-            students: ["create", "read", "update", "delete"],
-            staff: ["create", "read", "update", "delete"],
-            classes: ["create", "read", "update", "delete"],
-            roles: ["create", "read", "update", "delete"],
-          },
+          permissions: {},
         },
       });
-      console.log("ADMIN role created with isSystemRole=true");
-    } else if (!adminRole.isSystemRole) {
-      // Update existing admin role to have isSystemRole=true
-      console.log("Updating existing ADMIN role to set isSystemRole=true...");
-      adminRole = await prisma.role.update({
-        where: { id: "admin" },
+      console.log("Super Admin role created with isSystemRole=true");
+    } else if (!superAdminRole.isSystemRole) {
+      // Update existing role to have isSystemRole=true
+      console.log("Updating existing Super Admin role to set isSystemRole=true...");
+      superAdminRole = await prisma.role.update({
+        where: { id: roleId },
         data: { isSystemRole: true, isSystemDefault: true },
       });
-      console.log("ADMIN role updated with isSystemRole=true");
+      console.log("Super Admin role updated with isSystemRole=true");
+    } else {
+      console.log(`Using existing Super Admin role: ${roleId}`);
     }
 
     // 4. Create admin user in database (User only has clerkUid and isActive)
@@ -164,7 +170,7 @@ async function createAdmin(input: AdminInput) {
         isActive: true,
         userRoles: {
           create: {
-            roleId: adminRole.id,
+            roleId: superAdminRole.id,
           },
         },
       },
@@ -177,15 +183,18 @@ async function createAdmin(input: AdminInput) {
       },
     });
 
-    console.log("\nAdmin account created successfully!");
+    console.log("\nSuper Admin account created successfully!");
     console.log("----------------------------------------");
     console.log(`Email (Clerk):  ${input.email}`);
     console.log(`Full Name:      ${input.fullName}`);
+    console.log(`Password:       ${input.password ? "Set" : "Not set (needs reset)"}`);
     console.log(`User ID:        ${adminUser.id}`);
     console.log(`Clerk UID:      ${adminUser.clerkUid}`);
+    console.log(`Role ID:        ${superAdminRole.id}`);
     console.log(
-      `Roles:          ${adminUser.userRoles.map((ur) => ur.role.name).join(", ")}`,
+      `Role Name:      ${adminUser.userRoles.map((ur) => ur.role.name).join(", ")}`,
     );
+    console.log(`isSystemRole:   true (global admin bypass)`);
     console.log(
       `Status:         ${adminUser.isActive ? "Active" : "Inactive"}`,
     );
@@ -193,7 +202,11 @@ async function createAdmin(input: AdminInput) {
 
     if (!input.clerkUid) {
       console.log("Note: User was automatically created on Clerk.");
-      console.log("   The user can now login using their email.\n");
+      if (input.password) {
+        console.log("   The user can now login using their email and password.\n");
+      } else {
+        console.log("   No password set - user must reset password via Clerk.\n");
+      }
     }
   } catch (error) {
     console.error("Failed to create admin:", (error as Error).message);
@@ -205,14 +218,16 @@ async function createAdmin(input: AdminInput) {
 
 async function listAdmins() {
   try {
-    console.log("Listing all admin accounts...\n");
+    console.log("Listing all Super Admin accounts...\n");
 
-    // Find all users with admin role through UserRole join table
+    // Find all users with any isSystemRole=true role
     const adminUsers = await prisma.user.findMany({
       where: {
         userRoles: {
           some: {
-            roleId: "admin",
+            role: {
+              isSystemRole: true,
+            },
           },
         },
       },
@@ -226,17 +241,21 @@ async function listAdmins() {
     });
 
     if (adminUsers.length === 0) {
-      console.log("No admin accounts found.\n");
+      console.log("No Super Admin accounts found.\n");
       return;
     }
 
     console.log("----------------------------------------");
     adminUsers.forEach((user, index) => {
-      console.log(`\n${index + 1}. Admin User`);
+      const systemRoles = user.userRoles.filter((ur) => ur.role.isSystemRole);
+      console.log(`\n${index + 1}. Super Admin User`);
       console.log(`   ID:        ${user.id}`);
       console.log(`   Clerk UID: ${user.clerkUid}`);
       console.log(
         `   Roles:     ${user.userRoles.map((ur) => ur.role.name).join(", ")}`,
+      );
+      console.log(
+        `   Role IDs:  ${systemRoles.map((ur) => ur.role.id).join(", ")}`,
       );
       console.log(`   Status:    ${user.isActive ? "Active" : "Inactive"}`);
     });
@@ -251,7 +270,7 @@ async function listAdmins() {
 
 async function deleteAdmin(clerkUid: string) {
   try {
-    console.log(`Deleting admin account with Clerk UID: ${clerkUid}...`);
+    console.log(`Deleting Super Admin account with Clerk UID: ${clerkUid}...`);
 
     const user = await prisma.user.findUnique({
       where: { clerkUid },
@@ -269,9 +288,9 @@ async function deleteAdmin(clerkUid: string) {
       process.exit(1);
     }
 
-    const isAdmin = user.userRoles.some((ur) => ur.role.id === "admin");
-    if (!isAdmin) {
-      console.error(`User ${clerkUid} is not an admin`);
+    const isSuperAdmin = user.userRoles.some((ur) => ur.role.isSystemRole === true);
+    if (!isSuperAdmin) {
+      console.error(`User ${clerkUid} is not a Super Admin (no isSystemRole=true role)`);
       process.exit(1);
     }
 
@@ -279,7 +298,7 @@ async function deleteAdmin(clerkUid: string) {
       where: { clerkUid },
     });
 
-    console.log(`Admin account ${clerkUid} deleted successfully\n`);
+    console.log(`Super Admin account ${clerkUid} deleted successfully\n`);
   } catch (error) {
     console.error("Failed to delete admin:", (error as Error).message);
     process.exit(1);
@@ -290,35 +309,50 @@ async function deleteAdmin(clerkUid: string) {
 
 function printHelp() {
   console.log(`
-KinderCare CLI - Admin Management
+KinderCare CLI - Super Admin Management
 ----------------------------------------
 
 Usage:
   npm run cli:create-admin              # Interactive mode
   npm run cli:create-admin -- --email=admin@example.com --name="Admin Name"
-  npm run cli:list-admins               # List all admins
+  npm run cli:list-admins               # List all Super Admins
   npm run cli:delete-admin -- --clerk-uid=user_abc123
 
 Options:
-  --email=<email>         Admin email for Clerk (required for create)
+  --email=<email>         Super Admin email for Clerk (required for create)
   --name=<name>           Full name for Clerk (required for create)
+  --password=<password>   Password for Clerk account (optional, min 8 chars)
+  --role-id=<uuid>        Custom UUID for Super Admin role (optional)
   --clerk-uid=<uid>       Clerk UID (optional for create, required for delete)
   --phone=<phone>         Phone number (optional)
 
 Note: In the new schema, User only stores clerkUid and isActive.
       Email/name/phone are stored in Clerk, not in the database.
+      If no password is provided, user must use Clerk's password reset.
+
+Super Admin Role:
+  - Default ID: ${DEFAULT_SUPER_ADMIN_ROLE_ID}
+  - Custom ID can be set with --role-id (must be valid UUID v4)
+  - Has isSystemRole=true (grants global admin bypass)
+  - Has campusId=null (global, not campus-scoped)
 
 Examples:
-  # Create admin with Clerk auto-creation
+  # Create Super Admin with password
+  npm run cli:create-admin -- --email=admin@kindercare.com --name="John Doe" --password="SecurePass123!"
+
+  # Create Super Admin with custom role UUID
+  npm run cli:create-admin -- --email=admin@kindercare.com --name="John Doe" --role-id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+
+  # Create Super Admin without password (will need to reset via Clerk)
   npm run cli:create-admin -- --email=admin@kindercare.com --name="John Doe"
 
-  # Create admin with existing Clerk UID
+  # Create Super Admin with existing Clerk UID
   npm run cli:create-admin -- --email=admin@test.com --name="Test Admin" --clerk-uid=user_abc123
 
-  # List all admins
+  # List all Super Admins (finds all users with isSystemRole=true)
   npm run cli:list-admins
 
-  # Delete admin by Clerk UID
+  # Delete Super Admin by Clerk UID
   npm run cli:delete-admin -- --clerk-uid=user_abc123
 `);
 }
@@ -339,6 +373,10 @@ function parseArgs() {
       parsed.clerkUid = arg.split("=")[1];
     } else if (arg.startsWith("--phone=")) {
       parsed.phone = arg.split("=")[1];
+    } else if (arg.startsWith("--password=")) {
+      parsed.password = arg.split("=")[1];
+    } else if (arg.startsWith("--role-id=")) {
+      parsed.roleId = arg.split("=")[1];
     } else if (arg === "list") {
       parsed.command = "list";
     } else if (arg === "delete") {
@@ -387,6 +425,8 @@ async function main() {
       fullName: args.name,
       clerkUid: args.clerkUid,
       phoneNumber: args.phone,
+      password: args.password,
+      roleId: args.roleId,
     });
   }
 }

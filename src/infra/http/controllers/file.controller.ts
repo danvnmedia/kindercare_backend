@@ -57,7 +57,13 @@ export class FileController {
   })
   async initiateUpload(
     @Body()
-    { filename, mimeType, size, campusId, storageProvider }: InitiateUploadRequest,
+    {
+      filename,
+      mimeType,
+      size,
+      campusId,
+      storageProvider,
+    }: InitiateUploadRequest,
     @CurrentUser() user: UserPayload,
     @CampusContext() contextCampusId: string,
   ): Promise<InitiateUploadResponse> {
