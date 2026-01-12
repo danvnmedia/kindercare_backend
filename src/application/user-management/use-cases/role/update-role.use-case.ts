@@ -40,10 +40,15 @@ export class UpdateRoleUseCase {
         throw new RoleNotFoundException(id);
       }
 
-      // 2. Check if role is system default (cannot be modified)
+      // 2. Check if role is system default or system role (cannot be modified)
       if (currentRole.isSystemDefault) {
         throw new BadRequestException(
           "System default roles cannot be modified",
+        );
+      }
+      if (currentRole.isSystemRole) {
+        throw new BadRequestException(
+          "System roles cannot be modified via API",
         );
       }
 

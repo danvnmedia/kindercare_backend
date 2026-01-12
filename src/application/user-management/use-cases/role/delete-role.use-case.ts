@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { RoleRepository } from "../../ports/role.repository";
 import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
 
@@ -17,7 +22,19 @@ export class DeleteRoleUseCase {
         throw new RoleNotFoundException(id);
       }
 
-      // 2. Delete role
+      // 2. Check if role is system default or system role (cannot be deleted)
+      if (role.isSystemDefault) {
+        throw new BadRequestException(
+          "System default roles cannot be deleted",
+        );
+      }
+      if (role.isSystemRole) {
+        throw new BadRequestException(
+          "System roles cannot be deleted via API",
+        );
+      }
+
+      // 3. Delete role
       await this.roleRepository.delete(id);
     } catch (error) {
       if (error instanceof RoleNotFoundException) {

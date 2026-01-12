@@ -10,6 +10,8 @@ export interface UploadFileUseCaseRequest {
   size: number;
   uploadedBy: string;
   campusId: string;
+  bucket?: string;
+  storageProvider?: string;
 }
 
 export type UploadFileUseCaseResponse = Either<
@@ -29,11 +31,13 @@ export class UploadFileUseCase {
     size,
     uploadedBy,
     campusId,
+    bucket,
+    storageProvider,
   }: UploadFileUseCaseRequest): Promise<UploadFileUseCaseResponse> {
     // TODO: Add file validation (mime type, size limits) here or in a domain service
 
     const fileId = new UniqueEntityID().toString();
-    const key = `files/${fileId}-${filename}`;
+    const key = `files/${campusId}/${fileId}-${filename}`;
 
     const file = File.create(
       {
@@ -43,6 +47,8 @@ export class UploadFileUseCase {
         size: BigInt(size),
         uploadedBy,
         campusId,
+        bucket: bucket ?? process.env.STORAGE_BUCKET ?? null,
+        storageProvider: storageProvider ?? "LOCAL",
       },
       fileId,
     );

@@ -42,6 +42,7 @@ export class PrismaRoleMapper {
       description: prismaRole.description,
       campusId: prismaRole.campusId,
       isSystemDefault: prismaRole.isSystemDefault,
+      isSystemRole: prismaRole.isSystemRole,
       permissions,
       createdAt: prismaRole.createdAt,
       updatedAt: prismaRole.updatedAt,
@@ -59,6 +60,7 @@ export class PrismaRoleMapper {
       description: prismaRole.description,
       campusId: prismaRole.campusId,
       isSystemDefault: prismaRole.isSystemDefault,
+      isSystemRole: prismaRole.isSystemRole,
       permissions: [], // Empty array for simple mapping
       createdAt: prismaRole.createdAt,
       updatedAt: prismaRole.updatedAt,
@@ -75,6 +77,7 @@ export class PrismaRoleMapper {
       description: role.description ?? null,
       campusId: role.campusId ?? null,
       isSystemDefault: role.isSystemDefault ?? false,
+      isSystemRole: role.isSystemRole ?? false,
       permissions: {}, // Deprecated field, keep empty
     };
   }

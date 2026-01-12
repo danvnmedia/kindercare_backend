@@ -261,11 +261,12 @@ describe("RBAC Campus Scoping Integration Tests", () => {
   });
 
   describe("isGlobalAdmin", () => {
-    it("should return true for user with global admin role", () => {
+    it("should return true for user with isSystemRole=true global role", () => {
       const adminRole = createRole({
         id: "admin-role",
-        name: "Super Admin",
+        name: "Admin",
         campusId: null,
+        isSystemRole: true, // This is what grants global admin bypass
       });
 
       const user = createUser({
@@ -276,19 +277,23 @@ describe("RBAC Campus Scoping Integration Tests", () => {
       expect(isGlobalAdmin(user)).toBe(true);
     });
 
-    it("should return true for user with admin in role name (case insensitive)", () => {
-      const adminRole = createRole({
-        id: "admin-role",
-        name: "ADMINISTRATOR",
+    it("should NOT grant admin based on role name alone (security fix)", () => {
+      // SECURITY: Role names like "Super Admin" or "ADMINISTRATOR" should NOT
+      // grant admin bypass - only isSystemRole=true should grant it
+      const fakeAdminRole = createRole({
+        id: "fake-admin-role",
+        name: "Super Administrator", // Name has "admin" but NOT a system role
         campusId: null,
+        isSystemRole: false,
       });
 
       const user = createUser({
         id: "user-1",
-        roleAssignments: [createRoleAssignment(adminRole, null)],
+        roleAssignments: [createRoleAssignment(fakeAdminRole, null)],
       });
 
-      expect(isGlobalAdmin(user)).toBe(true);
+      // Should NOT be recognized as global admin
+      expect(isGlobalAdmin(user)).toBe(false);
     });
 
     it("should return false for user with campus-specific admin role", () => {
@@ -296,6 +301,7 @@ describe("RBAC Campus Scoping Integration Tests", () => {
         id: "campus-admin",
         name: "Campus Admin",
         campusId: campusA, // Campus-specific, not global
+        isSystemRole: false,
       });
 
       const user = createUser({
@@ -307,11 +313,12 @@ describe("RBAC Campus Scoping Integration Tests", () => {
       expect(isGlobalAdmin(user)).toBe(false);
     });
 
-    it("should return false for regular staff", () => {
+    it("should return false for regular staff with global role", () => {
       const staffRole = createRole({
         id: "staff-role",
         name: "Teacher",
         campusId: null,
+        isSystemRole: false,
       });
 
       const user = createUser({
@@ -319,6 +326,26 @@ describe("RBAC Campus Scoping Integration Tests", () => {
         roleAssignments: [createRoleAssignment(staffRole, null)],
       });
 
+      expect(isGlobalAdmin(user)).toBe(false);
+    });
+
+    it("should return false for isSystemRole=true but campus-scoped role", () => {
+      // isSystemRole only grants bypass when combined with global scope (campusId=null)
+      const campusScopedSystemRole = createRole({
+        id: "weird-role",
+        name: "Weird Role",
+        campusId: campusA, // Campus-specific
+        isSystemRole: true, // Even though marked as system role
+      });
+
+      const user = createUser({
+        id: "user-1",
+        roleAssignments: [
+          createRoleAssignment(campusScopedSystemRole, campusA),
+        ],
+      });
+
+      // Should NOT be global admin because role is campus-scoped
       expect(isGlobalAdmin(user)).toBe(false);
     });
   });

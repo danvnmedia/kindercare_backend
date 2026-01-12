@@ -21,13 +21,15 @@ export class PrismaFileRepository implements FileRepository {
   }
 
   async findById(id: string): Promise<File | null> {
-    const file = await this.prisma.file.findUnique({ where: { id } });
+    const file = await this.prisma.file.findUnique({
+      where: { id, isDeleted: false },
+    });
     return file ? PrismaFileMapper.toDomain(file) : null;
   }
 
   async findByIds(ids: string[]): Promise<File[]> {
     const files = await this.prisma.file.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, isDeleted: false },
     });
     return files.map(PrismaFileMapper.toDomain);
   }
@@ -42,8 +44,7 @@ export class PrismaFileRepository implements FileRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Soft delete - handled by calling file.markAsDeleted() and update()
-    // This method is kept for hard deletion if needed
+    // Hard delete - for soft delete, use update() with file.markAsDeleted()
     await this.prisma.file.delete({ where: { id } });
   }
 
@@ -52,6 +53,7 @@ export class PrismaFileRepository implements FileRepository {
       where: {
         id,
         campusId,
+        isDeleted: false,
       },
     });
     return file ? PrismaFileMapper.toDomain(file) : null;
@@ -67,17 +69,20 @@ export class PrismaFileRepository implements FileRepository {
       "mimeType",
       "status",
       "uploadedBy",
+      "extension",
+      "storageProvider",
+      "bucket",
     ];
     params.allowedSortFields = ["createdAt", "updatedAt", "filename", "size"];
 
     // Use PrismaQueryService to execute query with StandardRequest
-    // Campus filter is passed in options.where to ensure mandatory scoping
+    // Campus filter and isDeleted filter are passed in options.where to ensure mandatory scoping
     return await this.queryService.executeQuery<File>(
       this.prisma,
       "file",
       params,
       {
-        where: { campusId },
+        where: { campusId, isDeleted: false },
       },
       PrismaFileMapper,
     );
@@ -88,8 +93,19 @@ export class PrismaFileRepository implements FileRepository {
       where: {
         id,
         campusId,
+        isDeleted: false,
       },
     });
     return count > 0;
+  }
+
+  async findByKey(key: string): Promise<File | null> {
+    const file = await this.prisma.file.findFirst({
+      where: {
+        key,
+        isDeleted: false,
+      },
+    });
+    return file ? PrismaFileMapper.toDomain(file) : null;
   }
 }

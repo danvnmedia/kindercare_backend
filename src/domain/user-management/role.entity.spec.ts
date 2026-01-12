@@ -15,6 +15,7 @@ describe("RoleEntity", () => {
     description: "A test role",
     campusId: null,
     isSystemDefault: false,
+    isSystemRole: false,
     permissions: [],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -135,6 +136,26 @@ describe("RoleEntity", () => {
       const role = mockRole({ isSystemDefault: false });
 
       expect(RoleEntity.isSystemDefault(role)).toBe(false);
+    });
+  });
+
+  describe("isSystemRole", () => {
+    it("should return true for system roles", () => {
+      const role = mockRole({ isSystemRole: true });
+
+      expect(RoleEntity.isSystemRole(role)).toBe(true);
+    });
+
+    it("should return false for non-system roles", () => {
+      const role = mockRole({ isSystemRole: false });
+
+      expect(RoleEntity.isSystemRole(role)).toBe(false);
+    });
+
+    it("should return false by default", () => {
+      const role = mockRole({});
+
+      expect(RoleEntity.isSystemRole(role)).toBe(false);
     });
   });
 

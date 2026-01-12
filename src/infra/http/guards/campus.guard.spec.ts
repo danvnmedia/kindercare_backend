@@ -422,12 +422,13 @@ describe("CampusGuard", () => {
   });
 
   describe("Global Admin Access", () => {
-    it("should allow global admin to access any campus", async () => {
+    it("should allow global admin (isSystemRole=true) to access any campus", async () => {
       const campus = createCampus({ id: validUUID });
-      // Admin with global role (campusId = null in assignment)
+      // Admin with global system role (isSystemRole=true, campusId=null)
       const globalAdminRole = createRole({
-        name: "Super Admin",
+        name: "Admin",
         campusId: null,
+        isSystemRole: true, // This grants global admin bypass
       });
       const globalAdmin = createUser({
         id: "admin-1",
@@ -454,12 +455,50 @@ describe("CampusGuard", () => {
       expect(result).toBe(true);
     });
 
+    it("should NOT grant global admin bypass based on role name alone", async () => {
+      const campus = createCampus({ id: validUUID });
+      // Role named "Super Admin" but WITHOUT isSystemRole=true should NOT bypass
+      const fakeAdminRole = createRole({
+        name: "Super Admin", // Name-based check should NOT work anymore
+        campusId: null,
+        isSystemRole: false, // Not a system role
+      });
+      const fakeAdmin = createUser({
+        id: "fake-admin-1",
+        roleAssignments: [createRoleAssignment(fakeAdminRole, null)],
+      });
+
+      mockReflector.getAllAndOverride.mockReturnValue({
+        required: true,
+        checkUserAccess: true,
+        allowGlobalAdmin: true,
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+      mockUserRepository.findById.mockResolvedValue(fakeAdmin);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        { id: "fake-admin-1" },
+      );
+
+      // Global role with null campusId should still grant access via hasCampusAccess
+      // but the isGlobalAdmin check should NOT return true based on name
+      const result = await guard.canActivate(context);
+
+      // Access is still granted because global roles (null campusId) have access everywhere
+      // via hasCampusAccess, but isGlobalAdmin() returns false (no fast-path bypass)
+      expect(result).toBe(true);
+    });
+
     it("should not bypass for global admin when allowGlobalAdmin is false", async () => {
       const campus = createCampus({ id: validUUID });
-      // Admin with global role but no specific campus access
+      // Admin with global system role but allowGlobalAdmin is disabled
       const globalAdminRole = createRole({
-        name: "Super Admin",
+        name: "Admin",
         campusId: null,
+        isSystemRole: true,
       });
       const globalAdmin = createUser({
         id: "admin-1",
@@ -486,6 +525,40 @@ describe("CampusGuard", () => {
       const result = await guard.canActivate(context);
 
       expect(result).toBe(true);
+    });
+
+    it("should deny access for role with admin-like name but no global scope", async () => {
+      const campus = createCampus({ id: validUUID });
+      // Role with "admin" in name but scoped to a different campus
+      const localAdminRole = createRole({
+        name: "Campus Administrator",
+        campusId: validUUID_B, // Different campus
+        isSystemRole: false,
+      });
+      const localAdmin = createUser({
+        id: "local-admin-1",
+        roleAssignments: [createRoleAssignment(localAdminRole, validUUID_B)],
+      });
+
+      mockReflector.getAllAndOverride.mockReturnValue({
+        required: true,
+        checkUserAccess: true,
+        allowGlobalAdmin: true,
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+      mockUserRepository.findById.mockResolvedValue(localAdmin);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        { id: "local-admin-1" },
+      );
+
+      // Should be denied - no access to this campus
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 

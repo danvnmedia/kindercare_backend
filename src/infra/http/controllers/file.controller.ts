@@ -45,7 +45,7 @@ export class FileController {
     private uploadFile: UploadFileUseCase,
     private deleteFile: DeleteFileUseCase,
     private getFile: GetFileUseCase,
-    private completeUploadUseCase: CompleteUploadUseCase, // Renamed to avoid conflict
+    private completeUploadUseCase: CompleteUploadUseCase,
   ) {}
 
   @Post("initiate-upload")
@@ -56,7 +56,8 @@ export class FileController {
     type: InitiateUploadResponse,
   })
   async initiateUpload(
-    @Body() { filename, mimeType, size, campusId }: InitiateUploadRequest,
+    @Body()
+    { filename, mimeType, size, campusId, storageProvider }: InitiateUploadRequest,
     @CurrentUser() user: UserPayload,
     @CampusContext() contextCampusId: string,
   ): Promise<InitiateUploadResponse> {
@@ -69,10 +70,11 @@ export class FileController {
       size,
       uploadedBy: user.sub,
       campusId: effectiveCampusId,
+      storageProvider,
     });
 
     if (result.isLeft()) {
-      throw result.value; // TODO: Map to appropriate HTTP exception
+      throw result.value;
     }
 
     return {
@@ -98,7 +100,7 @@ export class FileController {
     });
 
     if (result.isLeft()) {
-      throw result.value; // TODO: Map to appropriate HTTP exception
+      throw result.value;
     }
 
     return result.value;
@@ -121,7 +123,7 @@ export class FileController {
     });
 
     if (result.isLeft()) {
-      throw result.value; // TODO: Map to appropriate HTTP exception
+      throw result.value;
     }
 
     const { file } = result.value;
@@ -131,7 +133,7 @@ export class FileController {
   @Delete(":id")
   @RequireCampusAccess()
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
-  @ApiOperation({ summary: "Delete a file" })
+  @ApiOperation({ summary: "Soft delete a file" })
   async delete(
     @Param("id", ParseUUIDPipe) id: string,
     @CampusContext() campusId: string,
@@ -142,7 +144,7 @@ export class FileController {
     });
 
     if (result.isLeft()) {
-      throw result.value; // TODO: Map to appropriate HTTP exception
+      throw result.value;
     }
   }
 }

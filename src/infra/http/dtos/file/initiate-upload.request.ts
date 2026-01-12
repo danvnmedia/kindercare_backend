@@ -1,5 +1,12 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsNumber, IsString, IsNotEmpty, IsUUID } from "class-validator";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import {
+  IsNumber,
+  IsString,
+  IsNotEmpty,
+  IsUUID,
+  IsOptional,
+  IsIn,
+} from "class-validator";
 
 export class InitiateUploadRequest {
   @ApiProperty({ description: "Original filename" })
@@ -20,4 +27,13 @@ export class InitiateUploadRequest {
   @IsUUID()
   @IsNotEmpty()
   campusId: string;
+
+  @ApiPropertyOptional({
+    description: "Storage provider (defaults to LOCAL)",
+    enum: ["S3", "GCS", "LOCAL"],
+    default: "LOCAL",
+  })
+  @IsOptional()
+  @IsIn(["S3", "GCS", "LOCAL"])
+  storageProvider?: string;
 }

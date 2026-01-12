@@ -30,7 +30,7 @@ export class CompleteUploadUseCase {
     // Optionally, add logic to verify file existence in storage
     // if a separate verification mechanism is available for the storage service.
 
-    file.markAsActive();
+    file.markAsUploaded();
     const updatedFile = await this.fileRepository.update(file);
 
     return right(updatedFile);

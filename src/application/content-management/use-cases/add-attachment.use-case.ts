@@ -64,6 +64,7 @@ export class AddAttachmentUseCase {
       }
 
       // Verify file exists and belongs to the same campus
+      // Note: Repository already excludes soft-deleted files
       const file = await this.fileRepository.findById(input.fileId);
       if (!file) {
         throw new NotFoundException(`File with ID ${input.fileId} not found`);
@@ -71,6 +72,13 @@ export class AddAttachmentUseCase {
       if (file.campusId !== post.campusId) {
         throw new BadRequestException(
           "File must belong to the same campus as the post",
+        );
+      }
+
+      // Verify file is available (uploaded or processed, and not deleted)
+      if (!file.isAvailable()) {
+        throw new BadRequestException(
+          "File must be uploaded and not deleted to be attached to a post",
         );
       }
 

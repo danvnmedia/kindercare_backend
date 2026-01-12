@@ -363,12 +363,24 @@ Ref: student_attendance.campus_id > campus.id
 Table file {
   id uuid [pk]
   campus_id uuid
-  key text
-  filename text
+  
+  // Storage Details
+  key text [unique, note: 'S3 Path']
+  bucket text [note: 'S3 Bucket Name']
+  storage_provider text [note: 'S3, GCS...']
+  
+  // File Metadata
+  filename text [note: 'Original filename: trip.jpg']
   mime_type text
   size bigint
-  status text
+  extension text [note: 'jpg, pdf, docx,...']
+  
+  // Lifecycle
+  status text [note: 'PENDING, UPLOADED, PROCESSED, ERROR']
   uploaded_by uuid
+  
+  is_deleted boolean [default: false]
+  
   created_at timestamptz
   updated_at timestamptz
 
@@ -376,7 +388,8 @@ Table file {
     campus_id
     uploaded_by
     status
-    created_at
+    key
+    is_deleted
   }
 }
 Ref: file.uploaded_by > user.id

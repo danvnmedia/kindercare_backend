@@ -18,6 +18,7 @@ export interface CreateRoleInput {
   description?: string;
   campusId?: string | null; // null for system default roles
   isSystemDefault?: boolean;
+  isSystemRole?: boolean; // Should always be rejected from API - only set via seeds/migrations
   permissionIds?: string[]; // Permission IDs to assign
 }
 
@@ -34,6 +35,13 @@ export class CreateRoleUseCase {
 
   async execute(input: CreateRoleInput): Promise<Role> {
     try {
+      // 0. Reject isSystemRole=true from API (security measure)
+      if (input.isSystemRole === true) {
+        throw new BadRequestException(
+          "Cannot create system roles via API. System roles can only be created via database seeds or migrations.",
+        );
+      }
+
       // 1. Validate role name
       RoleEntity.validateName(input.name);
       const normalizedName = input.name.trim();

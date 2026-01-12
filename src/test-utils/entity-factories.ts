@@ -282,6 +282,7 @@ export function createRole(
     description: string | null;
     campusId: string | null;
     isSystemDefault: boolean;
+    isSystemRole: boolean;
     permissions: Permission[];
   }> = {},
 ): Role {
@@ -291,6 +292,7 @@ export function createRole(
     description: overrides.description ?? null,
     campusId: overrides.campusId ?? null, // null = global role
     isSystemDefault: overrides.isSystemDefault ?? false,
+    isSystemRole: overrides.isSystemRole ?? false,
     permissions: overrides.permissions ?? [],
     createdAt: new Date(),
     updatedAt: new Date(),

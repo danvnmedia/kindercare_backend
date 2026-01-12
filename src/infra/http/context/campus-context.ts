@@ -67,17 +67,16 @@ export function hasCampusAccess(user: User, campusId: string | null): boolean {
 }
 
 /**
- * Check if user is a global admin (has a global role with admin permissions)
- * Global roles have campusId = null
+ * Check if user is a global admin (has a system role that grants bypass)
+ * Global roles have campusId = null and isSystemRole = true
+ *
+ * SECURITY: Uses explicit isSystemRole flag instead of name-based checks
+ * to prevent privilege escalation via role naming (e.g., "Super VIP")
  */
 export function isGlobalAdmin(user: User): boolean {
   const globalRoles = user.getGlobalRoles();
-  // Check if any global role has admin-level permissions
-  return globalRoles.some(
-    (role) =>
-      role.name.toLowerCase().includes("admin") ||
-      role.name.toLowerCase().includes("super"),
-  );
+  // Check if any global role is a system role (grants admin bypass)
+  return globalRoles.some((role) => role.isSystemRole === true);
 }
 
 /**

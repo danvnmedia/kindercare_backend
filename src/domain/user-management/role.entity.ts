@@ -12,6 +12,7 @@ export interface Role {
   description: string | null;
   campusId: string | null; // null for system default roles
   isSystemDefault: boolean; // true for built-in roles that cannot be modified
+  isSystemRole: boolean; // true for system roles that grant global admin bypass (can only be set via seeds/migrations)
   permissions: Permission[]; // Array of Permission entities
   createdAt: Date;
   updatedAt: Date;
@@ -26,6 +27,7 @@ export interface CreateRoleData {
   description?: string | null;
   campusId?: string | null;
   isSystemDefault?: boolean;
+  isSystemRole?: boolean; // Only set via seeds/migrations, never via API
   permissionIds?: string[]; // Permission IDs to assign
 }
 
@@ -100,6 +102,13 @@ export class RoleEntity {
    */
   static isSystemDefault(role: Role): boolean {
     return role.isSystemDefault;
+  }
+
+  /**
+   * Check if role is a system role (grants global admin bypass)
+   */
+  static isSystemRole(role: Role): boolean {
+    return role.isSystemRole;
   }
 
   /**

@@ -22,6 +22,7 @@ export class GetFileUseCase {
     campusId,
   }: GetFileUseCaseRequest): Promise<GetFileUseCaseResponse> {
     // Find file with campus verification to ensure user can only access files in their campus
+    // Repository already excludes soft-deleted files by default
     const file = await this.fileRepository.findByIdAndCampus(
       fileId.toString(),
       campusId,

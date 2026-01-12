@@ -40,6 +40,14 @@ export class RoleResponse {
   isSystemDefault: boolean;
 
   @Expose()
+  @ApiProperty({
+    description:
+      "Whether this is a system role (grants global admin bypass). Can only be set via seeds/migrations.",
+    example: false,
+  })
+  isSystemRole: boolean;
+
+  @Expose()
   @Type(() => PermissionResponse)
   @ApiProperty({
     description: "Permissions assigned to this role",

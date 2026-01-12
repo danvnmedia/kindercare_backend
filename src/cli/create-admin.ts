@@ -134,6 +134,8 @@ async function createAdmin(input: AdminInput) {
           id: "admin",
           name: "ADMIN",
           description: "System Administrator",
+          isSystemDefault: true,
+          isSystemRole: true, // Grants global admin bypass
           permissions: {
             users: ["create", "read", "update", "delete"],
             students: ["create", "read", "update", "delete"],
@@ -143,7 +145,15 @@ async function createAdmin(input: AdminInput) {
           },
         },
       });
-      console.log("ADMIN role created");
+      console.log("ADMIN role created with isSystemRole=true");
+    } else if (!adminRole.isSystemRole) {
+      // Update existing admin role to have isSystemRole=true
+      console.log("Updating existing ADMIN role to set isSystemRole=true...");
+      adminRole = await prisma.role.update({
+        where: { id: "admin" },
+        data: { isSystemRole: true, isSystemDefault: true },
+      });
+      console.log("ADMIN role updated with isSystemRole=true");
     }
 
     // 4. Create admin user in database (User only has clerkUid and isActive)

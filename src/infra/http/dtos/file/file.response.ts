@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose } from "class-transformer";
 import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
 
@@ -18,15 +18,29 @@ export class FileResponse {
   campusId: string;
 
   @ApiProperty({
-    description: "The key of the file.",
-    example: "path/to/file.jpg",
+    description: "The key (S3 path) of the file.",
+    example: "files/campus-id/uuid-file.jpg",
   })
   @Expose()
   key: string;
 
+  @ApiPropertyOptional({
+    description: "The S3 bucket name where the file is stored.",
+    example: "kindercare-uploads",
+  })
+  @Expose()
+  bucket: string | null;
+
   @ApiProperty({
-    description: "The name of the file.",
-    example: "file.jpg",
+    description: "The storage provider (S3, GCS, LOCAL).",
+    example: "LOCAL",
+  })
+  @Expose()
+  storageProvider: string;
+
+  @ApiProperty({
+    description: "The original filename.",
+    example: "photo.jpg",
   })
   @Expose()
   filename: string;
@@ -45,13 +59,27 @@ export class FileResponse {
   @Expose()
   size: bigint;
 
+  @ApiPropertyOptional({
+    description: "The file extension (without dot).",
+    example: "jpg",
+  })
+  @Expose()
+  extension: string | null;
+
   @ApiProperty({
     description: "The status of the file.",
     enum: FileStatus,
-    example: FileStatus.ACTIVE,
+    example: FileStatus.UPLOADED,
   })
   @Expose()
   status: FileStatus;
+
+  @ApiProperty({
+    description: "Whether the file has been soft-deleted.",
+    example: false,
+  })
+  @Expose()
+  isDeleted: boolean;
 
   @ApiProperty({
     description: "The ID of the user who uploaded the file.",

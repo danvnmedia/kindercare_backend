@@ -1,7 +1,6 @@
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { FileRepository } from "../ports/file.repository";
-import { StorageService } from "../ports/storage.service";
 
 export interface DeleteFileUseCaseRequest {
   fileId: UniqueEntityID;
@@ -11,10 +10,7 @@ export interface DeleteFileUseCaseRequest {
 export type DeleteFileUseCaseResponse = Either<Error, void>;
 
 export class DeleteFileUseCase {
-  constructor(
-    private fileRepository: FileRepository,
-    private storageService: StorageService,
-  ) {}
+  constructor(private fileRepository: FileRepository) {}
 
   async execute({
     fileId,
@@ -30,12 +26,7 @@ export class DeleteFileUseCase {
       return left(new Error("File not found."));
     }
 
-    try {
-      await this.storageService.delete(file.key);
-    } catch (error) {
-      return left(new Error("File deletion failed from storage."));
-    }
-
+    // Soft delete - mark as deleted but keep the file in storage for potential recovery
     file.markAsDeleted();
     await this.fileRepository.update(file);
 

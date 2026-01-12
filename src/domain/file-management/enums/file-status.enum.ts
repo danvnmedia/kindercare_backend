@@ -1,5 +1,6 @@
 export enum FileStatus {
   PENDING = "PENDING",
-  ACTIVE = "ACTIVE",
-  DELETED = "DELETED",
+  UPLOADED = "UPLOADED",
+  PROCESSED = "PROCESSED",
+  ERROR = "ERROR",
 }

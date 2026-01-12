@@ -106,6 +106,7 @@ model Role {
   name            String
   description     String?
   isSystemDefault Boolean @default(false) @map("is_system_default")
+  isSystemRole    Boolean @default(false) @map("is_system_role") // Grants global admin bypass, can only be set via seeds/migrations
   permissions     Json    @default("{}") // Deprecated: Use RolePermission instead
 
   campus          Campus?          @relation(fields: [campusId], references: [id], onDelete: Restrict)
@@ -794,13 +795,23 @@ model CampusSetting {
 // ==========================================
 
 model File {
-  id         String @id @default(uuid()) @db.Uuid
-  key        String
-  filename   String @map("filename")
-  mimeType   String @map("mime_type")
-  size       BigInt
-  status     String @default("PENDING")
-  uploadedBy String @map("uploaded_by") @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
+
+  // Storage Details
+  key             String  @unique
+  bucket          String? @map("bucket")
+  storageProvider String  @default("LOCAL") @map("storage_provider")
+
+  // File Metadata
+  filename  String  @map("filename")
+  mimeType  String  @map("mime_type")
+  size      BigInt
+  extension String? @map("extension")
+
+  // Lifecycle
+  status     String  @default("PENDING") /// PENDING, UPLOADED, PROCESSED, ERROR
+  uploadedBy String  @map("uploaded_by") @db.Uuid
+  isDeleted  Boolean @default(false) @map("is_deleted")
 
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
@@ -815,6 +826,8 @@ model File {
   @@index([campusId])
   @@index([uploadedBy])
   @@index([status])
+  @@index([key])
+  @@index([isDeleted])
   @@index([createdAt])
   @@map("file")
 }

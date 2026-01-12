@@ -1,0 +1,1385 @@
+{
+  "taskId": "l8i1lt",
+  "currentVersion": 15,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "l8i1lt",
+      "version": 1,
+      "timestamp": "2026-01-11T22:53:39.755Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n- Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n1. Make `key` field unique with note \"S3 Path\"\n2. Add `bucket` field (S3 Bucket Name)\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n5. Add `extension` field for file type (jpg, pdf, docx)\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n7. Add `key` to indexes\n\n## Files to Update\n- diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n- [ ] key field is unique with S3 Path note\n- [ ] bucket field added for S3 bucket name\n- [ ] storage_provider field with default S3 and note\n- [ ] filename field has descriptive note\n- [ ] extension field added\n- [ ] status field has note listing valid values\n- [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": false,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": false,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": false,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "l8i1lt",
+      "version": 2,
+      "timestamp": "2026-01-11T23:44:11.868Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n- Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n1. Make `key` field unique with note \"S3 Path\"\n2. Add `bucket` field (S3 Bucket Name)\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n5. Add `extension` field for file type (jpg, pdf, docx)\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n7. Add `key` to indexes\n\n## Files to Update\n- diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n- [ ] key field is unique with S3 Path note\n- [ ] bucket field added for S3 bucket name\n- [ ] storage_provider field with default S3 and note\n- [ ] filename field has descriptive note\n- [ ] extension field added\n- [ ] status field has note listing valid values\n- [ ] key added to indexes",
+          "newValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes\n"
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes\n",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": false,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": false,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": false,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "l8i1lt",
+      "version": 3,
+      "timestamp": "2026-01-11T23:44:42.306Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+          "newValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes\n"
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes\n",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": false,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": false,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": false,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "l8i1lt",
+      "version": 4,
+      "timestamp": "2026-01-11T23:44:52.169Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": false,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": false,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": false,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": false,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": false,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": false,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": false,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "l8i1lt",
+      "version": 5,
+      "timestamp": "2026-01-11T23:44:53.375Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": false,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": false,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": false,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": false,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": false,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "l8i1lt",
+      "version": 6,
+      "timestamp": "2026-01-11T23:44:53.932Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": false,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": false,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v7",
+      "taskId": "l8i1lt",
+      "version": 7,
+      "timestamp": "2026-01-11T23:44:54.286Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": false,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": false,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v8",
+      "taskId": "l8i1lt",
+      "version": 8,
+      "timestamp": "2026-01-11T23:44:55.099Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": false,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": false,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v9",
+      "taskId": "l8i1lt",
+      "version": 9,
+      "timestamp": "2026-01-11T23:44:55.566Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": false,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": false,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v10",
+      "taskId": "l8i1lt",
+      "version": 10,
+      "timestamp": "2026-01-11T23:44:55.977Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": false,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": true,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v11",
+      "taskId": "l8i1lt",
+      "version": 11,
+      "timestamp": "2026-01-11T23:45:09.241Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n\n* [ ] key field is unique with S3 Path note\n* [ ] bucket field added for S3 bucket name\n* [ ] storage_provider field with default S3 and note\n* [ ] filename field has descriptive note\n* [ ] extension field added\n* [ ] status field has note listing valid values\n* [ ] key added to indexes",
+          "newValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n"
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": true,
+            "text": "key added to indexes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v12",
+      "taskId": "l8i1lt",
+      "version": 12,
+      "timestamp": "2026-01-11T23:45:21.342Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            },
+            {
+              "text": "Add is_deleted boolean",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": true,
+            "text": "key added to indexes"
+          },
+          {
+            "text": "Add is_deleted boolean",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v13",
+      "taskId": "l8i1lt",
+      "version": 13,
+      "timestamp": "2026-01-11T23:45:22.326Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            },
+            {
+              "completed": false,
+              "text": "Add is_deleted boolean"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            },
+            {
+              "text": "Add is_deleted boolean",
+              "completed": true
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": true,
+            "text": "key added to indexes"
+          },
+          {
+            "text": "Add is_deleted boolean",
+            "completed": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "v14",
+      "taskId": "l8i1lt",
+      "version": 14,
+      "timestamp": "2026-01-11T23:45:30.691Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml",
+          "newValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx,...)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n"
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx,...)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml\n",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": true,
+            "text": "key added to indexes"
+          },
+          {
+            "completed": true,
+            "text": "Add is_deleted boolean"
+          }
+        ]
+      }
+    },
+    {
+      "id": "v15",
+      "taskId": "l8i1lt",
+      "version": 15,
+      "timestamp": "2026-01-11T23:52:26.125Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n\n* Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n\n1. Make `key` field unique with note \"S3 Path\"\n\n2. Add `bucket` field (S3 Bucket Name)\n\n3. Add `storage_provider` field\n\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n\n5. Add `extension` field for file type (jpg, pdf, docx,...)\n\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n\n7. Add `key` to indexes\n\n8. Add `is_deleted` boolean\n\n## Files to Update\n\n* diagram/dbdiagram.dbml",
+          "newValue": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n- Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n1. Make `key` field unique with note \"S3 Path\"\n2. Add `bucket` field (S3 Bucket Name)\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n5. Add `extension` field for file type (jpg, pdf, docx)\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n7. Add `is_deleted` boolean field with default false (for soft delete)\n8. Add `key` to indexes\n\n## Files to Update\n- diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n- [ ] key field is unique with S3 Path note\n- [ ] bucket field added for S3 bucket name\n- [ ] storage_provider field with default S3 and note\n- [ ] filename field has descriptive note\n- [ ] extension field added\n- [ ] status field has note listing valid values\n- [ ] is_deleted boolean field added with default false\n- [ ] key added to indexes"
+        },
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            },
+            {
+              "completed": true,
+              "text": "Add is_deleted boolean"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "key field is unique with S3 Path note"
+            },
+            {
+              "completed": true,
+              "text": "bucket field added for S3 bucket name"
+            },
+            {
+              "completed": true,
+              "text": "storage_provider field with default S3 and note"
+            },
+            {
+              "completed": true,
+              "text": "filename field has descriptive note"
+            },
+            {
+              "completed": true,
+              "text": "extension field added"
+            },
+            {
+              "completed": true,
+              "text": "status field has note listing valid values"
+            },
+            {
+              "completed": true,
+              "text": "key added to indexes"
+            },
+            {
+              "completed": true,
+              "text": "Add is_deleted boolean"
+            },
+            {
+              "text": "is_deleted boolean field added with default false",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Update file table schema for enhanced storage support",
+        "description": "Update the file table in dbdiagram.dbml to support enhanced storage configuration.\n\n## Current Schema\n- Basic file storage with key, filename, mime_type, size, status\n\n## New Schema Changes\n1. Make `key` field unique with note \"S3 Path\"\n2. Add `bucket` field (S3 Bucket Name)\n3. Add `storage_provider` field with default \"S3\" and options: S3, GCS, LOCAL\n4. Add note to `filename` field: \"Original filename: trip.jpg\"\n5. Add `extension` field for file type (jpg, pdf, docx)\n6. Add note to `status` field: \"PENDING, UPLOADED, PROCESSED, ERROR\"\n7. Add `is_deleted` boolean field with default false (for soft delete)\n8. Add `key` to indexes\n\n## Files to Update\n- diagram/dbdiagram.dbml\n\n## Acceptance Criteria\n- [ ] key field is unique with S3 Path note\n- [ ] bucket field added for S3 bucket name\n- [ ] storage_provider field with default S3 and note\n- [ ] filename field has descriptive note\n- [ ] extension field added\n- [ ] status field has note listing valid values\n- [ ] is_deleted boolean field added with default false\n- [ ] key added to indexes",
+        "status": "done",
+        "priority": "medium",
+        "labels": [],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "key field is unique with S3 Path note"
+          },
+          {
+            "completed": true,
+            "text": "bucket field added for S3 bucket name"
+          },
+          {
+            "completed": true,
+            "text": "storage_provider field with default S3 and note"
+          },
+          {
+            "completed": true,
+            "text": "filename field has descriptive note"
+          },
+          {
+            "completed": true,
+            "text": "extension field added"
+          },
+          {
+            "completed": true,
+            "text": "status field has note listing valid values"
+          },
+          {
+            "completed": true,
+            "text": "key added to indexes"
+          },
+          {
+            "completed": true,
+            "text": "Add is_deleted boolean"
+          },
+          {
+            "text": "is_deleted boolean field added with default false",
+            "completed": false
+          }
+        ]
+      }
+    }
+  ]
+}
