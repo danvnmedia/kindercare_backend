@@ -1,5 +1,5 @@
 import { Injectable, Inject, Logger, NotFoundException } from "@nestjs/common";
-import { StudentAttendance } from "@/domain/attendance/entities/student-attendance.entity";
+import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
 import { StudentAttendanceRepository } from "../ports/student-attendance.repository";
 
 @Injectable()
@@ -11,14 +11,14 @@ export class GetAttendanceByIdUseCase {
     private readonly attendanceRepository: StudentAttendanceRepository,
   ) {}
 
-  async execute(id: string): Promise<StudentAttendance> {
+  async execute(id: string): Promise<StudentAttendanceSummary> {
     this.logger.log(`Getting attendance by ID: ${id}`);
 
-    const attendance = await this.attendanceRepository.findById(id);
-    if (!attendance) {
+    const summary = await this.attendanceRepository.findById(id);
+    if (!summary) {
       throw new NotFoundException(`Attendance record with ID ${id} not found`);
     }
 
-    return attendance;
+    return summary;
   }
 }

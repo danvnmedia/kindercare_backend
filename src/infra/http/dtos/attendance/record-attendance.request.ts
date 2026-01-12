@@ -56,17 +56,6 @@ export class RecordAttendanceRequest {
   checkinAt?: string;
 
   @ApiProperty({
-    description: "Reason for absence or late",
-    example: "Doctor appointment",
-    required: false,
-    maxLength: 500,
-  })
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  reason?: string;
-
-  @ApiProperty({
     description: "Additional notes",
     example: "Parent called ahead",
     required: false,

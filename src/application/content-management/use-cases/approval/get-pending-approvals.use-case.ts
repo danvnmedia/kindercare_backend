@@ -23,7 +23,7 @@ export class GetPendingApprovalsUseCase {
       this.logger.log(`Getting pending approvals for campus: ${campusId}`);
 
       // Validate admin permission
-      const isAdmin = currentUser.roles?.some((role) => role.name === "Admin");
+      const isAdmin = currentUser.hasSystemRole();
       if (!isAdmin) {
         throw new ForbiddenException(
           "Only administrators can view pending approvals",

@@ -5,7 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { StudentAttendance } from "@/domain/attendance/entities/student-attendance.entity";
+import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
 import { StudentAttendanceRepository } from "../ports/student-attendance.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 
@@ -29,7 +29,7 @@ export class GetStudentAttendanceUseCase {
 
   async execute(
     input: GetStudentAttendanceInput,
-  ): Promise<StudentAttendance[]> {
+  ): Promise<StudentAttendanceSummary[]> {
     const startStr = input.startDate.toISOString().split("T")[0];
     const endStr = input.endDate.toISOString().split("T")[0];
     this.logger.log(
@@ -54,14 +54,14 @@ export class GetStudentAttendanceUseCase {
       );
     }
 
-    // Step 3: Get attendance records
-    const attendances = await this.attendanceRepository.findByStudentDateRange(
+    // Step 3: Get attendance summaries
+    const summaries = await this.attendanceRepository.findByStudentDateRange(
       input.studentId,
       input.startDate,
       input.endDate,
     );
 
-    this.logger.log(`Found ${attendances.length} attendance records`);
-    return attendances;
+    this.logger.log(`Found ${summaries.length} attendance records`);
+    return summaries;
   }
 }

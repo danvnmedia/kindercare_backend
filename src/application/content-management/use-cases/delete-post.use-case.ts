@@ -39,7 +39,7 @@ export class DeletePostUseCase {
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const isAdmin = currentUser.roles?.some((role) => role.name === "Admin");
+      const isAdmin = currentUser.hasSystemRole();
 
       if (!isAuthor && !isAdmin) {
         throw new ForbiddenException(

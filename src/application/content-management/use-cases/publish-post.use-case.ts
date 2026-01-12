@@ -48,7 +48,7 @@ export class PublishPostUseCase {
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const isAdmin = currentUser.roles?.some((role) => role.name === "Admin");
+      const isAdmin = currentUser.hasSystemRole();
       if (!isAuthor && !isAdmin) {
         throw new ForbiddenException(
           "Only the author or an administrator can publish this post",

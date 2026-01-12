@@ -6,7 +6,7 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
-import { Post, PostAudience, PostStatus } from "@/domain/content-management";
+import { Post, PostAudience } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
@@ -23,7 +23,6 @@ export interface UpdatePostInput {
   campusId: string; // For verifying request comes from correct campus
   title?: string;
   content?: PostContent;
-  status?: PostStatus;
   publishAt?: Date;
   audiences?: {
     audienceType: AudienceType;
@@ -83,7 +82,7 @@ export class UpdatePostUseCase {
 
   private checkAuthorization(post: Post, user: User): void {
     const isAuthor = post.authorId.toString() === user.id.toString();
-    const isAdmin = user.roles?.some((role) => role.name === "Admin");
+    const isAdmin = user.hasSystemRole();
 
     if (!isAuthor && !isAdmin) {
       throw new ForbiddenException(
@@ -105,13 +104,6 @@ export class UpdatePostUseCase {
         ? extractTextFromTiptap(input.content)
         : null;
       post.updateContent(input.content, contentText);
-    }
-    if (input.status) {
-      // Note: Status transitions should use specific domain methods
-      // This is a generic update - consider using publish(), archive(), etc.
-      throw new Error(
-        "Direct status update not allowed. Use specific transition methods (publish, archive, etc.)",
-      );
     }
     if (input.publishAt !== undefined) {
       post.updatePublishDate(input.publishAt);

@@ -10,4 +10,5 @@ export * from "./prisma-post-reaction.mapper";
 export * from "./prisma-post-comment.mapper";
 export * from "./prisma-post-approval-request.mapper";
 export * from "./prisma-campus-setting.mapper";
-export * from "./prisma-student-attendance.mapper";
+export * from "./prisma-student-attendance-summary.mapper";
+export * from "./prisma-student-attendance-log.mapper";

@@ -10,7 +10,7 @@ import {
   IsObject,
 } from "class-validator";
 import { Type } from "class-transformer";
-import { PostStatus, AudienceType } from "@/domain/content-management";
+import { AudienceType } from "@/domain/content-management";
 import { ApiProperty } from "@nestjs/swagger";
 
 class UpdateAudienceDto {
@@ -48,16 +48,6 @@ export class UpdatePostRequest {
   @IsOptional()
   @IsObject()
   content?: Record<string, unknown>;
-
-  @ApiProperty({
-    description: "The status of the post (not allowed for direct update)",
-    enum: PostStatus,
-    required: false,
-    deprecated: true,
-  })
-  @IsOptional()
-  @IsEnum(PostStatus)
-  status?: PostStatus;
 
   @ApiProperty({
     description: "The date the post should be published",

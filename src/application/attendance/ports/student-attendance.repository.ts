@@ -4,80 +4,132 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { StudentAttendance } from "@/domain/attendance/entities/student-attendance.entity";
+import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
+import { StudentAttendanceLog } from "@/domain/attendance/entities/student-attendance-log.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
 export abstract class StudentAttendanceRepository {
-  /**
-   * Find attendance record by ID
-   */
-  abstract findById(id: string): Promise<StudentAttendance | null>;
+  // ==========================================
+  // Summary Methods
+  // ==========================================
 
   /**
-   * Find attendance by student and date (unique constraint)
+   * Find attendance summary by ID
+   */
+  abstract findById(id: string): Promise<StudentAttendanceSummary | null>;
+
+  /**
+   * Find attendance summary by student and date (unique constraint)
    */
   abstract findByStudentAndDate(
     studentId: string,
     date: Date,
-  ): Promise<StudentAttendance | null>;
+  ): Promise<StudentAttendanceSummary | null>;
 
   /**
-   * Find all attendance records for a class on a specific date
+   * Find all attendance summaries for a class on a specific date
    */
   abstract findByClassAndDate(
     classId: string,
     date: Date,
-  ): Promise<StudentAttendance[]>;
+  ): Promise<StudentAttendanceSummary[]>;
 
   /**
-   * Find attendance records for a student within a date range
+   * Find attendance summaries for a student within a date range
    */
   abstract findByStudentDateRange(
     studentId: string,
     startDate: Date,
     endDate: Date,
-  ): Promise<StudentAttendance[]>;
+  ): Promise<StudentAttendanceSummary[]>;
 
   /**
-   * Find all attendance records for a campus with filtering, sorting, pagination
+   * Find all attendance summaries for a campus with filtering, sorting, pagination
    */
   abstract findByCampus(
     campusId: string,
     params: StandardRequest,
-  ): Promise<PaginatedResult<StudentAttendance>>;
+  ): Promise<PaginatedResult<StudentAttendanceSummary>>;
 
   /**
-   * Find all attendance records with filtering, sorting, pagination
+   * Find all attendance summaries with filtering, sorting, pagination
    */
   abstract findAll(
     params: StandardRequest,
-  ): Promise<PaginatedResult<StudentAttendance>>;
+  ): Promise<PaginatedResult<StudentAttendanceSummary>>;
 
   /**
-   * Save a new attendance record
+   * Save a new attendance summary
    */
-  abstract save(attendance: StudentAttendance): Promise<StudentAttendance>;
+  abstract save(
+    summary: StudentAttendanceSummary,
+  ): Promise<StudentAttendanceSummary>;
 
   /**
-   * Save multiple attendance records
+   * Save multiple attendance summaries
    */
   abstract saveMany(
-    attendances: StudentAttendance[],
-  ): Promise<StudentAttendance[]>;
+    summaries: StudentAttendanceSummary[],
+  ): Promise<StudentAttendanceSummary[]>;
 
   /**
-   * Update existing attendance record
+   * Update existing attendance summary
    */
-  abstract update(attendance: StudentAttendance): Promise<StudentAttendance>;
+  abstract update(
+    summary: StudentAttendanceSummary,
+  ): Promise<StudentAttendanceSummary>;
 
   /**
-   * Delete attendance record
+   * Delete attendance summary (and its logs due to cascade)
    */
   abstract delete(id: string): Promise<void>;
 
   /**
-   * Delete all attendance records for a student
+   * Delete all attendance summaries for a student
    */
   abstract deleteByStudentId(studentId: string): Promise<void>;
+
+  // ==========================================
+  // Log Methods
+  // ==========================================
+
+  /**
+   * Find all logs for a summary
+   */
+  abstract findLogsBySummaryId(summaryId: string): Promise<StudentAttendanceLog[]>;
+
+  /**
+   * Save a new attendance log
+   */
+  abstract saveLog(log: StudentAttendanceLog): Promise<StudentAttendanceLog>;
+
+  /**
+   * Save multiple attendance logs
+   */
+  abstract saveLogs(logs: StudentAttendanceLog[]): Promise<StudentAttendanceLog[]>;
+
+  /**
+   * Delete all logs for a summary
+   */
+  abstract deleteLogsBySummaryId(summaryId: string): Promise<void>;
+
+  // ==========================================
+  // Combined Operations (Transaction)
+  // ==========================================
+
+  /**
+   * Save summary with initial log (atomic operation)
+   */
+  abstract saveSummaryWithLog(
+    summary: StudentAttendanceSummary,
+    log: StudentAttendanceLog,
+  ): Promise<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>;
+
+  /**
+   * Save multiple summaries with their logs (atomic operation)
+   */
+  abstract saveManySummariesWithLogs(
+    data: Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>,
+  ): Promise<Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>>;
 }

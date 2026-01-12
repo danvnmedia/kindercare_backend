@@ -50,7 +50,7 @@ export class RejectPostUseCase {
         );
       }
 
-      const isAdmin = currentUser.roles?.some((role) => role.name === "Admin");
+      const isAdmin = currentUser.hasSystemRole();
       if (!isAdmin) {
         throw new ForbiddenException("Only administrators can reject posts");
       }

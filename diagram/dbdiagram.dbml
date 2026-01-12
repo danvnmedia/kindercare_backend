@@ -327,34 +327,82 @@ Ref: enrollment.class_id > class.id
 Ref: enrollment.student_id > student.id
 
 // ==========================================
-// ATTENDANCE (PER CAMPUS)
+// ATTENDANCE (MASTER-DETAIL ARCHITECTURE)
 // ==========================================
 
-Table student_attendance {
+// Purpose: To store the overall status of a student's attendance for a specific day.
+// Each student has only one record per day.
+Table student_attendance_summary {
   id uuid [pk]
   campus_id uuid
   student_id uuid
   class_id uuid
   date date
-  checkin_at timestamptz [null]
-  checkout_at timestamptz [null]
-  status text
-  reason text [null]
-  note text [null]
+  
+  // Status of the student's attendance for the day.
+  status text [note: 'PRESENT, ABSENT, LATE, EXCUSED, LEFT_EARLY']
+  
+  // Cached field for fast query
+  // Không cần join xuống bảng Log vẫn biết bé đến lúc mấy giờ
+  first_checkin_at timestamptz [null]
+  last_checkout_at timestamptz [null]
+  total_minutes_present int [default: 0]
+
+  // Audit: Who updated the status last?
+  updated_by_id uuid [null]
+  note text [null, note: 'Summary for the day']
+
   created_at timestamptz
   updated_at timestamptz
 
   indexes {
-    (student_id, date) [unique]
+    (student_id, date) [unique, note: 'Important: 1 student can only have 1 summary per day']
+    (campus_id, date, status) [note: 'Index for reporting: eg. how many absent today for campus']
     class_id
-    campus_id
-    date
-    status
   }
 }
-Ref: student_attendance.student_id > student.id
-Ref: student_attendance.class_id > class.id
-Ref: student_attendance.campus_id > campus.id
+
+// Purpose: Log each attendance event
+// Student can have multiple logs per day
+Table student_attendance_log {
+  id uuid [pk]
+  attendance_summary_id uuid
+  
+  // Event type
+  type text [note: 'CHECK_IN, CHECK_OUT']
+  
+  // Time of event
+  timestamp timestamptz
+  
+  // How event recorded
+  method text [note: 'TEACHER_APP, MANUAL_ENTRY...']
+  
+  // Audit device, who created it.
+  device_id text [null]
+  created_by_id uuid [null]
+  
+  // Note for event if needed
+  note text [null, note: 'eg: Left early for doctor appointment']
+  
+  // Image for event
+  image_file_id uuid [null]
+
+  created_at timestamptz
+
+  indexes {
+    attendance_summary_id
+    timestamp
+    created_by_id
+  }
+}
+
+Ref: student_attendance_log.attendance_summary_id > student_attendance_summary.id [delete: cascade]
+Ref: student_attendance_summary.campus_id > campus.id
+Ref: student_attendance_summary.student_id > student.id
+Ref: student_attendance_summary.class_id > class.id
+Ref: student_attendance_summary.updated_by_id > user.id 
+Ref: student_attendance_log.created_by_id > user.id 
+Ref: student_attendance_log.image_file_id > file.id 
 
 // ==========================================
 // FILES (PER CAMPUS)

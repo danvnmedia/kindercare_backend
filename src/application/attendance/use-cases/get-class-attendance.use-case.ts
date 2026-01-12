@@ -5,7 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { StudentAttendance } from "@/domain/attendance/entities/student-attendance.entity";
+import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
 import { StudentAttendanceRepository } from "../ports/student-attendance.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 
@@ -26,7 +26,9 @@ export class GetClassAttendanceUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(input: GetClassAttendanceInput): Promise<StudentAttendance[]> {
+  async execute(
+    input: GetClassAttendanceInput,
+  ): Promise<StudentAttendanceSummary[]> {
     const dateStr = input.date.toISOString().split("T")[0];
     this.logger.log(
       `Getting attendance for class ${input.classId} on ${dateStr}`,
@@ -41,13 +43,13 @@ export class GetClassAttendanceUseCase {
       throw new BadRequestException(`Class does not belong to this campus`);
     }
 
-    // Step 2: Get attendance records
-    const attendances = await this.attendanceRepository.findByClassAndDate(
+    // Step 2: Get attendance summaries
+    const summaries = await this.attendanceRepository.findByClassAndDate(
       input.classId,
       input.date,
     );
 
-    this.logger.log(`Found ${attendances.length} attendance records`);
-    return attendances;
+    this.logger.log(`Found ${summaries.length} attendance records`);
+    return summaries;
   }
 }

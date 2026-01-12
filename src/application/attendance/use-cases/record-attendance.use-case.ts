@@ -6,8 +6,11 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { StudentAttendance } from "@/domain/attendance/entities/student-attendance.entity";
+import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
+import { StudentAttendanceLog } from "@/domain/attendance/entities/student-attendance-log.entity";
 import { AttendanceStatus } from "@/domain/attendance/enums/attendance-status.enum";
+import { AttendanceLogType } from "@/domain/attendance/enums/attendance-log-type.enum";
+import { AttendanceLogMethod } from "@/domain/attendance/enums/attendance-log-method.enum";
 import { StudentAttendanceRepository } from "../ports/student-attendance.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
@@ -19,8 +22,17 @@ export interface RecordAttendanceInput {
   date: Date;
   status?: AttendanceStatus;
   checkinAt?: Date;
-  reason?: string;
   note?: string;
+  // Log-specific fields
+  method?: AttendanceLogMethod;
+  deviceId?: string;
+  createdById?: string;
+  imageFileId?: string;
+}
+
+export interface RecordAttendanceResult {
+  summary: StudentAttendanceSummary;
+  log: StudentAttendanceLog;
 }
 
 @Injectable()
@@ -36,7 +48,7 @@ export class RecordAttendanceUseCase {
     private readonly studentRepository: StudentRepository,
   ) {}
 
-  async execute(input: RecordAttendanceInput): Promise<StudentAttendance> {
+  async execute(input: RecordAttendanceInput): Promise<RecordAttendanceResult> {
     this.logger.log(
       `Recording attendance for student ${input.studentId} on ${input.date.toISOString().split("T")[0]}`,
     );
@@ -73,21 +85,41 @@ export class RecordAttendanceUseCase {
       );
     }
 
-    // Step 4: Create and save attendance record
-    const attendance = StudentAttendance.create({
+    // Step 4: Determine check-in time
+    const checkinTime = input.checkinAt ?? new Date();
+
+    // Step 5: Create attendance summary
+    const summary = StudentAttendanceSummary.create({
       campusId: input.campusId,
       studentId: input.studentId,
       classId: input.classId,
       date: input.date,
       status: input.status ?? AttendanceStatus.PRESENT,
-      checkinAt: input.checkinAt ?? null,
-      reason: input.reason ?? null,
+      firstCheckinAt: checkinTime,
       note: input.note ?? null,
     });
 
-    const savedAttendance = await this.attendanceRepository.save(attendance);
-    this.logger.log(`Attendance recorded: ${savedAttendance.id}`);
+    // Step 6: Create initial CHECK_IN log
+    const log = StudentAttendanceLog.create({
+      attendanceSummaryId: summary.id, // Will be set properly by repository
+      type: AttendanceLogType.CHECK_IN,
+      timestamp: checkinTime,
+      method: input.method ?? AttendanceLogMethod.TEACHER_APP,
+      deviceId: input.deviceId ?? null,
+      createdById: input.createdById ?? null,
+      note: input.note ?? null,
+      imageFileId: input.imageFileId ?? null,
+    });
 
-    return savedAttendance;
+    // Step 7: Save both atomically
+    const result = await this.attendanceRepository.saveSummaryWithLog(
+      summary,
+      log,
+    );
+    this.logger.log(
+      `Attendance recorded: summary=${result.summary.id}, log=${result.log.id}`,
+    );
+
+    return result;
   }
 }

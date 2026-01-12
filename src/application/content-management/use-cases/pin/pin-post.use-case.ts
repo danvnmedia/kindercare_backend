@@ -36,7 +36,7 @@ export class PinPostUseCase {
       this.logger.log(`Pinning post: ${postId}`);
 
       // Validate admin permission
-      const isAdmin = currentUser.roles?.some((role) => role.name === "Admin");
+      const isAdmin = currentUser.hasSystemRole();
       if (!isAdmin) {
         throw new ForbiddenException("Only administrators can pin posts");
       }

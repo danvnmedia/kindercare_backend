@@ -1,13 +1,15 @@
 import {
   Injectable,
   Inject,
-  ConflictException,
   BadRequestException,
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { StudentAttendance } from "@/domain/attendance/entities/student-attendance.entity";
+import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
+import { StudentAttendanceLog } from "@/domain/attendance/entities/student-attendance-log.entity";
 import { AttendanceStatus } from "@/domain/attendance/enums/attendance-status.enum";
+import { AttendanceLogType } from "@/domain/attendance/enums/attendance-log-type.enum";
+import { AttendanceLogMethod } from "@/domain/attendance/enums/attendance-log-method.enum";
 import { StudentAttendanceRepository } from "../ports/student-attendance.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
@@ -16,8 +18,12 @@ export interface AttendanceRecord {
   studentId: string;
   status?: AttendanceStatus;
   checkinAt?: Date;
-  reason?: string;
   note?: string;
+  // Log-specific fields
+  method?: AttendanceLogMethod;
+  deviceId?: string;
+  createdById?: string;
+  imageFileId?: string;
 }
 
 export interface BulkRecordAttendanceInput {
@@ -25,10 +31,13 @@ export interface BulkRecordAttendanceInput {
   classId: string;
   date: Date;
   records: AttendanceRecord[];
+  // Default method for all records if not specified per record
+  defaultMethod?: AttendanceLogMethod;
+  defaultCreatedById?: string;
 }
 
 export interface BulkRecordAttendanceResult {
-  created: StudentAttendance[];
+  created: Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>;
   skipped: Array<{ studentId: string; reason: string }>;
 }
 
@@ -62,9 +71,11 @@ export class BulkRecordAttendanceUseCase {
       throw new BadRequestException(`Class does not belong to this campus`);
     }
 
-    const created: StudentAttendance[] = [];
     const skipped: Array<{ studentId: string; reason: string }> = [];
-    const toCreate: StudentAttendance[] = [];
+    const toCreate: Array<{
+      summary: StudentAttendanceSummary;
+      log: StudentAttendanceLog;
+    }> = [];
 
     // Step 2: Validate each record and prepare for creation
     for (const record of input.records) {
@@ -100,19 +111,36 @@ export class BulkRecordAttendanceUseCase {
           continue;
         }
 
-        // Create attendance entity
-        const attendance = StudentAttendance.create({
+        // Determine check-in time
+        const checkinTime = record.checkinAt ?? new Date();
+
+        // Create attendance summary
+        const summary = StudentAttendanceSummary.create({
           campusId: input.campusId,
           studentId: record.studentId,
           classId: input.classId,
           date: input.date,
           status: record.status ?? AttendanceStatus.PRESENT,
-          checkinAt: record.checkinAt ?? null,
-          reason: record.reason ?? null,
+          firstCheckinAt: checkinTime,
           note: record.note ?? null,
         });
 
-        toCreate.push(attendance);
+        // Create initial CHECK_IN log
+        const log = StudentAttendanceLog.create({
+          attendanceSummaryId: summary.id, // Will be set properly by repository
+          type: AttendanceLogType.CHECK_IN,
+          timestamp: checkinTime,
+          method:
+            record.method ??
+            input.defaultMethod ??
+            AttendanceLogMethod.TEACHER_APP,
+          deviceId: record.deviceId ?? null,
+          createdById: record.createdById ?? input.defaultCreatedById ?? null,
+          note: record.note ?? null,
+          imageFileId: record.imageFileId ?? null,
+        });
+
+        toCreate.push({ summary, log });
       } catch (error) {
         skipped.push({
           studentId: record.studentId,
@@ -121,11 +149,16 @@ export class BulkRecordAttendanceUseCase {
       }
     }
 
-    // Step 3: Save all valid attendance records
+    // Step 3: Save all valid attendance records atomically
+    let created: Array<{
+      summary: StudentAttendanceSummary;
+      log: StudentAttendanceLog;
+    }> = [];
+
     if (toCreate.length > 0) {
-      const savedAttendances =
-        await this.attendanceRepository.saveMany(toCreate);
-      created.push(...savedAttendances);
+      created = await this.attendanceRepository.saveManySummariesWithLogs(
+        toCreate,
+      );
     }
 
     this.logger.log(

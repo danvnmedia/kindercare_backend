@@ -43,22 +43,17 @@ export class PrismaUserMapper {
       userRoles?: PrismaUserRoleWithRole[];
     },
   ): User {
-    // Build role assignments with campus context
     const roleAssignments: UserRoleAssignment[] =
       prismaUser.userRoles?.map((ur) => ({
         role: PrismaRoleMapper.toDomain(ur.role),
-        campusId: ur.campusId, // Preserve the assignment campus context
+        campusId: ur.campusId,
         assignedAt: ur.assignedAt,
       })) ?? [];
-
-    // Also maintain backward-compatible roles array
-    const roles = roleAssignments.map((ra) => ra.role);
 
     return User.reconstitute(
       {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
-        roles,
         roleAssignments,
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,
@@ -76,7 +71,6 @@ export class PrismaUserMapper {
       {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
-        roles: [],
         roleAssignments: [],
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,

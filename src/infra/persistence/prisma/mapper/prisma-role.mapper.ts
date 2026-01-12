@@ -78,7 +78,6 @@ export class PrismaRoleMapper {
       campusId: role.campusId ?? null,
       isSystemDefault: role.isSystemDefault ?? false,
       isSystemRole: role.isSystemRole ?? false,
-      permissions: {}, // Deprecated field, keep empty
     };
   }
 

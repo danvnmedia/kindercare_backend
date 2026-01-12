@@ -66,11 +66,8 @@ export class DeletePostCommentUseCase {
       return true;
     }
 
-    // Check if user is admin
-    const isAdmin = user.roles?.some(
-      (role) => role.name === "Admin" || role.name === "admin",
-    );
-    if (isAdmin) {
+    // Check if user has system role (admin bypass)
+    if (user.hasSystemRole()) {
       return true;
     }
 

@@ -39,8 +39,7 @@ export interface UserProps {
   isActive: boolean;
   name?: string;
   email?: string;
-  roles?: Role[]; // Kept for backward compatibility
-  roleAssignments?: UserRoleAssignment[]; // New: role assignments with campus context
+  roleAssignments?: UserRoleAssignment[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,10 +85,6 @@ export class User extends Entity<UserProps> {
 
   get email(): string | undefined {
     return this.props.email;
-  }
-
-  get roles(): Role[] | undefined {
-    return this.props.roles;
   }
 
   get roleAssignments(): UserRoleAssignment[] | undefined {
@@ -139,21 +134,36 @@ export class User extends Entity<UserProps> {
   }
 
   /**
-   * Check if user has specific role
+   * Check if user has specific role by ID
    */
   public hasRole(roleId: string): boolean {
-    return this.props.roles?.some((role) => role.id === roleId) ?? false;
+    return (
+      this.props.roleAssignments?.some(
+        (assignment) => assignment.role.id === roleId,
+      ) ?? false
+    );
   }
 
   /**
-   * Check if user has any of the specified roles
+   * Check if user has any system role (grants global admin bypass)
+   */
+  public hasSystemRole(): boolean {
+    return (
+      this.props.roleAssignments?.some(
+        (assignment) => assignment.role.isSystemRole,
+      ) ?? false
+    );
+  }
+
+  /**
+   * Check if user has any of the specified roles (by ID)
    */
   public hasAnyRole(roleIds: string[]): boolean {
     return roleIds.some((roleId) => this.hasRole(roleId));
   }
 
   /**
-   * Check if user has all specified roles
+   * Check if user has all specified roles (by ID)
    */
   public hasAllRoles(roleIds: string[]): boolean {
     return roleIds.every((roleId) => this.hasRole(roleId));
@@ -292,7 +302,6 @@ export class User extends Entity<UserProps> {
       isActive: props.isActive ?? true,
       name: props.name,
       email: props.email,
-      roles: [],
       roleAssignments: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -302,7 +311,7 @@ export class User extends Entity<UserProps> {
   }
 
   /**
-   * Reconstitute User entity from persistence (with all fields including roles)
+   * Reconstitute User entity from persistence
    * Used by mappers when loading from database
    */
   public static reconstitute(props: UserProps, id: string): User {

@@ -1,0 +1,175 @@
+{
+  "taskId": "8721pv",
+  "currentVersion": 3,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "8721pv",
+      "version": 1,
+      "timestamp": "2026-01-12T05:00:44.231Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "# Implementation Plan: Attendance Master-Detail Migration\n\n## Phase 1: Schema & Database Layer\n\n### 1.1 Update Prisma Schema (prisma/schema.prisma)\n- Rename StudentAttendance model to StudentAttendanceSummary\n- Update fields: checkinAt->firstCheckinAt, checkoutAt->lastCheckoutAt\n- Add: totalMinutesPresent, updatedById, updatedBy relation\n- Remove: reason field\n- Add status: LEFT_EARLY\n- Create StudentAttendanceLog model (type, timestamp, method, deviceId, createdById, note, imageFileId)\n\n### 1.2 Database Migration\n- Generate: npx prisma migrate dev --name attendance_master_detail\n- Migrate existing data: create logs from existing checkin/checkout times\n\n## Phase 2: Domain Layer\n\n### 2.1 Enums (src/domain/attendance/enums/)\n- Add AttendanceLogType: CHECK_IN, CHECK_OUT\n- Add AttendanceLogMethod: TEACHER_APP, MANUAL_ENTRY\n- Update AttendanceStatus: add LEFT_EARLY\n\n### 2.2 Entities (src/domain/attendance/entities/)\n- Rename StudentAttendance -> StudentAttendanceSummary\n- Create StudentAttendanceLog entity (NEW)\n\n## Phase 3: Application Layer\n\n### 3.1 Repository Port\n- Add: findLogsBySummaryId(), saveLog(), saveLogs()\n- Update return types to Summary entity\n\n### 3.2 Use Cases\n- record-attendance: create summary + CHECK_IN log\n- update-attendance: create logs on time updates, recalculate cached times\n- bulk-record-attendance: transaction with summary + logs\n- get-*: query summaries (backward compatible)\n\n## Phase 4: Infrastructure Layer\n\n### 4.1 Mappers\n- Rename mapper to PrismaStudentAttendanceSummaryMapper\n- Create PrismaStudentAttendanceLogMapper (NEW)\n\n### 4.2 Repository Implementation\n- Update prisma.studentAttendance -> prisma.studentAttendanceSummary\n- Implement log methods\n\n## Phase 5: HTTP/API Layer\n\n### 5.1 DTOs\n- Keep response structure for backward compatibility\n- Add optional logs field\n- Create StudentAttendanceLogResponse (optional)\n\n### 5.2 Controller\n- Update response mappings\n- Optional: GET /:summaryId/logs endpoint\n\n## Phase 6: Testing & Validation\n- Update unit tests\n- Add log creation tests\n- Validate data migration\n\n## Files Summary\n\nCritical (14): schema.prisma, entity, enums, repository port, 6 use cases, repository impl, mapper, controller, response DTO\n\nIndex files (6): entities/index, enums/index, ports/index, use-cases/index, repositories/index, mapper/index\n\nNew files (3): migration.sql, student-attendance-log.entity.ts, prisma-student-attendance-log.mapper.ts\n\nOptional (4): log response DTO, dto index, seed-permissions, dbdiagram (done)"
+        }
+      ],
+      "snapshot": {
+        "title": "Migrate student attendance to master-detail architecture (summary + log)",
+        "description": "Refactor the attendance system from single table to master-detail architecture as defined in dbdiagram.dbml.\n\n## Schema Changes (from git diff)\n**OLD:** `student_attendance` (single table with checkin_at/checkout_at)\n**NEW:** \n- `student_attendance_summary` - One record per student per day (master)\n- `student_attendance_log` - Multiple check-in/check-out events per day (detail)\n\n## Key Field Changes\n- `checkin_at` → `first_checkin_at` (cached from logs)\n- `checkout_at` → `last_checkout_at` (cached from logs)\n- Added: `total_minutes_present`, `updated_by_id`\n- Removed: `reason` field\n- New status: `LEFT_EARLY`\n\n## Log Table Fields\n- type (CHECK_IN, CHECK_OUT)\n- timestamp, method, device_id\n- created_by_id, note, image_file_id\n\nReference: @doc/diagram/dbdiagram.dbml",
+        "status": "todo",
+        "priority": "high",
+        "labels": [
+          "refactor",
+          "database",
+          "attendance"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Prisma schema updated with StudentAttendanceSummary and StudentAttendanceLog models"
+          },
+          {
+            "completed": false,
+            "text": "Database migration created and applied successfully"
+          },
+          {
+            "completed": false,
+            "text": "Domain entities updated (summary + log)"
+          },
+          {
+            "completed": false,
+            "text": "Repository port and implementation updated"
+          },
+          {
+            "completed": false,
+            "text": "All use cases updated to work with new architecture"
+          },
+          {
+            "completed": false,
+            "text": "API responses remain backward compatible"
+          },
+          {
+            "completed": false,
+            "text": "Existing data migrated correctly"
+          }
+        ],
+        "implementationPlan": "# Implementation Plan: Attendance Master-Detail Migration\n\n## Phase 1: Schema & Database Layer\n\n### 1.1 Update Prisma Schema (prisma/schema.prisma)\n- Rename StudentAttendance model to StudentAttendanceSummary\n- Update fields: checkinAt->firstCheckinAt, checkoutAt->lastCheckoutAt\n- Add: totalMinutesPresent, updatedById, updatedBy relation\n- Remove: reason field\n- Add status: LEFT_EARLY\n- Create StudentAttendanceLog model (type, timestamp, method, deviceId, createdById, note, imageFileId)\n\n### 1.2 Database Migration\n- Generate: npx prisma migrate dev --name attendance_master_detail\n- Migrate existing data: create logs from existing checkin/checkout times\n\n## Phase 2: Domain Layer\n\n### 2.1 Enums (src/domain/attendance/enums/)\n- Add AttendanceLogType: CHECK_IN, CHECK_OUT\n- Add AttendanceLogMethod: TEACHER_APP, MANUAL_ENTRY\n- Update AttendanceStatus: add LEFT_EARLY\n\n### 2.2 Entities (src/domain/attendance/entities/)\n- Rename StudentAttendance -> StudentAttendanceSummary\n- Create StudentAttendanceLog entity (NEW)\n\n## Phase 3: Application Layer\n\n### 3.1 Repository Port\n- Add: findLogsBySummaryId(), saveLog(), saveLogs()\n- Update return types to Summary entity\n\n### 3.2 Use Cases\n- record-attendance: create summary + CHECK_IN log\n- update-attendance: create logs on time updates, recalculate cached times\n- bulk-record-attendance: transaction with summary + logs\n- get-*: query summaries (backward compatible)\n\n## Phase 4: Infrastructure Layer\n\n### 4.1 Mappers\n- Rename mapper to PrismaStudentAttendanceSummaryMapper\n- Create PrismaStudentAttendanceLogMapper (NEW)\n\n### 4.2 Repository Implementation\n- Update prisma.studentAttendance -> prisma.studentAttendanceSummary\n- Implement log methods\n\n## Phase 5: HTTP/API Layer\n\n### 5.1 DTOs\n- Keep response structure for backward compatibility\n- Add optional logs field\n- Create StudentAttendanceLogResponse (optional)\n\n### 5.2 Controller\n- Update response mappings\n- Optional: GET /:summaryId/logs endpoint\n\n## Phase 6: Testing & Validation\n- Update unit tests\n- Add log creation tests\n- Validate data migration\n\n## Files Summary\n\nCritical (14): schema.prisma, entity, enums, repository port, 6 use cases, repository impl, mapper, controller, response DTO\n\nIndex files (6): entities/index, enums/index, ports/index, use-cases/index, repositories/index, mapper/index\n\nNew files (3): migration.sql, student-attendance-log.entity.ts, prisma-student-attendance-log.mapper.ts\n\nOptional (4): log response DTO, dto index, seed-permissions, dbdiagram (done)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "8721pv",
+      "version": 2,
+      "timestamp": "2026-01-12T19:36:09.352Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "title": "Migrate student attendance to master-detail architecture (summary + log)",
+        "description": "Refactor the attendance system from single table to master-detail architecture as defined in dbdiagram.dbml.\n\n## Schema Changes (from git diff)\n**OLD:** `student_attendance` (single table with checkin_at/checkout_at)\n**NEW:** \n- `student_attendance_summary` - One record per student per day (master)\n- `student_attendance_log` - Multiple check-in/check-out events per day (detail)\n\n## Key Field Changes\n- `checkin_at` → `first_checkin_at` (cached from logs)\n- `checkout_at` → `last_checkout_at` (cached from logs)\n- Added: `total_minutes_present`, `updated_by_id`\n- Removed: `reason` field\n- New status: `LEFT_EARLY`\n\n## Log Table Fields\n- type (CHECK_IN, CHECK_OUT)\n- timestamp, method, device_id\n- created_by_id, note, image_file_id\n\nReference: @doc/diagram/dbdiagram.dbml",
+        "status": "in-progress",
+        "priority": "high",
+        "labels": [
+          "refactor",
+          "database",
+          "attendance"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Prisma schema updated with StudentAttendanceSummary and StudentAttendanceLog models"
+          },
+          {
+            "completed": false,
+            "text": "Database migration created and applied successfully"
+          },
+          {
+            "completed": false,
+            "text": "Domain entities updated (summary + log)"
+          },
+          {
+            "completed": false,
+            "text": "Repository port and implementation updated"
+          },
+          {
+            "completed": false,
+            "text": "All use cases updated to work with new architecture"
+          },
+          {
+            "completed": false,
+            "text": "API responses remain backward compatible"
+          },
+          {
+            "completed": false,
+            "text": "Existing data migrated correctly"
+          }
+        ],
+        "implementationPlan": "# Implementation Plan: Attendance Master-Detail Migration\n\n## Phase 1: Schema & Database Layer\n\n### 1.1 Update Prisma Schema (prisma/schema.prisma)\n- Rename StudentAttendance model to StudentAttendanceSummary\n- Update fields: checkinAt->firstCheckinAt, checkoutAt->lastCheckoutAt\n- Add: totalMinutesPresent, updatedById, updatedBy relation\n- Remove: reason field\n- Add status: LEFT_EARLY\n- Create StudentAttendanceLog model (type, timestamp, method, deviceId, createdById, note, imageFileId)\n\n### 1.2 Database Migration\n- Generate: npx prisma migrate dev --name attendance_master_detail\n- Migrate existing data: create logs from existing checkin/checkout times\n\n## Phase 2: Domain Layer\n\n### 2.1 Enums (src/domain/attendance/enums/)\n- Add AttendanceLogType: CHECK_IN, CHECK_OUT\n- Add AttendanceLogMethod: TEACHER_APP, MANUAL_ENTRY\n- Update AttendanceStatus: add LEFT_EARLY\n\n### 2.2 Entities (src/domain/attendance/entities/)\n- Rename StudentAttendance -> StudentAttendanceSummary\n- Create StudentAttendanceLog entity (NEW)\n\n## Phase 3: Application Layer\n\n### 3.1 Repository Port\n- Add: findLogsBySummaryId(), saveLog(), saveLogs()\n- Update return types to Summary entity\n\n### 3.2 Use Cases\n- record-attendance: create summary + CHECK_IN log\n- update-attendance: create logs on time updates, recalculate cached times\n- bulk-record-attendance: transaction with summary + logs\n- get-*: query summaries (backward compatible)\n\n## Phase 4: Infrastructure Layer\n\n### 4.1 Mappers\n- Rename mapper to PrismaStudentAttendanceSummaryMapper\n- Create PrismaStudentAttendanceLogMapper (NEW)\n\n### 4.2 Repository Implementation\n- Update prisma.studentAttendance -> prisma.studentAttendanceSummary\n- Implement log methods\n\n## Phase 5: HTTP/API Layer\n\n### 5.1 DTOs\n- Keep response structure for backward compatibility\n- Add optional logs field\n- Create StudentAttendanceLogResponse (optional)\n\n### 5.2 Controller\n- Update response mappings\n- Optional: GET /:summaryId/logs endpoint\n\n## Phase 6: Testing & Validation\n- Update unit tests\n- Add log creation tests\n- Validate data migration\n\n## Files Summary\n\nCritical (14): schema.prisma, entity, enums, repository port, 6 use cases, repository impl, mapper, controller, response DTO\n\nIndex files (6): entities/index, enums/index, ports/index, use-cases/index, repositories/index, mapper/index\n\nNew files (3): migration.sql, student-attendance-log.entity.ts, prisma-student-attendance-log.mapper.ts\n\nOptional (4): log response DTO, dto index, seed-permissions, dbdiagram (done)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "8721pv",
+      "version": 3,
+      "timestamp": "2026-01-12T19:54:49.792Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        },
+        {
+          "field": "implementationNotes",
+          "newValue": "All 6 phases completed successfully. Migration from single StudentAttendance table to master-detail architecture (StudentAttendanceSummary + StudentAttendanceLog) complete. Backward compatibility maintained."
+        }
+      ],
+      "snapshot": {
+        "title": "Migrate student attendance to master-detail architecture (summary + log)",
+        "description": "Refactor the attendance system from single table to master-detail architecture as defined in dbdiagram.dbml.\n\n## Schema Changes (from git diff)\n**OLD:** `student_attendance` (single table with checkin_at/checkout_at)\n**NEW:** \n- `student_attendance_summary` - One record per student per day (master)\n- `student_attendance_log` - Multiple check-in/check-out events per day (detail)\n\n## Key Field Changes\n- `checkin_at` → `first_checkin_at` (cached from logs)\n- `checkout_at` → `last_checkout_at` (cached from logs)\n- Added: `total_minutes_present`, `updated_by_id`\n- Removed: `reason` field\n- New status: `LEFT_EARLY`\n\n## Log Table Fields\n- type (CHECK_IN, CHECK_OUT)\n- timestamp, method, device_id\n- created_by_id, note, image_file_id\n\nReference: @doc/diagram/dbdiagram.dbml",
+        "status": "done",
+        "priority": "high",
+        "labels": [
+          "refactor",
+          "database",
+          "attendance"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Prisma schema updated with StudentAttendanceSummary and StudentAttendanceLog models"
+          },
+          {
+            "completed": false,
+            "text": "Database migration created and applied successfully"
+          },
+          {
+            "completed": false,
+            "text": "Domain entities updated (summary + log)"
+          },
+          {
+            "completed": false,
+            "text": "Repository port and implementation updated"
+          },
+          {
+            "completed": false,
+            "text": "All use cases updated to work with new architecture"
+          },
+          {
+            "completed": false,
+            "text": "API responses remain backward compatible"
+          },
+          {
+            "completed": false,
+            "text": "Existing data migrated correctly"
+          }
+        ],
+        "implementationPlan": "# Implementation Plan: Attendance Master-Detail Migration\n\n## Phase 1: Schema & Database Layer\n\n### 1.1 Update Prisma Schema (prisma/schema.prisma)\n- Rename StudentAttendance model to StudentAttendanceSummary\n- Update fields: checkinAt->firstCheckinAt, checkoutAt->lastCheckoutAt\n- Add: totalMinutesPresent, updatedById, updatedBy relation\n- Remove: reason field\n- Add status: LEFT_EARLY\n- Create StudentAttendanceLog model (type, timestamp, method, deviceId, createdById, note, imageFileId)\n\n### 1.2 Database Migration\n- Generate: npx prisma migrate dev --name attendance_master_detail\n- Migrate existing data: create logs from existing checkin/checkout times\n\n## Phase 2: Domain Layer\n\n### 2.1 Enums (src/domain/attendance/enums/)\n- Add AttendanceLogType: CHECK_IN, CHECK_OUT\n- Add AttendanceLogMethod: TEACHER_APP, MANUAL_ENTRY\n- Update AttendanceStatus: add LEFT_EARLY\n\n### 2.2 Entities (src/domain/attendance/entities/)\n- Rename StudentAttendance -> StudentAttendanceSummary\n- Create StudentAttendanceLog entity (NEW)\n\n## Phase 3: Application Layer\n\n### 3.1 Repository Port\n- Add: findLogsBySummaryId(), saveLog(), saveLogs()\n- Update return types to Summary entity\n\n### 3.2 Use Cases\n- record-attendance: create summary + CHECK_IN log\n- update-attendance: create logs on time updates, recalculate cached times\n- bulk-record-attendance: transaction with summary + logs\n- get-*: query summaries (backward compatible)\n\n## Phase 4: Infrastructure Layer\n\n### 4.1 Mappers\n- Rename mapper to PrismaStudentAttendanceSummaryMapper\n- Create PrismaStudentAttendanceLogMapper (NEW)\n\n### 4.2 Repository Implementation\n- Update prisma.studentAttendance -> prisma.studentAttendanceSummary\n- Implement log methods\n\n## Phase 5: HTTP/API Layer\n\n### 5.1 DTOs\n- Keep response structure for backward compatibility\n- Add optional logs field\n- Create StudentAttendanceLogResponse (optional)\n\n### 5.2 Controller\n- Update response mappings\n- Optional: GET /:summaryId/logs endpoint\n\n## Phase 6: Testing & Validation\n- Update unit tests\n- Add log creation tests\n- Validate data migration\n\n## Files Summary\n\nCritical (14): schema.prisma, entity, enums, repository port, 6 use cases, repository impl, mapper, controller, response DTO\n\nIndex files (6): entities/index, enums/index, ports/index, use-cases/index, repositories/index, mapper/index\n\nNew files (3): migration.sql, student-attendance-log.entity.ts, prisma-student-attendance-log.mapper.ts\n\nOptional (4): log response DTO, dto index, seed-permissions, dbdiagram (done)",
+        "implementationNotes": "All 6 phases completed successfully. Migration from single StudentAttendance table to master-detail architecture (StudentAttendanceSummary + StudentAttendanceLog) complete. Backward compatibility maintained."
+      }
+    }
+  ]
+}

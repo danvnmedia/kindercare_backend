@@ -1,0 +1,213 @@
+{
+  "taskId": "1bv0p9",
+  "currentVersion": 4,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "1bv0p9",
+      "version": 1,
+      "timestamp": "2026-01-12T19:35:53.706Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "## Implementation Steps\n\n### 1. Update PrismaStudentAttendanceMapper → PrismaStudentAttendanceSummaryMapper\n\nFile: prisma-student-attendance-summary.mapper.ts (rename)\n\nField mappings:\n- checkinAt → firstCheckinAt\n- checkoutAt → lastCheckoutAt  \n- Add: totalMinutesPresent\n- Add: updatedById, updatedBy relation\n- Remove: reason\n\nMethods:\n- toDomain(prisma): maps all fields including relations\n- toDomainSimple(prisma): without relations\n- toPrisma(entity): for create operations\n- toPrismaUpdate(entity): for update operations\n\n### 2. Create PrismaStudentAttendanceLogMapper (NEW)\n\nFile: prisma-student-attendance-log.mapper.ts\n\nMethods:\n- toDomain(prismaLog): StudentAttendanceLog entity\n- toPrisma(log): Prisma create input\n- toDomainArray(prismaLogs): StudentAttendanceLog[]\n\n### 3. Update Repository (prisma-student-attendance.repository.ts)\n\nTable reference: prisma.studentAttendance → prisma.studentAttendanceSummary\n\nUpdate all existing methods to use new table/mapper\n\nImplement new log methods:\n- findLogsBySummaryId: query studentAttendanceLog by summaryId\n- saveLog: create single log record\n- saveLogs: create multiple logs in transaction\n- deleteLogsBySummaryId: delete all logs for summary\n\n### 4. Update index files\n- mapper/index.ts: export both mappers\n- repositories/index.ts: update export if needed"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4: Update infrastructure layer (mappers and repository)",
+        "description": "Update Prisma mappers and repository implementation.\n\nFiles:\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance-log.mapper.ts (NEW)\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/persistence/prisma/repositories/index.ts",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "infrastructure",
+          "prisma"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Summary mapper updated with renamed fields"
+          },
+          {
+            "completed": false,
+            "text": "Log mapper created"
+          },
+          {
+            "completed": false,
+            "text": "Repository uses studentAttendanceSummary table"
+          },
+          {
+            "completed": false,
+            "text": "Log methods implemented in repository"
+          }
+        ],
+        "implementationPlan": "## Implementation Steps\n\n### 1. Update PrismaStudentAttendanceMapper → PrismaStudentAttendanceSummaryMapper\n\nFile: prisma-student-attendance-summary.mapper.ts (rename)\n\nField mappings:\n- checkinAt → firstCheckinAt\n- checkoutAt → lastCheckoutAt  \n- Add: totalMinutesPresent\n- Add: updatedById, updatedBy relation\n- Remove: reason\n\nMethods:\n- toDomain(prisma): maps all fields including relations\n- toDomainSimple(prisma): without relations\n- toPrisma(entity): for create operations\n- toPrismaUpdate(entity): for update operations\n\n### 2. Create PrismaStudentAttendanceLogMapper (NEW)\n\nFile: prisma-student-attendance-log.mapper.ts\n\nMethods:\n- toDomain(prismaLog): StudentAttendanceLog entity\n- toPrisma(log): Prisma create input\n- toDomainArray(prismaLogs): StudentAttendanceLog[]\n\n### 3. Update Repository (prisma-student-attendance.repository.ts)\n\nTable reference: prisma.studentAttendance → prisma.studentAttendanceSummary\n\nUpdate all existing methods to use new table/mapper\n\nImplement new log methods:\n- findLogsBySummaryId: query studentAttendanceLog by summaryId\n- saveLog: create single log record\n- saveLogs: create multiple logs in transaction\n- deleteLogsBySummaryId: delete all logs for summary\n\n### 4. Update index files\n- mapper/index.ts: export both mappers\n- repositories/index.ts: update export if needed"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "1bv0p9",
+      "version": 2,
+      "timestamp": "2026-01-12T19:45:14.985Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4: Update infrastructure layer (mappers and repository)",
+        "description": "Update Prisma mappers and repository implementation.\n\nFiles:\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance-log.mapper.ts (NEW)\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/persistence/prisma/repositories/index.ts",
+        "status": "in-progress",
+        "priority": "medium",
+        "labels": [
+          "infrastructure",
+          "prisma"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Summary mapper updated with renamed fields"
+          },
+          {
+            "completed": false,
+            "text": "Log mapper created"
+          },
+          {
+            "completed": false,
+            "text": "Repository uses studentAttendanceSummary table"
+          },
+          {
+            "completed": false,
+            "text": "Log methods implemented in repository"
+          }
+        ],
+        "implementationPlan": "## Implementation Steps\n\n### 1. Update PrismaStudentAttendanceMapper → PrismaStudentAttendanceSummaryMapper\n\nFile: prisma-student-attendance-summary.mapper.ts (rename)\n\nField mappings:\n- checkinAt → firstCheckinAt\n- checkoutAt → lastCheckoutAt  \n- Add: totalMinutesPresent\n- Add: updatedById, updatedBy relation\n- Remove: reason\n\nMethods:\n- toDomain(prisma): maps all fields including relations\n- toDomainSimple(prisma): without relations\n- toPrisma(entity): for create operations\n- toPrismaUpdate(entity): for update operations\n\n### 2. Create PrismaStudentAttendanceLogMapper (NEW)\n\nFile: prisma-student-attendance-log.mapper.ts\n\nMethods:\n- toDomain(prismaLog): StudentAttendanceLog entity\n- toPrisma(log): Prisma create input\n- toDomainArray(prismaLogs): StudentAttendanceLog[]\n\n### 3. Update Repository (prisma-student-attendance.repository.ts)\n\nTable reference: prisma.studentAttendance → prisma.studentAttendanceSummary\n\nUpdate all existing methods to use new table/mapper\n\nImplement new log methods:\n- findLogsBySummaryId: query studentAttendanceLog by summaryId\n- saveLog: create single log record\n- saveLogs: create multiple logs in transaction\n- deleteLogsBySummaryId: delete all logs for summary\n\n### 4. Update index files\n- mapper/index.ts: export both mappers\n- repositories/index.ts: update export if needed"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "1bv0p9",
+      "version": 3,
+      "timestamp": "2026-01-12T19:47:52.792Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Summary mapper updated with renamed fields"
+            },
+            {
+              "completed": false,
+              "text": "Log mapper created"
+            },
+            {
+              "completed": false,
+              "text": "Repository uses studentAttendanceSummary table"
+            },
+            {
+              "completed": false,
+              "text": "Log methods implemented in repository"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "Summary mapper updated with renamed fields"
+            },
+            {
+              "completed": true,
+              "text": "Log mapper created"
+            },
+            {
+              "completed": true,
+              "text": "Repository uses studentAttendanceSummary table"
+            },
+            {
+              "completed": true,
+              "text": "Log methods implemented in repository"
+            }
+          ]
+        },
+        {
+          "field": "implementationNotes",
+          "newValue": "Created PrismaStudentAttendanceSummaryMapper with toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray. Created PrismaStudentAttendanceLogMapper with toDomain, toPrisma, toDomainArray. Updated repository to use studentAttendanceSummary table. Implemented all log methods: findLogsBySummaryId, saveLog, saveLogs, deleteLogsBySummaryId, saveSummaryWithLog, saveManySummariesWithLogs with transaction support."
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4: Update infrastructure layer (mappers and repository)",
+        "description": "Update Prisma mappers and repository implementation.\n\nFiles:\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance-log.mapper.ts (NEW)\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/persistence/prisma/repositories/index.ts",
+        "status": "in-progress",
+        "priority": "medium",
+        "labels": [
+          "infrastructure",
+          "prisma"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Summary mapper updated with renamed fields"
+          },
+          {
+            "completed": true,
+            "text": "Log mapper created"
+          },
+          {
+            "completed": true,
+            "text": "Repository uses studentAttendanceSummary table"
+          },
+          {
+            "completed": true,
+            "text": "Log methods implemented in repository"
+          }
+        ],
+        "implementationPlan": "## Implementation Steps\n\n### 1. Update PrismaStudentAttendanceMapper → PrismaStudentAttendanceSummaryMapper\n\nFile: prisma-student-attendance-summary.mapper.ts (rename)\n\nField mappings:\n- checkinAt → firstCheckinAt\n- checkoutAt → lastCheckoutAt  \n- Add: totalMinutesPresent\n- Add: updatedById, updatedBy relation\n- Remove: reason\n\nMethods:\n- toDomain(prisma): maps all fields including relations\n- toDomainSimple(prisma): without relations\n- toPrisma(entity): for create operations\n- toPrismaUpdate(entity): for update operations\n\n### 2. Create PrismaStudentAttendanceLogMapper (NEW)\n\nFile: prisma-student-attendance-log.mapper.ts\n\nMethods:\n- toDomain(prismaLog): StudentAttendanceLog entity\n- toPrisma(log): Prisma create input\n- toDomainArray(prismaLogs): StudentAttendanceLog[]\n\n### 3. Update Repository (prisma-student-attendance.repository.ts)\n\nTable reference: prisma.studentAttendance → prisma.studentAttendanceSummary\n\nUpdate all existing methods to use new table/mapper\n\nImplement new log methods:\n- findLogsBySummaryId: query studentAttendanceLog by summaryId\n- saveLog: create single log record\n- saveLogs: create multiple logs in transaction\n- deleteLogsBySummaryId: delete all logs for summary\n\n### 4. Update index files\n- mapper/index.ts: export both mappers\n- repositories/index.ts: update export if needed",
+        "implementationNotes": "Created PrismaStudentAttendanceSummaryMapper with toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray. Created PrismaStudentAttendanceLogMapper with toDomain, toPrisma, toDomainArray. Updated repository to use studentAttendanceSummary table. Implemented all log methods: findLogsBySummaryId, saveLog, saveLogs, deleteLogsBySummaryId, saveSummaryWithLog, saveManySummariesWithLogs with transaction support."
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "1bv0p9",
+      "version": 4,
+      "timestamp": "2026-01-12T19:47:54.175Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Phase 4: Update infrastructure layer (mappers and repository)",
+        "description": "Update Prisma mappers and repository implementation.\n\nFiles:\n- src/infra/persistence/prisma/mapper/prisma-student-attendance.mapper.ts\n- src/infra/persistence/prisma/mapper/prisma-student-attendance-log.mapper.ts (NEW)\n- src/infra/persistence/prisma/mapper/index.ts\n- src/infra/persistence/prisma/repositories/prisma-student-attendance.repository.ts\n- src/infra/persistence/prisma/repositories/index.ts",
+        "status": "done",
+        "priority": "medium",
+        "labels": [
+          "infrastructure",
+          "prisma"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Summary mapper updated with renamed fields"
+          },
+          {
+            "completed": true,
+            "text": "Log mapper created"
+          },
+          {
+            "completed": true,
+            "text": "Repository uses studentAttendanceSummary table"
+          },
+          {
+            "completed": true,
+            "text": "Log methods implemented in repository"
+          }
+        ],
+        "implementationPlan": "## Implementation Steps\n\n### 1. Update PrismaStudentAttendanceMapper → PrismaStudentAttendanceSummaryMapper\n\nFile: prisma-student-attendance-summary.mapper.ts (rename)\n\nField mappings:\n- checkinAt → firstCheckinAt\n- checkoutAt → lastCheckoutAt  \n- Add: totalMinutesPresent\n- Add: updatedById, updatedBy relation\n- Remove: reason\n\nMethods:\n- toDomain(prisma): maps all fields including relations\n- toDomainSimple(prisma): without relations\n- toPrisma(entity): for create operations\n- toPrismaUpdate(entity): for update operations\n\n### 2. Create PrismaStudentAttendanceLogMapper (NEW)\n\nFile: prisma-student-attendance-log.mapper.ts\n\nMethods:\n- toDomain(prismaLog): StudentAttendanceLog entity\n- toPrisma(log): Prisma create input\n- toDomainArray(prismaLogs): StudentAttendanceLog[]\n\n### 3. Update Repository (prisma-student-attendance.repository.ts)\n\nTable reference: prisma.studentAttendance → prisma.studentAttendanceSummary\n\nUpdate all existing methods to use new table/mapper\n\nImplement new log methods:\n- findLogsBySummaryId: query studentAttendanceLog by summaryId\n- saveLog: create single log record\n- saveLogs: create multiple logs in transaction\n- deleteLogsBySummaryId: delete all logs for summary\n\n### 4. Update index files\n- mapper/index.ts: export both mappers\n- repositories/index.ts: update export if needed",
+        "implementationNotes": "Created PrismaStudentAttendanceSummaryMapper with toDomain, toDomainSimple, toPrisma, toPrismaUpdate, toDomainArray. Created PrismaStudentAttendanceLogMapper with toDomain, toPrisma, toDomainArray. Updated repository to use studentAttendanceSummary table. Implemented all log methods: findLogsBySummaryId, saveLog, saveLogs, deleteLogsBySummaryId, saveSummaryWithLog, saveManySummariesWithLogs with transaction support."
+      }
+    }
+  ]
+}

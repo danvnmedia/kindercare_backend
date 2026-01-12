@@ -11,4 +11,6 @@ export enum AttendanceStatus {
   LATE = "LATE",
   /** Student is excused (with reason) */
   EXCUSED = "EXCUSED",
+  /** Student left early */
+  LEFT_EARLY = "LEFT_EARLY",
 }

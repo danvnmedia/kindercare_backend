@@ -146,7 +146,6 @@ async function createAdmin(input: AdminInput) {
           campusId: null, // Global role
           isSystemDefault: true,
           isSystemRole: true, // Grants global admin bypass
-          permissions: {},
         },
       });
       console.log("Super Admin role created with isSystemRole=true");

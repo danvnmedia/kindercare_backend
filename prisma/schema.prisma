@@ -32,11 +32,11 @@ model Campus {
   students  Student[]
 
   // Relations - Academic
-  gradeLevels        GradeLevel[]
-  subjects           Subject[]
-  schoolYears        SchoolYear[]
-  classes            Class[]
-  studentAttendances StudentAttendance[]
+  gradeLevels         GradeLevel[]
+  subjects            Subject[]
+  schoolYears         SchoolYear[]
+  classes             Class[]
+  attendanceSummaries StudentAttendanceSummary[]
 
   // Relations - Content
   posts          Post[]
@@ -193,6 +193,10 @@ model User {
   // Files
   uploadedFiles File[]
 
+  // Attendance
+  attendanceUpdates     StudentAttendanceSummary[] @relation("AttendanceUpdates")
+  attendanceLogsCreated StudentAttendanceLog[]     @relation("AttendanceLogCreator")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -246,9 +250,9 @@ model Student {
   guardians GuardianStudent[]
 
   // Class & Enrollment
-  enrollments   Enrollment[]
-  attendances   StudentAttendance[]
-  postAudiences PostAudience[]
+  enrollments         Enrollment[]
+  attendanceSummaries StudentAttendanceSummary[]
+  postAudiences       PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -450,10 +454,10 @@ model Class {
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
   schoolYearId String     @map("school_year_id") @db.Uuid
 
-  staff         ClassStaff[]
-  enrollments   Enrollment[]
-  attendances   StudentAttendance[]
-  postAudiences PostAudience[]
+  staff               ClassStaff[]
+  enrollments         Enrollment[]
+  attendanceSummaries StudentAttendanceSummary[]
+  postAudiences       PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -509,26 +513,38 @@ model Enrollment {
 }
 
 // ==========================================
-// ATTENDANCE TRACKING
+// ATTENDANCE TRACKING (MASTER-DETAIL)
 // ==========================================
 
-model StudentAttendance {
-  id         String    @id @default(uuid()) @db.Uuid
-  studentId  String    @map("student_id") @db.Uuid
-  classId    String    @map("class_id") @db.Uuid
-  date       DateTime  @db.Date
-  checkinAt  DateTime? @map("checkin_at") @db.Timestamptz(6)
-  checkoutAt DateTime? @map("checkout_at") @db.Timestamptz(6)
-  status     String    @default("PRESENT")
-  reason     String?
-  note       String?
+// Master: One record per student per day
+model StudentAttendanceSummary {
+  id        String   @id @default(uuid()) @db.Uuid
+  studentId String   @map("student_id") @db.Uuid
+  classId   String   @map("class_id") @db.Uuid
+  date      DateTime @db.Date
+
+  // Status: PRESENT, ABSENT, LATE, EXCUSED, LEFT_EARLY
+  status String @default("PRESENT")
+
+  // Cached fields from logs for fast queries
+  firstCheckinAt      DateTime? @map("first_checkin_at") @db.Timestamptz(6)
+  lastCheckoutAt      DateTime? @map("last_checkout_at") @db.Timestamptz(6)
+  totalMinutesPresent Int       @default(0) @map("total_minutes_present")
+
+  // Audit
+  updatedById String? @map("updated_by_id") @db.Uuid
+  note        String?
 
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
+  updatedBy User?   @relation("AttendanceUpdates", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  // Detail records
+  logs StudentAttendanceLog[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -538,7 +554,41 @@ model StudentAttendance {
   @@index([classId])
   @@index([date])
   @@index([status])
-  @@map("student_attendance")
+  @@index([campusId, date, status])
+  @@map("student_attendance_summary")
+}
+
+// Detail: Multiple events per student per day
+model StudentAttendanceLog {
+  id                  String @id @default(uuid()) @db.Uuid
+  attendanceSummaryId String @map("attendance_summary_id") @db.Uuid
+
+  // Event type: CHECK_IN, CHECK_OUT
+  type String
+
+  // Event timestamp
+  timestamp DateTime @db.Timestamptz(6)
+
+  // Method: TEACHER_APP, MANUAL_ENTRY
+  method String
+
+  // Audit fields
+  deviceId    String? @map("device_id")
+  createdById String? @map("created_by_id") @db.Uuid
+  note        String?
+  imageFileId String? @map("image_file_id") @db.Uuid
+
+  // Relations
+  attendanceSummary StudentAttendanceSummary @relation(fields: [attendanceSummaryId], references: [id], onDelete: Cascade)
+  createdBy         User?                    @relation("AttendanceLogCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  imageFile         File?                    @relation("AttendanceLogImage", fields: [imageFileId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([attendanceSummaryId])
+  @@index([timestamp])
+  @@index([createdById])
+  @@map("student_attendance_log")
 }
 
 // ==========================================
@@ -819,6 +869,9 @@ model File {
 
   uploader    User         @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
   attachments Attachment[]
+
+  // Attendance log images
+  attendanceLogImages StudentAttendanceLog[] @relation("AttendanceLogImage")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

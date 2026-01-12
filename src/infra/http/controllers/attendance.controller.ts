@@ -69,17 +69,17 @@ export class AttendanceController {
   async recordAttendance(
     @CampusContext() campusId: string,
     @Body() dto: RecordAttendanceRequest,
-  ) {
-    return await this.recordAttendanceUseCase.execute({
+  ): Promise<StudentAttendanceResponse> {
+    const result = await this.recordAttendanceUseCase.execute({
       campusId,
       studentId: dto.studentId,
       classId: dto.classId,
       date: new Date(dto.date),
       status: dto.status,
       checkinAt: dto.checkinAt ? new Date(dto.checkinAt) : undefined,
-      reason: dto.reason,
       note: dto.note,
     });
+    return StudentAttendanceResponse.fromDomain(result.summary);
   }
 
   @Post("bulk")
@@ -102,8 +102,8 @@ export class AttendanceController {
   async bulkRecordAttendance(
     @CampusContext() campusId: string,
     @Body() dto: BulkRecordAttendanceRequest,
-  ) {
-    return await this.bulkRecordAttendanceUseCase.execute({
+  ): Promise<BulkRecordAttendanceResponse> {
+    const result = await this.bulkRecordAttendanceUseCase.execute({
       campusId,
       classId: dto.classId,
       date: new Date(dto.date),
@@ -111,10 +111,15 @@ export class AttendanceController {
         studentId: r.studentId,
         status: r.status,
         checkinAt: r.checkinAt ? new Date(r.checkinAt) : undefined,
-        reason: r.reason,
         note: r.note,
       })),
     });
+    return {
+      created: result.created.map((item) =>
+        StudentAttendanceResponse.fromDomain(item.summary),
+      ),
+      skipped: result.skipped,
+    };
   }
 
   @Get(":id")
@@ -132,8 +137,9 @@ export class AttendanceController {
     description: "Attendance record UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async getById(@Param("id") id: string) {
-    return await this.getAttendanceByIdUseCase.execute(id);
+  async getById(@Param("id") id: string): Promise<StudentAttendanceResponse> {
+    const summary = await this.getAttendanceByIdUseCase.execute(id);
+    return StudentAttendanceResponse.fromDomain(summary);
   }
 
   @Patch(":id")
@@ -144,7 +150,7 @@ export class AttendanceController {
   @ApiOperation({
     summary: "Update attendance",
     description:
-      "Update attendance status, check-in/out times, reason, or notes.",
+      "Update attendance status, check-in/out times, or notes. New check-in/out times will create log entries.",
   })
   @ApiParam({
     name: "id",
@@ -154,25 +160,15 @@ export class AttendanceController {
   async updateAttendance(
     @Param("id") id: string,
     @Body() dto: UpdateAttendanceRequest,
-  ) {
-    return await this.updateAttendanceUseCase.execute({
+  ): Promise<StudentAttendanceResponse> {
+    const result = await this.updateAttendanceUseCase.execute({
       attendanceId: id,
-      checkinAt:
-        dto.checkinAt === null
-          ? null
-          : dto.checkinAt
-            ? new Date(dto.checkinAt)
-            : undefined,
-      checkoutAt:
-        dto.checkoutAt === null
-          ? null
-          : dto.checkoutAt
-            ? new Date(dto.checkoutAt)
-            : undefined,
+      checkinAt: dto.checkinAt ? new Date(dto.checkinAt) : undefined,
+      checkoutAt: dto.checkoutAt ? new Date(dto.checkoutAt) : undefined,
       status: dto.status,
-      reason: dto.reason,
       note: dto.note,
     });
+    return StudentAttendanceResponse.fromDomain(result.summary);
   }
 
   @Get("class/:classId")
@@ -207,12 +203,13 @@ export class AttendanceController {
     @CampusContext() campusId: string,
     @Param("classId") classId: string,
     @Query("date") date: string,
-  ) {
-    return await this.getClassAttendanceUseCase.execute({
+  ): Promise<StudentAttendanceResponse[]> {
+    const summaries = await this.getClassAttendanceUseCase.execute({
       campusId,
       classId,
       date: new Date(date),
     });
+    return summaries.map((s) => StudentAttendanceResponse.fromDomain(s));
   }
 
   @Get("student/:studentId")
@@ -254,12 +251,13 @@ export class AttendanceController {
     @Param("studentId") studentId: string,
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
-  ) {
-    return await this.getStudentAttendanceUseCase.execute({
+  ): Promise<StudentAttendanceResponse[]> {
+    const summaries = await this.getStudentAttendanceUseCase.execute({
       campusId,
       studentId,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
     });
+    return summaries.map((s) => StudentAttendanceResponse.fromDomain(s));
   }
 }
