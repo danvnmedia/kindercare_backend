@@ -8,8 +8,6 @@ import {
 import { Reflector } from "@nestjs/core";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
-import { RoleRepository } from "@/application/user-management/ports/role.repository";
-import { RoleEntity } from "@/domain/user-management/role.entity";
 import {
   getCampusFromRequest,
   getValidatedCampusId,
@@ -43,8 +41,6 @@ export class PermissionsGuard implements CanActivate {
     private reflector: Reflector,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
-    @Inject("ROLE_REPOSITORY")
-    private readonly roleRepository: RoleRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -94,11 +90,8 @@ export class PermissionsGuard implements CanActivate {
     const userPermissionIds = new Set<string>();
 
     for (const role of applicableRoles) {
-      // Fetch full role with permissions
-      const fullRole = await this.roleRepository.findById(role.id);
-      if (fullRole) {
-        const permissionIds = RoleEntity.getPermissionIds(fullRole);
-        permissionIds.forEach((id) => userPermissionIds.add(id));
+      if (role.permissions) {
+        role.permissions.forEach((p) => userPermissionIds.add(p.id));
       }
     }
 

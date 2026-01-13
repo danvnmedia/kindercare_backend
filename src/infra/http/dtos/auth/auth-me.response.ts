@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { RoleResponse } from "../user-management/role";
+import { UserRoleAssignmentResponse } from "../user-management/user/user.response";
 import { Expose, Type } from "class-transformer";
 
 /**
@@ -65,12 +65,12 @@ export class AuthMeResponse {
   isActive: boolean;
 
   @Expose()
-  @Type(() => RoleResponse)
+  @Type(() => UserRoleAssignmentResponse)
   @ApiProperty({
-    type: [RoleResponse],
-    description: "User roles with permissions",
+    type: [UserRoleAssignmentResponse],
+    description: "User role assignments with campus context and permissions",
   })
-  roles: RoleResponse[];
+  roleAssignments: UserRoleAssignmentResponse[];
 
   @Expose()
   @Type(() => ProfileInfo)

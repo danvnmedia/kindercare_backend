@@ -12,10 +12,13 @@ import {
   UserRole as PrismaUserRole,
   RolePermission as PrismaRolePermission,
   Permission as PrismaPermission,
+  Guardian as PrismaGuardian,
+  Staff as PrismaStaff,
 } from "@prisma/client";
 import {
   User,
   UserRoleAssignment,
+  UserProfile,
 } from "../../../../domain/user-management/user.entity";
 import { Prisma } from "@prisma/client";
 import { PrismaRoleMapper } from "./prisma-role.mapper";
@@ -35,12 +38,44 @@ type PrismaUserRoleWithRole = PrismaUserRole & {
 
 export class PrismaUserMapper {
   /**
+   * Map guardian data to UserProfile
+   */
+  private static mapGuardianToProfile(guardian: PrismaGuardian): UserProfile {
+    return {
+      type: "guardian",
+      id: guardian.id,
+      fullName: guardian.fullName,
+      email: guardian.email,
+      phoneNumber: guardian.phoneNumber,
+      dateOfBirth: guardian.dateOfBirth,
+      gender: guardian.gender,
+    };
+  }
+
+  /**
+   * Map staff data to UserProfile
+   */
+  private static mapStaffToProfile(staff: PrismaStaff): UserProfile {
+    return {
+      type: "staff",
+      id: staff.id,
+      fullName: staff.fullName,
+      email: staff.email,
+      phoneNumber: staff.phoneNumber,
+      dateOfBirth: staff.dateOfBirth,
+      gender: staff.gender,
+    };
+  }
+
+  /**
    * Convert Prisma model to Domain entity (full)
    * Supports eager-loaded roles with campus context
    */
   static toDomain(
     prismaUser: PrismaUser & {
       userRoles?: PrismaUserRoleWithRole[];
+      guardians?: PrismaGuardian[];
+      staffs?: PrismaStaff[];
     },
   ): User {
     const roleAssignments: UserRoleAssignment[] =
@@ -50,11 +85,21 @@ export class PrismaUserMapper {
         assignedAt: ur.assignedAt,
       })) ?? [];
 
+    // Determine profile: prefer staff over guardian if both exist
+    // (staff typically means employee with more access)
+    let profile: UserProfile | null = null;
+    if (prismaUser.staffs && prismaUser.staffs.length > 0) {
+      profile = this.mapStaffToProfile(prismaUser.staffs[0]);
+    } else if (prismaUser.guardians && prismaUser.guardians.length > 0) {
+      profile = this.mapGuardianToProfile(prismaUser.guardians[0]);
+    }
+
     return User.reconstitute(
       {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
         roleAssignments,
+        profile,
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,
       },

@@ -53,16 +53,6 @@ export class UserResponse {
   isActive: boolean;
 
   @Expose()
-  @Type(() => RoleResponse)
-  @ApiProperty({
-    type: [RoleResponse],
-    required: false,
-    description:
-      "User roles (backward compatible - use roleAssignments for campus context)",
-  })
-  roles?: RoleResponse[];
-
-  @Expose()
   @Type(() => UserRoleAssignmentResponse)
   @ApiProperty({
     type: [UserRoleAssignmentResponse],

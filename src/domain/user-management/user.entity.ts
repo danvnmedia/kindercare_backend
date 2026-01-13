@@ -12,6 +12,20 @@ import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Role } from "./role.entity";
 
 /**
+ * Profile information from Guardian or Staff
+ * Used for /auth/me endpoint response
+ */
+export interface UserProfile {
+  type: "guardian" | "staff";
+  id: string;
+  fullName: string;
+  email: string | null;
+  phoneNumber: string | null;
+  dateOfBirth: Date | null;
+  gender: string | null;
+}
+
+/**
  * Represents a role assignment with campus context
  * campusId indicates which campus the role is assigned for:
  * - null: global assignment (role applies everywhere)
@@ -40,6 +54,7 @@ export interface UserProps {
   name?: string;
   email?: string;
   roleAssignments?: UserRoleAssignment[];
+  profile?: UserProfile | null; // Guardian or Staff profile info
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +104,10 @@ export class User extends Entity<UserProps> {
 
   get roleAssignments(): UserRoleAssignment[] | undefined {
     return this.props.roleAssignments;
+  }
+
+  get profile(): UserProfile | null | undefined {
+    return this.props.profile;
   }
 
   get createdAt(): Date {

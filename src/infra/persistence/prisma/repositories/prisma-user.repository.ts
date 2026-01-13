@@ -1,4 +1,4 @@
-import { Injectable, Inject } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import {
   UserRepository,
@@ -11,6 +11,33 @@ import { PrismaUserMapper } from "../mapper/prisma-user.mapper";
 import { PrismaRoleMapper } from "../mapper/prisma-role.mapper";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
+/**
+ * Include object for fetching users with roles and permissions
+ * Reused across all user fetch methods
+ */
+const USER_WITH_ROLES_INCLUDE = {
+  userRoles: {
+    include: {
+      role: {
+        include: {
+          rolePermissions: {
+            include: { permission: true },
+          },
+        },
+      },
+    },
+  },
+  // Include guardian and staff profiles for /auth/me endpoint
+  guardians: {
+    where: { isArchived: false },
+    take: 1,
+  },
+  staffs: {
+    where: { isArchived: false },
+    take: 1,
+  },
+} as const;
+
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
   constructor(
@@ -21,7 +48,7 @@ export class PrismaUserRepository implements UserRepository {
   async findById(id: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({
       where: { id },
-      include: { userRoles: { include: { role: true } } },
+      include: USER_WITH_ROLES_INCLUDE,
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
@@ -44,9 +71,7 @@ export class PrismaUserRepository implements UserRepository {
           },
         ],
       },
-      include: {
-        userRoles: { include: { role: true } },
-      },
+      include: USER_WITH_ROLES_INCLUDE,
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
@@ -54,7 +79,7 @@ export class PrismaUserRepository implements UserRepository {
   async findByClerkUid(clerkUid: string): Promise<User | null> {
     const prismaUser = await this.prisma.user.findUnique({
       where: { clerkUid },
-      include: { userRoles: { include: { role: true } } },
+      include: USER_WITH_ROLES_INCLUDE,
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
@@ -68,11 +93,7 @@ export class PrismaUserRepository implements UserRepository {
       "user",
       params,
       {
-        include: {
-          userRoles: { include: { role: true } },
-          guardian: true,
-          staff: true,
-        },
+        include: USER_WITH_ROLES_INCLUDE,
       },
       PrismaUserMapper,
     );
@@ -82,7 +103,7 @@ export class PrismaUserRepository implements UserRepository {
     const prismaData = PrismaUserMapper.toPrisma(user);
     const created = await this.prisma.user.create({
       data: prismaData,
-      include: { userRoles: { include: { role: true } } },
+      include: USER_WITH_ROLES_INCLUDE,
     });
     return PrismaUserMapper.toDomain(created);
   }
@@ -92,7 +113,7 @@ export class PrismaUserRepository implements UserRepository {
     const updated = await this.prisma.user.update({
       where: { id: user.id },
       data: prismaData,
-      include: { userRoles: { include: { role: true } } },
+      include: USER_WITH_ROLES_INCLUDE,
     });
     return PrismaUserMapper.toDomain(updated);
   }
