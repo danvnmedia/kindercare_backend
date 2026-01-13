@@ -8,26 +8,40 @@ import {
   ValidateNested,
   IsUUID,
   IsObject,
+  ValidateIf,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { AudienceType } from "@/domain/content-management";
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 class CreateAudienceDto {
+  @ApiProperty({
+    description: "The audience type",
+    enum: AudienceType,
+    example: "CLASS",
+  })
   @IsEnum(AudienceType)
   audienceType: AudienceType;
 
+  @ApiPropertyOptional({
+    description:
+      "The audience ID (required for CLASS, GRADE, STUDENT types; optional for ALL type where campusId from header is used)",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @ValidateIf((o) => o.audienceType !== AudienceType.ALL)
   @IsUUID()
-  audienceId: string;
+  audienceId?: string;
 }
 
 export class CreatePostRequest {
-  @ApiProperty({
-    description: "The campus ID where the post will be created",
+  @ApiPropertyOptional({
+    description:
+      "The campus ID where the post will be created (optional - uses X-Campus-Id header if not provided)",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
+  @IsOptional()
   @IsUUID()
-  campusId: string;
+  campusId?: string;
 
   @ApiProperty({
     description: "The title of the post",

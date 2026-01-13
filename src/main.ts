@@ -64,13 +64,18 @@ async function bootstrap() {
     },
   });
 
+  // Parse CORS origins from environment variable (comma-separated)
+  const corsOrigin = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(",").map((origin) => origin.trim())
+    : true;
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN || true,
+    origin: corsOrigin,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "x-campus-id"],
     credentials: true,
   });
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.APP_PORT ?? process.env.PORT ?? 3000);
 }
 bootstrap();

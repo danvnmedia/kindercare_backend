@@ -41,6 +41,13 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:studio": "prisma studio",
+    "prisma:seed": "npx prisma db seed",
+    "db:reset": "npx prisma migrate reset --force",
+    "db:setup": "npx prisma migrate deploy && npx prisma db seed",
+    "docker:db": "docker-compose -f docker-compose.db.yml up -d",
+    "docker:db:down": "docker-compose -f docker-compose.db.yml down",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
     "clerk:get-token": "ts-node -r tsconfig-paths/register scripts/get-clerk-token.ts",
     "cli:create-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
     "cli:list-admins": "CLI_COMMAND=list ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
@@ -48,6 +55,8 @@
     "seed:students": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-students.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.705.0",
+    "@aws-sdk/s3-request-presigner": "^3.705.0",
     "@clerk/backend": "^2.22.0",
     "@nestjs/bull": "^11.0.3",
     "@nestjs/bullmq": "^11.0.3",

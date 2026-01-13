@@ -25,7 +25,7 @@ export interface CreatePostInput {
   publishAt?: Date;
   audiences: {
     audienceType: AudienceType;
-    audienceId: string;
+    audienceId?: string; // Optional for ALL type (uses campusId)
   }[];
 }
 
@@ -116,14 +116,27 @@ export class CreatePostUseCase {
     const post = Post.create(postProps);
 
     // Create PostAudience entities with the post's campusId
-    const audiences = input.audiences.map((audience) =>
-      PostAudience.create({
+    // For ALL type, use campusId as audienceId if not provided
+    const audiences = input.audiences.map((audience) => {
+      // Determine audienceId: use provided value, or campusId for ALL type
+      let audienceId: string;
+      if (audience.audienceId) {
+        audienceId = audience.audienceId;
+      } else if (audience.audienceType === AudienceType.ALL) {
+        audienceId = input.campusId;
+      } else {
+        throw new BadRequestException(
+          `audienceId is required for ${audience.audienceType} audience type`,
+        );
+      }
+
+      return PostAudience.create({
         postId: post.id,
         campusId: input.campusId,
         audienceType: audience.audienceType,
-        audienceId: audience.audienceId,
-      }),
-    );
+        audienceId,
+      });
+    });
     post.setAudiences(audiences);
 
     return post;

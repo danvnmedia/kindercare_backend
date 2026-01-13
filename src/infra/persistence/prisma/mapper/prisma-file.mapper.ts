@@ -1,6 +1,8 @@
 import { UniqueEntityID } from "../../../../core/entities/unique-entity-id";
 import { File as DomainFile } from "../../../../domain/file-management/entities/file.entity";
 import { FileStatus } from "../../../../domain/file-management/enums/file-status.enum";
+import { FilePurpose } from "../../../../domain/file-management/enums/file-purpose.enum";
+import { FileAudienceType } from "../../../../domain/file-management/enums/file-audience-type.enum";
 import { File as PrismaFile, Prisma } from "@prisma/client";
 
 export class PrismaFileMapper {
@@ -17,6 +19,12 @@ export class PrismaFileMapper {
         mimeType: prismaFile.mimeType,
         size: prismaFile.size,
         extension: prismaFile.extension,
+        contentHash: prismaFile.contentHash,
+        purpose: prismaFile.purpose as FilePurpose,
+        audienceType: prismaFile.audienceType as FileAudienceType | null,
+        audienceId: prismaFile.audienceId,
+        classId: prismaFile.classId,
+        gradeLevelId: prismaFile.gradeLevelId,
         status: prismaFile.status as FileStatus,
         uploadedBy: prismaFile.uploadedBy,
         campusId: prismaFile.campusId,
@@ -42,6 +50,12 @@ export class PrismaFileMapper {
         mimeType: prismaFile.mimeType,
         size: prismaFile.size,
         extension: prismaFile.extension,
+        contentHash: prismaFile.contentHash,
+        purpose: prismaFile.purpose as FilePurpose,
+        audienceType: prismaFile.audienceType as FileAudienceType | null,
+        audienceId: prismaFile.audienceId,
+        classId: prismaFile.classId,
+        gradeLevelId: prismaFile.gradeLevelId,
         status: prismaFile.status as FileStatus,
         uploadedBy: prismaFile.uploadedBy,
         campusId: prismaFile.campusId,
@@ -66,8 +80,14 @@ export class PrismaFileMapper {
       mimeType: domainFile.mimeType,
       size: domainFile.size,
       extension: domainFile.extension,
+      contentHash: domainFile.contentHash,
+      purpose: domainFile.purpose,
+      audienceType: domainFile.audienceType,
+      audienceId: domainFile.audienceId,
+      classId: domainFile.classId,
+      gradeLevelId: domainFile.gradeLevelId,
       status: domainFile.status,
-      uploadedBy: domainFile.uploadedBy.toString(),
+      uploadedBy: domainFile.uploadedBy,
       campusId: domainFile.campusId,
       isDeleted: domainFile.isDeleted,
       createdAt: domainFile.createdAt,

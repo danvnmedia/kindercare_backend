@@ -7,6 +7,8 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiOperation,
@@ -14,6 +16,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiHeader,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import {
   CampusContext,
@@ -22,6 +25,8 @@ import {
 } from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { UserInterceptor } from "../../interceptors/user.interceptor";
 
 import {
   CreateClassRequest,
@@ -48,6 +53,9 @@ import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-
 
 @Controller("classes")
 @ApiTags("Classes")
+@ApiBearerAuth("JWT")
+@UseGuards(ClerkAuthGuard)
+@UseInterceptors(UserInterceptor)
 export class ClassController {
   constructor(
     private readonly createClassUseCase: CreateClassUseCase,

@@ -9,6 +9,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiBearerAuth,
@@ -17,6 +18,7 @@ import {
   ApiHeader,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { UserInterceptor } from "../../interceptors/user.interceptor";
 import {
   CampusContext,
   RequireCampusAccess,
@@ -43,6 +45,7 @@ import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/g
 @ApiTags("Guardians")
 @ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
+@UseInterceptors(UserInterceptor)
 export class GuardianController {
   constructor(
     private readonly createGuardianUseCase: CreateGuardianUseCase,

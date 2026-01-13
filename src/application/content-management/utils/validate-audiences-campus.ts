@@ -6,7 +6,7 @@ import { StudentRepository } from "@/application/user-management/ports/student.r
 
 export interface AudienceInput {
   audienceType: AudienceType;
-  audienceId: string;
+  audienceId?: string; // Optional for ALL type
 }
 
 export interface AudienceValidationDependencies {
@@ -40,13 +40,19 @@ export async function validateAudiencesBelongToCampus(
   for (const audience of audiences) {
     switch (audience.audienceType) {
       case AudienceType.CLASS:
-        classIds.push(audience.audienceId);
+        if (audience.audienceId) {
+          classIds.push(audience.audienceId);
+        }
         break;
       case AudienceType.GRADE:
-        gradeIds.push(audience.audienceId);
+        if (audience.audienceId) {
+          gradeIds.push(audience.audienceId);
+        }
         break;
       case AudienceType.STUDENT:
-        studentIds.push(audience.audienceId);
+        if (audience.audienceId) {
+          studentIds.push(audience.audienceId);
+        }
         break;
       case AudienceType.ALL:
         // ALL audience type doesn't have a specific target, skip validation

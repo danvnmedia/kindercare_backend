@@ -1,22 +1,28 @@
+# Optimized docker-compose for development
+# Usage: docker-compose -f docker-compose.dev.yml up
+#
+# This setup is optimized for Windows/WSL2 with:
+# - No volume mounting of node_modules (major speed improvement)
+# - Selective file sync for source code only
+# - Pre-built dependencies in image
+# - Faster cold starts
+
 services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
       - "${DEBUG_PORT:-9229}:9229"
     env_file:
       - .env
     environment:
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-kindercare}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
       - PORT=${APP_PORT:-8000}
-      # Seeding options:
-      # SEED_DATABASE=true - Always run seed on startup
-      # SEED_ON_EMPTY=true - Only seed if database is empty (recommended for dev)
       - SEED_ON_EMPTY=${SEED_ON_EMPTY:-true}
       - SEED_DATABASE=${SEED_DATABASE:-false}
     depends_on:
@@ -25,12 +31,14 @@ services:
       redis:
         condition: service_started
     volumes:
-      - .:/app
-      - /app/node_modules
+      # Only mount source files, not node_modules
+      - ./src:/app/src:cached
+      - ./prisma:/app/prisma:cached
       - uploads_data:/app/uploads
-    command: npm run start:dev
     networks:
       - kindercare-network
+    # Use polling for file changes (more reliable on Windows)
+    command: npm run start:dev -- --preserveWatchOutput
 
   postgres:
     image: postgres:15-alpine
@@ -44,8 +52,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 5s
-      timeout: 5s
+      interval: 3s
+      timeout: 3s
       retries: 5
     networks:
       - kindercare-network
@@ -56,7 +64,6 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
-    command: redis-server ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
     networks:
       - kindercare-network
 

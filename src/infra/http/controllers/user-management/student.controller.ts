@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiOperation,
@@ -18,6 +19,7 @@ import {
 } from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { UserInterceptor } from "../../interceptors/user.interceptor";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { CampusContext, RequireCampusAccess } from "../../decorators";
 import {
@@ -44,6 +46,7 @@ import { StandardRequestParam } from "@/core/modules/standard-response";
 @ApiTags("Students")
 @ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
+@UseInterceptors(UserInterceptor)
 export class StudentController {
   constructor(
     private readonly createStudentUseCase: CreateStudentUseCase,

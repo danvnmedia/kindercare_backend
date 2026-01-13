@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { File } from "@/domain/file-management/entities/file.entity";
@@ -11,6 +12,7 @@ export interface GetFileUseCaseRequest {
 
 export type GetFileUseCaseResponse = Either<Error, { file: File; url: string }>;
 
+@Injectable()
 export class GetFileUseCase {
   constructor(
     private fileRepository: FileRepository,

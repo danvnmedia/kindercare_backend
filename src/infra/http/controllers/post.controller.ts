@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -74,6 +75,7 @@ import { PostApprovalRequest } from "@/domain/content-management";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
+import { UserInterceptor } from "../interceptors/user.interceptor";
 import {
   StandardRequest,
   PaginatedResult,
@@ -83,6 +85,7 @@ import {
 @ApiBearerAuth("JWT")
 @Controller("posts")
 @UseGuards(ClerkAuthGuard)
+@UseInterceptors(UserInterceptor)
 export class PostController {
   constructor(
     private readonly createPostUseCase: CreatePostUseCase,
@@ -105,7 +108,7 @@ export class PostController {
   ) {}
 
   @Post()
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Create a new post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -126,7 +129,7 @@ export class PostController {
   }
 
   @Get()
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "List all posts" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -160,7 +163,7 @@ export class PostController {
   }
 
   @Get("pending-approval")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Get pending approval requests for a campus" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -183,7 +186,7 @@ export class PostController {
   }
 
   @Get("pinned")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Get pinned posts for a campus" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -202,7 +205,7 @@ export class PostController {
   }
 
   @Get(":id")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Get a post by ID" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -221,7 +224,7 @@ export class PostController {
   }
 
   @Patch(":id")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Update a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -246,7 +249,7 @@ export class PostController {
   }
 
   @Delete(":id")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Delete a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -266,7 +269,7 @@ export class PostController {
   }
 
   @Post(":id/attachments")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Add an attachment to a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -294,7 +297,7 @@ export class PostController {
   }
 
   @Delete(":id/attachments/:attachmentId")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Remove an attachment from a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -320,7 +323,7 @@ export class PostController {
   }
 
   @Patch(":id/attachments/reorder")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Reorder attachments in a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -348,7 +351,7 @@ export class PostController {
   }
 
   @Post(":id/transition")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Transition the status of a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -375,7 +378,7 @@ export class PostController {
   }
 
   @Get(":id/history")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Get post history" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -395,7 +398,7 @@ export class PostController {
   }
 
   @Get(":id/approval-history")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Get approval history for a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -412,7 +415,7 @@ export class PostController {
   }
 
   @Post(":id/heart")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Toggle heart reaction on a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -432,7 +435,7 @@ export class PostController {
   }
 
   @Get(":id/heart")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiOperation({ summary: "Get heart reaction status for a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -454,7 +457,7 @@ export class PostController {
   // --- Pinning Endpoints ---
 
   @Post(":id/pin")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @UseGuards(RolesGuard)
   @Roles("Admin")
   @ApiOperation({ summary: "Pin a post to the top of the feed (admin only)" })
@@ -477,7 +480,7 @@ export class PostController {
   }
 
   @Delete(":id/pin")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @UseGuards(RolesGuard)
   @Roles("Admin")
   @ApiOperation({ summary: "Unpin a post (admin only)" })

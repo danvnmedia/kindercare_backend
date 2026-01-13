@@ -53,7 +53,7 @@ export class PostCategoryController {
   ) {}
 
   @Get()
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @StandardResponse({
     message: "Post categories retrieved successfully",
     type: PostCategoryResponse,

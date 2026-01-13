@@ -7,6 +7,8 @@ import {
   Body,
   Param,
   Query,
+  UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiOperation,
@@ -14,6 +16,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiHeader,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import {
   CampusContext,
@@ -23,6 +26,8 @@ import {
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { UserInterceptor } from "../../interceptors/user.interceptor";
 
 import {
   GradeLevelResponse,
@@ -54,6 +59,9 @@ import { ReorderGradeLevelsUseCase } from "@/application/class-management/use-ca
 
 @Controller("reference-data")
 @ApiTags("Reference Data")
+@ApiBearerAuth("JWT")
+@UseGuards(ClerkAuthGuard)
+@UseInterceptors(UserInterceptor)
 export class ReferenceDataController {
   constructor(
     // Read Use Cases

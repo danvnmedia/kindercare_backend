@@ -1,0 +1,41 @@
+# Database-only Docker setup (FASTEST option for development)
+#
+# Usage:
+#   1. Start databases: docker-compose -f docker-compose.db.yml up -d
+#   2. Run app locally: npm run start:dev
+#
+# This is the FASTEST setup because:
+# - No Docker overhead for the Node.js app
+# - Native file watching (instant)
+# - Native npm/node performance
+# - Only databases run in Docker
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: kindercare-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-kindercare}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: kindercare-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

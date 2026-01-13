@@ -383,6 +383,7 @@ model GradeLevel {
 
   classes       Class[]
   postAudiences PostAudience[]
+  files         File[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -458,6 +459,7 @@ model Class {
   enrollments         Enrollment[]
   attendanceSummaries StudentAttendanceSummary[]
   postAudiences       PostAudience[]
+  files               File[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -853,10 +855,16 @@ model File {
   storageProvider String  @default("LOCAL") @map("storage_provider")
 
   // File Metadata
-  filename  String  @map("filename")
-  mimeType  String  @map("mime_type")
-  size      BigInt
-  extension String? @map("extension")
+  filename    String  @map("filename")
+  mimeType    String  @map("mime_type")
+  size        BigInt
+  extension   String? @map("extension")
+  contentHash String? @map("content_hash") /// SHA-256 hash for duplicate detection
+
+  // File Purpose/Context
+  purpose      String  @default("GENERAL") /// GENERAL, POST_ATTACHMENT, PROFILE_PHOTO, ATTENDANCE_IMAGE
+  audienceType String? @map("audience_type") /// ALL, GRADE, CLASS, STUDENT - mirrors post audience scope
+  audienceId   String? @map("audience_id") @db.Uuid /// The specific grade/class/student ID (null for ALL or GENERAL)
 
   // Lifecycle
   status     String  @default("PENDING") /// PENDING, UPLOADED, PROCESSED, ERROR
@@ -866,6 +874,12 @@ model File {
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  // Optional relations for audience scoping
+  class      Class?      @relation(fields: [classId], references: [id], onDelete: SetNull)
+  classId    String?     @map("class_id") @db.Uuid
+  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
+  gradeLevelId String?   @map("grade_level_id") @db.Uuid
 
   uploader    User         @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
   attachments Attachment[]
@@ -882,6 +896,12 @@ model File {
   @@index([key])
   @@index([isDeleted])
   @@index([createdAt])
+  @@index([contentHash])
+  @@index([purpose])
+  @@index([audienceType])
+  @@index([classId])
+  @@index([gradeLevelId])
+  @@index([campusId, contentHash]) // For duplicate detection within campus
   @@map("file")
 }
 

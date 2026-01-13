@@ -7,8 +7,18 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam, ApiHeader } from "@nestjs/swagger";
+import {
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+  ApiHeader,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { UserInterceptor } from "../../interceptors/user.interceptor";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 
 import { Gender } from "@/domain/user-management/enums/gender.enum";
@@ -34,6 +44,9 @@ import { RestoreStaffUseCase } from "@/application/user-management/use-cases/sta
 
 @Controller("staff")
 @ApiTags("Staff")
+@ApiBearerAuth("JWT")
+@UseGuards(ClerkAuthGuard)
+@UseInterceptors(UserInterceptor)
 export class StaffController {
   constructor(
     private readonly createStaffUseCase: CreateStaffUseCase,

@@ -31,7 +31,7 @@ import { UniqueEntityID } from "../../../core/entities/unique-entity-id";
 import { InitiateUploadRequest } from "../dtos/file/initiate-upload.request";
 import { FileResponse } from "../dtos/file/file.response";
 import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
-import { UserPayload } from "@/types/globals";
+import { User } from "@/domain/user-management/user.entity";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { UserInterceptor } from "../interceptors/user.interceptor";
 
@@ -49,9 +49,13 @@ export class FileController {
   ) {}
 
   @Post("initiate-upload")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
-  @ApiOperation({ summary: "Initiate a file upload" })
+  @ApiOperation({
+    summary: "Initiate a file upload",
+    description:
+      "Initiates a file upload and returns a presigned URL. Files are organized by campus, purpose, and audience scope.",
+  })
   @StandardResponse({
     type: InitiateUploadResponse,
   })
@@ -63,8 +67,11 @@ export class FileController {
       size,
       campusId,
       storageProvider,
+      purpose,
+      audienceType,
+      audienceId,
     }: InitiateUploadRequest,
-    @CurrentUser() user: UserPayload,
+    @CurrentUser() user: User,
     @CampusContext() contextCampusId: string,
   ): Promise<InitiateUploadResponse> {
     // Use campusId from context (validated by guard) if not explicitly provided in body
@@ -74,9 +81,12 @@ export class FileController {
       filename,
       mimeType,
       size,
-      uploadedBy: user.sub,
+      uploadedBy: user.id.toString(),
       campusId: effectiveCampusId,
       storageProvider,
+      purpose,
+      audienceType,
+      audienceId,
     });
 
     if (result.isLeft()) {
@@ -84,13 +94,14 @@ export class FileController {
     }
 
     return {
+      fileId: result.value.file.id.toString(),
       key: result.value.file.key,
       uploadUrl: result.value.uploadUrl,
     };
   }
 
   @Post(":id/complete")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Complete a file upload" })
   @StandardResponse({
@@ -113,7 +124,7 @@ export class FileController {
   }
 
   @Get(":id")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Get a file by ID" })
   @StandardResponse({
@@ -137,7 +148,7 @@ export class FileController {
   }
 
   @Delete(":id")
-  @RequireCampusAccess()
+  @RequireCampusAccess({ checkUserAccess: false })
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Soft delete a file" })
   async delete(

@@ -1,3 +1,4 @@
+import { Injectable } from "@nestjs/common";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { FileRepository } from "../ports/file.repository";
@@ -9,6 +10,7 @@ export interface DeleteFileUseCaseRequest {
 
 export type DeleteFileUseCaseResponse = Either<Error, void>;
 
+@Injectable()
 export class DeleteFileUseCase {
   constructor(private fileRepository: FileRepository) {}
 
