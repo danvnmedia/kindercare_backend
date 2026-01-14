@@ -1,6 +1,22 @@
 /**
  * Campus Guard
- * Validates campus context and user access to the specified campus
+ *
+ * Validates campus context and user access to the specified campus.
+ * Uses RequestContext for lazy-loaded, cached user data.
+ *
+ * Responsibilities:
+ * - Extract campus ID from request (header > params > query)
+ * - Validate campus exists and is active
+ * - Verify user has access to the campus
+ * - Set validated campus ID on RequestContext
+ *
+ * @example
+ * ```typescript
+ * @UseGuards(ClerkAuthGuard, CampusGuard)
+ * @RequireCampusAccess({ required: true })
+ * @Get('students')
+ * async getStudents() { ... }
+ * ```
  */
 
 import {
@@ -15,7 +31,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { CampusRepository } from "@/application/campus/ports/campus.repository";
-import { UserRepository } from "@/application/user-management/ports/user.repository";
+import { RequestContext } from "../context/request-context.service";
 import {
   getCampusFromRequest,
   setCampusOnRequest,
@@ -36,8 +52,7 @@ export class CampusGuard implements CanActivate {
     private reflector: Reflector,
     @Inject("CAMPUS_REPOSITORY")
     private readonly campusRepository: CampusRepository,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
+    private readonly requestContext: RequestContext,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -71,6 +86,7 @@ export class CampusGuard implements CanActivate {
       }
       // Not required, allow access without campus context
       setCampusOnRequest(request, null);
+      this.requestContext.setCampusId(null);
       return true;
     }
 
@@ -95,39 +111,42 @@ export class CampusGuard implements CanActivate {
 
     // Check user access to campus
     if (checkUserAccess) {
-      const user = request.user;
-      if (!user) {
-        this.logger.warn("CampusGuard: No user found in request");
+      // Get clerkId from RequestContext (set by AuthMiddleware)
+      const clerkId = this.requestContext.clerkId;
+      if (!clerkId) {
+        this.logger.warn("CampusGuard: No clerkId found in request context");
         throw new ForbiddenException("Authentication required");
       }
 
-      // Fetch full user with role assignments
-      const fullUser = await this.userRepository.findById(user.id);
+      // Get user from RequestContext (lazy-loaded, cached)
+      const fullUser = await this.requestContext.getUser();
       if (!fullUser) {
-        this.logger.warn(`CampusGuard: User not found: ${user.id}`);
+        this.logger.warn(`CampusGuard: User not found for clerkId: ${clerkId}`);
         throw new ForbiddenException("User not found");
       }
 
       // Check if user is a global admin (bypasses campus-specific checks)
       if (allowGlobalAdmin && isGlobalAdmin(fullUser)) {
         this.logger.debug(
-          `CampusGuard: Global admin ${user.id} accessing campus ${campusId}`,
+          `CampusGuard: Global admin ${fullUser.id} accessing campus ${campusId}`,
         );
         setCampusOnRequest(request, campusId);
+        this.requestContext.setCampusId(campusId);
         return true;
       }
 
       // Check if user has access to this campus
       if (!hasCampusAccess(fullUser, campusId)) {
         this.logger.warn(
-          `CampusGuard: User ${user.id} has no access to campus ${campusId}`,
+          `CampusGuard: User ${fullUser.id} has no access to campus ${campusId}`,
         );
         throw new ForbiddenException("No access to this campus");
       }
     }
 
-    // Store validated campus ID on request for downstream use
+    // Store validated campus ID on request and context for downstream use
     setCampusOnRequest(request, campusId);
+    this.requestContext.setCampusId(campusId);
 
     this.logger.debug(`CampusGuard: Access granted for campus ${campusId}`);
     return true;

@@ -49,14 +49,24 @@ AppModule
 })
 ```
 
-## 2. Request Processing Flow
+## 2. Request Processing Flow (Hybrid Auth Pattern)
+
+The application uses a **hybrid middleware + request-scoped service** pattern for authentication context management. See @doc/architecture/adr-hybrid-authentication-context-architecture for the decision record.
 
 ```
 HTTP Request
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 1. ValidationPipe (Global)              │
+│ 1. AuthMiddleware (Global)              │
+│    - Verify Clerk token                 │
+│    - Set request.clerkId/sessionId      │
+│    - Non-blocking (continues on failure)│
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 2. ValidationPipe (Global)              │
 │    - whitelist: true                    │
 │    - forbidNonWhitelisted: true         │
 │    - transform: true                    │
@@ -64,43 +74,46 @@ HTTP Request
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 2. Guards (@UseGuards)                  │
-│    - ClerkAuthGuard: JWT verification   │
+│ 3. Guards (@UseGuards)                  │
+│    - ClerkAuthGuard: Check clerkId set  │
+│    - CampusGuard: Validate campus access│
 │    - RolesGuard: Permission check       │
+│    (All use RequestContext for user)    │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 3. Interceptors (Pre-handler)           │
+│ 4. Interceptors (Pre-handler)           │
 │    - StandardResponseInterceptor        │
-│    - UserInterceptor                    │
+│    - ClassSerializerInterceptor         │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 4. Controller                           │
+│ 5. Controller                           │
 │    - Route handling                     │
-│    - DTO mapping                        │
+│    - @CurrentUser() via RequestContext  │
+│    - @CampusContext() for campus ID     │
 │    - Delegates to Use Case              │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 5. Use Case (Application Layer)         │
+│ 6. Use Case (Application Layer)         │
 │    - Business logic orchestration       │
 │    - Injects repositories via tokens    │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 6. Repository (Infrastructure)          │
+│ 7. Repository (Infrastructure)          │
 │    - Prisma database operations         │
 │    - Entity ↔ Prisma mapping            │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 7. Interceptors (Post-handler)          │
+│ 8. Interceptors (Post-handler)          │
 │    - StandardResponseInterceptor        │
 │    - Entity → DTO transformation        │
 │    - Pagination wrapper                 │
@@ -108,6 +121,22 @@ HTTP Request
     │
     ▼
 HTTP Response { success, message, data, pagination?, timestamp }
+```
+
+### RequestContext Service
+
+The `RequestContext` service is request-scoped and provides:
+- **Lazy Loading**: User fetched only when first accessed
+- **Caching**: Single DB call per request (even across multiple guards)
+- **Type Safety**: Typed access to user, clerkId, campusId
+
+```typescript
+@Injectable({ scope: Scope.REQUEST })
+export class RequestContext {
+  async getUser(): Promise<User | null>     // Lazy-loaded, cached
+  get clerkId(): string | null              // From AuthMiddleware
+  get campusId(): string | null             // From CampusGuard
+}
 ```
 
 ## 3. Dependency Injection Patterns
@@ -192,30 +221,31 @@ Campus ID is extracted from requests in this priority order:
 2. **Route parameter**: `:campusId`
 3. **Query parameter**: `?campusId=`
 
-### Campus-Aware Request Flow
+### Campus-Aware Request Flow (Hybrid Auth Pattern)
 
 ```
 HTTP Request (with X-Campus-Id header)
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 1. ValidationPipe (Global)              │
+│ 1. AuthMiddleware                       │
+│    - Verify Clerk token                 │
+│    - Set request.clerkId/sessionId      │
+│    - Initialize RequestContext          │
+└─────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│ 2. ValidationPipe (Global)              │
 │    - whitelist: true                    │
 │    - forbidNonWhitelisted: true         │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
-│ 2. ClerkAuthGuard                       │
-│    - Verify JWT token                   │
-│    - Set request.clerkId                │
-└─────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│ 3. UserInterceptor                      │
-│    - Fetch User entity by clerkId       │
-│    - Set request.user (with roles)      │
+│ 3. ClerkAuthGuard                       │
+│    - Check clerkId exists               │
+│    - Reject if not authenticated        │
 └─────────────────────────────────────────┘
     │
     ▼
@@ -224,21 +254,25 @@ HTTP Request (with X-Campus-Id header)
 │    - Extract campusId from request      │
 │    - Validate UUID format               │
 │    - Check campus exists & is active    │
+│    - RequestContext.getUser() (cached)  │
 │    - Verify user has campus access      │
-│    - Set request.campusId               │
+│    - Set RequestContext.campusId        │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
 │ 5. RolesGuard / PermissionsGuard        │
+│    - RequestContext.getUser() (cached)  │
 │    - Get roles for campus context       │
 │    - Check required roles/permissions   │
+│    (User already cached - no DB call)   │
 └─────────────────────────────────────────┘
     │
     ▼
 ┌─────────────────────────────────────────┐
 │ 6. Controller                           │
 │    - @CampusContext() extracts campusId │
+│    - @CurrentUser() via request.user    │
 │    - Passes to use case input           │
 └─────────────────────────────────────────┘
     │
@@ -257,6 +291,13 @@ HTTP Request (with X-Campus-Id header)
 │    - Campus-scoped uniqueness checks    │
 └─────────────────────────────────────────┘
 ```
+
+### Performance Comparison
+
+| Pattern | DB Fetches per Request | Notes |
+|---------|----------------------|-------|
+| Previous (UserInterceptor + Guards) | 3-4 | Each guard fetched user independently |
+| Current (Hybrid + RequestContext) | **1** | Lazy-loaded, cached per request |
 
 ### Campus Module in Module Hierarchy
 

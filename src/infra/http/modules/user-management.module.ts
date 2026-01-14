@@ -73,6 +73,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
 import { RbacModule } from "./rbac.module";
 import { CampusModule } from "./campus.module";
 import { StaffTypeModule } from "./staff-type.module";
+import { RequestContextModule } from "../context/request-context.module";
 
 // Guards
 import { CampusGuard } from "../guards/campus.guard";
@@ -89,6 +90,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
  * - PrismaModule: Provides database repositories (USER_REPOSITORY, ROLE_REPOSITORY)
  * - ClerkModule: Provides authentication (AUTHENTICATION_PORT) and identity services
  * - StandardResponseModule: Provides PrismaQueryService for advanced filtering and pagination
+ * - RequestContextModule: Provides request-scoped authentication context for guards
  *
  * Layer structure:
  * Controllers → Use Cases → Repositories (Ports) → Adapters (Implementations)
@@ -100,6 +102,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     StandardResponseModule, // Query service for filtering and pagination
     RbacModule, // Permission management
     CampusModule, // Campus repository for role campus validation
+    RequestContextModule, // Request-scoped authentication context
     forwardRef(() => StaffTypeModule), // For STAFF_TYPE_REPOSITORY (circular dep with StaffTypeModule)
   ],
   controllers: [
@@ -184,7 +187,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
       useClass: PrismaStaffRepository,
     },
 
-    // Guards (with dependency injection)
+    // Guards (use RequestContext for user access)
     CampusGuard,
     RolesGuard,
     PermissionsGuard,

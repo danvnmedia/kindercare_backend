@@ -1,17 +1,36 @@
+/**
+ * Roles Guard
+ *
+ * Validates that the authenticated user has at least one of the required roles
+ * within the current campus context.
+ *
+ * Uses RequestContext for:
+ * - Cached user data (no duplicate DB fetches)
+ * - Campus context (validated by CampusGuard)
+ *
+ * Role Resolution:
+ * - Checks roles assigned globally (campusId = null in assignment)
+ * - Checks roles assigned to the current campus
+ * - Uses OR logic: user needs ANY of the required roles
+ *
+ * @example
+ * ```typescript
+ * @UseGuards(ClerkAuthGuard, CampusGuard, RolesGuard)
+ * @Roles('admin', 'manager')
+ * @Get('reports')
+ * async getReports() { ... }
+ * ```
+ */
+
 import {
   Injectable,
   CanActivate,
   ExecutionContext,
   Logger,
-  Inject,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "../decorators/roles.decorator";
-import { UserRepository } from "@/application/user-management/ports/user.repository";
-import {
-  getCampusFromRequest,
-  getValidatedCampusId,
-} from "../context/campus-context";
+import { RequestContext } from "../context/request-context.service";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -19,57 +38,55 @@ export class RolesGuard implements CanActivate {
 
   constructor(
     private reflector: Reflector,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
+    private readonly requestContext: RequestContext,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Get required roles from decorator metadata
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (!requiredRoles) {
-      return true; // No roles specified, access granted
+
+    // No roles specified, access granted
+    if (!requiredRoles || requiredRoles.length === 0) {
+      return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user; // User object should be attached by a previous authentication guard
+    // Get user from RequestContext (lazy-loaded, cached)
+    const user = await this.requestContext.getUser();
 
     if (!user) {
-      this.logger.warn("RolesGuard: No user found in request");
+      this.logger.warn("RolesGuard: No user found in request context");
       return false;
     }
 
-    // Get campus context - prefer validated campus from CampusGuard, fallback to extraction
-    const campusId =
-      getValidatedCampusId(request) ?? getCampusFromRequest(request);
-
-    // Fetch user with role assignments from the repository
-    const fullUser = await this.userRepository.findById(user.id);
-
-    if (!fullUser) {
-      this.logger.warn(`User ${user.id} not found`);
-      return false;
-    }
+    // Get campus context from RequestContext (set by CampusGuard)
+    const campusId = this.requestContext.campusId;
 
     // Get roles that apply to the current campus context
     // This includes globally assigned roles (campusId = null) + campus-specific roles
-    const applicableRoles = fullUser.getRolesForCampus(campusId);
+    const applicableRoles = user.getRolesForCampus(campusId);
 
     if (applicableRoles.length === 0) {
       this.logger.warn(
-        `User ${user.id} has no roles assigned for campus ${campusId ?? "global"}`,
+        `RolesGuard: User ${user.id} has no roles assigned for campus ${campusId ?? "global"}`,
       );
       return false;
     }
 
+    // Check if user has any of the required roles (OR logic)
     const hasRequiredRole = applicableRoles.some((role) =>
       requiredRoles.includes(role.name),
     );
 
     if (!hasRequiredRole) {
       this.logger.warn(
-        `User ${user.id} with roles [${applicableRoles.map((r) => r.name).join(", ")}] in campus ${campusId ?? "global"} does not have required roles [${requiredRoles.join(", ")}]`,
+        `RolesGuard: User ${user.id} with roles [${applicableRoles.map((r) => r.name).join(", ")}] in campus ${campusId ?? "global"} does not have required roles [${requiredRoles.join(", ")}]`,
+      );
+    } else {
+      this.logger.debug(
+        `RolesGuard: User ${user.id} has required role in campus ${campusId ?? "global"}`,
       );
     }
 

@@ -3,8 +3,8 @@ import { AuthController } from "../controllers/auth/auth.controller";
 import { StandardResponseModule } from "@/core/modules/standard-response";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
-import { UserInterceptor } from "../interceptors/user.interceptor";
-import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/prisma-user.repository";
+import { RequestContextModule } from "../context/request-context.module";
+import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 
 /**
  * Authentication Module
@@ -13,9 +13,14 @@ import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/pr
  * - GET /auth/me - Get current authenticated user
  *
  * Dependencies:
- * - ClerkModule: Provides AUTHENTICATION_PORT for ClerkAuthGuard
+ * - ClerkModule: Provides AUTHENTICATION_PORT for AuthMiddleware
  * - PrismaModule: Provides database access
- * - UserInterceptor: Fetches user from DB after authentication
+ * - RequestContextModule: Provides RequestContext for lazy-loaded user access
+ *
+ * Authentication Flow:
+ * 1. AuthMiddleware (in HttpModule) verifies Clerk token
+ * 2. ClerkAuthGuard checks clerkId exists
+ * 3. RequestContext lazily loads user when accessed via @CurrentUser()
  *
  * @example
  * // Import in AppModule:
@@ -26,24 +31,13 @@ import { PrismaUserRepository } from "@/infra/persistence/prisma/repositories/pr
  */
 @Module({
   imports: [
-    ClerkModule, // Authentication port for guards
+    ClerkModule, // Authentication port for middleware
     PrismaModule, // Database access
     StandardResponseModule, // Provides PrismaQueryService
+    RequestContextModule, // Request-scoped authentication context
   ],
   controllers: [AuthController],
-  providers: [
-    UserInterceptor,
-    {
-      provide: "USER_REPOSITORY",
-      useClass: PrismaUserRepository,
-    },
-  ],
-  exports: [
-    UserInterceptor,
-    {
-      provide: "USER_REPOSITORY",
-      useClass: PrismaUserRepository,
-    },
-  ],
+  providers: [ClerkAuthGuard],
+  exports: [ClerkAuthGuard, RequestContextModule],
 })
 export class AuthModule {}

@@ -12,7 +12,7 @@ import { ExecutionContext } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { CampusGuard } from "./campus.guard";
 import { CampusRepository } from "@/application/campus/ports/campus.repository";
-import { UserRepository } from "@/application/user-management/ports/user.repository";
+import { RequestContext } from "../context/request-context.service";
 import {
   createCampus,
   createUser,
@@ -26,7 +26,7 @@ describe("CampusGuard", () => {
   let guard: CampusGuard;
   let mockReflector: jest.Mocked<Reflector>;
   let mockCampusRepository: jest.Mocked<CampusRepository>;
-  let mockUserRepository: jest.Mocked<UserRepository>;
+  let mockRequestContext: jest.Mocked<RequestContext>;
 
   const validUUID = DEFAULT_CAMPUS_ID_A;
   const validUUID_B = DEFAULT_CAMPUS_ID_B;
@@ -37,13 +37,13 @@ describe("CampusGuard", () => {
     headers: Record<string, string> = {},
     params: Record<string, string> = {},
     query: Record<string, string> = {},
-    user: any = null,
+    clerkId: string | null = null,
   ): ExecutionContext => {
     const request = {
       headers,
       params,
       query,
-      user,
+      clerkId,
     };
 
     return {
@@ -53,6 +53,26 @@ describe("CampusGuard", () => {
       getHandler: () => jest.fn(),
       getClass: () => jest.fn(),
     } as unknown as ExecutionContext;
+  };
+
+  // Helper to create a mock RequestContext with configurable clerkId
+  const createMockRequestContext = (clerkId: string | null = null) => {
+    return {
+      get clerkId() {
+        return clerkId;
+      },
+      sessionId: null,
+      campusId: null,
+      setClerkId: jest.fn(),
+      setSessionId: jest.fn(),
+      setCampusId: jest.fn(),
+      isAuthenticated: jest.fn(),
+      getUser: jest.fn(),
+      getUserOrFail: jest.fn(),
+      getUserId: jest.fn(),
+      isUserLoaded: jest.fn(),
+      clearCache: jest.fn(),
+    } as unknown as jest.Mocked<RequestContext>;
   };
 
   beforeEach(() => {
@@ -70,24 +90,12 @@ describe("CampusGuard", () => {
       exists: jest.fn(),
     } as jest.Mocked<CampusRepository>;
 
-    mockUserRepository = {
-      findById: jest.fn(),
-      findByEmail: jest.fn(),
-      findByClerkUid: jest.fn(),
-      findAll: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      assignRoles: jest.fn(),
-      removeRoles: jest.fn(),
-      getUserRoles: jest.fn(),
-      getUserRolesForCampus: jest.fn(),
-    } as jest.Mocked<UserRepository>;
+    mockRequestContext = createMockRequestContext(null);
 
     guard = new CampusGuard(
       mockReflector,
       mockCampusRepository,
-      mockUserRepository,
+      mockRequestContext,
     );
   });
 
@@ -100,15 +108,19 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       const result = await guard.canActivate(context);
@@ -125,15 +137,19 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         {},
         { campusId: validUUID },
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       const result = await guard.canActivate(context);
@@ -149,15 +165,19 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         {},
         {},
         { campusId: validUUID },
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       const result = await guard.canActivate(context);
@@ -173,15 +193,19 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         { campusId: validUUID_B },
         { campusId: "33333333-3333-3333-3333-333333333333" },
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       await guard.canActivate(context);
@@ -195,7 +219,7 @@ describe("CampusGuard", () => {
     it("should throw BadRequestException when campusId is required but missing", async () => {
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
 
-      const context = createMockContext({}, {}, {}, { id: "user-1" });
+      const context = createMockContext({}, {}, {}, "clerk-user-1");
 
       await expect(guard.canActivate(context)).rejects.toThrow(
         BadRequestException,
@@ -208,12 +232,13 @@ describe("CampusGuard", () => {
     it("should allow access when campusId is not required and missing", async () => {
       mockReflector.getAllAndOverride.mockReturnValue({ required: false });
 
-      const context = createMockContext({}, {}, {}, { id: "user-1" });
+      const context = createMockContext({}, {}, {}, "clerk-user-1");
 
       const result = await guard.canActivate(context);
 
       expect(result).toBe(true);
       expect(mockCampusRepository.findById).not.toHaveBeenCalled();
+      expect(mockRequestContext.setCampusId).toHaveBeenCalledWith(null);
     });
   });
 
@@ -225,7 +250,7 @@ describe("CampusGuard", () => {
         { "x-campus-id": invalidUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -246,7 +271,7 @@ describe("CampusGuard", () => {
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -272,7 +297,7 @@ describe("CampusGuard", () => {
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -291,19 +316,23 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         requireActive: false,
         checkUserAccess: true,
       });
       mockCampusRepository.findById.mockResolvedValue(inactiveCampus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       const result = await guard.canActivate(context);
@@ -316,13 +345,16 @@ describe("CampusGuard", () => {
     it("should throw ForbiddenException when user is not authenticated", async () => {
       const campus = createCampus({ id: validUUID });
 
+      // Guard with null clerkId (unauthenticated)
+      mockRequestContext = createMockRequestContext(null);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
 
-      // No user in request
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
@@ -347,19 +379,23 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID_B)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
         allowGlobalAdmin: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       await expect(guard.canActivate(context)).rejects.toThrow(
@@ -378,18 +414,22 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "user-1" },
+        "clerk-user-1",
       );
 
       const result = await guard.canActivate(context);
@@ -406,7 +446,7 @@ describe("CampusGuard", () => {
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
 
-      // No user in request - but should still work
+      // No clerkId in context - but should still work
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
@@ -417,7 +457,66 @@ describe("CampusGuard", () => {
       const result = await guard.canActivate(context);
 
       expect(result).toBe(true);
-      expect(mockUserRepository.findById).not.toHaveBeenCalled();
+      expect(mockRequestContext.getUser).not.toHaveBeenCalled();
+    });
+
+    it("should throw ForbiddenException when user not found in database", async () => {
+      const campus = createCampus({ id: validUUID });
+
+      // Recreate guard with authenticated context but user not found
+      mockRequestContext = createMockRequestContext("clerk-unknown-user");
+      mockRequestContext.getUser.mockResolvedValue(null);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
+      mockReflector.getAllAndOverride.mockReturnValue({
+        required: true,
+        checkUserAccess: true,
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        "clerk-unknown-user",
+      );
+
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(guard.canActivate(context)).rejects.toThrow("User not found");
+    });
+
+    it("should verify user is fetched via RequestContext.getUser()", async () => {
+      const campus = createCampus({ id: validUUID });
+      const role = createRole({ name: "Staff", campusId: validUUID });
+      const user = createUser({
+        id: "user-1",
+        roleAssignments: [createRoleAssignment(role, validUUID)],
+      });
+
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
+      mockReflector.getAllAndOverride.mockReturnValue({
+        required: true,
+        checkUserAccess: true,
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        "clerk-user-1",
+      );
+
+      await guard.canActivate(context);
+
+      // Verify RequestContext.getUser() was called (not direct repository call)
+      expect(mockRequestContext.getUser).toHaveBeenCalled();
     });
   });
 
@@ -435,19 +534,23 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(globalAdminRole, null)], // Global assignment
       });
 
+      // Recreate guard with authenticated admin context
+      mockRequestContext = createMockRequestContext("clerk-admin-1");
+      mockRequestContext.getUser.mockResolvedValue(globalAdmin);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
         allowGlobalAdmin: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(globalAdmin);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "admin-1" },
+        "clerk-admin-1",
       );
 
       const result = await guard.canActivate(context);
@@ -468,19 +571,23 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(fakeAdminRole, null)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-fake-admin-1");
+      mockRequestContext.getUser.mockResolvedValue(fakeAdmin);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
         allowGlobalAdmin: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(fakeAdmin);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "fake-admin-1" },
+        "clerk-fake-admin-1",
       );
 
       // Global role with null campusId should still grant access via hasCampusAccess
@@ -505,19 +612,23 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(globalAdminRole, null)],
       });
 
+      // Recreate guard with authenticated admin context
+      mockRequestContext = createMockRequestContext("clerk-admin-1");
+      mockRequestContext.getUser.mockResolvedValue(globalAdmin);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
         allowGlobalAdmin: false, // Disable global admin bypass
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(globalAdmin);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "admin-1" },
+        "clerk-admin-1",
       );
 
       // Global roles with null campusId assignment should still grant access
@@ -540,19 +651,23 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(localAdminRole, validUUID_B)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-local-admin-1");
+      mockRequestContext.getUser.mockResolvedValue(localAdmin);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
         allowGlobalAdmin: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(localAdmin);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
         {},
         {},
-        { id: "local-admin-1" },
+        "clerk-local-admin-1",
       );
 
       // Should be denied - no access to this campus
@@ -563,7 +678,7 @@ describe("CampusGuard", () => {
   });
 
   describe("Request Campus Storage", () => {
-    it("should store validated campus ID on request object", async () => {
+    it("should store validated campus ID via RequestContext.setCampusId()", async () => {
       const campus = createCampus({ id: validUUID });
       const role = createRole({ name: "Staff" });
       const user = createUser({
@@ -571,54 +686,37 @@ describe("CampusGuard", () => {
         roleAssignments: [createRoleAssignment(role, validUUID)],
       });
 
+      // Recreate guard with authenticated context
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         checkUserAccess: true,
       });
       mockCampusRepository.findById.mockResolvedValue(campus);
-      mockUserRepository.findById.mockResolvedValue(user);
 
-      const request: any = {
-        headers: { "x-campus-id": validUUID },
-        params: {},
-        query: {},
-        user: { id: "user-1" },
-      };
-
-      const context = {
-        switchToHttp: () => ({
-          getRequest: () => request,
-        }),
-        getHandler: () => jest.fn(),
-        getClass: () => jest.fn(),
-      } as unknown as ExecutionContext;
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        "clerk-user-1",
+      );
 
       await guard.canActivate(context);
 
-      expect(request.campusId).toBe(validUUID);
+      expect(mockRequestContext.setCampusId).toHaveBeenCalledWith(validUUID);
     });
 
     it("should store null when campus is not required and not provided", async () => {
       mockReflector.getAllAndOverride.mockReturnValue({ required: false });
 
-      const request: any = {
-        headers: {},
-        params: {},
-        query: {},
-        user: { id: "user-1" },
-      };
-
-      const context = {
-        switchToHttp: () => ({
-          getRequest: () => request,
-        }),
-        getHandler: () => jest.fn(),
-        getClass: () => jest.fn(),
-      } as unknown as ExecutionContext;
+      const context = createMockContext({}, {}, {}, "clerk-user-1");
 
       await guard.canActivate(context);
 
-      expect(request.campusId).toBeNull();
+      expect(mockRequestContext.setCampusId).toHaveBeenCalledWith(null);
     });
   });
 });

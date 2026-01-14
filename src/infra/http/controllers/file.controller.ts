@@ -31,15 +31,26 @@ import { UniqueEntityID } from "../../../core/entities/unique-entity-id";
 import { InitiateUploadRequest } from "../dtos/file/initiate-upload.request";
 import { FileResponse } from "../dtos/file/file.response";
 import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
-import { UserPayload } from "@/types/globals";
+import { User } from "@/domain/user-management/user.entity";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { UserInterceptor } from "../interceptors/user.interceptor";
 
+/**
+ * File Management Controller
+ *
+ * Handles file upload, retrieval, and deletion endpoints.
+ * Uses hybrid auth pattern: AuthMiddleware + ClerkAuthGuard + RequestContext.
+ *
+ * Request Flow:
+ * 1. AuthMiddleware verifies Clerk token
+ * 2. ClerkAuthGuard checks authentication
+ * 3. CampusGuard validates campus access (via @RequireCampusAccess)
+ * 4. @CurrentUser decorator retrieves user from RequestContext (cached)
+ */
 @ApiTags("File Management")
 @ApiBearerAuth("JWT")
 @Controller("files")
 @UseGuards(ClerkAuthGuard)
-@UseInterceptors(UserInterceptor, ClassSerializerInterceptor)
+@UseInterceptors(ClassSerializerInterceptor)
 export class FileController {
   constructor(
     private uploadFile: UploadFileUseCase,
@@ -64,7 +75,7 @@ export class FileController {
       campusId,
       storageProvider,
     }: InitiateUploadRequest,
-    @CurrentUser() user: UserPayload,
+    @CurrentUser() user: User,
     @CampusContext() contextCampusId: string,
   ): Promise<InitiateUploadResponse> {
     // Use campusId from context (validated by guard) if not explicitly provided in body
@@ -74,7 +85,7 @@ export class FileController {
       filename,
       mimeType,
       size,
-      uploadedBy: user.sub,
+      uploadedBy: user.id, // Use User entity's ID (UUID)
       campusId: effectiveCampusId,
       storageProvider,
     });

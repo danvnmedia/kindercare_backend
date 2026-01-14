@@ -12,6 +12,7 @@ import { ClerkModule } from "../../../external-services/clerk/clerk.module";
 import { UserManagementModule } from "../user-management.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { CampusModule } from "../campus.module";
+import { RequestContextModule } from "../../context/request-context.module";
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CampusModule } from "../campus.module";
     UserManagementModule,
     StandardResponseModule,
     CampusModule,
+    RequestContextModule, // Provides RequestContext for ClerkAuthGuard
   ],
   controllers: [FileController],
   providers: [

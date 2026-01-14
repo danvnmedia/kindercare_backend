@@ -1,46 +1,44 @@
+/**
+ * Permissions Guard
+ *
+ * Validates that the authenticated user has at least one of the required
+ * permissions within the current campus context.
+ *
+ * Uses RequestContext for:
+ * - Cached user data (no duplicate DB fetches)
+ * - Campus context (validated by CampusGuard)
+ *
+ * Permission Resolution:
+ * - Collects permissions from all roles applicable to the current campus
+ * - Roles include globally assigned (campusId = null) and campus-specific
+ * - Uses OR logic: user needs ANY of the required permissions
+ *
+ * @example
+ * ```typescript
+ * @UseGuards(ClerkAuthGuard, CampusGuard, PermissionsGuard)
+ * @Permissions('student.create', 'student.update')
+ * @Post('students')
+ * async createStudent() { ... }
+ * ```
+ */
+
 import {
   Injectable,
   CanActivate,
   ExecutionContext,
   Logger,
-  Inject,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
-import { UserRepository } from "@/application/user-management/ports/user.repository";
-import {
-  getCampusFromRequest,
-  getValidatedCampusId,
-} from "../context/campus-context";
+import { RequestContext } from "../context/request-context.service";
 
-/**
- * Guard that checks if user has required permissions within the current campus context
- *
- * Permissions are checked by looking at roles assigned to the user for the
- * current campus (including globally assigned roles) and collecting their
- * permissions. If user has ANY of the required permissions (OR logic),
- * access is granted.
- *
- * Campus context is determined from:
- * 1. x-campus-id header
- * 2. campusId route parameter
- * 3. campusId query parameter
- *
- * If no campus context is provided, only globally assigned roles are checked.
- *
- * Usage:
- * @UseGuards(ClerkAuthGuard, PermissionsGuard)
- * @Permissions('student.create', 'student.update')
- * async someMethod() { ... }
- */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   private readonly logger = new Logger(PermissionsGuard.name);
 
   constructor(
     private reflector: Reflector,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
+    private readonly requestContext: RequestContext,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -55,33 +53,24 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    // Get user from RequestContext (lazy-loaded, cached)
+    const user = await this.requestContext.getUser();
 
     if (!user) {
-      this.logger.warn("PermissionsGuard: No user found in request");
+      this.logger.warn("PermissionsGuard: No user found in request context");
       return false;
     }
 
-    // Get campus context - prefer validated campus from CampusGuard, fallback to extraction
-    const campusId =
-      getValidatedCampusId(request) ?? getCampusFromRequest(request);
-
-    // Fetch user with role assignments
-    const fullUser = await this.userRepository.findById(user.id);
-
-    if (!fullUser) {
-      this.logger.warn(`User ${user.id} not found`);
-      return false;
-    }
+    // Get campus context from RequestContext (set by CampusGuard)
+    const campusId = this.requestContext.campusId;
 
     // Get roles that apply to the current campus context
     // This includes globally assigned roles (campusId = null) + campus-specific roles
-    const applicableRoles = fullUser.getRolesForCampus(campusId);
+    const applicableRoles = user.getRolesForCampus(campusId);
 
     if (applicableRoles.length === 0) {
       this.logger.warn(
-        `User ${user.id} has no roles assigned for campus ${campusId ?? "global"}`,
+        `PermissionsGuard: User ${user.id} has no roles assigned for campus ${campusId ?? "global"}`,
       );
       return false;
     }
@@ -102,7 +91,11 @@ export class PermissionsGuard implements CanActivate {
 
     if (!hasRequiredPermission) {
       this.logger.warn(
-        `User ${user.id} with permissions [${Array.from(userPermissionIds).join(", ")}] in campus ${campusId ?? "global"} does not have any of required permissions [${requiredPermissions.join(", ")}]`,
+        `PermissionsGuard: User ${user.id} with permissions [${Array.from(userPermissionIds).join(", ")}] in campus ${campusId ?? "global"} does not have any of required permissions [${requiredPermissions.join(", ")}]`,
+      );
+    } else {
+      this.logger.debug(
+        `PermissionsGuard: User ${user.id} has required permission in campus ${campusId ?? "global"}`,
       );
     }
 
