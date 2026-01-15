@@ -6,9 +6,16 @@ import {
   Delete,
   Body,
   Param,
+  UseGuards,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam } from "@nestjs/swagger";
+import { ApiOperation, ApiTags, ApiParam, ApiHeader } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
+import {
+  CampusContext,
+  RequireCampusAccess,
+  CAMPUS_ID_HEADER,
+} from "../../decorators";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 
@@ -26,6 +33,7 @@ import { DeleteStaffTypeUseCase } from "@/application/user-management/use-cases/
 
 @Controller("staff-types")
 @ApiTags("Staff Types")
+@UseGuards(ClerkAuthGuard)
 export class StaffTypeController {
   constructor(
     private readonly createStaffTypeUseCase: CreateStaffTypeUseCase,
@@ -36,6 +44,7 @@ export class StaffTypeController {
   ) {}
 
   @Post()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Staff type created successfully",
     type: StaffTypeResponse,
@@ -45,8 +54,20 @@ export class StaffTypeController {
     description:
       "Create a new staff type for a campus. Staff type name must be unique within the campus.",
   })
-  async create(@Body() dto: CreateStaffTypeRequest) {
-    return await this.createStaffTypeUseCase.execute(dto);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff type creation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async create(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateStaffTypeRequest,
+  ) {
+    return await this.createStaffTypeUseCase.execute({
+      ...dto,
+      campusId,
+    });
   }
 
   @Get()

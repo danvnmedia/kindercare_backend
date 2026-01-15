@@ -11,7 +11,7 @@ export class GetClassByIdUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(id: string): Promise<Class> {
+  async execute(id: string, campusId?: string): Promise<Class> {
     try {
       this.logger.log(`Fetching class by ID: ${id}`);
 
@@ -19,6 +19,13 @@ export class GetClassByIdUseCase {
 
       if (!classEntity) {
         throw new NotFoundException(`Class with ID ${id} not found`);
+      }
+
+      // Verify class belongs to the specified campus (if campusId provided)
+      if (campusId && classEntity.campusId !== campusId) {
+        throw new NotFoundException(
+          `Class with ID ${id} not found in this campus`,
+        );
       }
 
       this.logger.log(`Found class: ${classEntity.name}`);

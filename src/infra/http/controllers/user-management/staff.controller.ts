@@ -7,8 +7,10 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags, ApiParam, ApiHeader } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 
 import { Gender } from "@/domain/user-management/enums/gender.enum";
@@ -34,6 +36,7 @@ import { RestoreStaffUseCase } from "@/application/user-management/use-cases/sta
 
 @Controller("staff")
 @ApiTags("Staff")
+@UseGuards(ClerkAuthGuard)
 export class StaffController {
   constructor(
     private readonly createStaffUseCase: CreateStaffUseCase,
@@ -45,6 +48,7 @@ export class StaffController {
   ) {}
 
   @Post()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Staff created successfully",
     type: StaffResponse,
@@ -54,9 +58,18 @@ export class StaffController {
     description:
       "Creates a new staff member with personal information and automatically creates a Clerk account with weak password (ChangeMe123!) that forces password reset on first login. The staff member is automatically assigned a role based on their staffType (teacher, nurse, principal, or staff).",
   })
-  async create(@Body() dto: CreateStaffRequest) {
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff creation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async create(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateStaffRequest,
+  ) {
     return await this.createStaffUseCase.execute({
-      campusId: dto.campusId,
+      campusId,
       fullName: dto.fullName,
       email: dto.email,
       phoneNumber: dto.phoneNumber,

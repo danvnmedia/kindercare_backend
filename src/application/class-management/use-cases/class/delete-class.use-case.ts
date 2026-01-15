@@ -10,7 +10,7 @@ export class DeleteClassUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, campusId?: string): Promise<void> {
     try {
       this.logger.log(`Deleting class: ${id}`);
 
@@ -20,7 +20,14 @@ export class DeleteClassUseCase {
         throw new NotFoundException(`Class with ID ${id} not found`);
       }
 
-      // Step 2: Delete class
+      // Step 2: Verify class belongs to the specified campus (if campusId provided)
+      if (campusId && classEntity.campusId !== campusId) {
+        throw new NotFoundException(
+          `Class with ID ${id} not found in this campus`,
+        );
+      }
+
+      // Step 3: Delete class
       await this.classRepository.delete(id);
 
       this.logger.log(`Class deleted successfully: ${id}`);

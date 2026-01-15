@@ -15,7 +15,7 @@ export class DeleteGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, campusId?: string): Promise<void> {
     try {
       this.logger.log(`Deleting guardian: ${id}`);
 
@@ -23,6 +23,13 @@ export class DeleteGuardianUseCase {
       const guardian = await this.guardianRepository.findById(id);
       if (!guardian) {
         throw new NotFoundException(`Guardian with ID ${id} not found`);
+      }
+
+      // Step 2: Verify guardian belongs to the specified campus (if campusId provided)
+      if (campusId && guardian.campusId !== campusId) {
+        throw new NotFoundException(
+          `Guardian with ID ${id} not found in this campus`,
+        );
       }
 
       // Step 2: Delete associated user account and Clerk identity (if exists)

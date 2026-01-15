@@ -19,7 +19,7 @@ export class DeleteGradeLevelUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, campusId?: string): Promise<void> {
     try {
       this.logger.log(`Deleting grade level: ${id}`);
 
@@ -29,7 +29,14 @@ export class DeleteGradeLevelUseCase {
         throw new NotFoundException(`Grade level with ID ${id} not found`);
       }
 
-      // Step 2: Check for dependent classes
+      // Step 2: Verify grade level belongs to the specified campus (if campusId provided)
+      if (campusId && gradeLevel.campusId !== campusId) {
+        throw new NotFoundException(
+          `Grade level with ID ${id} not found in this campus`,
+        );
+      }
+
+      // Step 3: Check for dependent classes
       const dependentClasses = await this.classRepository.findByGradeLevelId(
         id,
         gradeLevel.campusId,
@@ -40,7 +47,7 @@ export class DeleteGradeLevelUseCase {
         );
       }
 
-      // Step 3: Delete grade level
+      // Step 4: Delete grade level
       await this.gradeLevelRepository.delete(id);
 
       this.logger.log(`Grade level deleted successfully: ${id}`);

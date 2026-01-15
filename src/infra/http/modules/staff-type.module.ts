@@ -17,6 +17,8 @@ import { PrismaStaffTypeRepository } from "@/infra/persistence/prisma/repositori
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { UserManagementModule } from "./user-management.module";
+import { RequestContextModule } from "../context/request-context.module";
+import { CampusModule } from "./campus.module";
 
 /**
  * Staff Type Module
@@ -32,6 +34,8 @@ import { UserManagementModule } from "./user-management.module";
     PrismaModule, // Database access
     StandardResponseModule, // Query service for filtering and pagination
     forwardRef(() => UserManagementModule), // For ROLE_REPOSITORY dependency (circular dep)
+    RequestContextModule, // Provides RequestContext for ClerkAuthGuard
+    CampusModule, // Provides CAMPUS_REPOSITORY for CampusGuard
   ],
   controllers: [StaffTypeController],
   providers: [

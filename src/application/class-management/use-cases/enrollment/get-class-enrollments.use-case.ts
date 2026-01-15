@@ -14,7 +14,7 @@ export class GetClassEnrollmentsUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(classId: string): Promise<Enrollment[]> {
+  async execute(classId: string, campusId?: string): Promise<Enrollment[]> {
     try {
       this.logger.log(`Fetching enrollments for class: ${classId}`);
 
@@ -22,6 +22,13 @@ export class GetClassEnrollmentsUseCase {
       const classEntity = await this.classRepository.findById(classId);
       if (!classEntity) {
         throw new NotFoundException(`Class with ID ${classId} not found`);
+      }
+
+      // Verify class belongs to the specified campus (if campusId provided)
+      if (campusId && classEntity.campusId !== campusId) {
+        throw new NotFoundException(
+          `Class with ID ${classId} not found in this campus`,
+        );
       }
 
       const enrollments =

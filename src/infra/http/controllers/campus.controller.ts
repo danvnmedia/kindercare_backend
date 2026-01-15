@@ -6,8 +6,10 @@ import {
   Delete,
   Body,
   Param,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags, ApiParam } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
@@ -26,6 +28,7 @@ import { DeleteCampusUseCase } from "@/application/campus/use-cases/delete-campu
 
 @Controller("campuses")
 @ApiTags("Campuses")
+@UseGuards(ClerkAuthGuard)
 export class CampusController {
   constructor(
     private readonly createCampusUseCase: CreateCampusUseCase,

@@ -28,7 +28,7 @@ export class ArchiveGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<Guardian> {
+  async execute(id: string, campusId?: string): Promise<Guardian> {
     this.logger.log(`Archiving guardian: ${id}`);
 
     // Step 1: Find existing guardian
@@ -37,12 +37,19 @@ export class ArchiveGuardianUseCase {
       throw new NotFoundException(`Guardian with ID ${id} not found`);
     }
 
-    // Step 2: Lock Clerk user (best effort - don't fail if this fails)
+    // Step 2: Verify guardian belongs to the specified campus (if campusId provided)
+    if (campusId && guardian.campusId !== campusId) {
+      throw new NotFoundException(
+        `Guardian with ID ${id} not found in this campus`,
+      );
+    }
+
+    // Step 3: Lock Clerk user (best effort - don't fail if this fails)
     if (guardian.hasUserAccount()) {
       await this.lockClerkUser(guardian.userId!);
     }
 
-    // Step 3: Archive guardian and deactivate user atomically
+    // Step 4: Archive guardian and deactivate user atomically
     guardian.archive();
 
     await this.unitOfWork.run(async (tx) => {

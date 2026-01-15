@@ -11,12 +11,19 @@ export class GetAttendanceByIdUseCase {
     private readonly attendanceRepository: StudentAttendanceRepository,
   ) {}
 
-  async execute(id: string): Promise<StudentAttendanceSummary> {
+  async execute(id: string, campusId?: string): Promise<StudentAttendanceSummary> {
     this.logger.log(`Getting attendance by ID: ${id}`);
 
     const summary = await this.attendanceRepository.findById(id);
     if (!summary) {
       throw new NotFoundException(`Attendance record with ID ${id} not found`);
+    }
+
+    // Verify attendance record belongs to the specified campus (if campusId provided)
+    if (campusId && summary.campusId !== campusId) {
+      throw new NotFoundException(
+        `Attendance record with ID ${id} not found in this campus`,
+      );
     }
 
     return summary;

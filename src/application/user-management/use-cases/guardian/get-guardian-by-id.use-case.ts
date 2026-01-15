@@ -11,7 +11,7 @@ export class GetGuardianByIdUseCase {
     private readonly guardianRepository: GuardianRepository,
   ) {}
 
-  async execute(id: string): Promise<Guardian> {
+  async execute(id: string, campusId?: string): Promise<Guardian> {
     try {
       this.logger.log(`Fetching guardian by ID: ${id}`);
 
@@ -19,6 +19,13 @@ export class GetGuardianByIdUseCase {
 
       if (!guardian) {
         throw new NotFoundException(`Guardian with ID ${id} not found`);
+      }
+
+      // Verify guardian belongs to the specified campus (if campusId provided)
+      if (campusId && guardian.campusId !== campusId) {
+        throw new NotFoundException(
+          `Guardian with ID ${id} not found in this campus`,
+        );
       }
 
       this.logger.log(`Found guardian: ${guardian.fullName}`);

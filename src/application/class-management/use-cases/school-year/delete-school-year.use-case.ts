@@ -19,7 +19,7 @@ export class DeleteSchoolYearUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(id: string): Promise<void> {
+  async execute(id: string, campusId?: string): Promise<void> {
     try {
       this.logger.log(`Deleting school year: ${id}`);
 
@@ -29,7 +29,14 @@ export class DeleteSchoolYearUseCase {
         throw new NotFoundException(`School year with ID ${id} not found`);
       }
 
-      // Step 2: Check for dependent classes
+      // Step 2: Verify school year belongs to the specified campus (if campusId provided)
+      if (campusId && schoolYear.campusId !== campusId) {
+        throw new NotFoundException(
+          `School year with ID ${id} not found in this campus`,
+        );
+      }
+
+      // Step 3: Check for dependent classes
       const dependentClasses = await this.classRepository.findBySchoolYearId(
         id,
         schoolYear.campusId,
@@ -40,7 +47,7 @@ export class DeleteSchoolYearUseCase {
         );
       }
 
-      // Step 3: Delete school year
+      // Step 4: Delete school year
       await this.schoolYearRepository.delete(id);
 
       this.logger.log(`School year deleted successfully: ${id}`);
