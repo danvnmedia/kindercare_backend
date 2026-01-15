@@ -142,7 +142,8 @@ async function createAdmin(input: AdminInput) {
         data: {
           id: roleId,
           name: "Super Admin",
-          description: "Global system administrator with full access to all campuses",
+          description:
+            "Global system administrator with full access to all campuses",
           campusId: null, // Global role
           isSystemDefault: true,
           isSystemRole: true, // Grants global admin bypass
@@ -151,7 +152,9 @@ async function createAdmin(input: AdminInput) {
       console.log("Super Admin role created with isSystemRole=true");
     } else if (!superAdminRole.isSystemRole) {
       // Update existing role to have isSystemRole=true
-      console.log("Updating existing Super Admin role to set isSystemRole=true...");
+      console.log(
+        "Updating existing Super Admin role to set isSystemRole=true...",
+      );
       superAdminRole = await prisma.role.update({
         where: { id: roleId },
         data: { isSystemRole: true, isSystemDefault: true },
@@ -186,7 +189,9 @@ async function createAdmin(input: AdminInput) {
     console.log("----------------------------------------");
     console.log(`Email (Clerk):  ${input.email}`);
     console.log(`Full Name:      ${input.fullName}`);
-    console.log(`Password:       ${input.password ? "Set" : "Not set (needs reset)"}`);
+    console.log(
+      `Password:       ${input.password ? "Set" : "Not set (needs reset)"}`,
+    );
     console.log(`User ID:        ${adminUser.id}`);
     console.log(`Clerk UID:      ${adminUser.clerkUid}`);
     console.log(`Role ID:        ${superAdminRole.id}`);
@@ -202,9 +207,13 @@ async function createAdmin(input: AdminInput) {
     if (!input.clerkUid) {
       console.log("Note: User was automatically created on Clerk.");
       if (input.password) {
-        console.log("   The user can now login using their email and password.\n");
+        console.log(
+          "   The user can now login using their email and password.\n",
+        );
       } else {
-        console.log("   No password set - user must reset password via Clerk.\n");
+        console.log(
+          "   No password set - user must reset password via Clerk.\n",
+        );
       }
     }
   } catch (error) {
@@ -287,9 +296,13 @@ async function deleteAdmin(clerkUid: string) {
       process.exit(1);
     }
 
-    const isSuperAdmin = user.userRoles.some((ur) => ur.role.isSystemRole === true);
+    const isSuperAdmin = user.userRoles.some(
+      (ur) => ur.role.isSystemRole === true,
+    );
     if (!isSuperAdmin) {
-      console.error(`User ${clerkUid} is not a Super Admin (no isSystemRole=true role)`);
+      console.error(
+        `User ${clerkUid} is not a Super Admin (no isSystemRole=true role)`,
+      );
       process.exit(1);
     }
 

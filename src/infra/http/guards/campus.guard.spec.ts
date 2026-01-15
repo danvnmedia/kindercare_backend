@@ -111,7 +111,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
@@ -140,7 +144,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
@@ -168,7 +176,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
@@ -196,7 +208,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({ required: true });
       mockCampusRepository.findById.mockResolvedValue(campus);
@@ -319,7 +335,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -347,7 +367,11 @@ describe("CampusGuard", () => {
 
       // Guard with null clerkId (unauthenticated)
       mockRequestContext = createMockRequestContext(null);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -382,7 +406,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -417,7 +445,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -466,7 +498,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context but user not found
       mockRequestContext = createMockRequestContext("clerk-unknown-user");
       mockRequestContext.getUser.mockResolvedValue(null);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -484,7 +520,9 @@ describe("CampusGuard", () => {
       await expect(guard.canActivate(context)).rejects.toThrow(
         ForbiddenException,
       );
-      await expect(guard.canActivate(context)).rejects.toThrow("User not found");
+      await expect(guard.canActivate(context)).rejects.toThrow(
+        "User not found",
+      );
     });
 
     it("should verify user is fetched via RequestContext.getUser()", async () => {
@@ -498,7 +536,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -537,7 +579,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated admin context
       mockRequestContext = createMockRequestContext("clerk-admin-1");
       mockRequestContext.getUser.mockResolvedValue(globalAdmin);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -574,7 +620,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-fake-admin-1");
       mockRequestContext.getUser.mockResolvedValue(fakeAdmin);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -615,7 +665,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated admin context
       mockRequestContext = createMockRequestContext("clerk-admin-1");
       mockRequestContext.getUser.mockResolvedValue(globalAdmin);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -654,7 +708,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-local-admin-1");
       mockRequestContext.getUser.mockResolvedValue(localAdmin);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
@@ -689,7 +747,11 @@ describe("CampusGuard", () => {
       // Recreate guard with authenticated context
       mockRequestContext = createMockRequestContext("clerk-user-1");
       mockRequestContext.getUser.mockResolvedValue(user);
-      guard = new CampusGuard(mockReflector, mockCampusRepository, mockRequestContext);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,

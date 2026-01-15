@@ -97,7 +97,9 @@ export abstract class StudentAttendanceRepository {
   /**
    * Find all logs for a summary
    */
-  abstract findLogsBySummaryId(summaryId: string): Promise<StudentAttendanceLog[]>;
+  abstract findLogsBySummaryId(
+    summaryId: string,
+  ): Promise<StudentAttendanceLog[]>;
 
   /**
    * Save a new attendance log
@@ -107,7 +109,9 @@ export abstract class StudentAttendanceRepository {
   /**
    * Save multiple attendance logs
    */
-  abstract saveLogs(logs: StudentAttendanceLog[]): Promise<StudentAttendanceLog[]>;
+  abstract saveLogs(
+    logs: StudentAttendanceLog[],
+  ): Promise<StudentAttendanceLog[]>;
 
   /**
    * Delete all logs for a summary
@@ -130,6 +134,11 @@ export abstract class StudentAttendanceRepository {
    * Save multiple summaries with their logs (atomic operation)
    */
   abstract saveManySummariesWithLogs(
-    data: Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>,
-  ): Promise<Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>>;
+    data: Array<{
+      summary: StudentAttendanceSummary;
+      log: StudentAttendanceLog;
+    }>,
+  ): Promise<
+    Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>
+  >;
 }

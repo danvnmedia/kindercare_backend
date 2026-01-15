@@ -161,10 +161,7 @@ export class PostCategoryController {
     description: "Post Category UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async delete(
-    @CampusContext() campusId: string,
-    @Param("id") id: string,
-  ) {
+  async delete(@CampusContext() campusId: string, @Param("id") id: string) {
     return await this.deletePostCategoryUseCase.execute(id, campusId);
   }
 

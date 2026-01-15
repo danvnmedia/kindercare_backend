@@ -131,10 +131,7 @@ export class GuardianController {
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async findOne(
-    @CampusContext() campusId: string,
-    @Param("id") id: string,
-  ) {
+  async findOne(@CampusContext() campusId: string, @Param("id") id: string) {
     return await this.getGuardianByIdUseCase.execute(id, campusId);
   }
 
@@ -183,10 +180,7 @@ export class GuardianController {
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async archive(
-    @CampusContext() campusId: string,
-    @Param("id") id: string,
-  ) {
+  async archive(@CampusContext() campusId: string, @Param("id") id: string) {
     return await this.archiveGuardianUseCase.execute(id, campusId);
   }
 
@@ -207,10 +201,7 @@ export class GuardianController {
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async restore(
-    @CampusContext() campusId: string,
-    @Param("id") id: string,
-  ) {
+  async restore(@CampusContext() campusId: string, @Param("id") id: string) {
     return await this.restoreGuardianUseCase.execute(id, campusId);
   }
 }

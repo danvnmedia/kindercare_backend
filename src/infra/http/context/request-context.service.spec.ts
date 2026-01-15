@@ -6,7 +6,10 @@
  */
 
 import { UnauthorizedException } from "@nestjs/common";
-import { RequestContext, AuthenticatedRequest } from "./request-context.service";
+import {
+  RequestContext,
+  AuthenticatedRequest,
+} from "./request-context.service";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
 import { createUser, createRole, createRoleAssignment } from "@/test-utils";
 
@@ -55,7 +58,11 @@ describe("RequestContext", () => {
     });
 
     it("should initialize from request when clerkId is already set", () => {
-      mockRequest = createMockRequest("clerk-user-1", "session-123", "campus-1");
+      mockRequest = createMockRequest(
+        "clerk-user-1",
+        "session-123",
+        "campus-1",
+      );
       requestContext = new RequestContext(mockRequest, mockUserRepository);
 
       expect(requestContext.clerkId).toBe("clerk-user-1");

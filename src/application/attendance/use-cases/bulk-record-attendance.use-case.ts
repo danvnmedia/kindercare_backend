@@ -37,7 +37,10 @@ export interface BulkRecordAttendanceInput {
 }
 
 export interface BulkRecordAttendanceResult {
-  created: Array<{ summary: StudentAttendanceSummary; log: StudentAttendanceLog }>;
+  created: Array<{
+    summary: StudentAttendanceSummary;
+    log: StudentAttendanceLog;
+  }>;
   skipped: Array<{ studentId: string; reason: string }>;
 }
 
@@ -156,9 +159,8 @@ export class BulkRecordAttendanceUseCase {
     }> = [];
 
     if (toCreate.length > 0) {
-      created = await this.attendanceRepository.saveManySummariesWithLogs(
-        toCreate,
-      );
+      created =
+        await this.attendanceRepository.saveManySummariesWithLogs(toCreate);
     }
 
     this.logger.log(

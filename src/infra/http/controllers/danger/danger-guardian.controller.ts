@@ -1,6 +1,11 @@
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { Controller, Delete, Param, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiHeader } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiHeader,
+} from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,
@@ -43,10 +48,7 @@ export class DangerGuardianController {
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async hardDelete(
-    @CampusContext() campusId: string,
-    @Param("id") id: string,
-  ) {
+  async hardDelete(@CampusContext() campusId: string, @Param("id") id: string) {
     await this.deleteGuardianUseCase.execute(id, campusId);
   }
 }

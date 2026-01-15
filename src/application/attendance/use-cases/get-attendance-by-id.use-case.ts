@@ -11,7 +11,10 @@ export class GetAttendanceByIdUseCase {
     private readonly attendanceRepository: StudentAttendanceRepository,
   ) {}
 
-  async execute(id: string, campusId?: string): Promise<StudentAttendanceSummary> {
+  async execute(
+    id: string,
+    campusId?: string,
+  ): Promise<StudentAttendanceSummary> {
     this.logger.log(`Getting attendance by ID: ${id}`);
 
     const summary = await this.attendanceRepository.findById(id);

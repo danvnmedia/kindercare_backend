@@ -11,7 +11,10 @@ export class GetStudentGuardiansUseCase {
     private readonly studentRepository: StudentRepository,
   ) {}
 
-  async execute(studentId: string, campusId?: string): Promise<StudentGuardianInfo[]> {
+  async execute(
+    studentId: string,
+    campusId?: string,
+  ): Promise<StudentGuardianInfo[]> {
     try {
       this.logger.log(`Getting guardians for student ${studentId}`);
 
