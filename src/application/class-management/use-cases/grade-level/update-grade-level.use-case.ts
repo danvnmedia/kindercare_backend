@@ -20,7 +20,11 @@ export class UpdateGradeLevelUseCase {
     private readonly gradeLevelRepository: GradeLevelRepository,
   ) {}
 
-  async execute(id: string, input: UpdateGradeLevelData): Promise<GradeLevel> {
+  async execute(
+    id: string,
+    campusId: string,
+    input: UpdateGradeLevelData,
+  ): Promise<GradeLevel> {
     try {
       this.logger.log(`Updating grade level: ${id}`);
 
@@ -30,7 +34,14 @@ export class UpdateGradeLevelUseCase {
         throw new NotFoundException(`Grade level with ID ${id} not found`);
       }
 
-      // Step 2: Check for name uniqueness if name is being updated (within campus)
+      // Step 2: Verify grade level belongs to the specified campus
+      if (gradeLevel.campusId !== campusId) {
+        throw new NotFoundException(
+          `Grade level with ID ${id} not found in this campus`,
+        );
+      }
+
+      // Step 3: Check for name uniqueness if name is being updated (within campus)
       if (input.name && input.name !== gradeLevel.name) {
         const existingByName =
           await this.gradeLevelRepository.findByNameAndCampus(
@@ -44,7 +55,7 @@ export class UpdateGradeLevelUseCase {
         }
       }
 
-      // Step 3: Check for order uniqueness if order is being updated (within campus)
+      // Step 4: Check for order uniqueness if order is being updated (within campus)
       if (input.order !== undefined && input.order !== gradeLevel.order) {
         const existingByOrder =
           await this.gradeLevelRepository.findByOrderAndCampus(
@@ -58,7 +69,7 @@ export class UpdateGradeLevelUseCase {
         }
       }
 
-      // Step 4: Update grade level using entity methods
+      // Step 5: Update grade level using entity methods
       if (input.name !== undefined) {
         gradeLevel.updateName(input.name);
       }
@@ -73,7 +84,7 @@ export class UpdateGradeLevelUseCase {
         }
       }
 
-      // Step 5: Save updated grade level
+      // Step 6: Save updated grade level
       const updatedGradeLevel =
         await this.gradeLevelRepository.update(gradeLevel);
 

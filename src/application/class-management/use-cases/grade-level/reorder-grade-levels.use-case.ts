@@ -2,6 +2,7 @@ import {
   Injectable,
   Inject,
   BadRequestException,
+  NotFoundException,
   Logger,
 } from "@nestjs/common";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
@@ -24,12 +25,17 @@ export class ReorderGradeLevelsUseCase {
   async execute(input: ReorderGradeLevelsInput): Promise<GradeLevel[]> {
     this.logger.log(`Reordering ${input.ids.length} grade levels`);
 
-    // Step 1: Validate all IDs exist
+    // Step 1: Validate all IDs exist and belong to the specified campus
     const missingIds: string[] = [];
     for (const id of input.ids) {
       const gradeLevel = await this.gradeLevelRepository.findById(id);
       if (!gradeLevel) {
         missingIds.push(id);
+      } else if (gradeLevel.campusId !== input.campusId) {
+        // Grade level belongs to a different campus - return 404 for security
+        throw new NotFoundException(
+          `Grade level with ID ${id} not found in this campus`,
+        );
       }
     }
 

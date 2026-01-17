@@ -153,7 +153,7 @@ export class ReferenceDataController {
     @Param("id") id: string,
     @Body() dto: UpdateGradeLevelRequest,
   ) {
-    return await this.updateGradeLevelUseCase.execute(id, dto);
+    return await this.updateGradeLevelUseCase.execute(id, campusId, dto);
   }
 
   @Delete("grade-levels/:id")
