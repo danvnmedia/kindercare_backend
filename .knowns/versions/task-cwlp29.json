@@ -1,0 +1,600 @@
+{
+  "taskId": "cwlp29",
+  "currentVersion": 10,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "cwlp29",
+      "version": 1,
+      "timestamp": "2026-01-16T03:29:51.614Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [],
+          "newValue": [
+            {
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "cwlp29",
+      "version": 2,
+      "timestamp": "2026-01-16T03:29:53.254Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "text": "Users with a global role (campusId: null) receive all active campuses",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "text": "Users with a global role (campusId: null) receive all active campuses",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "cwlp29",
+      "version": 3,
+      "timestamp": "2026-01-16T03:29:54.895Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "text": "Users with no role assignments receive an empty array []",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": false,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "text": "Users with no role assignments receive an empty array []",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "cwlp29",
+      "version": 4,
+      "timestamp": "2026-01-16T03:29:56.493Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "completed": false,
+              "text": "Users with no role assignments receive an empty array []"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "completed": false,
+              "text": "Users with no role assignments receive an empty array []"
+            },
+            {
+              "text": "Existing pagination and filtering (name, address, isActive) still work correctly",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": false,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": false,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "cwlp29",
+      "version": 5,
+      "timestamp": "2026-01-16T03:29:58.053Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "completed": false,
+              "text": "Users with no role assignments receive an empty array []"
+            },
+            {
+              "completed": false,
+              "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "completed": false,
+              "text": "Users with no role assignments receive an empty array []"
+            },
+            {
+              "completed": false,
+              "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+            },
+            {
+              "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": false,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": false,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "completed": false,
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+          },
+          {
+            "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles",
+            "completed": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "cwlp29",
+      "version": 6,
+      "timestamp": "2026-01-16T03:34:03.098Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "## Implementation Plan\n\n### Phase 1: Extend Use Case (Clean Architecture Pattern)\n\n1. **Modify `GetAllCampusesUseCase`** (`src/application/campus/use-cases/get-all-campuses.use-case.ts`)\n   - Add optional `accessibleCampusIds: string[] | null` parameter to execute method\n   - When `accessibleCampusIds = null` → user has global access, return all\n   - When `accessibleCampusIds = []` → user has no access, return empty result\n   - When `accessibleCampusIds = [id1, id2, ...]` → add filter: `id: { in: accessibleCampusIds }`\n   - Merge with existing StandardRequest filters\n\n### Phase 2: Update Controller\n\n2. **Modify `CampusController.findAll()`** (`src/infra/http/controllers/campus.controller.ts`)\n   - Inject `RequestContext` service\n   - Get authenticated user via `requestContext.getUserOrFail()`\n   - Extract accessible campus IDs from user's role assignments:\n     ```typescript\n     const accessibleCampusIds = user.hasGlobalRole()\n       ? null  // Global access\n       : user.getAccessibleCampusIds();  // Or empty array if none\n     ```\n   - Pass `accessibleCampusIds` to use case\n\n### Phase 3: Add User Entity Helper Method\n\n3. **Add helper method to User entity** (`src/domain/user-management/user.entity.ts`)\n   - Add `hasGlobalRole(): boolean` - checks if any role assignment has `campusId: null`\n   - Add `getAccessibleCampusIds(): string[]` - returns unique campusIds from role assignments (excluding null)\n\n### Phase 4: Testing\n\n4. **Unit Tests** (`src/application/campus/use-cases/__tests__/get-all-campuses.use-case.spec.ts`)\n   - Test: User with campus-scoped roles gets filtered results\n   - Test: User with global role gets all campuses\n   - Test: User with no roles gets empty array\n   - Test: Pagination still works with filtering\n   - Test: Existing filters (name, isActive) combine correctly with access filter\n\n### Key Files to Modify\n- `src/application/campus/use-cases/get-all-campuses.use-case.ts`\n- `src/infra/http/controllers/campus.controller.ts`\n- `src/domain/user-management/user.entity.ts`\n- Tests: `get-all-campuses.use-case.spec.ts`\n\n### Architecture Notes\n- Follows existing clean architecture pattern used in Staff/Class/Student controllers\n- Uses RequestContext for lazy user loading (already established pattern)\n- Keeps filtering logic in use case layer per single responsibility\n- User entity methods enable reuse across other endpoints if needed"
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": false,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": false,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "completed": false,
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Extend Use Case (Clean Architecture Pattern)\n\n1. **Modify `GetAllCampusesUseCase`** (`src/application/campus/use-cases/get-all-campuses.use-case.ts`)\n   - Add optional `accessibleCampusIds: string[] | null` parameter to execute method\n   - When `accessibleCampusIds = null` → user has global access, return all\n   - When `accessibleCampusIds = []` → user has no access, return empty result\n   - When `accessibleCampusIds = [id1, id2, ...]` → add filter: `id: { in: accessibleCampusIds }`\n   - Merge with existing StandardRequest filters\n\n### Phase 2: Update Controller\n\n2. **Modify `CampusController.findAll()`** (`src/infra/http/controllers/campus.controller.ts`)\n   - Inject `RequestContext` service\n   - Get authenticated user via `requestContext.getUserOrFail()`\n   - Extract accessible campus IDs from user's role assignments:\n     ```typescript\n     const accessibleCampusIds = user.hasGlobalRole()\n       ? null  // Global access\n       : user.getAccessibleCampusIds();  // Or empty array if none\n     ```\n   - Pass `accessibleCampusIds` to use case\n\n### Phase 3: Add User Entity Helper Method\n\n3. **Add helper method to User entity** (`src/domain/user-management/user.entity.ts`)\n   - Add `hasGlobalRole(): boolean` - checks if any role assignment has `campusId: null`\n   - Add `getAccessibleCampusIds(): string[]` - returns unique campusIds from role assignments (excluding null)\n\n### Phase 4: Testing\n\n4. **Unit Tests** (`src/application/campus/use-cases/__tests__/get-all-campuses.use-case.spec.ts`)\n   - Test: User with campus-scoped roles gets filtered results\n   - Test: User with global role gets all campuses\n   - Test: User with no roles gets empty array\n   - Test: Pagination still works with filtering\n   - Test: Existing filters (name, isActive) combine correctly with access filter\n\n### Key Files to Modify\n- `src/application/campus/use-cases/get-all-campuses.use-case.ts`\n- `src/infra/http/controllers/campus.controller.ts`\n- `src/domain/user-management/user.entity.ts`\n- Tests: `get-all-campuses.use-case.spec.ts`\n\n### Architecture Notes\n- Follows existing clean architecture pattern used in Staff/Class/Student controllers\n- Uses RequestContext for lazy user loading (already established pattern)\n- Keeps filtering logic in use case layer per single responsibility\n- User entity methods enable reuse across other endpoints if needed"
+      }
+    },
+    {
+      "id": "v7",
+      "taskId": "cwlp29",
+      "version": 7,
+      "timestamp": "2026-01-16T03:35:16.797Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": false,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": false,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "completed": false,
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Extend Use Case (Clean Architecture Pattern)\n\n1. **Modify `GetAllCampusesUseCase`** (`src/application/campus/use-cases/get-all-campuses.use-case.ts`)\n   - Add optional `accessibleCampusIds: string[] | null` parameter to execute method\n   - When `accessibleCampusIds = null` → user has global access, return all\n   - When `accessibleCampusIds = []` → user has no access, return empty result\n   - When `accessibleCampusIds = [id1, id2, ...]` → add filter: `id: { in: accessibleCampusIds }`\n   - Merge with existing StandardRequest filters\n\n### Phase 2: Update Controller\n\n2. **Modify `CampusController.findAll()`** (`src/infra/http/controllers/campus.controller.ts`)\n   - Inject `RequestContext` service\n   - Get authenticated user via `requestContext.getUserOrFail()`\n   - Extract accessible campus IDs from user's role assignments:\n     ```typescript\n     const accessibleCampusIds = user.hasGlobalRole()\n       ? null  // Global access\n       : user.getAccessibleCampusIds();  // Or empty array if none\n     ```\n   - Pass `accessibleCampusIds` to use case\n\n### Phase 3: Add User Entity Helper Method\n\n3. **Add helper method to User entity** (`src/domain/user-management/user.entity.ts`)\n   - Add `hasGlobalRole(): boolean` - checks if any role assignment has `campusId: null`\n   - Add `getAccessibleCampusIds(): string[]` - returns unique campusIds from role assignments (excluding null)\n\n### Phase 4: Testing\n\n4. **Unit Tests** (`src/application/campus/use-cases/__tests__/get-all-campuses.use-case.spec.ts`)\n   - Test: User with campus-scoped roles gets filtered results\n   - Test: User with global role gets all campuses\n   - Test: User with no roles gets empty array\n   - Test: Pagination still works with filtering\n   - Test: Existing filters (name, isActive) combine correctly with access filter\n\n### Key Files to Modify\n- `src/application/campus/use-cases/get-all-campuses.use-case.ts`\n- `src/infra/http/controllers/campus.controller.ts`\n- `src/domain/user-management/user.entity.ts`\n- Tests: `get-all-campuses.use-case.spec.ts`\n\n### Architecture Notes\n- Follows existing clean architecture pattern used in Staff/Class/Student controllers\n- Uses RequestContext for lazy user loading (already established pattern)\n- Keeps filtering logic in use case layer per single responsibility\n- User entity methods enable reuse across other endpoints if needed"
+      }
+    },
+    {
+      "id": "v8",
+      "taskId": "cwlp29",
+      "version": 8,
+      "timestamp": "2026-01-16T03:42:19.352Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": false,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "completed": false,
+              "text": "Users with no role assignments receive an empty array []"
+            },
+            {
+              "completed": false,
+              "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+            },
+            {
+              "completed": false,
+              "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+            },
+            {
+              "completed": true,
+              "text": "Users with a global role (campusId: null) receive all active campuses"
+            },
+            {
+              "completed": true,
+              "text": "Users with no role assignments receive an empty array []"
+            },
+            {
+              "completed": true,
+              "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+            },
+            {
+              "completed": true,
+              "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": true,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": true,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "completed": true,
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Extend Use Case (Clean Architecture Pattern)\n\n1. **Modify `GetAllCampusesUseCase`** (`src/application/campus/use-cases/get-all-campuses.use-case.ts`)\n   - Add optional `accessibleCampusIds: string[] | null` parameter to execute method\n   - When `accessibleCampusIds = null` → user has global access, return all\n   - When `accessibleCampusIds = []` → user has no access, return empty result\n   - When `accessibleCampusIds = [id1, id2, ...]` → add filter: `id: { in: accessibleCampusIds }`\n   - Merge with existing StandardRequest filters\n\n### Phase 2: Update Controller\n\n2. **Modify `CampusController.findAll()`** (`src/infra/http/controllers/campus.controller.ts`)\n   - Inject `RequestContext` service\n   - Get authenticated user via `requestContext.getUserOrFail()`\n   - Extract accessible campus IDs from user's role assignments:\n     ```typescript\n     const accessibleCampusIds = user.hasGlobalRole()\n       ? null  // Global access\n       : user.getAccessibleCampusIds();  // Or empty array if none\n     ```\n   - Pass `accessibleCampusIds` to use case\n\n### Phase 3: Add User Entity Helper Method\n\n3. **Add helper method to User entity** (`src/domain/user-management/user.entity.ts`)\n   - Add `hasGlobalRole(): boolean` - checks if any role assignment has `campusId: null`\n   - Add `getAccessibleCampusIds(): string[]` - returns unique campusIds from role assignments (excluding null)\n\n### Phase 4: Testing\n\n4. **Unit Tests** (`src/application/campus/use-cases/__tests__/get-all-campuses.use-case.spec.ts`)\n   - Test: User with campus-scoped roles gets filtered results\n   - Test: User with global role gets all campuses\n   - Test: User with no roles gets empty array\n   - Test: Pagination still works with filtering\n   - Test: Existing filters (name, isActive) combine correctly with access filter\n\n### Key Files to Modify\n- `src/application/campus/use-cases/get-all-campuses.use-case.ts`\n- `src/infra/http/controllers/campus.controller.ts`\n- `src/domain/user-management/user.entity.ts`\n- Tests: `get-all-campuses.use-case.spec.ts`\n\n### Architecture Notes\n- Follows existing clean architecture pattern used in Staff/Class/Student controllers\n- Uses RequestContext for lazy user loading (already established pattern)\n- Keeps filtering logic in use case layer per single responsibility\n- User entity methods enable reuse across other endpoints if needed"
+      }
+    },
+    {
+      "id": "v9",
+      "taskId": "cwlp29",
+      "version": 9,
+      "timestamp": "2026-01-16T04:52:39.416Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Implementation Summary\n\n### Changes Made:\n\n1. **User Entity** ()\n   - Added  - checks if any role assignment has campusId = null\n   - Added  - returns unique campusIds from role assignments\n\n2. **GetAllCampusesUseCase** ()\n   - Changed signature to accept  with \n   - Three cases: null = global access, [] = no access (empty result), [...ids] = filter by IDs\n   - Uses Prisma 'in' operator to filter by accessible campus IDs\n\n3. **CampusController** ()\n   - Injected RequestContext service\n   - findAll() now extracts user via requestContext.getUserOrFail()\n   - Determines access level using hasGlobalRole() and getAccessibleCampusIds()\n\n4. **Unit Tests** ()\n   - 15 tests covering global access, no access, campus-scoped access, and edge cases\n\n### Architecture Notes:\n- Follows existing clean architecture patterns (domain -> application -> infra)\n- Uses existing RequestContext lazy-loading pattern\n- User entity helper methods enable reuse across other endpoints"
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": true,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": true,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "completed": true,
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Extend Use Case (Clean Architecture Pattern)\n\n1. **Modify `GetAllCampusesUseCase`** (`src/application/campus/use-cases/get-all-campuses.use-case.ts`)\n   - Add optional `accessibleCampusIds: string[] | null` parameter to execute method\n   - When `accessibleCampusIds = null` → user has global access, return all\n   - When `accessibleCampusIds = []` → user has no access, return empty result\n   - When `accessibleCampusIds = [id1, id2, ...]` → add filter: `id: { in: accessibleCampusIds }`\n   - Merge with existing StandardRequest filters\n\n### Phase 2: Update Controller\n\n2. **Modify `CampusController.findAll()`** (`src/infra/http/controllers/campus.controller.ts`)\n   - Inject `RequestContext` service\n   - Get authenticated user via `requestContext.getUserOrFail()`\n   - Extract accessible campus IDs from user's role assignments:\n     ```typescript\n     const accessibleCampusIds = user.hasGlobalRole()\n       ? null  // Global access\n       : user.getAccessibleCampusIds();  // Or empty array if none\n     ```\n   - Pass `accessibleCampusIds` to use case\n\n### Phase 3: Add User Entity Helper Method\n\n3. **Add helper method to User entity** (`src/domain/user-management/user.entity.ts`)\n   - Add `hasGlobalRole(): boolean` - checks if any role assignment has `campusId: null`\n   - Add `getAccessibleCampusIds(): string[]` - returns unique campusIds from role assignments (excluding null)\n\n### Phase 4: Testing\n\n4. **Unit Tests** (`src/application/campus/use-cases/__tests__/get-all-campuses.use-case.spec.ts`)\n   - Test: User with campus-scoped roles gets filtered results\n   - Test: User with global role gets all campuses\n   - Test: User with no roles gets empty array\n   - Test: Pagination still works with filtering\n   - Test: Existing filters (name, isActive) combine correctly with access filter\n\n### Key Files to Modify\n- `src/application/campus/use-cases/get-all-campuses.use-case.ts`\n- `src/infra/http/controllers/campus.controller.ts`\n- `src/domain/user-management/user.entity.ts`\n- Tests: `get-all-campuses.use-case.spec.ts`\n\n### Architecture Notes\n- Follows existing clean architecture pattern used in Staff/Class/Student controllers\n- Uses RequestContext for lazy user loading (already established pattern)\n- Keeps filtering logic in use case layer per single responsibility\n- User entity methods enable reuse across other endpoints if needed",
+        "implementationNotes": "## Implementation Summary\n\n### Changes Made:\n\n1. **User Entity** ()\n   - Added  - checks if any role assignment has campusId = null\n   - Added  - returns unique campusIds from role assignments\n\n2. **GetAllCampusesUseCase** ()\n   - Changed signature to accept  with \n   - Three cases: null = global access, [] = no access (empty result), [...ids] = filter by IDs\n   - Uses Prisma 'in' operator to filter by accessible campus IDs\n\n3. **CampusController** ()\n   - Injected RequestContext service\n   - findAll() now extracts user via requestContext.getUserOrFail()\n   - Determines access level using hasGlobalRole() and getAccessibleCampusIds()\n\n4. **Unit Tests** ()\n   - 15 tests covering global access, no access, campus-scoped access, and edge cases\n\n### Architecture Notes:\n- Follows existing clean architecture patterns (domain -> application -> infra)\n- Uses existing RequestContext lazy-loading pattern\n- User entity helper methods enable reuse across other endpoints"
+      }
+    },
+    {
+      "id": "v10",
+      "taskId": "cwlp29",
+      "version": 10,
+      "timestamp": "2026-01-16T04:52:51.755Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Filter /campuses endpoint by user role assignments",
+        "description": "Currently GET /campuses returns all campuses regardless of user access. It should only return campuses where the authenticated user has at least one role assignment. This follows the existing campus-scoped access control pattern used throughout the codebase.",
+        "status": "done",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "backend",
+          "api",
+          "authorization",
+          "campus"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "GET /campuses returns only campuses where the user has at least one role assignment"
+          },
+          {
+            "completed": true,
+            "text": "Users with a global role (campusId: null) receive all active campuses"
+          },
+          {
+            "completed": true,
+            "text": "Users with no role assignments receive an empty array []"
+          },
+          {
+            "completed": true,
+            "text": "Existing pagination and filtering (name, address, isActive) still work correctly"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests cover all scenarios: campus-scoped roles, global roles, no roles"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Extend Use Case (Clean Architecture Pattern)\n\n1. **Modify `GetAllCampusesUseCase`** (`src/application/campus/use-cases/get-all-campuses.use-case.ts`)\n   - Add optional `accessibleCampusIds: string[] | null` parameter to execute method\n   - When `accessibleCampusIds = null` → user has global access, return all\n   - When `accessibleCampusIds = []` → user has no access, return empty result\n   - When `accessibleCampusIds = [id1, id2, ...]` → add filter: `id: { in: accessibleCampusIds }`\n   - Merge with existing StandardRequest filters\n\n### Phase 2: Update Controller\n\n2. **Modify `CampusController.findAll()`** (`src/infra/http/controllers/campus.controller.ts`)\n   - Inject `RequestContext` service\n   - Get authenticated user via `requestContext.getUserOrFail()`\n   - Extract accessible campus IDs from user's role assignments:\n     ```typescript\n     const accessibleCampusIds = user.hasGlobalRole()\n       ? null  // Global access\n       : user.getAccessibleCampusIds();  // Or empty array if none\n     ```\n   - Pass `accessibleCampusIds` to use case\n\n### Phase 3: Add User Entity Helper Method\n\n3. **Add helper method to User entity** (`src/domain/user-management/user.entity.ts`)\n   - Add `hasGlobalRole(): boolean` - checks if any role assignment has `campusId: null`\n   - Add `getAccessibleCampusIds(): string[]` - returns unique campusIds from role assignments (excluding null)\n\n### Phase 4: Testing\n\n4. **Unit Tests** (`src/application/campus/use-cases/__tests__/get-all-campuses.use-case.spec.ts`)\n   - Test: User with campus-scoped roles gets filtered results\n   - Test: User with global role gets all campuses\n   - Test: User with no roles gets empty array\n   - Test: Pagination still works with filtering\n   - Test: Existing filters (name, isActive) combine correctly with access filter\n\n### Key Files to Modify\n- `src/application/campus/use-cases/get-all-campuses.use-case.ts`\n- `src/infra/http/controllers/campus.controller.ts`\n- `src/domain/user-management/user.entity.ts`\n- Tests: `get-all-campuses.use-case.spec.ts`\n\n### Architecture Notes\n- Follows existing clean architecture pattern used in Staff/Class/Student controllers\n- Uses RequestContext for lazy user loading (already established pattern)\n- Keeps filtering logic in use case layer per single responsibility\n- User entity methods enable reuse across other endpoints if needed",
+        "implementationNotes": "## Implementation Summary\n\n### Changes Made:\n\n1. **User Entity** ()\n   - Added  - checks if any role assignment has campusId = null\n   - Added  - returns unique campusIds from role assignments\n\n2. **GetAllCampusesUseCase** ()\n   - Changed signature to accept  with \n   - Three cases: null = global access, [] = no access (empty result), [...ids] = filter by IDs\n   - Uses Prisma 'in' operator to filter by accessible campus IDs\n\n3. **CampusController** ()\n   - Injected RequestContext service\n   - findAll() now extracts user via requestContext.getUserOrFail()\n   - Determines access level using hasGlobalRole() and getAccessibleCampusIds()\n\n4. **Unit Tests** ()\n   - 15 tests covering global access, no access, campus-scoped access, and edge cases\n\n### Architecture Notes:\n- Follows existing clean architecture patterns (domain -> application -> infra)\n- Uses existing RequestContext lazy-loading pattern\n- User entity helper methods enable reuse across other endpoints"
+      }
+    }
+  ]
+}
