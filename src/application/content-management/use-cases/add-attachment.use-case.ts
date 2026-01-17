@@ -1,17 +1,16 @@
+import { FileRepository } from "@/application/file-management/ports/file.repository";
+import { Attachment } from "@/domain/content-management";
+import { User } from "@/domain/user-management/user.entity";
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  ForbiddenException,
   BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
-import { FileRepository } from "@/application/file-management/ports/file.repository";
-import { User } from "@/domain/user-management/user.entity";
-import { Attachment } from "@/domain/content-management";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 
 export interface AddAttachmentInput {
   postId: string;

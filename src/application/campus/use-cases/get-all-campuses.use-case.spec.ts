@@ -320,9 +320,7 @@ describe("GetAllCampusesUseCase", () => {
     });
 
     it("should not mutate the original params object", async () => {
-      mockCampusRepository.findAll.mockResolvedValue(
-        createPaginatedResult([]),
-      );
+      mockCampusRepository.findAll.mockResolvedValue(createPaginatedResult([]));
 
       const originalParams = { limit: 10, offset: 0 };
       const paramsCopy = { ...originalParams };
