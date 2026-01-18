@@ -4,7 +4,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   Matches,
   MaxLength,
   Min,
@@ -12,14 +11,6 @@ import {
 } from "class-validator";
 
 export class CreatePostCategoryRequest {
-  @ApiProperty({
-    description: "Campus ID this category belongs to",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  campusId: string;
-
   @ApiProperty({
     description: "Category name",
     example: "Announcements",

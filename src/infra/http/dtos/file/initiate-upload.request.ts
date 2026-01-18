@@ -3,7 +3,6 @@ import {
   IsNumber,
   IsString,
   IsNotEmpty,
-  IsUUID,
   IsOptional,
   IsIn,
 } from "class-validator";
@@ -22,11 +21,6 @@ export class InitiateUploadRequest {
   @ApiProperty({ description: "Size of the file in bytes" })
   @IsNumber()
   size: number;
-
-  @ApiProperty({ description: "Campus ID where the file belongs" })
-  @IsUUID()
-  @IsNotEmpty()
-  campusId: string;
 
   @ApiPropertyOptional({
     description: "Storage provider (defaults to LOCAL)",

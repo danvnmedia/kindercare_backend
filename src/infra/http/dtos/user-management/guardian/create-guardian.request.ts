@@ -17,16 +17,6 @@ import {
 } from "@/core/validators";
 
 export class CreateGuardianRequest {
-  // ========== Campus ==========
-
-  @ApiProperty({
-    description: "Campus ID where the guardian belongs",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-  })
-  @IsNotEmpty()
-  @IsUUID()
-  campusId: string;
-
   // ========== Personal Information ==========
 
   @ApiProperty({

@@ -23,13 +23,6 @@ class CreateAudienceDto {
 
 export class CreatePostRequest {
   @ApiProperty({
-    description: "The campus ID where the post will be created",
-    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
-  })
-  @IsUUID()
-  campusId: string;
-
-  @ApiProperty({
     description: "The title of the post",
     example: "Welcome to our school",
   })

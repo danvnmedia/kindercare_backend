@@ -68,25 +68,16 @@ export class FileController {
   })
   async initiateUpload(
     @Body()
-    {
-      filename,
-      mimeType,
-      size,
-      campusId,
-      storageProvider,
-    }: InitiateUploadRequest,
+    { filename, mimeType, size, storageProvider }: InitiateUploadRequest,
     @CurrentUser() user: User,
-    @CampusContext() contextCampusId: string,
+    @CampusContext() campusId: string,
   ): Promise<InitiateUploadResponse> {
-    // Use campusId from context (validated by guard) if not explicitly provided in body
-    const effectiveCampusId = campusId || contextCampusId;
-
     const result = await this.uploadFile.execute({
       filename,
       mimeType,
       size,
       uploadedBy: user.id, // Use User entity's ID (UUID)
-      campusId: effectiveCampusId,
+      campusId,
       storageProvider,
     });
 

@@ -1,0 +1,965 @@
+{
+  "taskId": "9u0hof",
+  "currentVersion": 10,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "9u0hof",
+      "version": 1,
+      "timestamp": "2026-01-17T17:19:46.290Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "## Analysis\n\n### Current State\n- 11 DTOs have `campusId` as a required field in the request body\n- 10 controllers override the body `campusId` with the header value from `@CampusContext()`\n- This makes the body `campusId` redundant and confusing for frontend developers\n- Frontend gets \"property campusId should not exist\" errors if they try to be consistent\n\n### Exception: CreateRoleRequest\n- Has OPTIONAL `campusId` (null = system-wide role, UUID = campus-scoped role)\n- Controller does NOT override - uses DTO value as-is\n- **DO NOT MODIFY** this DTO\n\n---\n\n## Files to Modify\n\n### DTOs to Update (Remove campusId field) - 11 files\n\n| # | DTO File | Properties to Keep |\n|---|----------|-------------------|\n| 1 | `src/infra/http/dtos/class-management/create-grade-level.request.ts` | name, order?, isArchived? |\n| 2 | `src/infra/http/dtos/class-management/create-school-year.request.ts` | name, startDate, endDate, isArchived? |\n| 3 | `src/infra/http/dtos/class-management/create-class.request.ts` | name, description?, gradeLevelId, schoolYearId |\n| 4 | `src/infra/http/dtos/class-management/reorder-grade-levels.request.ts` | ids |\n| 5 | `src/infra/http/dtos/user-management/student/create-student.request.ts` | fullName, nickname?, dateOfBirth?, gender?, phoneNumber?, email?, address?, status?, createUserAccount?, guardianIds? |\n| 6 | `src/infra/http/dtos/user-management/guardian/create-guardian.request.ts` | fullName, dateOfBirth, gender, phoneNumber, email?, address?, occupation?, workAddress? |\n| 7 | `src/infra/http/dtos/user-management/staff/create-staff.request.ts` | fullName, email, phoneNumber, staffTypeId?, address?, dateOfBirth?, gender?, startDate? |\n| 8 | `src/infra/http/dtos/user-management/staff-type/create-staff-type.request.ts` | name, description?, defaultRoleId?, isActive? |\n| 9 | `src/infra/http/dtos/post/create-post.request.ts` | title, content?, publishAt?, audiences |\n| 10 | `src/infra/http/dtos/post/category/create-post-category.request.ts` | name, color, icon?, order? |\n| 11 | `src/infra/http/dtos/file/initiate-upload.request.ts` | filename, mimeType, size, storageProvider? |\n\n### Controllers to Update - 11 files\n\n| # | Controller File | Method | Current Pattern | New Pattern |\n|---|-----------------|--------|-----------------|-------------|\n| 1 | `reference-data.controller.ts` | createGradeLevel | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 2 | `reference-data.controller.ts` | createSchoolYear | explicit mapping | explicit mapping with campusId from header |\n| 3 | `reference-data.controller.ts` | reorderGradeLevels | `{ ...dto, campusId }` | `{ campusId, ids: dto.ids }` |\n| 4 | `class.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 5 | `student.controller.ts` | create | `{ ...dto, campusId, gender }` | `{ ...dto, campusId, gender }` (no change needed) |\n| 6 | `guardian.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 7 | `staff.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 8 | `staff-type.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 9 | `post.controller.ts` | create | `{ ...createPostDto, campusId }` | `{ ...createPostDto, campusId }` (no change needed) |\n| 10 | `post-category.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 11 | `file.controller.ts` | initiateUpload | fallback pattern | use header only |\n\n---\n\n## Implementation Steps\n\n### Step 1: Update DTOs (11 files)\nFor each DTO:\n1. Remove `campusId` property\n2. Remove `@IsUUID()` and `@IsNotEmpty()` decorators for campusId\n3. Remove `@ApiProperty` decorator for campusId\n4. Remove IsUUID import if no longer used\n\n### Step 2: Update Controllers (2 files need changes)\n1. `file.controller.ts`: Remove fallback logic, use header campusId only\n2. `reorder-grade-levels.request.ts`: Controller spreads dto, ensure campusId not in dto\n\n### Step 3: Update Tests\n- Check if any tests send campusId in request body\n- Update test fixtures to remove campusId from body\n\n### Step 4: Verify\n- Run all tests: `npm run test`\n- Run lint: `npm run lint`\n- Manual API testing with Postman/curl\n\n---\n\n## Risk Assessment\n\n| Risk | Mitigation |\n|------|------------|\n| Frontend breaking | Coordinate with frontend team, they should already be sending header |\n| Tests failing | Update test fixtures |\n| Swagger docs outdated | Swagger auto-generates from DTOs, will update automatically |\n\n---\n\n## Rollback Plan\n- Revert commit if issues arise\n- Changes are isolated to DTOs and don't affect business logic"
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies. Currently, 11 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant and confusing for frontend developers.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Remove campusId field from 11 create/reorder request DTOs"
+          },
+          {
+            "completed": false,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": false,
+            "text": "Manual API testing confirms requests work without body campusId"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Current State\n- 11 DTOs have `campusId` as a required field in the request body\n- 10 controllers override the body `campusId` with the header value from `@CampusContext()`\n- This makes the body `campusId` redundant and confusing for frontend developers\n- Frontend gets \"property campusId should not exist\" errors if they try to be consistent\n\n### Exception: CreateRoleRequest\n- Has OPTIONAL `campusId` (null = system-wide role, UUID = campus-scoped role)\n- Controller does NOT override - uses DTO value as-is\n- **DO NOT MODIFY** this DTO\n\n---\n\n## Files to Modify\n\n### DTOs to Update (Remove campusId field) - 11 files\n\n| # | DTO File | Properties to Keep |\n|---|----------|-------------------|\n| 1 | `src/infra/http/dtos/class-management/create-grade-level.request.ts` | name, order?, isArchived? |\n| 2 | `src/infra/http/dtos/class-management/create-school-year.request.ts` | name, startDate, endDate, isArchived? |\n| 3 | `src/infra/http/dtos/class-management/create-class.request.ts` | name, description?, gradeLevelId, schoolYearId |\n| 4 | `src/infra/http/dtos/class-management/reorder-grade-levels.request.ts` | ids |\n| 5 | `src/infra/http/dtos/user-management/student/create-student.request.ts` | fullName, nickname?, dateOfBirth?, gender?, phoneNumber?, email?, address?, status?, createUserAccount?, guardianIds? |\n| 6 | `src/infra/http/dtos/user-management/guardian/create-guardian.request.ts` | fullName, dateOfBirth, gender, phoneNumber, email?, address?, occupation?, workAddress? |\n| 7 | `src/infra/http/dtos/user-management/staff/create-staff.request.ts` | fullName, email, phoneNumber, staffTypeId?, address?, dateOfBirth?, gender?, startDate? |\n| 8 | `src/infra/http/dtos/user-management/staff-type/create-staff-type.request.ts` | name, description?, defaultRoleId?, isActive? |\n| 9 | `src/infra/http/dtos/post/create-post.request.ts` | title, content?, publishAt?, audiences |\n| 10 | `src/infra/http/dtos/post/category/create-post-category.request.ts` | name, color, icon?, order? |\n| 11 | `src/infra/http/dtos/file/initiate-upload.request.ts` | filename, mimeType, size, storageProvider? |\n\n### Controllers to Update - 11 files\n\n| # | Controller File | Method | Current Pattern | New Pattern |\n|---|-----------------|--------|-----------------|-------------|\n| 1 | `reference-data.controller.ts` | createGradeLevel | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 2 | `reference-data.controller.ts` | createSchoolYear | explicit mapping | explicit mapping with campusId from header |\n| 3 | `reference-data.controller.ts` | reorderGradeLevels | `{ ...dto, campusId }` | `{ campusId, ids: dto.ids }` |\n| 4 | `class.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 5 | `student.controller.ts` | create | `{ ...dto, campusId, gender }` | `{ ...dto, campusId, gender }` (no change needed) |\n| 6 | `guardian.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 7 | `staff.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 8 | `staff-type.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 9 | `post.controller.ts` | create | `{ ...createPostDto, campusId }` | `{ ...createPostDto, campusId }` (no change needed) |\n| 10 | `post-category.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 11 | `file.controller.ts` | initiateUpload | fallback pattern | use header only |\n\n---\n\n## Implementation Steps\n\n### Step 1: Update DTOs (11 files)\nFor each DTO:\n1. Remove `campusId` property\n2. Remove `@IsUUID()` and `@IsNotEmpty()` decorators for campusId\n3. Remove `@ApiProperty` decorator for campusId\n4. Remove IsUUID import if no longer used\n\n### Step 2: Update Controllers (2 files need changes)\n1. `file.controller.ts`: Remove fallback logic, use header campusId only\n2. `reorder-grade-levels.request.ts`: Controller spreads dto, ensure campusId not in dto\n\n### Step 3: Update Tests\n- Check if any tests send campusId in request body\n- Update test fixtures to remove campusId from body\n\n### Step 4: Verify\n- Run all tests: `npm run test`\n- Run lint: `npm run lint`\n- Manual API testing with Postman/curl\n\n---\n\n## Risk Assessment\n\n| Risk | Mitigation |\n|------|------------|\n| Frontend breaking | Coordinate with frontend team, they should already be sending header |\n| Tests failing | Update test fixtures |\n| Swagger docs outdated | Swagger auto-generates from DTOs, will update automatically |\n\n---\n\n## Rollback Plan\n- Revert commit if issues arise\n- Changes are isolated to DTOs and don't affect business logic"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "9u0hof",
+      "version": 2,
+      "timestamp": "2026-01-18T04:28:40.828Z",
+      "changes": [
+        {
+          "field": "description",
+          "oldValue": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies. Currently, 11 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant and confusing for frontend developers.",
+          "newValue": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)."
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Remove campusId field from 11 create/reorder request DTOs"
+          },
+          {
+            "completed": false,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": false,
+            "text": "Manual API testing confirms requests work without body campusId"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Current State\n- 11 DTOs have `campusId` as a required field in the request body\n- 10 controllers override the body `campusId` with the header value from `@CampusContext()`\n- This makes the body `campusId` redundant and confusing for frontend developers\n- Frontend gets \"property campusId should not exist\" errors if they try to be consistent\n\n### Exception: CreateRoleRequest\n- Has OPTIONAL `campusId` (null = system-wide role, UUID = campus-scoped role)\n- Controller does NOT override - uses DTO value as-is\n- **DO NOT MODIFY** this DTO\n\n---\n\n## Files to Modify\n\n### DTOs to Update (Remove campusId field) - 11 files\n\n| # | DTO File | Properties to Keep |\n|---|----------|-------------------|\n| 1 | `src/infra/http/dtos/class-management/create-grade-level.request.ts` | name, order?, isArchived? |\n| 2 | `src/infra/http/dtos/class-management/create-school-year.request.ts` | name, startDate, endDate, isArchived? |\n| 3 | `src/infra/http/dtos/class-management/create-class.request.ts` | name, description?, gradeLevelId, schoolYearId |\n| 4 | `src/infra/http/dtos/class-management/reorder-grade-levels.request.ts` | ids |\n| 5 | `src/infra/http/dtos/user-management/student/create-student.request.ts` | fullName, nickname?, dateOfBirth?, gender?, phoneNumber?, email?, address?, status?, createUserAccount?, guardianIds? |\n| 6 | `src/infra/http/dtos/user-management/guardian/create-guardian.request.ts` | fullName, dateOfBirth, gender, phoneNumber, email?, address?, occupation?, workAddress? |\n| 7 | `src/infra/http/dtos/user-management/staff/create-staff.request.ts` | fullName, email, phoneNumber, staffTypeId?, address?, dateOfBirth?, gender?, startDate? |\n| 8 | `src/infra/http/dtos/user-management/staff-type/create-staff-type.request.ts` | name, description?, defaultRoleId?, isActive? |\n| 9 | `src/infra/http/dtos/post/create-post.request.ts` | title, content?, publishAt?, audiences |\n| 10 | `src/infra/http/dtos/post/category/create-post-category.request.ts` | name, color, icon?, order? |\n| 11 | `src/infra/http/dtos/file/initiate-upload.request.ts` | filename, mimeType, size, storageProvider? |\n\n### Controllers to Update - 11 files\n\n| # | Controller File | Method | Current Pattern | New Pattern |\n|---|-----------------|--------|-----------------|-------------|\n| 1 | `reference-data.controller.ts` | createGradeLevel | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 2 | `reference-data.controller.ts` | createSchoolYear | explicit mapping | explicit mapping with campusId from header |\n| 3 | `reference-data.controller.ts` | reorderGradeLevels | `{ ...dto, campusId }` | `{ campusId, ids: dto.ids }` |\n| 4 | `class.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 5 | `student.controller.ts` | create | `{ ...dto, campusId, gender }` | `{ ...dto, campusId, gender }` (no change needed) |\n| 6 | `guardian.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 7 | `staff.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 8 | `staff-type.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 9 | `post.controller.ts` | create | `{ ...createPostDto, campusId }` | `{ ...createPostDto, campusId }` (no change needed) |\n| 10 | `post-category.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 11 | `file.controller.ts` | initiateUpload | fallback pattern | use header only |\n\n---\n\n## Implementation Steps\n\n### Step 1: Update DTOs (11 files)\nFor each DTO:\n1. Remove `campusId` property\n2. Remove `@IsUUID()` and `@IsNotEmpty()` decorators for campusId\n3. Remove `@ApiProperty` decorator for campusId\n4. Remove IsUUID import if no longer used\n\n### Step 2: Update Controllers (2 files need changes)\n1. `file.controller.ts`: Remove fallback logic, use header campusId only\n2. `reorder-grade-levels.request.ts`: Controller spreads dto, ensure campusId not in dto\n\n### Step 3: Update Tests\n- Check if any tests send campusId in request body\n- Update test fixtures to remove campusId from body\n\n### Step 4: Verify\n- Run all tests: `npm run test`\n- Run lint: `npm run lint`\n- Manual API testing with Postman/curl\n\n---\n\n## Risk Assessment\n\n| Risk | Mitigation |\n|------|------------|\n| Frontend breaking | Coordinate with frontend team, they should already be sending header |\n| Tests failing | Update test fixtures |\n| Swagger docs outdated | Swagger auto-generates from DTOs, will update automatically |\n\n---\n\n## Rollback Plan\n- Revert commit if issues arise\n- Changes are isolated to DTOs and don't affect business logic"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "9u0hof",
+      "version": 3,
+      "timestamp": "2026-01-18T04:28:47.955Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Remove campusId field from 11 create/reorder request DTOs"
+            },
+            {
+              "completed": false,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": false,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": false,
+              "text": "Manual API testing confirms requests work without body campusId"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Remove campusId field from 11 create/reorder request DTOs"
+            },
+            {
+              "completed": false,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": false,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": false,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)",
+              "completed": false
+            },
+            {
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types",
+              "completed": false
+            },
+            {
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body",
+              "completed": false
+            },
+            {
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Remove campusId field from 11 create/reorder request DTOs"
+          },
+          {
+            "completed": false,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": false,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)",
+            "completed": false
+          },
+          {
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types",
+            "completed": false
+          },
+          {
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body",
+            "completed": false
+          },
+          {
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)",
+            "completed": false
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Current State\n- 11 DTOs have `campusId` as a required field in the request body\n- 10 controllers override the body `campusId` with the header value from `@CampusContext()`\n- This makes the body `campusId` redundant and confusing for frontend developers\n- Frontend gets \"property campusId should not exist\" errors if they try to be consistent\n\n### Exception: CreateRoleRequest\n- Has OPTIONAL `campusId` (null = system-wide role, UUID = campus-scoped role)\n- Controller does NOT override - uses DTO value as-is\n- **DO NOT MODIFY** this DTO\n\n---\n\n## Files to Modify\n\n### DTOs to Update (Remove campusId field) - 11 files\n\n| # | DTO File | Properties to Keep |\n|---|----------|-------------------|\n| 1 | `src/infra/http/dtos/class-management/create-grade-level.request.ts` | name, order?, isArchived? |\n| 2 | `src/infra/http/dtos/class-management/create-school-year.request.ts` | name, startDate, endDate, isArchived? |\n| 3 | `src/infra/http/dtos/class-management/create-class.request.ts` | name, description?, gradeLevelId, schoolYearId |\n| 4 | `src/infra/http/dtos/class-management/reorder-grade-levels.request.ts` | ids |\n| 5 | `src/infra/http/dtos/user-management/student/create-student.request.ts` | fullName, nickname?, dateOfBirth?, gender?, phoneNumber?, email?, address?, status?, createUserAccount?, guardianIds? |\n| 6 | `src/infra/http/dtos/user-management/guardian/create-guardian.request.ts` | fullName, dateOfBirth, gender, phoneNumber, email?, address?, occupation?, workAddress? |\n| 7 | `src/infra/http/dtos/user-management/staff/create-staff.request.ts` | fullName, email, phoneNumber, staffTypeId?, address?, dateOfBirth?, gender?, startDate? |\n| 8 | `src/infra/http/dtos/user-management/staff-type/create-staff-type.request.ts` | name, description?, defaultRoleId?, isActive? |\n| 9 | `src/infra/http/dtos/post/create-post.request.ts` | title, content?, publishAt?, audiences |\n| 10 | `src/infra/http/dtos/post/category/create-post-category.request.ts` | name, color, icon?, order? |\n| 11 | `src/infra/http/dtos/file/initiate-upload.request.ts` | filename, mimeType, size, storageProvider? |\n\n### Controllers to Update - 11 files\n\n| # | Controller File | Method | Current Pattern | New Pattern |\n|---|-----------------|--------|-----------------|-------------|\n| 1 | `reference-data.controller.ts` | createGradeLevel | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 2 | `reference-data.controller.ts` | createSchoolYear | explicit mapping | explicit mapping with campusId from header |\n| 3 | `reference-data.controller.ts` | reorderGradeLevels | `{ ...dto, campusId }` | `{ campusId, ids: dto.ids }` |\n| 4 | `class.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 5 | `student.controller.ts` | create | `{ ...dto, campusId, gender }` | `{ ...dto, campusId, gender }` (no change needed) |\n| 6 | `guardian.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 7 | `staff.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 8 | `staff-type.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 9 | `post.controller.ts` | create | `{ ...createPostDto, campusId }` | `{ ...createPostDto, campusId }` (no change needed) |\n| 10 | `post-category.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 11 | `file.controller.ts` | initiateUpload | fallback pattern | use header only |\n\n---\n\n## Implementation Steps\n\n### Step 1: Update DTOs (11 files)\nFor each DTO:\n1. Remove `campusId` property\n2. Remove `@IsUUID()` and `@IsNotEmpty()` decorators for campusId\n3. Remove `@ApiProperty` decorator for campusId\n4. Remove IsUUID import if no longer used\n\n### Step 2: Update Controllers (2 files need changes)\n1. `file.controller.ts`: Remove fallback logic, use header campusId only\n2. `reorder-grade-levels.request.ts`: Controller spreads dto, ensure campusId not in dto\n\n### Step 3: Update Tests\n- Check if any tests send campusId in request body\n- Update test fixtures to remove campusId from body\n\n### Step 4: Verify\n- Run all tests: `npm run test`\n- Run lint: `npm run lint`\n- Manual API testing with Postman/curl\n\n---\n\n## Risk Assessment\n\n| Risk | Mitigation |\n|------|------------|\n| Frontend breaking | Coordinate with frontend team, they should already be sending header |\n| Tests failing | Update test fixtures |\n| Swagger docs outdated | Swagger auto-generates from DTOs, will update automatically |\n\n---\n\n## Rollback Plan\n- Revert commit if issues arise\n- Changes are isolated to DTOs and don't affect business logic"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "9u0hof",
+      "version": 4,
+      "timestamp": "2026-01-18T04:48:30.442Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": "## Analysis\n\n### Current State\n- 11 DTOs have `campusId` as a required field in the request body\n- 10 controllers override the body `campusId` with the header value from `@CampusContext()`\n- This makes the body `campusId` redundant and confusing for frontend developers\n- Frontend gets \"property campusId should not exist\" errors if they try to be consistent\n\n### Exception: CreateRoleRequest\n- Has OPTIONAL `campusId` (null = system-wide role, UUID = campus-scoped role)\n- Controller does NOT override - uses DTO value as-is\n- **DO NOT MODIFY** this DTO\n\n---\n\n## Files to Modify\n\n### DTOs to Update (Remove campusId field) - 11 files\n\n| # | DTO File | Properties to Keep |\n|---|----------|-------------------|\n| 1 | `src/infra/http/dtos/class-management/create-grade-level.request.ts` | name, order?, isArchived? |\n| 2 | `src/infra/http/dtos/class-management/create-school-year.request.ts` | name, startDate, endDate, isArchived? |\n| 3 | `src/infra/http/dtos/class-management/create-class.request.ts` | name, description?, gradeLevelId, schoolYearId |\n| 4 | `src/infra/http/dtos/class-management/reorder-grade-levels.request.ts` | ids |\n| 5 | `src/infra/http/dtos/user-management/student/create-student.request.ts` | fullName, nickname?, dateOfBirth?, gender?, phoneNumber?, email?, address?, status?, createUserAccount?, guardianIds? |\n| 6 | `src/infra/http/dtos/user-management/guardian/create-guardian.request.ts` | fullName, dateOfBirth, gender, phoneNumber, email?, address?, occupation?, workAddress? |\n| 7 | `src/infra/http/dtos/user-management/staff/create-staff.request.ts` | fullName, email, phoneNumber, staffTypeId?, address?, dateOfBirth?, gender?, startDate? |\n| 8 | `src/infra/http/dtos/user-management/staff-type/create-staff-type.request.ts` | name, description?, defaultRoleId?, isActive? |\n| 9 | `src/infra/http/dtos/post/create-post.request.ts` | title, content?, publishAt?, audiences |\n| 10 | `src/infra/http/dtos/post/category/create-post-category.request.ts` | name, color, icon?, order? |\n| 11 | `src/infra/http/dtos/file/initiate-upload.request.ts` | filename, mimeType, size, storageProvider? |\n\n### Controllers to Update - 11 files\n\n| # | Controller File | Method | Current Pattern | New Pattern |\n|---|-----------------|--------|-----------------|-------------|\n| 1 | `reference-data.controller.ts` | createGradeLevel | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 2 | `reference-data.controller.ts` | createSchoolYear | explicit mapping | explicit mapping with campusId from header |\n| 3 | `reference-data.controller.ts` | reorderGradeLevels | `{ ...dto, campusId }` | `{ campusId, ids: dto.ids }` |\n| 4 | `class.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 5 | `student.controller.ts` | create | `{ ...dto, campusId, gender }` | `{ ...dto, campusId, gender }` (no change needed) |\n| 6 | `guardian.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 7 | `staff.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 8 | `staff-type.controller.ts` | create | `{ ...dto, campusId }` | `{ ...dto, campusId }` (no change needed) |\n| 9 | `post.controller.ts` | create | `{ ...createPostDto, campusId }` | `{ ...createPostDto, campusId }` (no change needed) |\n| 10 | `post-category.controller.ts` | create | explicit mapping | explicit mapping (no change needed) |\n| 11 | `file.controller.ts` | initiateUpload | fallback pattern | use header only |\n\n---\n\n## Implementation Steps\n\n### Step 1: Update DTOs (11 files)\nFor each DTO:\n1. Remove `campusId` property\n2. Remove `@IsUUID()` and `@IsNotEmpty()` decorators for campusId\n3. Remove `@ApiProperty` decorator for campusId\n4. Remove IsUUID import if no longer used\n\n### Step 2: Update Controllers (2 files need changes)\n1. `file.controller.ts`: Remove fallback logic, use header campusId only\n2. `reorder-grade-levels.request.ts`: Controller spreads dto, ensure campusId not in dto\n\n### Step 3: Update Tests\n- Check if any tests send campusId in request body\n- Update test fixtures to remove campusId from body\n\n### Step 4: Verify\n- Run all tests: `npm run test`\n- Run lint: `npm run lint`\n- Manual API testing with Postman/curl\n\n---\n\n## Risk Assessment\n\n| Risk | Mitigation |\n|------|------------|\n| Frontend breaking | Coordinate with frontend team, they should already be sending header |\n| Tests failing | Update test fixtures |\n| Swagger docs outdated | Swagger auto-generates from DTOs, will update automatically |\n\n---\n\n## Rollback Plan\n- Revert commit if issues arise\n- Changes are isolated to DTOs and don't affect business logic",
+          "newValue": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway"
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Remove campusId field from 11 create/reorder request DTOs"
+          },
+          {
+            "completed": false,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": false,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": false,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "9u0hof",
+      "version": 5,
+      "timestamp": "2026-01-18T04:48:41.803Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Remove campusId field from 11 create/reorder request DTOs"
+            },
+            {
+              "completed": false,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": false,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": false,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+            },
+            {
+              "completed": false,
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": false,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": false,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+            },
+            {
+              "completed": false,
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+            },
+            {
+              "text": "Remove campusId field from 12 create/reorder request DTOs",
+              "completed": false
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": false,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": false,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          },
+          {
+            "text": "Remove campusId field from 12 create/reorder request DTOs",
+            "completed": false
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "9u0hof",
+      "version": 6,
+      "timestamp": "2026-01-18T06:19:47.155Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": false,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": false,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": false,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          },
+          {
+            "completed": false,
+            "text": "Remove campusId field from 12 create/reorder request DTOs"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway"
+      }
+    },
+    {
+      "id": "v7",
+      "taskId": "9u0hof",
+      "version": 7,
+      "timestamp": "2026-01-18T08:05:28.445Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": false,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": false,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+            },
+            {
+              "completed": false,
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+            },
+            {
+              "completed": false,
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+            },
+            {
+              "completed": false,
+              "text": "Remove campusId field from 12 create/reorder request DTOs"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": true,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": true,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+            },
+            {
+              "completed": true,
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+            },
+            {
+              "completed": true,
+              "text": "Remove campusId field from 12 create/reorder request DTOs"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": false,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": false,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": true,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": true,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          },
+          {
+            "completed": true,
+            "text": "Remove campusId field from 12 create/reorder request DTOs"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway"
+      }
+    },
+    {
+      "id": "v8",
+      "taskId": "9u0hof",
+      "version": 8,
+      "timestamp": "2026-01-18T08:06:03.336Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": true,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": false,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": false,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": true,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": true,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+            },
+            {
+              "completed": true,
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+            },
+            {
+              "completed": true,
+              "text": "Remove campusId field from 12 create/reorder request DTOs"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "Update corresponding controllers to not spread campusId from dto"
+            },
+            {
+              "completed": true,
+              "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+            },
+            {
+              "completed": true,
+              "text": "Update API documentation/Swagger to reflect changes"
+            },
+            {
+              "completed": true,
+              "text": "All existing tests pass after changes"
+            },
+            {
+              "completed": true,
+              "text": "Manual API testing confirms requests work without body campusId"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+            },
+            {
+              "completed": true,
+              "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+            },
+            {
+              "completed": true,
+              "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+            },
+            {
+              "completed": true,
+              "text": "Remove campusId field from 12 create/reorder request DTOs"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": true,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": true,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": true,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": true,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          },
+          {
+            "completed": true,
+            "text": "Remove campusId field from 12 create/reorder request DTOs"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway"
+      }
+    },
+    {
+      "id": "v9",
+      "taskId": "9u0hof",
+      "version": 9,
+      "timestamp": "2026-01-18T08:06:06.803Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Implementation Summary\n\n### Backend Changes (12 DTOs)\nRemoved campusId field from:\n1. create-grade-level.request.ts\n2. create-school-year.request.ts  \n3. reorder-grade-levels.request.ts\n4. create-class.request.ts\n5. create-student.request.ts\n6. create-guardian.request.ts\n7. create-staff.request.ts\n8. create-staff-type.request.ts\n9. create-post.request.ts\n10. create-post-category.request.ts\n11. reorder-post-categories.request.ts\n12. initiate-upload.request.ts\n\nCleaned up unused imports (IsUUID, IsNotEmpty) from affected files.\n\nControllers already use `{ ...dto, campusId }` pattern so no changes needed.\n\n### Frontend Changes (18 files across 6 domains)\n- Updated 6 type files: Changed ServiceInput types from `& { campusId: string }` to base input type\n- Updated 12 mutation hooks: Changed `{ ...data, campusId }` to just `data`\n- Updated JSDoc comments to reflect header-based campusId\n\n### Preserved (as required)\n- CreateRoleRequest.campusId (optional for system-wide roles)\n- UpdateRoleRequest.campusId (optional for system-wide roles)\n\n### Testing\n- All 425 backend tests pass\n- No new lint errors introduced"
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": true,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": true,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": true,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": true,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          },
+          {
+            "completed": true,
+            "text": "Remove campusId field from 12 create/reorder request DTOs"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway",
+        "implementationNotes": "## Implementation Summary\n\n### Backend Changes (12 DTOs)\nRemoved campusId field from:\n1. create-grade-level.request.ts\n2. create-school-year.request.ts  \n3. reorder-grade-levels.request.ts\n4. create-class.request.ts\n5. create-student.request.ts\n6. create-guardian.request.ts\n7. create-staff.request.ts\n8. create-staff-type.request.ts\n9. create-post.request.ts\n10. create-post-category.request.ts\n11. reorder-post-categories.request.ts\n12. initiate-upload.request.ts\n\nCleaned up unused imports (IsUUID, IsNotEmpty) from affected files.\n\nControllers already use `{ ...dto, campusId }` pattern so no changes needed.\n\n### Frontend Changes (18 files across 6 domains)\n- Updated 6 type files: Changed ServiceInput types from `& { campusId: string }` to base input type\n- Updated 12 mutation hooks: Changed `{ ...data, campusId }` to just `data`\n- Updated JSDoc comments to reflect header-based campusId\n\n### Preserved (as required)\n- CreateRoleRequest.campusId (optional for system-wide roles)\n- UpdateRoleRequest.campusId (optional for system-wide roles)\n\n### Testing\n- All 425 backend tests pass\n- No new lint errors introduced"
+      }
+    },
+    {
+      "id": "v10",
+      "taskId": "9u0hof",
+      "version": 10,
+      "timestamp": "2026-01-18T08:06:23.245Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Remove redundant campusId from request body DTOs",
+        "description": "API consistency improvement: Remove campusId from request body DTOs since it's always overwritten by the x-campus-id header value. This follows enterprise best practices where tenant context comes from authenticated headers/tokens, not request bodies.\n\n**Backend**: 12 DTOs require campusId in the body but controllers override it with the header value, making the body field redundant.\n\n**Frontend**: 24 files (6 feature domains) inject campusId into request bodies via mutation hooks. These need to stop sending campusId in request body.\n\nNOTE: Keep CreateRoleRequest.campusId and UpdateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles).",
+        "status": "done",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "api",
+          "dto"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Update corresponding controllers to not spread campusId from dto"
+          },
+          {
+            "completed": true,
+            "text": "Keep CreateRoleRequest.campusId as-is (optional field for system-wide vs campus-scoped roles)"
+          },
+          {
+            "completed": true,
+            "text": "Update API documentation/Swagger to reflect changes"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests pass after changes"
+          },
+          {
+            "completed": true,
+            "text": "Manual API testing confirms requests work without body campusId"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Remove campusId from 6 service files (grade-level, guardian, student, staff, class, school-year)"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 type definitions to remove campusId from *ServiceInput types"
+          },
+          {
+            "completed": true,
+            "text": "Frontend: Update 12 mutation hooks to stop injecting campusId into request body"
+          },
+          {
+            "completed": true,
+            "text": "Backend: Add ReorderPostCategoriesRequest to DTO cleanup (missed in original analysis)"
+          },
+          {
+            "completed": true,
+            "text": "Remove campusId field from 12 create/reorder request DTOs"
+          }
+        ],
+        "implementationPlan": "## Analysis\n\n### Backend (12 DTOs to modify)\n\n| # | DTO File | Module |\n|---|----------|--------|\n| 1 | create-grade-level.request.ts | class-management |\n| 2 | create-school-year.request.ts | class-management |\n| 3 | create-class.request.ts | class-management |\n| 4 | reorder-grade-levels.request.ts | class-management |\n| 5 | create-student.request.ts | user-management/student |\n| 6 | create-guardian.request.ts | user-management/guardian |\n| 7 | create-staff.request.ts | user-management/staff |\n| 8 | create-staff-type.request.ts | user-management/staff-type |\n| 9 | create-post.request.ts | post |\n| 10 | create-post-category.request.ts | post/category |\n| 11 | reorder-post-categories.request.ts | post/category |\n| 12 | initiate-upload.request.ts | file |\n\n**Exception (DO NOT MODIFY)**:\n- CreateRoleRequest.campusId (optional - null = system-wide)\n- UpdateRoleRequest.campusId (optional - null = system-wide)\n\n---\n\n### Frontend (24 files across 6 domains)\n\n#### Grade Levels (4 files)\n- src/features/grade-levels/services/grade-level.service.ts\n- src/features/grade-levels/types.ts\n- src/features/grade-levels/hooks/use-create-grade-level.ts\n- src/features/grade-levels/hooks/use-update-grade-level.ts\n\n#### Guardians (4 files)\n- src/features/guardians/services/guardian.service.ts\n- src/features/guardians/types.ts\n- src/features/guardians/hooks/use-create-guardian.ts\n- src/features/guardians/hooks/use-update-guardian.ts\n\n#### Students (4 files)\n- src/features/students/services/student.service.ts\n- src/features/students/types.ts\n- src/features/students/hooks/use-create-student.ts\n- src/features/students/hooks/use-update-student.ts\n\n#### Staff (4 files)\n- src/features/staff/services/staff.service.ts\n- src/features/staff/types.ts\n- src/features/staff/hooks/use-create-staff.ts\n- src/features/staff/hooks/use-update-staff.ts\n\n#### Classes (4 files)\n- src/features/classes/services/class.service.ts\n- src/features/classes/types.ts\n- src/features/classes/hooks/use-create-class.ts\n- src/features/classes/hooks/use-update-class.ts\n\n#### School Years (4 files)\n- src/features/school-years/services/school-year.service.ts\n- src/features/school-years/types.ts\n- src/features/school-years/hooks/use-create-school-year.ts\n- src/features/school-years/hooks/use-update-school-year.ts\n\n---\n\n## Implementation Steps\n\n### Step 1: Backend DTO Updates (12 files)\nFor each DTO:\n1. Remove campusId property\n2. Remove @IsUUID() and @IsNotEmpty() decorators\n3. Remove @ApiProperty decorator for campusId\n4. Clean up imports\n\n### Step 2: Backend Controller Updates\nControllers already inject campusId from header - verify spread pattern works:\n- Pattern: { ...dto, campusId } works because dto no longer has campusId\n\n### Step 3: Frontend Service Updates (6 files)\nRemove campusId from request body in service methods:\n- Change: post<T>(url, data) where data includes campusId\n- To: post<T>(url, dataWithoutCampusId)\n\n### Step 4: Frontend Type Updates (6 files)\nRemove campusId from ServiceInput types:\n- Change: CreateXServiceInput = CreateXInput & { campusId: string }\n- To: CreateXServiceInput = CreateXInput (or remove alias entirely)\n\n### Step 5: Frontend Hook Updates (12 files)\nStop injecting campusId in mutation functions:\n- Change: service.create({ ...data, campusId })\n- To: service.create(data)\n\n### Step 6: Testing\n- Run backend tests: npm run test\n- Run frontend tests: npm run test\n- Manual API testing to verify\n\n---\n\n## Order of Execution\n1. Backend changes first (API becomes more permissive)\n2. Frontend changes second (stops sending unnecessary field)\n3. Both can be in same PR since backend ignores body campusId anyway",
+        "implementationNotes": "## Implementation Summary\n\n### Backend Changes (12 DTOs)\nRemoved campusId field from:\n1. create-grade-level.request.ts\n2. create-school-year.request.ts  \n3. reorder-grade-levels.request.ts\n4. create-class.request.ts\n5. create-student.request.ts\n6. create-guardian.request.ts\n7. create-staff.request.ts\n8. create-staff-type.request.ts\n9. create-post.request.ts\n10. create-post-category.request.ts\n11. reorder-post-categories.request.ts\n12. initiate-upload.request.ts\n\nCleaned up unused imports (IsUUID, IsNotEmpty) from affected files.\n\nControllers already use `{ ...dto, campusId }` pattern so no changes needed.\n\n### Frontend Changes (18 files across 6 domains)\n- Updated 6 type files: Changed ServiceInput types from `& { campusId: string }` to base input type\n- Updated 12 mutation hooks: Changed `{ ...data, campusId }` to just `data`\n- Updated JSDoc comments to reflect header-based campusId\n\n### Preserved (as required)\n- CreateRoleRequest.campusId (optional for system-wide roles)\n- UpdateRoleRequest.campusId (optional for system-wide roles)\n\n### Testing\n- All 425 backend tests pass\n- No new lint errors introduced"
+      }
+    }
+  ]
+}
