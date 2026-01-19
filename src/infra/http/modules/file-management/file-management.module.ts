@@ -12,6 +12,8 @@ import { ClerkModule } from "../../../external-services/clerk/clerk.module";
 import { UserManagementModule } from "../user-management.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { CampusModule } from "../campus.module";
+import { RequestContextModule } from "../../context/request-context.module";
+import { CampusGuard } from "../../guards/campus.guard";
 
 @Module({
   imports: [
@@ -20,9 +22,11 @@ import { CampusModule } from "../campus.module";
     UserManagementModule,
     StandardResponseModule,
     CampusModule,
+    RequestContextModule,
   ],
   controllers: [FileController],
   providers: [
+    CampusGuard,
     PrismaService,
     {
       provide: FileRepository,

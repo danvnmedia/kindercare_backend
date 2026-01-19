@@ -1,7 +1,6 @@
 import {
   Post as PrismaPost,
   PostAudience as PrismaPostAudience,
-  Attachment as PrismaAttachment,
   User as PrismaUser,
   Prisma,
   Guardian as PrismaGuardian,
@@ -15,7 +14,10 @@ import {
   AudienceType,
 } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
-import { PrismaAttachmentMapper } from "./prisma-attachment.mapper";
+import {
+  PrismaAttachmentMapper,
+  PrismaAttachmentWithFile,
+} from "./prisma-attachment.mapper";
 import { PrismaUserMapper } from "./prisma-user.mapper";
 import { PostContent } from "@/domain/content-management/entities/post.entity";
 
@@ -27,7 +29,7 @@ type PrismaUserWithProfile = PrismaUser & {
 export type PrismaPostWithRelations = PrismaPost & {
   author: PrismaUserWithProfile;
   audiences: PrismaPostAudience[];
-  attachments: PrismaAttachment[];
+  attachments: PrismaAttachmentWithFile[];
 };
 
 export class PrismaPostMapper {

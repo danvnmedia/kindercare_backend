@@ -16,6 +16,7 @@ import { PrismaCampusRepository } from "@/infra/persistence/prisma/repositories/
 // Modules
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
+import { RequestContextModule } from "../context/request-context.module";
 
 /**
  * Campus Module
@@ -24,7 +25,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
  * Follows Clean Architecture with clear layer separation.
  */
 @Module({
-  imports: [PrismaModule, StandardResponseModule],
+  imports: [PrismaModule, StandardResponseModule, RequestContextModule],
   controllers: [CampusController],
   providers: [
     // Use Cases

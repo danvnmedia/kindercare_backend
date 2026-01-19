@@ -2,9 +2,21 @@ import { Post } from "@/domain/content-management";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
+export interface CreatePostOptions {
+  categoryIds?: string[];
+}
+
+export interface UpdatePostOptions {
+  categoryIds?: string[];
+}
+
 export abstract class PostRepository {
-  abstract create(post: Post): Promise<Post>;
-  abstract update(id: string, data: Post): Promise<Post>;
+  abstract create(post: Post, options?: CreatePostOptions): Promise<Post>;
+  abstract update(
+    id: string,
+    data: Post,
+    options?: UpdatePostOptions,
+  ): Promise<Post>;
   abstract delete(id: string): Promise<void>;
   abstract findById(id: string): Promise<Post | null>;
   abstract findMany(query: StandardRequestDto): Promise<PaginatedResult<Post>>;

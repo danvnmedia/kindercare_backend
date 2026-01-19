@@ -50,6 +50,8 @@ import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { UserManagementModule } from "./user-management.module";
 import { CampusModule } from "./campus.module";
+import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
+import { RequestContextModule } from "../context/request-context.module";
 
 /**
  * Class Management Module
@@ -63,6 +65,8 @@ import { CampusModule } from "./campus.module";
     StandardResponseModule,
     UserManagementModule, // For STUDENT_REPOSITORY, USER_REPOSITORY access
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
+    ClerkModule, // For AUTHENTICATION_PORT (ClerkAuthGuard)
+    RequestContextModule, // Provides RequestContext for CampusGuard
   ],
   controllers: [ClassController, ReferenceDataController],
   providers: [

@@ -20,6 +20,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
 import { UserManagementModule } from "./user-management.module";
 import { ClassManagementModule } from "./class-management.module";
 import { CampusModule } from "./campus.module";
+import { RequestContextModule } from "../context/request-context.module";
 
 /**
  * Attendance Module
@@ -34,6 +35,7 @@ import { CampusModule } from "./campus.module";
     UserManagementModule, // For STUDENT_REPOSITORY, USER_REPOSITORY access
     ClassManagementModule, // For CLASS_REPOSITORY access
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
+    RequestContextModule, // Provides RequestContext for CampusGuard
   ],
   controllers: [AttendanceController],
   providers: [

@@ -28,6 +28,7 @@ export interface UpdatePostInput {
     audienceType: AudienceType;
     audienceId: string;
   }[];
+  categoryIds?: string[];
 }
 
 @Injectable()
@@ -70,7 +71,9 @@ export class UpdatePostUseCase {
 
       await this.updatePostProperties(post, input);
 
-      const updatedPost = await this.postRepository.update(postId, post);
+      const updatedPost = await this.postRepository.update(postId, post, {
+        categoryIds: input.categoryIds,
+      });
       this.logger.log(`Post updated: ${updatedPost.id.toString()}`);
 
       return updatedPost;

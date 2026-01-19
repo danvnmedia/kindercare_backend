@@ -26,10 +26,13 @@ export class InitiateUploadRequest {
   @IsNumber()
   size: number;
 
-  @ApiProperty({ description: "Campus ID where the file belongs" })
+  @ApiPropertyOptional({
+    description:
+      "Campus ID where the file belongs. Optional - falls back to x-campus-id header if not provided.",
+  })
+  @IsOptional()
   @IsUUID()
-  @IsNotEmpty()
-  campusId: string;
+  campusId?: string;
 
   @ApiPropertyOptional({
     description:

@@ -33,13 +33,24 @@ import { FileResponse } from "../dtos/file/file.response";
 import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
 import { User } from "@/domain/user-management/user.entity";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { UserInterceptor } from "../interceptors/user.interceptor";
 
+/**
+ * File Management Controller
+ *
+ * Handles file upload, retrieval, and deletion endpoints.
+ * Uses hybrid auth pattern: AuthMiddleware + ClerkAuthGuard + RequestContext.
+ *
+ * Request Flow:
+ * 1. AuthMiddleware verifies Clerk token
+ * 2. ClerkAuthGuard checks authentication
+ * 3. CampusGuard validates campus access (via @RequireCampusAccess)
+ * 4. @CurrentUser decorator retrieves user from RequestContext (cached)
+ */
 @ApiTags("File Management")
 @ApiBearerAuth("JWT")
 @Controller("files")
 @UseGuards(ClerkAuthGuard)
-@UseInterceptors(UserInterceptor, ClassSerializerInterceptor)
+@UseInterceptors(ClassSerializerInterceptor)
 export class FileController {
   constructor(
     private uploadFile: UploadFileUseCase,
@@ -49,7 +60,7 @@ export class FileController {
   ) {}
 
   @Post("initiate-upload")
-  @RequireCampusAccess({ checkUserAccess: false })
+  @RequireCampusAccess()
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({
     summary: "Initiate a file upload",
@@ -65,24 +76,20 @@ export class FileController {
       filename,
       mimeType,
       size,
-      campusId,
       storageProvider,
       purpose,
       audienceType,
       audienceId,
     }: InitiateUploadRequest,
     @CurrentUser() user: User,
-    @CampusContext() contextCampusId: string,
+    @CampusContext() campusId: string,
   ): Promise<InitiateUploadResponse> {
-    // Use campusId from context (validated by guard) if not explicitly provided in body
-    const effectiveCampusId = campusId || contextCampusId;
-
     const result = await this.uploadFile.execute({
       filename,
       mimeType,
       size,
       uploadedBy: user.id.toString(),
-      campusId: effectiveCampusId,
+      campusId,
       storageProvider,
       purpose,
       audienceType,
@@ -101,7 +108,7 @@ export class FileController {
   }
 
   @Post(":id/complete")
-  @RequireCampusAccess({ checkUserAccess: false })
+  @RequireCampusAccess()
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Complete a file upload" })
   @StandardResponse({
@@ -124,7 +131,7 @@ export class FileController {
   }
 
   @Get(":id")
-  @RequireCampusAccess({ checkUserAccess: false })
+  @RequireCampusAccess()
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Get a file by ID" })
   @StandardResponse({
@@ -148,7 +155,7 @@ export class FileController {
   }
 
   @Delete(":id")
-  @RequireCampusAccess({ checkUserAccess: false })
+  @RequireCampusAccess()
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Soft delete a file" })
   async delete(

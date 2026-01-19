@@ -122,9 +122,8 @@ const LAST_NAMES = [
 const SYSTEM_IDS = {
   SUPER_ADMIN_ROLE: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   SUPER_ADMIN_USER: "10000000-1000-4000-8000-100000000001",
-  SPECIAL_GUARDIAN_USER: "10000000-1000-4000-8000-100000000002",
-  SPECIAL_GUARDIAN: "88888888-8888-4888-8888-888888888888",
-  SPECIAL_GUARDIAN_CLERK_UID: "user_37qegUeRM0p7Rya0JVgknCu5ckB",
+  // Your actual Clerk UID for super admin access
+  SUPER_ADMIN_CLERK_UID: "user_37qegUeRM0p7Rya0JVgknCu5ckB",
 };
 
 // ============================================================================
@@ -207,6 +206,17 @@ const IDS = {
   campusSetting: (campusIndex: number) => makeUUID(0xe0000000, campusIndex),
   postCategory: (campusIndex: number, categoryIndex: number) =>
     makeUUID(0xf0000000 + campusIndex * 0x1000, categoryIndex),
+  post: (campusIndex: number, postIndex: number) =>
+    makeUUID(0xf1000000 + campusIndex * 0x1000, postIndex),
+  postAudience: (
+    campusIndex: number,
+    postIndex: number,
+    audienceIndex: number,
+  ) =>
+    makeUUID(
+      0xf2000000 + campusIndex * 0x10000 + postIndex * 0x100,
+      audienceIndex,
+    ),
 };
 
 // ============================================================================
@@ -421,13 +431,13 @@ async function seedCampuses() {
 async function seedSuperAdmin() {
   console.log("Seeding super admin...");
 
-  // Create super admin user
+  // Create super admin user with your Clerk UID
   await prisma.user.upsert({
     where: { id: SYSTEM_IDS.SUPER_ADMIN_USER },
-    update: {},
+    update: { clerkUid: SYSTEM_IDS.SUPER_ADMIN_CLERK_UID },
     create: {
       id: SYSTEM_IDS.SUPER_ADMIN_USER,
-      clerkUid: "user_super_admin_seed",
+      clerkUid: SYSTEM_IDS.SUPER_ADMIN_CLERK_UID,
       isActive: true,
     },
   });
@@ -461,53 +471,6 @@ async function seedSuperAdmin() {
   });
 
   console.log("  Created super admin user and role");
-}
-
-async function seedSpecialGuardianAdmin() {
-  console.log("Seeding special guardian admin (guardian@example.com)...");
-
-  // Create user with Clerk UID
-  await prisma.user.upsert({
-    where: { id: SYSTEM_IDS.SPECIAL_GUARDIAN_USER },
-    update: {},
-    create: {
-      id: SYSTEM_IDS.SPECIAL_GUARDIAN_USER,
-      clerkUid: SYSTEM_IDS.SPECIAL_GUARDIAN_CLERK_UID,
-      isActive: true,
-    },
-  });
-
-  // Create guardian profile for Campus 1 (My Dinh)
-  const campusId = IDS.campus(0);
-  await prisma.guardian.upsert({
-    where: { id: SYSTEM_IDS.SPECIAL_GUARDIAN },
-    update: {},
-    create: {
-      id: SYSTEM_IDS.SPECIAL_GUARDIAN,
-      campusId: campusId,
-      fullName: "Nguyễn Thị C",
-      email: "guardian@example.com",
-      phoneNumber: "+15555550999",
-      gender: "FEMALE",
-      occupation: "Administrator",
-      userId: SYSTEM_IDS.SPECIAL_GUARDIAN_USER,
-    },
-  });
-
-  // Assign Campus Admin role
-  const adminRoleId = IDS.role(0, 0); // Campus Admin role for campus 0
-  await prisma.userRole.upsert({
-    where: { id: IDS.userRole(1) },
-    update: {},
-    create: {
-      id: IDS.userRole(1),
-      userId: SYSTEM_IDS.SPECIAL_GUARDIAN_USER,
-      roleId: adminRoleId,
-      campusId: campusId,
-    },
-  });
-
-  console.log("  Created special guardian admin with Campus Admin role");
 }
 
 async function seedRolesForCampus(campusId: string, campusIndex: number) {
@@ -622,6 +585,7 @@ async function seedSchoolYearsForCampus(campusId: string, campusIndex: number) {
   ];
 
   let currentSchoolYearId = "";
+  const today = new Date();
 
   for (const sy of schoolYears) {
     const schoolYearId = IDS.schoolYear(campusIndex, sy.index);
@@ -637,7 +601,16 @@ async function seedSchoolYearsForCampus(campusId: string, campusIndex: number) {
         isArchived: false,
       },
     });
-    if (sy.index === 0) currentSchoolYearId = schoolYearId;
+
+    // Pick the school year that contains today's date
+    if (today >= sy.startDate && today <= sy.endDate) {
+      currentSchoolYearId = schoolYearId;
+    }
+  }
+
+  // Fallback to first school year if today doesn't fall in any
+  if (!currentSchoolYearId) {
+    currentSchoolYearId = IDS.schoolYear(campusIndex, 0);
   }
 
   return currentSchoolYearId;
@@ -951,6 +924,292 @@ async function seedPostCategoriesForCampus(
   }
 }
 
+async function seedPostsForCampus(
+  campusId: string,
+  campusIndex: number,
+  authorId: string,
+  classIds: string[],
+) {
+  // Sample posts with different statuses and audience types
+  const posts = [
+    {
+      title: "Welcome to the New School Year!",
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "We are excited to welcome all students and families to the new school year. This year promises to be filled with exciting learning opportunities and memorable experiences.",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Please make sure to check the school calendar for important dates and events. We look forward to a wonderful year together!",
+              },
+            ],
+          },
+        ],
+      },
+      contentText:
+        "We are excited to welcome all students and families to the new school year. This year promises to be filled with exciting learning opportunities and memorable experiences. Please make sure to check the school calendar for important dates and events. We look forward to a wonderful year together!",
+      status: "PUBLISHED",
+      audienceType: "ALL",
+      categoryIndex: 0, // Announcement
+    },
+    {
+      title: "Parent-Teacher Conference Schedule",
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Dear Parents, we will be holding parent-teacher conferences next week. Please sign up for a time slot that works best for you.",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "This is a great opportunity to discuss your child's progress and set goals for the rest of the year.",
+              },
+            ],
+          },
+        ],
+      },
+      contentText:
+        "Dear Parents, we will be holding parent-teacher conferences next week. Please sign up for a time slot that works best for you. This is a great opportunity to discuss your child's progress and set goals for the rest of the year.",
+      status: "PUBLISHED",
+      audienceType: "ALL",
+      categoryIndex: 1, // Event
+    },
+    {
+      title: "Monthly Newsletter - January",
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Happy New Year! Here is our monthly newsletter with updates on school activities, student achievements, and upcoming events.",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Highlights this month include our science fair winners, the art exhibition, and preparations for the spring festival.",
+              },
+            ],
+          },
+        ],
+      },
+      contentText:
+        "Happy New Year! Here is our monthly newsletter with updates on school activities, student achievements, and upcoming events. Highlights this month include our science fair winners, the art exhibition, and preparations for the spring festival.",
+      status: "PUBLISHED",
+      audienceType: "ALL",
+      categoryIndex: 2, // Newsletter
+    },
+    {
+      title: "K1 Class Field Trip to the Zoo",
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "K1 students will be going on a field trip to the zoo next Friday. Please ensure your child wears comfortable shoes and brings a packed lunch.",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Permission slips must be returned by Wednesday. Contact us if you have any questions.",
+              },
+            ],
+          },
+        ],
+      },
+      contentText:
+        "K1 students will be going on a field trip to the zoo next Friday. Please ensure your child wears comfortable shoes and brings a packed lunch. Permission slips must be returned by Wednesday. Contact us if you have any questions.",
+      status: "PUBLISHED",
+      audienceType: "CLASS",
+      classIndex: 5, // K1 Class A (index 5 = grade 1, class 0)
+      categoryIndex: 3, // Class Activity
+    },
+    {
+      title: "Art Exhibition Next Week",
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "We are proud to announce our annual art exhibition showcasing student artwork from all grades.",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "The exhibition will be held in the school auditorium. All families are welcome to attend!",
+              },
+            ],
+          },
+        ],
+      },
+      contentText:
+        "We are proud to announce our annual art exhibition showcasing student artwork from all grades. The exhibition will be held in the school auditorium. All families are welcome to attend!",
+      status: "DRAFT",
+      audienceType: "ALL",
+      categoryIndex: 1, // Event
+    },
+    {
+      title: "K2 Swimming Lessons Starting",
+      content: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "K2 students will begin swimming lessons next month. Please ensure your child has appropriate swimwear and a towel.",
+              },
+            ],
+          },
+        ],
+      },
+      contentText:
+        "K2 students will begin swimming lessons next month. Please ensure your child has appropriate swimwear and a towel.",
+      status: "PENDING_APPROVAL",
+      audienceType: "CLASS",
+      classIndex: 10, // K2 Class A (index 10 = grade 2, class 0)
+      categoryIndex: 3, // Class Activity
+    },
+  ];
+
+  let postCount = 0;
+
+  for (let i = 0; i < posts.length; i++) {
+    const postData = posts[i];
+    const postId = IDS.post(campusIndex, i);
+
+    // Create the post
+    await prisma.post.upsert({
+      where: { id: postId },
+      update: {},
+      create: {
+        id: postId,
+        campusId: campusId,
+        authorId: authorId,
+        title: postData.title,
+        content: postData.content,
+        contentText: postData.contentText,
+        status: postData.status,
+        requiresApproval: postData.status !== "DRAFT",
+        publishAt: postData.status === "PUBLISHED" ? new Date() : null,
+      },
+    });
+
+    // Create audience
+    const audienceId = IDS.postAudience(campusIndex, i, 0);
+    if (postData.audienceType === "ALL") {
+      await prisma.postAudience.upsert({
+        where: { id: audienceId },
+        update: {},
+        create: {
+          id: audienceId,
+          postId: postId,
+          campusId: campusId,
+          type: "ALL",
+        },
+      });
+    } else if (
+      postData.audienceType === "CLASS" &&
+      postData.classIndex !== undefined
+    ) {
+      const classId = classIds[postData.classIndex];
+      if (classId) {
+        await prisma.postAudience.upsert({
+          where: { id: audienceId },
+          update: {},
+          create: {
+            id: audienceId,
+            postId: postId,
+            campusId: campusId,
+            type: "CLASS",
+            classId: classId,
+          },
+        });
+      }
+    }
+
+    // Link to category
+    if (postData.categoryIndex !== undefined) {
+      const categoryId = IDS.postCategory(campusIndex, postData.categoryIndex);
+      await prisma.postCategoryLink.upsert({
+        where: {
+          postId_categoryId: {
+            postId: postId,
+            categoryId: categoryId,
+          },
+        },
+        update: {},
+        create: {
+          postId: postId,
+          categoryId: categoryId,
+        },
+      });
+    }
+
+    // Create initial history entry for published posts
+    if (postData.status === "PUBLISHED") {
+      await prisma.postHistoryStatus.upsert({
+        where: {
+          id: makeUUID(0xf3000000 + campusIndex * 0x1000, i),
+        },
+        update: {},
+        create: {
+          id: makeUUID(0xf3000000 + campusIndex * 0x1000, i),
+          postId: postId,
+          newStatus: "PUBLISHED",
+          changedById: authorId,
+          reason: "Initial publication",
+        },
+      });
+    }
+
+    postCount++;
+  }
+
+  return postCount;
+}
+
 async function seedStudentCodeSequences(campusId: string, campusIndex: number) {
   const totalStudents =
     CONFIG.GRADES_PER_CAMPUS *
@@ -1044,11 +1303,6 @@ async function main() {
     const roles = await seedRolesForCampus(campusId, campusIndex);
     console.log(`  Created 3 roles`);
 
-    // Seed special guardian admin for first campus only
-    if (campusIndex === 0) {
-      await seedSpecialGuardianAdmin();
-    }
-
     console.log("Seeding staff types...");
     const staffTypes = await seedStaffTypesForCampus(
       campusId,
@@ -1078,6 +1332,7 @@ async function main() {
     let totalStudents = 0;
     let totalGuardians = 0;
     let totalClasses = 0;
+    const allClassIds: string[] = [];
 
     for (
       let gradeIndex = 0;
@@ -1095,6 +1350,7 @@ async function main() {
         currentSchoolYearId,
       );
       totalClasses += classIds.length;
+      allClassIds.push(...classIds);
 
       for (let classIndex = 0; classIndex < classIds.length; classIndex++) {
         const classId = classIds[classIndex];
@@ -1134,6 +1390,17 @@ async function main() {
     await seedPostCategoriesForCampus(campusId, campusIndex);
     console.log(`  Created 4 post categories`);
 
+    // Seed posts (use first staff member as author)
+    console.log("Seeding posts...");
+    const firstStaffUserId = IDS.user("staff", campusIndex * 100);
+    const postCount = await seedPostsForCampus(
+      campusId,
+      campusIndex,
+      firstStaffUserId,
+      allClassIds,
+    );
+    console.log(`  Created ${postCount} posts`);
+
     // Seed student code sequences
     console.log("Seeding student code sequences...");
     await seedStudentCodeSequences(campusId, campusIndex);
@@ -1143,6 +1410,7 @@ async function main() {
     console.log(`  - Classes: ${totalClasses}`);
     console.log(`  - Students: ${totalStudents}`);
     console.log(`  - Guardians: ${totalGuardians}`);
+    console.log(`  - Posts: ${postCount}`);
     console.log(`  - Staff: ${staffIds.length}`);
   }
 

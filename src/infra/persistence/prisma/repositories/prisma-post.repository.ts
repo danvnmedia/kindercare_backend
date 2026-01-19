@@ -1,5 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { PostRepository } from "@/application/content-management/ports/post.repository";
+import {
+  PostRepository,
+  CreatePostOptions,
+  UpdatePostOptions,
+} from "@/application/content-management/ports/post.repository";
 import { Post } from "@/domain/content-management";
 import { PrismaService } from "../prisma.service";
 import {
@@ -17,7 +21,7 @@ export class PrismaPostRepository implements PostRepository {
     private readonly queryService: PrismaQueryService,
   ) {}
 
-  async create(post: Post): Promise<Post> {
+  async create(post: Post, options?: CreatePostOptions): Promise<Post> {
     const prismaPost = PrismaPostMapper.toPrisma(post);
     const createdPost = await this.prisma.post.create({
       data: {
@@ -27,17 +31,39 @@ export class PrismaPostRepository implements PostRepository {
             PrismaPostMapper.toPrismaPostAudienceCreate(audience),
           ),
         },
+        // Link categories if provided
+        ...(options?.categoryIds &&
+          options.categoryIds.length > 0 && {
+            categories: {
+              create: options.categoryIds.map((categoryId) => ({
+                categoryId,
+              })),
+            },
+          }),
       },
       include: {
         author: true,
         audiences: true,
-        attachments: true,
+        attachments: {
+          include: {
+            file: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
       },
     });
     return PrismaPostMapper.toDomain(createdPost);
   }
 
-  async update(id: string, data: Post): Promise<Post> {
+  async update(
+    id: string,
+    data: Post,
+    options?: UpdatePostOptions,
+  ): Promise<Post> {
     const prismaPost = PrismaPostMapper.toPrisma(data);
     const updatedPost = await this.prisma.post.update({
       where: { id },
@@ -49,11 +75,31 @@ export class PrismaPostRepository implements PostRepository {
             PrismaPostMapper.toPrismaPostAudienceCreate(audience),
           ),
         },
+        // Update categories if provided (replace all)
+        ...(options?.categoryIds !== undefined && {
+          categories: {
+            deleteMany: {},
+            ...(options.categoryIds.length > 0 && {
+              create: options.categoryIds.map((categoryId) => ({
+                categoryId,
+              })),
+            }),
+          },
+        }),
       },
       include: {
         author: true,
         audiences: true,
-        attachments: true,
+        attachments: {
+          include: {
+            file: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
       },
     });
     return PrismaPostMapper.toDomain(updatedPost);
@@ -74,7 +120,11 @@ export class PrismaPostRepository implements PostRepository {
           },
         },
         audiences: true,
-        attachments: true,
+        attachments: {
+          include: {
+            file: true,
+          },
+        },
       },
     })) as PrismaPostWithRelations | null;
     return post ? PrismaPostMapper.toDomain(post) : null;
@@ -106,12 +156,16 @@ export class PrismaPostRepository implements PostRepository {
         include: {
           author: {
             include: {
-              guardian: true,
-              staff: true,
+              guardians: true,
+              staffs: true,
             },
           },
           audiences: true,
-          attachments: true,
+          attachments: {
+            include: {
+              file: true,
+            },
+          },
         },
       },
       PrismaPostMapper,
@@ -148,7 +202,11 @@ export class PrismaPostRepository implements PostRepository {
           },
         },
         audiences: true,
-        attachments: true,
+        attachments: {
+          include: {
+            file: true,
+          },
+        },
       },
     })) as PrismaPostWithRelations[];
 

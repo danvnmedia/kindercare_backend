@@ -27,6 +27,7 @@ export interface CreatePostInput {
     audienceType: AudienceType;
     audienceId?: string; // Optional for ALL type (uses campusId)
   }[];
+  categoryIds?: string[];
 }
 
 @Injectable()
@@ -68,7 +69,9 @@ export class CreatePostUseCase {
 
       const post = this.createPostEntity(input, author);
 
-      const createdPost = await this.postRepository.create(post);
+      const createdPost = await this.postRepository.create(post, {
+        categoryIds: input.categoryIds,
+      });
       this.logger.log(`Post created: ${createdPost.id.toString()}`);
 
       return createdPost;

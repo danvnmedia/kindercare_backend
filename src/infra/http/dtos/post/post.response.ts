@@ -3,6 +3,7 @@ import { Expose, Type } from "class-transformer";
 import { AudienceType, PostStatus } from "@/domain/content-management/enums";
 import { FileResponse } from "../file/file.response";
 import { UserResponse } from "../user.response";
+
 export class PostAudienceResponse {
   @ApiProperty({
     description: "The ID of the audience.",
@@ -50,12 +51,12 @@ export class PostAudienceResponse {
   studentId?: string;
 
   @ApiProperty({
-    description: "The ID of the grade.",
+    description: "The ID of the grade level.",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
     required: false,
   })
   @Expose()
-  gradeId?: string;
+  gradeLevelId?: string;
 }
 
 export class AttachmentResponse {

@@ -1,8 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Transform } from "class-transformer";
 import { User } from "@/domain/user-management/user.entity";
-import { Guardian } from "@/domain/user-management/entities/guardian.entity";
-import { Staff } from "@/domain/user-management/entities/staff.entity";
 
 export class UserResponse {
   @ApiProperty({
@@ -15,9 +13,9 @@ export class UserResponse {
   @ApiProperty({ example: "John Doe", description: "User name" })
   @Expose()
   @Transform(
-    ({ obj }: { obj: User & { guardian?: Guardian; staff?: Staff } }) => {
-      if (obj.guardian) return obj.guardian.fullName;
-      if (obj.staff) return obj.staff.fullName;
+    ({ obj }: { obj: User }) => {
+      // Use the profile from the User entity (which contains guardian or staff info)
+      if (obj.profile?.fullName) return obj.profile.fullName;
       return "Unknown";
     },
     { toClassOnly: true },
@@ -27,9 +25,9 @@ export class UserResponse {
   @ApiProperty({ example: "john@example.com", description: "User email" })
   @Expose()
   @Transform(
-    ({ obj }: { obj: User & { guardian?: Guardian; staff?: Staff } }) => {
-      if (obj.guardian) return obj.guardian.email;
-      if (obj.staff) return obj.staff.email;
+    ({ obj }: { obj: User }) => {
+      // Use the profile from the User entity (which contains guardian or staff info)
+      if (obj.profile?.email) return obj.profile.email;
       return "unknown@example.com";
     },
     { toClassOnly: true },

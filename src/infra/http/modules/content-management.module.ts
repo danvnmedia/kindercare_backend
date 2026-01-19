@@ -64,11 +64,13 @@ import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { RolesGuard } from "../guards/roles.guard";
+import { CampusGuard } from "../guards/campus.guard";
 import { AuthModule } from "./auth.module";
 import { UserManagementModule } from "./user-management.module";
 import { ClassManagementModule } from "./class-management.module";
 import { FileManagementModule } from "./file-management/file-management.module";
 import { CampusModule } from "./campus.module";
+import { RequestContextModule } from "../context/request-context.module";
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { CampusModule } from "./campus.module";
     ClassManagementModule, // For CLASS_REPOSITORY, GRADE_LEVEL_REPOSITORY
     FileManagementModule, // For FILE_REPOSITORY
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
+    RequestContextModule, // Provides RequestContext for CampusGuard
   ],
   controllers: [
     PostController,
@@ -88,6 +91,8 @@ import { CampusModule } from "./campus.module";
     CommentController,
   ],
   providers: [
+    // Guards
+    CampusGuard,
     RolesGuard,
     // Post Use Cases
     CreatePostUseCase,

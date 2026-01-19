@@ -1,18 +1,31 @@
-import { Attachment as PrismaAttachment, Prisma } from "@prisma/client";
+import {
+  Attachment as PrismaAttachment,
+  File as PrismaFile,
+  Prisma,
+} from "@prisma/client";
 import { Attachment } from "@/domain/content-management";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { PrismaFileMapper } from "./prisma-file.mapper";
+
+/** Prisma attachment with optional file relation */
+export type PrismaAttachmentWithFile = PrismaAttachment & {
+  file?: PrismaFile | null;
+};
 
 export class PrismaAttachmentMapper {
   /**
-   * Convert Prisma model to Domain entity (full)
+   * Convert Prisma model to Domain entity (full, with file relation if present)
    */
-  static toDomain(prismaAttachment: PrismaAttachment): Attachment {
+  static toDomain(prismaAttachment: PrismaAttachmentWithFile): Attachment {
     return Attachment.create(
       {
         postId: prismaAttachment.postId,
         fileId: prismaAttachment.fileId,
         comment: prismaAttachment.comment,
         order: prismaAttachment.order,
+        file: prismaAttachment.file
+          ? PrismaFileMapper.toDomain(prismaAttachment.file)
+          : null,
         createdAt: prismaAttachment.createdAt,
         updatedAt: prismaAttachment.updatedAt,
       },
@@ -25,7 +38,17 @@ export class PrismaAttachmentMapper {
    * Use to prevent circular references
    */
   static toDomainSimple(prismaAttachment: PrismaAttachment): Attachment {
-    return PrismaAttachmentMapper.toDomain(prismaAttachment);
+    return Attachment.create(
+      {
+        postId: prismaAttachment.postId,
+        fileId: prismaAttachment.fileId,
+        comment: prismaAttachment.comment,
+        order: prismaAttachment.order,
+        createdAt: prismaAttachment.createdAt,
+        updatedAt: prismaAttachment.updatedAt,
+      },
+      prismaAttachment.id,
+    );
   }
 
   /**
@@ -59,7 +82,9 @@ export class PrismaAttachmentMapper {
   /**
    * Convert array of Prisma models to Domain entities
    */
-  static toDomainArray(prismaAttachments: PrismaAttachment[]): Attachment[] {
+  static toDomainArray(
+    prismaAttachments: PrismaAttachmentWithFile[],
+  ): Attachment[] {
     return prismaAttachments.map((prismaAttachment) =>
       PrismaAttachmentMapper.toDomain(prismaAttachment),
     );

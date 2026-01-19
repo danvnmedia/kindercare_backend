@@ -86,4 +86,14 @@ export class CreatePostRequest {
   @ValidateNested({ each: true })
   @Type(() => CreateAudienceDto)
   audiences: CreateAudienceDto[];
+
+  @ApiPropertyOptional({
+    description: "Category IDs to associate with the post",
+    type: [String],
+    example: ["c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f"],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  categoryIds?: string[];
 }
