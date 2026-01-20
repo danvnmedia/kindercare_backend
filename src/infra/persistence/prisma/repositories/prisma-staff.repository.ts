@@ -119,7 +119,10 @@ export class PrismaStaffRepository implements StaffRepository {
     return PrismaStaffMapper.toDomainArray(prismaStaffs);
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<Staff>> {
+  async findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Staff>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
       "fullName",
@@ -148,6 +151,7 @@ export class PrismaStaffRepository implements StaffRepository {
           user: true,
           staffType: true,
         },
+        scope,
       },
       PrismaStaffMapper,
     );

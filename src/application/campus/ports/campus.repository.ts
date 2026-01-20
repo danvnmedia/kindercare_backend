@@ -21,8 +21,13 @@ export abstract class CampusRepository {
 
   /**
    * Find all campuses with pagination, filtering, and sorting
+   * @param params - Standard query parameters (filters, sorts, pagination)
+   * @param scope - Optional system-enforced filters (e.g., id: { in: [...] }) that bypass allowedFilterFields
    */
-  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Campus>>;
+  abstract findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Campus>>;
 
   /**
    * Save a new campus

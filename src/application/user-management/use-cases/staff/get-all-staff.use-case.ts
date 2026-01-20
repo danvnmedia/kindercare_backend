@@ -35,29 +35,7 @@ export class GetAllStaffUseCase {
         `Fetching staff for campus ${campusId}: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
       );
 
-      // Inject campusId filter to ensure campus scoping
-      // Parse existing filter string if present, add campusId, and re-stringify
-      let existingFilter: Record<string, unknown> = {};
-      if (params.filter) {
-        try {
-          existingFilter = JSON.parse(params.filter);
-        } catch {
-          // If filter is invalid JSON, ignore it
-          this.logger.warn(`Invalid filter JSON: ${params.filter}`);
-        }
-      }
-
-      const scopedFilter = {
-        ...existingFilter,
-        campusId: { eq: campusId },
-      };
-
-      const scopedParams: StandardRequest = {
-        ...params,
-        filter: JSON.stringify(scopedFilter),
-      };
-
-      const result = await this.staffRepository.findAll(scopedParams);
+      const result = await this.staffRepository.findAll(params, { campusId });
 
       this.logger.log(
         `Found ${result.pagination.count} staff in campus ${campusId}, returning page ${result.pagination.currentPage}`,

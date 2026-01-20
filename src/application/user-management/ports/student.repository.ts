@@ -60,8 +60,13 @@ export abstract class StudentRepository {
 
   /**
    * Find all students with filtering, sorting, pagination using StandardRequest
+   * @param params - Standard query parameters (filters, sorts, pagination)
+   * @param scope - Optional system-enforced filters (e.g., campusId) that bypass allowedFilterFields
    */
-  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Student>>;
+  abstract findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Student>>;
 
   /**
    * Save a new or existing student

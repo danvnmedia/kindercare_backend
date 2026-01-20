@@ -174,11 +174,11 @@ describe("GetAllCampusesUseCase", () => {
 
       expect(result.data).toHaveLength(2);
 
-      // Verify the filter was added with 'in' operator
-      const calledParams = mockCampusRepository.findAll.mock.calls[0][0];
-      const parsedFilter = JSON.parse(calledParams.filter!);
-
-      expect(parsedFilter.id).toEqual({ in: ["campus-1", "campus-2"] });
+      // Verify the scope was passed with 'in' operator
+      const [calledParams, calledScope] =
+        mockCampusRepository.findAll.mock.calls[0];
+      expect(calledParams).toEqual({ limit: 10, offset: 0 });
+      expect(calledScope).toEqual({ id: { in: ["campus-1", "campus-2"] } });
     });
 
     it("should combine existing filters with campus ID filter", async () => {
@@ -196,13 +196,13 @@ describe("GetAllCampusesUseCase", () => {
         params: { limit: 10, offset: 0, filter: existingFilter },
       });
 
-      const calledParams = mockCampusRepository.findAll.mock.calls[0][0];
-      const parsedFilter = JSON.parse(calledParams.filter!);
+      const [calledParams, calledScope] =
+        mockCampusRepository.findAll.mock.calls[0];
 
-      // Should have both existing filters and campus ID filter
-      expect(parsedFilter.isActive).toEqual({ eq: true });
-      expect(parsedFilter.name).toEqual({ contains: "Active" });
-      expect(parsedFilter.id).toEqual({ in: ["campus-1", "campus-2"] });
+      // Params should preserve existing filter
+      expect(calledParams.filter).toBe(existingFilter);
+      // Scope should contain campus ID filter (applied separately)
+      expect(calledScope).toEqual({ id: { in: ["campus-1", "campus-2"] } });
     });
 
     it("should handle single campus access correctly", async () => {
@@ -215,10 +215,8 @@ describe("GetAllCampusesUseCase", () => {
         params: { limit: 10, offset: 0 },
       });
 
-      const calledParams = mockCampusRepository.findAll.mock.calls[0][0];
-      const parsedFilter = JSON.parse(calledParams.filter!);
-
-      expect(parsedFilter.id).toEqual({ in: ["campus-1"] });
+      const [, calledScope] = mockCampusRepository.findAll.mock.calls[0];
+      expect(calledScope).toEqual({ id: { in: ["campus-1"] } });
     });
 
     it("should handle pagination with campus-scoped access", async () => {
@@ -251,17 +249,19 @@ describe("GetAllCampusesUseCase", () => {
         createPaginatedResult([createMockCampus("campus-1", "Campus A")]),
       );
 
-      // Invalid JSON should be ignored
+      // Invalid JSON filter passed through to params (repository/query service handles it)
       await useCase.execute({
         accessibleCampusIds: ["campus-1"],
         params: { limit: 10, offset: 0, filter: "invalid-json{" },
       });
 
-      const calledParams = mockCampusRepository.findAll.mock.calls[0][0];
-      const parsedFilter = JSON.parse(calledParams.filter!);
+      const [calledParams, calledScope] =
+        mockCampusRepository.findAll.mock.calls[0];
 
-      // Should still have the campus filter even if existing filter was invalid
-      expect(parsedFilter.id).toEqual({ in: ["campus-1"] });
+      // Params passed through unchanged (query service handles invalid filter)
+      expect(calledParams.filter).toBe("invalid-json{");
+      // Scope should still have the campus filter
+      expect(calledScope).toEqual({ id: { in: ["campus-1"] } });
     });
 
     it("should preserve sorting parameters with campus-scoped access", async () => {
@@ -299,10 +299,8 @@ describe("GetAllCampusesUseCase", () => {
         params: { limit: 10, offset: 0 },
       });
 
-      const calledParams = mockCampusRepository.findAll.mock.calls[0][0];
-      const parsedFilter = JSON.parse(calledParams.filter!);
-
-      expect(parsedFilter.id.in).toHaveLength(50);
+      const [, calledScope] = mockCampusRepository.findAll.mock.calls[0];
+      expect(calledScope?.id?.in).toHaveLength(50);
     });
 
     it("should handle empty repository result for campus-scoped access", async () => {

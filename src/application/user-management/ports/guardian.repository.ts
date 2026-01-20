@@ -52,8 +52,13 @@ export abstract class GuardianRepository {
 
   /**
    * Find all guardians with filtering, sorting, pagination using StandardRequest
+   * @param params - Standard query parameters (filters, sorts, pagination)
+   * @param scope - Optional system-enforced filters (e.g., campusId) that bypass allowedFilterFields
    */
-  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Guardian>>;
+  abstract findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Guardian>>;
 
   /**
    * Find multiple guardians by IDs

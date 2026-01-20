@@ -59,27 +59,8 @@ export class GetAllCampusesUseCase {
       `Getting campuses for user with access to ${accessibleCampusIds.length} campus(es)`,
     );
 
-    // Parse existing filter string if present
-    let existingFilter: Record<string, unknown> = {};
-    if (params.filter) {
-      try {
-        existingFilter = JSON.parse(params.filter);
-      } catch {
-        this.logger.warn(`Invalid filter JSON: ${params.filter}`);
-      }
-    }
-
-    // Inject campus ID filter to ensure access scoping
-    const scopedFilter = {
-      ...existingFilter,
+    return await this.campusRepository.findAll(params, {
       id: { in: accessibleCampusIds },
-    };
-
-    const scopedParams: StandardRequest = {
-      ...params,
-      filter: JSON.stringify(scopedFilter),
-    };
-
-    return await this.campusRepository.findAll(scopedParams);
+    });
   }
 }

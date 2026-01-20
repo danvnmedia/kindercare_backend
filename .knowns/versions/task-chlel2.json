@@ -1,0 +1,68 @@
+{
+  "taskId": "chlel2",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "chlel2",
+      "version": 1,
+      "timestamp": "2026-01-20T08:23:10.434Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "## Implementation Plan\n\n### Phase 1: Application Layer (Use Cases)\n\n1. **Create ArchiveStudentUseCase**\n   - File: `src/application/user-management/use-cases/student/archive-student.use-case.ts`\n   - Inject: StudentRepository, UnitOfWorkPort (optional, for transaction if needed)\n   - Pattern: Follow ArchiveGuardianUseCase/ArchiveStaffUseCase\n   - Logic: Find student → validate campus → call student.archive() → save → return entity\n   - Note: No Clerk/user account handling needed (students don't have user accounts)\n\n2. **Create RestoreStudentUseCase**\n   - File: `src/application/user-management/use-cases/student/restore-student.use-case.ts`\n   - Inject: StudentRepository\n   - Pattern: Follow RestoreGuardianUseCase/RestoreStaffUseCase\n   - Logic: Find student → validate campus → check isArchived (throw if false) → call student.restore() → save → return entity\n\n3. **Add barrel exports**\n   - Update `src/application/user-management/use-cases/student/index.ts` with new use cases\n\n### Phase 2: Infrastructure Layer (Controllers)\n\n4. **Update StudentController (soft delete)**\n   - File: `src/infra/http/controllers/user-management/student.controller.ts`\n   - Change DELETE /students/:id to call ArchiveStudentUseCase instead of DeleteStudentUseCase\n   - Add PATCH /students/:id/restore calling RestoreStudentUseCase\n   - Update API decorators and response messages\n\n5. **Create DangerStudentController**\n   - File: `src/infra/http/controllers/danger/danger-student.controller.ts`\n   - Pattern: Follow danger-guardian.controller.ts / danger-staff.controller.ts\n   - Endpoint: DELETE /danger/students/:id\n   - Inject: DeleteStudentUseCase\n   - Add DANGER warning in API documentation\n\n6. **Update barrel exports**\n   - Update `src/infra/http/controllers/danger/index.ts` with DangerStudentController\n\n### Phase 3: Module Registration\n\n7. **Update user-management.module.ts**\n   - Add ArchiveStudentUseCase to providers\n   - Add RestoreStudentUseCase to providers\n\n8. **Update danger.module.ts**\n   - Add DangerStudentController to controllers array\n\n### Phase 4: Testing\n\n9. **Create ArchiveStudentUseCase tests**\n   - File: `src/application/user-management/use-cases/student/archive-student.use-case.spec.ts`\n   - Test: successful archive, student not found, campus mismatch\n\n10. **Create RestoreStudentUseCase tests**\n    - File: `src/application/user-management/use-cases/student/restore-student.use-case.spec.ts`\n    - Test: successful restore, student not found, student not archived error, campus mismatch\n\n### Key Files Reference\n- Guardian pattern: `src/application/user-management/use-cases/guardian/archive-guardian.use-case.ts`\n- Staff pattern: `src/application/user-management/use-cases/staff/archive-staff.use-case.ts`\n- Danger controller pattern: `src/infra/http/controllers/danger/danger-guardian.controller.ts`\n- Module: `src/infra/http/modules/user-management.module.ts`\n- Danger module: `src/infra/http/modules/danger.module.ts`"
+        }
+      ],
+      "snapshot": {
+        "title": "Add Soft Delete (Archive/Restore) and Danger Hard Delete for Student",
+        "description": "Currently, Student only has hard delete functionality exposed via DELETE /students/:id. Guardian and Staff both implement a two-tier delete pattern: (1) Soft Delete (Archive) - marks entity as archived for potential recovery, and (2) Hard Delete (Danger) - permanently removes entity. The Student domain entity already has archive() and restore() methods defined but they are NOT exposed through use cases or controllers. This task aligns Student delete functionality with Guardian and Staff patterns. Note: Unlike Guardian/Staff, Students don't have linked user accounts or Clerk integration, so no user account handling is required.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "student",
+          "soft-delete",
+          "clean-architecture"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "ArchiveStudentUseCase implemented - archives student by setting isArchived=true and status=DROPPED, validates campus if campusId provided, returns updated Student entity"
+          },
+          {
+            "completed": false,
+            "text": "RestoreStudentUseCase implemented - restores archived student by setting isArchived=false and status=ACTIVE, throws BadRequestException if student not archived, validates campus if campusId provided"
+          },
+          {
+            "completed": false,
+            "text": "StudentController DELETE /students/:id endpoint calls ArchiveStudentUseCase (soft delete) instead of hard delete"
+          },
+          {
+            "completed": false,
+            "text": "StudentController PATCH /students/:id/restore endpoint added calling RestoreStudentUseCase"
+          },
+          {
+            "completed": false,
+            "text": "DangerStudentController created with DELETE /danger/students/:id endpoint for hard delete, matching Guardian/Staff danger controller pattern"
+          },
+          {
+            "completed": false,
+            "text": "ArchiveStudentUseCase, RestoreStudentUseCase registered in user-management.module.ts providers"
+          },
+          {
+            "completed": false,
+            "text": "DangerStudentController added to danger.module.ts controllers array"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests for ArchiveStudentUseCase covering archive success and campus validation"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests for RestoreStudentUseCase covering restore success, already-restored error case, and campus validation"
+          }
+        ],
+        "implementationPlan": "## Implementation Plan\n\n### Phase 1: Application Layer (Use Cases)\n\n1. **Create ArchiveStudentUseCase**\n   - File: `src/application/user-management/use-cases/student/archive-student.use-case.ts`\n   - Inject: StudentRepository, UnitOfWorkPort (optional, for transaction if needed)\n   - Pattern: Follow ArchiveGuardianUseCase/ArchiveStaffUseCase\n   - Logic: Find student → validate campus → call student.archive() → save → return entity\n   - Note: No Clerk/user account handling needed (students don't have user accounts)\n\n2. **Create RestoreStudentUseCase**\n   - File: `src/application/user-management/use-cases/student/restore-student.use-case.ts`\n   - Inject: StudentRepository\n   - Pattern: Follow RestoreGuardianUseCase/RestoreStaffUseCase\n   - Logic: Find student → validate campus → check isArchived (throw if false) → call student.restore() → save → return entity\n\n3. **Add barrel exports**\n   - Update `src/application/user-management/use-cases/student/index.ts` with new use cases\n\n### Phase 2: Infrastructure Layer (Controllers)\n\n4. **Update StudentController (soft delete)**\n   - File: `src/infra/http/controllers/user-management/student.controller.ts`\n   - Change DELETE /students/:id to call ArchiveStudentUseCase instead of DeleteStudentUseCase\n   - Add PATCH /students/:id/restore calling RestoreStudentUseCase\n   - Update API decorators and response messages\n\n5. **Create DangerStudentController**\n   - File: `src/infra/http/controllers/danger/danger-student.controller.ts`\n   - Pattern: Follow danger-guardian.controller.ts / danger-staff.controller.ts\n   - Endpoint: DELETE /danger/students/:id\n   - Inject: DeleteStudentUseCase\n   - Add DANGER warning in API documentation\n\n6. **Update barrel exports**\n   - Update `src/infra/http/controllers/danger/index.ts` with DangerStudentController\n\n### Phase 3: Module Registration\n\n7. **Update user-management.module.ts**\n   - Add ArchiveStudentUseCase to providers\n   - Add RestoreStudentUseCase to providers\n\n8. **Update danger.module.ts**\n   - Add DangerStudentController to controllers array\n\n### Phase 4: Testing\n\n9. **Create ArchiveStudentUseCase tests**\n   - File: `src/application/user-management/use-cases/student/archive-student.use-case.spec.ts`\n   - Test: successful archive, student not found, campus mismatch\n\n10. **Create RestoreStudentUseCase tests**\n    - File: `src/application/user-management/use-cases/student/restore-student.use-case.spec.ts`\n    - Test: successful restore, student not found, student not archived error, campus mismatch\n\n### Key Files Reference\n- Guardian pattern: `src/application/user-management/use-cases/guardian/archive-guardian.use-case.ts`\n- Staff pattern: `src/application/user-management/use-cases/staff/archive-staff.use-case.ts`\n- Danger controller pattern: `src/infra/http/controllers/danger/danger-guardian.controller.ts`\n- Module: `src/infra/http/modules/user-management.module.ts`\n- Danger module: `src/infra/http/modules/danger.module.ts`"
+      }
+    }
+  ]
+}

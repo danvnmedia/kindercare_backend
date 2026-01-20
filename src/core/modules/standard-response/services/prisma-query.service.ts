@@ -233,6 +233,7 @@ export class PrismaQueryService {
     const where = {
       ...options.where,
       ...this.buildWhereClause(params, allowedFilterFields),
+      ...options.scope, // Scope applied LAST - always wins, cannot be overridden by user
     };
 
     const orderBy = this.buildOrderByClause(params, allowedSortFields);

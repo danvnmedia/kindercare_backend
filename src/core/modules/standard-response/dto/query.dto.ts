@@ -18,6 +18,7 @@ export interface QueryOptions {
   select?: Record<string, any>;
   allowedSortFields?: string[];
   allowedFilterFields?: string[];
+  scope?: Record<string, any>; // System-enforced filters (bypasses allowedFilterFields)
 }
 
 export type FilterValue = string | number | boolean;
