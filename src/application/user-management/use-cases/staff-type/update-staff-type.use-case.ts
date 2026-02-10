@@ -18,6 +18,7 @@ export interface UpdateStaffTypeInput {
   description?: string | null;
   defaultRoleId?: string | null;
   isActive?: boolean;
+  order?: number;
 }
 
 @Injectable()
@@ -66,6 +67,20 @@ export class UpdateStaffTypeUseCase {
         }
       }
 
+      // Validate order uniqueness if being changed
+      if (input.order !== undefined && input.order !== staffType.order) {
+        const existingByOrder =
+          await this.staffTypeRepository.findByOrderAndCampus(
+            input.order,
+            staffType.campusId,
+          );
+        if (existingByOrder && existingByOrder.id !== id) {
+          throw new ConflictException(
+            `A staff type with order ${input.order} already exists in this campus`,
+          );
+        }
+      }
+
       // Build update data
       const updateData: UpdateStaffTypeData = {};
 
@@ -80,6 +95,9 @@ export class UpdateStaffTypeUseCase {
       }
       if (input.isActive !== undefined) {
         updateData.isActive = input.isActive;
+      }
+      if (input.order !== undefined) {
+        updateData.order = input.order;
       }
 
       // Update domain entity (validation happens in entity)

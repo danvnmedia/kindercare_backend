@@ -21,7 +21,9 @@ export type CreateClassData = Omit<
   ClassProps,
   "createdAt" | "updatedAt" | "gradeLevel" | "schoolYear"
 >;
-export type UpdateClassData = Partial<Pick<ClassProps, "name" | "description">>;
+export type UpdateClassData = Partial<
+  Pick<ClassProps, "name" | "description" | "gradeLevelId">
+>;
 
 export class Class extends Entity<ClassProps> {
   // --- Getters ---
@@ -72,6 +74,9 @@ export class Class extends Entity<ClassProps> {
     }
     if (data.description !== undefined) {
       this.props.description = data.description?.trim() || null;
+    }
+    if (data.gradeLevelId !== undefined) {
+      this.props.gradeLevelId = data.gradeLevelId;
     }
     this.touch();
   }

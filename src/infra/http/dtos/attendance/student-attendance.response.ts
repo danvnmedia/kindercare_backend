@@ -63,7 +63,10 @@ export class StudentAttendanceLogResponse {
   deviceId: string | null;
 
   @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000", nullable: true })
+  @ApiProperty({
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    nullable: true,
+  })
   createdById: string | null;
 
   @Expose()
@@ -71,7 +74,10 @@ export class StudentAttendanceLogResponse {
   note: string | null;
 
   @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000", nullable: true })
+  @ApiProperty({
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    nullable: true,
+  })
   imageFileId: string | null;
 
   @Expose()
@@ -122,7 +128,10 @@ export class StudentAttendanceResponse {
 
   // New fields
   @Expose()
-  @ApiProperty({ example: 480, description: "Total minutes present for the day" })
+  @ApiProperty({
+    example: 480,
+    description: "Total minutes present for the day",
+  })
   totalMinutesPresent: number;
 
   @Expose()
@@ -152,7 +161,9 @@ export class StudentAttendanceResponse {
   /**
    * Maps a StudentAttendanceSummary domain entity to response DTO
    */
-  static fromDomain(summary: StudentAttendanceSummary): StudentAttendanceResponse {
+  static fromDomain(
+    summary: StudentAttendanceSummary,
+  ): StudentAttendanceResponse {
     const response = new StudentAttendanceResponse();
     response.id = summary.id;
     response.studentId = summary.studentId;

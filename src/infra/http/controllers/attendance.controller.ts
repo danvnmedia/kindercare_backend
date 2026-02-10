@@ -6,6 +6,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiOperation,
@@ -14,6 +15,7 @@ import {
   ApiQuery,
   ApiHeader,
 } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import {
   CampusContext,
   RequireCampusAccess,
@@ -39,6 +41,7 @@ import { BulkRecordAttendanceUseCase } from "@/application/attendance/use-cases/
 
 @Controller("attendance")
 @ApiTags("Attendance")
+@UseGuards(ClerkAuthGuard)
 export class AttendanceController {
   constructor(
     private readonly recordAttendanceUseCase: RecordAttendanceUseCase,
@@ -125,6 +128,7 @@ export class AttendanceController {
   }
 
   @Get(":id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Attendance retrieved successfully",
     type: StudentAttendanceResponse,
@@ -134,17 +138,27 @@ export class AttendanceController {
     description:
       "Retrieve a single attendance record by its unique identifier.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the attendance retrieval",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Attendance record UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async getById(@Param("id") id: string): Promise<StudentAttendanceResponse> {
-    const summary = await this.getAttendanceByIdUseCase.execute(id);
+  async getById(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+  ): Promise<StudentAttendanceResponse> {
+    const summary = await this.getAttendanceByIdUseCase.execute(id, campusId);
     return StudentAttendanceResponse.fromDomain(summary);
   }
 
   @Patch(":id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Attendance updated successfully",
     type: StudentAttendanceResponse,
@@ -154,12 +168,19 @@ export class AttendanceController {
     description:
       "Update attendance status, check-in/out times, or notes. New check-in/out times will create log entries.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the attendance update",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Attendance record UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   async updateAttendance(
+    @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() dto: UpdateAttendanceRequest,
   ): Promise<StudentAttendanceResponse> {

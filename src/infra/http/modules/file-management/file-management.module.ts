@@ -13,7 +13,6 @@ import { UserManagementModule } from "../user-management.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { CampusModule } from "../campus.module";
 import { RequestContextModule } from "../../context/request-context.module";
-import { CampusGuard } from "../../guards/campus.guard";
 
 @Module({
   imports: [

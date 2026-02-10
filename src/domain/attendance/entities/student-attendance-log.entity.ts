@@ -62,7 +62,10 @@ export class StudentAttendanceLog extends Entity<StudentAttendanceLogProps> {
   // --- Factory Method ---
 
   public static create(
-    props: Optional<StudentAttendanceLogProps, "createdAt" | "deviceId" | "createdById" | "note" | "imageFileId">,
+    props: Optional<
+      StudentAttendanceLogProps,
+      "createdAt" | "deviceId" | "createdById" | "note" | "imageFileId"
+    >,
     id?: string,
   ): StudentAttendanceLog {
     // Validation

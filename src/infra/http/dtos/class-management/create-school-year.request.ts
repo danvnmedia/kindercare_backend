@@ -5,20 +5,11 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from "class-validator";
 
 export class CreateSchoolYearRequest {
-  @ApiProperty({
-    description: "Campus ID this school year belongs to",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  campusId: string;
-
   @ApiProperty({
     description: "School year name",
     example: "2024-2025",

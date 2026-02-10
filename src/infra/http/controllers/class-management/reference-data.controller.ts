@@ -8,7 +8,6 @@ import {
   Param,
   Query,
   UseGuards,
-  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiOperation,
@@ -18,6 +17,7 @@ import {
   ApiHeader,
   ApiBearerAuth,
 } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,
   RequireCampusAccess,
@@ -26,8 +26,6 @@ import {
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
-import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
-import { UserInterceptor } from "../../interceptors/user.interceptor";
 
 import {
   GradeLevelResponse,
@@ -61,7 +59,6 @@ import { ReorderGradeLevelsUseCase } from "@/application/class-management/use-ca
 @ApiTags("Reference Data")
 @ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
-@UseInterceptors(UserInterceptor)
 export class ReferenceDataController {
   constructor(
     // Read Use Cases
@@ -107,6 +104,7 @@ export class ReferenceDataController {
   }
 
   @Post("grade-levels")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Grade level created successfully",
     type: GradeLevelResponse,
@@ -115,11 +113,24 @@ export class ReferenceDataController {
     summary: "Create a new grade level",
     description: "Create a new grade level with a unique name and order.",
   })
-  async createGradeLevel(@Body() dto: CreateGradeLevelRequest) {
-    return await this.createGradeLevelUseCase.execute(dto);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the grade level creation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async createGradeLevel(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateGradeLevelRequest,
+  ) {
+    return await this.createGradeLevelUseCase.execute({
+      ...dto,
+      campusId,
+    });
   }
 
   @Patch("grade-levels/:id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Grade level updated successfully",
     type: GradeLevelResponse,
@@ -128,19 +139,27 @@ export class ReferenceDataController {
     summary: "Update a grade level",
     description: "Update grade level name, order, or archived status.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the grade level update",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Grade Level UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   async updateGradeLevel(
+    @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() dto: UpdateGradeLevelRequest,
   ) {
-    return await this.updateGradeLevelUseCase.execute(id, dto);
+    return await this.updateGradeLevelUseCase.execute(id, campusId, dto);
   }
 
   @Delete("grade-levels/:id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Grade level deleted successfully",
     type: null,
@@ -150,17 +169,27 @@ export class ReferenceDataController {
     description:
       "Delete a grade level. Will fail if classes are associated with it.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the grade level deletion",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Grade Level UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async deleteGradeLevel(@Param("id") id: string) {
-    await this.deleteGradeLevelUseCase.execute(id);
+  async deleteGradeLevel(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+  ) {
+    await this.deleteGradeLevelUseCase.execute(id, campusId);
     return null;
   }
 
   @Post("grade-levels/reorder")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Grade levels reordered successfully",
     type: GradeLevelResponse,
@@ -171,8 +200,20 @@ export class ReferenceDataController {
     description:
       "Reorder grade levels based on the provided array of IDs. The order field will be set based on the array index (index 0 = order 1, index 1 = order 2, etc.).",
   })
-  async reorderGradeLevels(@Body() dto: ReorderGradeLevelsRequest) {
-    return await this.reorderGradeLevelsUseCase.execute(dto);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the reorder operation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async reorderGradeLevels(
+    @CampusContext() campusId: string,
+    @Body() dto: ReorderGradeLevelsRequest,
+  ) {
+    return await this.reorderGradeLevelsUseCase.execute({
+      ...dto,
+      campusId,
+    });
   }
 
   // ==================== School Year Endpoints ====================
@@ -203,6 +244,7 @@ export class ReferenceDataController {
   }
 
   @Post("school-years")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "School year created successfully",
     type: SchoolYearResponse,
@@ -211,10 +253,19 @@ export class ReferenceDataController {
     summary: "Create a new school year",
     description: "Create a new school year with a unique name and date range.",
   })
-  async createSchoolYear(@Body() dto: CreateSchoolYearRequest) {
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the school year creation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async createSchoolYear(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateSchoolYearRequest,
+  ) {
     return await this.createSchoolYearUseCase.execute({
       name: dto.name,
-      campusId: dto.campusId,
+      campusId,
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
       isArchived: dto.isArchived,
@@ -222,6 +273,7 @@ export class ReferenceDataController {
   }
 
   @Patch("school-years/:id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "School year updated successfully",
     type: SchoolYearResponse,
@@ -230,16 +282,24 @@ export class ReferenceDataController {
     summary: "Update a school year",
     description: "Update school year name, dates, or archived status.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the school year update",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "School Year UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   async updateSchoolYear(
+    @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() dto: UpdateSchoolYearRequest,
   ) {
     return await this.updateSchoolYearUseCase.execute(id, {
+      campusId,
       name: dto.name,
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
@@ -248,6 +308,7 @@ export class ReferenceDataController {
   }
 
   @Delete("school-years/:id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "School year deleted successfully",
     type: null,
@@ -257,13 +318,22 @@ export class ReferenceDataController {
     description:
       "Delete a school year. Will fail if classes are associated with it.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the school year deletion",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "School Year UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async deleteSchoolYear(@Param("id") id: string) {
-    await this.deleteSchoolYearUseCase.execute(id);
+  async deleteSchoolYear(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+  ) {
+    await this.deleteSchoolYearUseCase.execute(id, campusId);
     return null;
   }
 

@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger, NotFoundException } from "@nestjs/common";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
+import { ClassRepository } from "../../ports/class.repository";
 
 @Injectable()
 export class UnenrollStudentUseCase {
@@ -8,9 +9,11 @@ export class UnenrollStudentUseCase {
   constructor(
     @Inject("ENROLLMENT_REPOSITORY")
     private readonly enrollmentRepository: EnrollmentRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(enrollmentId: string): Promise<void> {
+  async execute(enrollmentId: string, campusId?: string): Promise<void> {
     try {
       this.logger.log(`Unenrolling enrollment: ${enrollmentId}`);
 
@@ -22,7 +25,19 @@ export class UnenrollStudentUseCase {
         );
       }
 
-      // Step 2: Delete enrollment
+      // Step 2: Verify enrollment belongs to the specified campus (via class)
+      if (campusId) {
+        const classEntity = await this.classRepository.findById(
+          enrollment.classId,
+        );
+        if (!classEntity || classEntity.campusId !== campusId) {
+          throw new NotFoundException(
+            `Enrollment with ID ${enrollmentId} not found in this campus`,
+          );
+        }
+      }
+
+      // Step 3: Delete enrollment
       await this.enrollmentRepository.delete(enrollmentId);
 
       this.logger.log(`Enrollment deleted successfully: ${enrollmentId}`);

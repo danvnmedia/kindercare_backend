@@ -38,7 +38,9 @@ export class UpdateAttendanceUseCase {
     this.logger.log(`Updating attendance ${input.attendanceId}`);
 
     // Step 1: Find existing attendance summary
-    const summary = await this.attendanceRepository.findById(input.attendanceId);
+    const summary = await this.attendanceRepository.findById(
+      input.attendanceId,
+    );
     if (!summary) {
       throw new NotFoundException(
         `Attendance record with ID ${input.attendanceId} not found`,

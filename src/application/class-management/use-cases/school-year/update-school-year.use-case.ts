@@ -30,7 +30,14 @@ export class UpdateSchoolYearUseCase {
         throw new NotFoundException(`School year with ID ${id} not found`);
       }
 
-      // Step 2: Check for name uniqueness if name is being updated (within campus)
+      // Step 2: Verify school year belongs to the specified campus
+      if (input.campusId && schoolYear.campusId !== input.campusId) {
+        throw new NotFoundException(
+          `School year with ID ${id} not found in this campus`,
+        );
+      }
+
+      // Step 3: Check for name uniqueness if name is being updated (within campus)
       if (input.name && input.name !== schoolYear.name) {
         const existingByName =
           await this.schoolYearRepository.findByNameAndCampus(
@@ -44,10 +51,10 @@ export class UpdateSchoolYearUseCase {
         }
       }
 
-      // Step 3: Update school year (validation happens in entity method)
+      // Step 4: Update school year (validation happens in entity method)
       schoolYear.update(input);
 
-      // Step 4: Save updated school year
+      // Step 5: Save updated school year
       const updatedSchoolYear =
         await this.schoolYearRepository.update(schoolYear);
 

@@ -11,11 +11,12 @@ import { PrismaClassMapper } from "./prisma-class.mapper";
 import { PrismaStudentMapper } from "./prisma-student.mapper";
 import { PrismaStudentAttendanceLogMapper } from "./prisma-student-attendance-log.mapper";
 
-type PrismaStudentAttendanceSummaryWithRelations = PrismaStudentAttendanceSummary & {
-  class?: PrismaClass | null;
-  student?: PrismaStudent | null;
-  logs?: PrismaStudentAttendanceLog[];
-};
+type PrismaStudentAttendanceSummaryWithRelations =
+  PrismaStudentAttendanceSummary & {
+    class?: PrismaClass | null;
+    student?: PrismaStudent | null;
+    logs?: PrismaStudentAttendanceLog[];
+  };
 
 export class PrismaStudentAttendanceSummaryMapper {
   static toDomain(

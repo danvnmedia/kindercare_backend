@@ -18,16 +18,6 @@ import {
 } from "@/core/validators";
 
 export class CreateStaffRequest {
-  // ========== Campus & Type ==========
-
-  @ApiProperty({
-    description: "Campus ID where the staff belongs",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-  })
-  @IsNotEmpty()
-  @IsUUID("4", { message: "Campus ID must be a valid UUID" })
-  campusId: string;
-
   // ========== Personal Information ==========
 
   @ApiProperty({

@@ -1,23 +1,21 @@
-import {
-  Controller,
-  Get,
-  UseGuards,
-  UseInterceptors,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Controller, Get, UseGuards } from "@nestjs/common";
 import { ApiOperation, ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
-import { UserInterceptor } from "../../interceptors/user.interceptor";
-import { CurrentUser } from "../../decorators/current-user.decorator";
 import { AuthMeResponse } from "../../dtos/auth/auth-me.response";
 import { User } from "@/domain/user-management/user.entity";
+import { RequestContext } from "../../context/request-context.service";
 
 /**
  * Authentication Controller
  *
  * Handles authentication-related endpoints.
- * Uses ClerkAuthGuard for token verification and UserInterceptor to fetch user data.
+ * Uses ClerkAuthGuard for authorization check (AuthMiddleware handles token verification).
+ *
+ * Request Flow:
+ * 1. AuthMiddleware verifies Clerk token and sets clerkId
+ * 2. ClerkAuthGuard checks clerkId exists (rejects unauthenticated requests)
+ * 3. RequestContext.getUserOrFail() lazily loads and returns user
  *
  * @example
  * GET /auth/me
@@ -27,6 +25,8 @@ import { User } from "@/domain/user-management/user.entity";
 @ApiTags("Authentication")
 @ApiBearerAuth("JWT")
 export class AuthController {
+  constructor(private readonly requestContext: RequestContext) {}
+
   /**
    * Get Current Authenticated User
    *
@@ -36,7 +36,6 @@ export class AuthController {
    * - Getting the current user's profile
    * - Checking user roles and permissions
    *
-   * @param user - Current authenticated user (injected by UserInterceptor)
    * @returns User information with roles
    *
    * @throws UnauthorizedException if token is invalid or user not found
@@ -49,7 +48,6 @@ export class AuthController {
    */
   @Get("me")
   @UseGuards(ClerkAuthGuard)
-  @UseInterceptors(UserInterceptor)
   @StandardResponse({
     message: "User information retrieved successfully",
     type: AuthMeResponse,
@@ -59,14 +57,8 @@ export class AuthController {
     description:
       "Verify access token and return authenticated user information with roles",
   })
-  async getCurrentUser(@CurrentUser() user: User): Promise<User> {
-    // If ClerkAuthGuard passes but UserInterceptor didn't find user in DB
-    if (!user) {
-      throw new UnauthorizedException(
-        "User not found. Please ensure your account is properly set up.",
-      );
-    }
-
-    return user;
+  async getCurrentUser(): Promise<User> {
+    // RequestContext lazy-loads user and throws UnauthorizedException if not found
+    return this.requestContext.getUserOrFail();
   }
 }

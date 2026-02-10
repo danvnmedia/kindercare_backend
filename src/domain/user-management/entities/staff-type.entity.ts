@@ -8,6 +8,7 @@ export interface StaffTypeProps {
   description: string | null;
   defaultRoleId: string | null;
   isActive: boolean;
+  order: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +40,10 @@ export class StaffType extends Entity<StaffTypeProps> {
     return this.props.isActive;
   }
 
+  get order(): number {
+    return this.props.order;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -67,6 +72,17 @@ export class StaffType extends Entity<StaffTypeProps> {
       this.props.isActive = data.isActive;
     }
 
+    if (data.order !== undefined) {
+      this.validateOrder(data.order);
+      this.props.order = data.order;
+    }
+
+    this.touch();
+  }
+
+  public updateOrder(order: number): void {
+    this.validateOrder(order);
+    this.props.order = order;
     this.touch();
   }
 
@@ -110,6 +126,12 @@ export class StaffType extends Entity<StaffTypeProps> {
     }
   }
 
+  private validateOrder(order: number): void {
+    if (order < 0) {
+      throw new Error("Order must be a non-negative number");
+    }
+  }
+
   // --- Factory Method ---
 
   public static create(
@@ -132,12 +154,17 @@ export class StaffType extends Entity<StaffTypeProps> {
       throw new Error("Staff type name must be at most 100 characters");
     }
 
+    if (props.order < 0) {
+      throw new Error("Order must be a non-negative number");
+    }
+
     const staffTypeProps: StaffTypeProps = {
       ...props,
       name: props.name.trim(),
       description: props.description?.trim() || null,
       defaultRoleId: props.defaultRoleId ?? null,
       isActive: props.isActive ?? true,
+      order: props.order,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

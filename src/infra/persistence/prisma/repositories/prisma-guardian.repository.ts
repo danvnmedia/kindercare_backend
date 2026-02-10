@@ -141,7 +141,10 @@ export class PrismaGuardianRepository implements GuardianRepository {
     return guardians.map(PrismaGuardianMapper.toDomain);
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<Guardian>> {
+  async findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Guardian>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
       "fullName",
@@ -178,6 +181,7 @@ export class PrismaGuardianRepository implements GuardianRepository {
           },
         },
         orderBy: { createdAt: "desc" },
+        scope,
       },
       PrismaGuardianMapper,
     );

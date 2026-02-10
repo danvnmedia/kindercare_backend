@@ -180,8 +180,10 @@ export class StudentAttendanceSummary extends Entity<StudentAttendanceSummaryPro
       .filter((log) => log.type === "CHECK_OUT")
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    this.props.firstCheckinAt = checkins.length > 0 ? checkins[0].timestamp : null;
-    this.props.lastCheckoutAt = checkouts.length > 0 ? checkouts[0].timestamp : null;
+    this.props.firstCheckinAt =
+      checkins.length > 0 ? checkins[0].timestamp : null;
+    this.props.lastCheckoutAt =
+      checkouts.length > 0 ? checkouts[0].timestamp : null;
 
     // Calculate total minutes present
     this.props.totalMinutesPresent = this.calculateTotalMinutes(logs);

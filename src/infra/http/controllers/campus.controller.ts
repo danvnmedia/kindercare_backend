@@ -6,11 +6,14 @@ import {
   Delete,
   Body,
   Param,
+  UseGuards,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags, ApiParam } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { RequestContext } from "../context/request-context.service";
 
 import {
   CreateCampusRequest,
@@ -26,6 +29,7 @@ import { DeleteCampusUseCase } from "@/application/campus/use-cases/delete-campu
 
 @Controller("campuses")
 @ApiTags("Campuses")
+@UseGuards(ClerkAuthGuard)
 export class CampusController {
   constructor(
     private readonly createCampusUseCase: CreateCampusUseCase,
@@ -33,6 +37,7 @@ export class CampusController {
     private readonly getAllCampusesUseCase: GetAllCampusesUseCase,
     private readonly updateCampusUseCase: UpdateCampusUseCase,
     private readonly deleteCampusUseCase: DeleteCampusUseCase,
+    private readonly requestContext: RequestContext,
   ) {}
 
   @Post()
@@ -57,10 +62,23 @@ export class CampusController {
   @ApiOperation({
     summary: "Get all campuses",
     description:
-      "Retrieve all campuses with pagination, filtering, and sorting. Supports filtering by name, address, phoneNumber, isActive.",
+      "Retrieve campuses the authenticated user has access to based on their role assignments. Users with global roles see all campuses. Supports pagination, filtering by name, address, phoneNumber, isActive.",
   })
   async findAll(@StandardRequestParam() query: StandardRequestDto) {
-    return await this.getAllCampusesUseCase.execute(query);
+    const user = await this.requestContext.getUserOrFail();
+
+    // Determine accessible campus IDs based on user's role assignments
+    // - null: User has global role, can see all campuses
+    // - [...ids]: User has campus-scoped roles, can only see those campuses
+    // - []: User has no roles, sees empty result
+    const accessibleCampusIds = user.hasGlobalRole()
+      ? null
+      : user.getAccessibleCampusIds();
+
+    return await this.getAllCampusesUseCase.execute({
+      accessibleCampusIds,
+      params: query,
+    });
   }
 
   @Get(":id")

@@ -36,11 +36,12 @@ export class PrismaStudentAttendanceRepository
   // ==========================================
 
   async findById(id: string): Promise<StudentAttendanceSummary | null> {
-    const prismaSummary =
-      await this.prisma.studentAttendanceSummary.findUnique({
+    const prismaSummary = await this.prisma.studentAttendanceSummary.findUnique(
+      {
         where: { id },
         include: this.includeRelations,
-      });
+      },
+    );
     return prismaSummary
       ? PrismaStudentAttendanceSummaryMapper.toDomain(prismaSummary)
       : null;
@@ -54,8 +55,8 @@ export class PrismaStudentAttendanceRepository
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
-    const prismaSummary =
-      await this.prisma.studentAttendanceSummary.findUnique({
+    const prismaSummary = await this.prisma.studentAttendanceSummary.findUnique(
+      {
         where: {
           studentId_date: {
             studentId,
@@ -63,7 +64,8 @@ export class PrismaStudentAttendanceRepository
           },
         },
         include: this.includeRelations,
-      });
+      },
+    );
     return prismaSummary
       ? PrismaStudentAttendanceSummaryMapper.toDomain(prismaSummary)
       : null;
@@ -77,15 +79,16 @@ export class PrismaStudentAttendanceRepository
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
 
-    const prismaSummaries =
-      await this.prisma.studentAttendanceSummary.findMany({
+    const prismaSummaries = await this.prisma.studentAttendanceSummary.findMany(
+      {
         where: {
           classId,
           date: startOfDay,
         },
         include: this.includeRelations,
         orderBy: { createdAt: "asc" },
-      });
+      },
+    );
     return PrismaStudentAttendanceSummaryMapper.toDomainArray(prismaSummaries);
   }
 
@@ -100,8 +103,8 @@ export class PrismaStudentAttendanceRepository
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    const prismaSummaries =
-      await this.prisma.studentAttendanceSummary.findMany({
+    const prismaSummaries = await this.prisma.studentAttendanceSummary.findMany(
+      {
         where: {
           studentId,
           date: {
@@ -111,7 +114,8 @@ export class PrismaStudentAttendanceRepository
         },
         include: this.includeRelations,
         orderBy: { date: "asc" },
-      });
+      },
+    );
     return PrismaStudentAttendanceSummaryMapper.toDomainArray(prismaSummaries);
   }
 
@@ -160,8 +164,7 @@ export class PrismaStudentAttendanceRepository
   async save(
     summary: StudentAttendanceSummary,
   ): Promise<StudentAttendanceSummary> {
-    const prismaData =
-      PrismaStudentAttendanceSummaryMapper.toPrisma(summary);
+    const prismaData = PrismaStudentAttendanceSummaryMapper.toPrisma(summary);
     const created = await this.prisma.studentAttendanceSummary.create({
       data: prismaData,
       include: this.includeRelations,
@@ -219,7 +222,9 @@ export class PrismaStudentAttendanceRepository
   // Log Methods
   // ==========================================
 
-  async findLogsBySummaryId(summaryId: string): Promise<StudentAttendanceLog[]> {
+  async findLogsBySummaryId(
+    summaryId: string,
+  ): Promise<StudentAttendanceLog[]> {
     const prismaLogs = await this.prisma.studentAttendanceLog.findMany({
       where: { attendanceSummaryId: summaryId },
       orderBy: { timestamp: "asc" },
@@ -235,7 +240,9 @@ export class PrismaStudentAttendanceRepository
     return PrismaStudentAttendanceLogMapper.toDomain(created);
   }
 
-  async saveLogs(logs: StudentAttendanceLog[]): Promise<StudentAttendanceLog[]> {
+  async saveLogs(
+    logs: StudentAttendanceLog[],
+  ): Promise<StudentAttendanceLog[]> {
     const results: StudentAttendanceLog[] = [];
 
     await this.prisma.$transaction(async (tx) => {
@@ -306,8 +313,9 @@ export class PrismaStudentAttendanceRepository
     await this.prisma.$transaction(async (tx) => {
       for (const item of data) {
         // Create summary
-        const summaryData =
-          PrismaStudentAttendanceSummaryMapper.toPrisma(item.summary);
+        const summaryData = PrismaStudentAttendanceSummaryMapper.toPrisma(
+          item.summary,
+        );
         const createdSummary = await tx.studentAttendanceSummary.create({
           data: summaryData,
           include: this.includeRelations,

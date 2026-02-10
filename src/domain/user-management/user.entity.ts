@@ -279,6 +279,38 @@ export class User extends Entity<UserProps> {
   }
 
   /**
+   * Check if user has any global role assignment (campusId = null)
+   * Users with global roles have access to all campuses
+   */
+  public hasGlobalRole(): boolean {
+    const assignments = this.props.roleAssignments;
+    if (!assignments || assignments.length === 0) {
+      return false;
+    }
+
+    return assignments.some((assignment) => assignment.campusId === null);
+  }
+
+  /**
+   * Get unique campus IDs where the user has role assignments
+   * Excludes global assignments (campusId = null)
+   * Used to determine which campuses a user can access
+   */
+  public getAccessibleCampusIds(): string[] {
+    const assignments = this.props.roleAssignments;
+    if (!assignments || assignments.length === 0) {
+      return [];
+    }
+
+    const campusIds = assignments
+      .filter((assignment) => assignment.campusId !== null)
+      .map((assignment) => assignment.campusId as string);
+
+    // Return unique campus IDs
+    return [...new Set(campusIds)];
+  }
+
+  /**
    * Update the 'updatedAt' timestamp
    */
   private touch(): void {

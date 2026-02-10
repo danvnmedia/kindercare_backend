@@ -3,7 +3,6 @@ import {
   IsNumber,
   IsString,
   IsNotEmpty,
-  IsUUID,
   IsOptional,
   IsIn,
   IsEnum,
@@ -25,14 +24,6 @@ export class InitiateUploadRequest {
   @ApiProperty({ description: "Size of the file in bytes" })
   @IsNumber()
   size: number;
-
-  @ApiPropertyOptional({
-    description:
-      "Campus ID where the file belongs. Optional - falls back to x-campus-id header if not provided.",
-  })
-  @IsOptional()
-  @IsUUID()
-  campusId?: string;
 
   @ApiPropertyOptional({
     description:

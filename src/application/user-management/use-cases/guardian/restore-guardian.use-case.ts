@@ -32,7 +32,7 @@ export class RestoreGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string): Promise<Guardian> {
+  async execute(id: string, campusId?: string): Promise<Guardian> {
     this.logger.log(`Restoring guardian: ${id}`);
 
     // Step 1: Find existing guardian
@@ -41,17 +41,24 @@ export class RestoreGuardianUseCase {
       throw new NotFoundException(`Guardian with ID ${id} not found`);
     }
 
-    // Step 2: Verify guardian is archived
+    // Step 2: Verify guardian belongs to the specified campus (if campusId provided)
+    if (campusId && guardian.campusId !== campusId) {
+      throw new NotFoundException(
+        `Guardian with ID ${id} not found in this campus`,
+      );
+    }
+
+    // Step 3: Verify guardian is archived
     if (!guardian.isArchived) {
       throw new BadRequestException(`Guardian with ID ${id} is not archived`);
     }
 
-    // Step 3: Unlock Clerk user (best effort - don't fail if this fails)
+    // Step 4: Unlock Clerk user (best effort - don't fail if this fails)
     if (guardian.hasUserAccount()) {
       await this.unlockClerkUser(guardian.userId!);
     }
 
-    // Step 4: Restore guardian and activate user atomically
+    // Step 5: Restore guardian and activate user atomically
     guardian.restore();
 
     await this.unitOfWork.run(async (tx) => {

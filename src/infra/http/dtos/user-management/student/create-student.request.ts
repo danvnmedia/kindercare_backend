@@ -20,16 +20,6 @@ import {
 } from "@/core/validators";
 
 export class CreateStudentRequest {
-  // ========== Campus Information ==========
-
-  @ApiProperty({
-    description: "Campus ID where the student will be enrolled",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-  })
-  @IsUUID("4", { message: "Campus ID must be a valid UUID" })
-  @IsNotEmpty({ message: "Campus ID is required" })
-  campusId: string;
-
   // ========== Personal Information ==========
 
   @ApiProperty({

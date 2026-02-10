@@ -11,7 +11,10 @@ export class GetStudentGuardiansUseCase {
     private readonly studentRepository: StudentRepository,
   ) {}
 
-  async execute(studentId: string): Promise<StudentGuardianInfo[]> {
+  async execute(
+    studentId: string,
+    campusId?: string,
+  ): Promise<StudentGuardianInfo[]> {
     try {
       this.logger.log(`Getting guardians for student ${studentId}`);
 
@@ -19,6 +22,13 @@ export class GetStudentGuardiansUseCase {
       const student = await this.studentRepository.findById(studentId);
       if (!student) {
         throw new NotFoundException(`Student with ID ${studentId} not found`);
+      }
+
+      // Verify student belongs to the specified campus (if campusId provided)
+      if (campusId && student.campusId !== campusId) {
+        throw new NotFoundException(
+          `Student with ID ${studentId} not found in this campus`,
+        );
       }
 
       // Get guardians

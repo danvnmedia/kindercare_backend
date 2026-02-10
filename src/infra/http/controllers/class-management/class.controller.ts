@@ -8,7 +8,6 @@ import {
   Post,
   Query,
   UseGuards,
-  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiOperation,
@@ -18,6 +17,7 @@ import {
   ApiHeader,
   ApiBearerAuth,
 } from "@nestjs/swagger";
+import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,
   RequireCampusAccess,
@@ -25,8 +25,6 @@ import {
 } from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
-import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
-import { UserInterceptor } from "../../interceptors/user.interceptor";
 
 import {
   CreateClassRequest,
@@ -55,7 +53,6 @@ import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-
 @ApiTags("Classes")
 @ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
-@UseInterceptors(UserInterceptor)
 export class ClassController {
   constructor(
     private readonly createClassUseCase: CreateClassUseCase,
@@ -72,6 +69,7 @@ export class ClassController {
   ) {}
 
   @Post()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Class created successfully",
     type: ClassResponse,
@@ -81,8 +79,20 @@ export class ClassController {
     description:
       "Creates a new class for a specific grade level and school year.",
   })
-  async create(@Body() dto: CreateClassRequest) {
-    return await this.createClassUseCase.execute(dto);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the class creation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async create(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateClassRequest,
+  ) {
+    return await this.createClassUseCase.execute({
+      ...dto,
+      campusId,
+    });
   }
 
   @Get()
@@ -114,6 +124,7 @@ export class ClassController {
   }
 
   @Get(":id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Class retrieved successfully",
     type: ClassResponse,
@@ -122,34 +133,52 @@ export class ClassController {
     summary: "Get class by ID",
     description: "Retrieve a single class by its unique identifier.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the class retrieval",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async findById(@Param("id") id: string) {
-    return await this.getClassByIdUseCase.execute(id);
+  async findById(@CampusContext() campusId: string, @Param("id") id: string) {
+    return await this.getClassByIdUseCase.execute(id, campusId);
   }
 
   @Patch(":id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Class updated successfully",
     type: ClassResponse,
   })
   @ApiOperation({
     summary: "Update class",
-    description: "Update class name or description.",
+    description: "Update class name, description, or grade level.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the class update",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
   })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async update(@Param("id") id: string, @Body() dto: UpdateClassRequest) {
+  async update(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+    @Body() dto: UpdateClassRequest,
+  ) {
     return await this.updateClassUseCase.execute(id, dto);
   }
 
   @Delete(":id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Class deleted successfully",
     type: null,
@@ -159,13 +188,19 @@ export class ClassController {
     description:
       "Delete a class. This will also remove all enrollments and staff assignments.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the class deletion",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async delete(@Param("id") id: string) {
-    await this.deleteClassUseCase.execute(id);
+  async delete(@CampusContext() campusId: string, @Param("id") id: string) {
+    await this.deleteClassUseCase.execute(id, campusId);
     return null;
   }
 
@@ -208,6 +243,7 @@ export class ClassController {
   }
 
   @Get(":id/enrollments")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Enrollments retrieved successfully",
     type: EnrollmentResponse,
@@ -217,16 +253,26 @@ export class ClassController {
     summary: "Get class enrollments",
     description: "Get all students enrolled in this class.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the enrollment retrieval",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async getEnrollments(@Param("id") classId: string) {
-    return await this.getClassEnrollmentsUseCase.execute(classId);
+  async getEnrollments(
+    @CampusContext() campusId: string,
+    @Param("id") classId: string,
+  ) {
+    return await this.getClassEnrollmentsUseCase.execute(classId, campusId);
   }
 
   @Delete(":classId/enrollments/:enrollmentId")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Student unenrolled successfully",
     type: null,
@@ -234,6 +280,12 @@ export class ClassController {
   @ApiOperation({
     summary: "Unenroll student from class",
     description: "Remove a student's enrollment from this class.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the unenrollment",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
   })
   @ApiParam({
     name: "classId",
@@ -245,8 +297,11 @@ export class ClassController {
     description: "Enrollment UUID",
     example: "123e4567-e89b-12d3-a456-426614174001",
   })
-  async unenrollStudent(@Param("enrollmentId") enrollmentId: string) {
-    await this.unenrollStudentUseCase.execute(enrollmentId);
+  async unenrollStudent(
+    @CampusContext() campusId: string,
+    @Param("enrollmentId") enrollmentId: string,
+  ) {
+    await this.unenrollStudentUseCase.execute(enrollmentId, campusId);
     return null;
   }
 
@@ -288,6 +343,7 @@ export class ClassController {
   }
 
   @Get(":id/staff")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Class staff retrieved successfully",
     type: ClassStaffResponse,
@@ -297,16 +353,26 @@ export class ClassController {
     summary: "Get class staff",
     description: "Get all staff members assigned to this class.",
   })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff retrieval",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
   @ApiParam({
     name: "id",
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async getStaff(@Param("id") classId: string) {
-    return await this.getClassStaffUseCase.execute(classId);
+  async getStaff(
+    @CampusContext() campusId: string,
+    @Param("id") classId: string,
+  ) {
+    return await this.getClassStaffUseCase.execute(classId, campusId);
   }
 
   @Delete(":classId/staff/:staffId/subjects/:subjectId")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Staff removed from class successfully",
     type: null,
@@ -315,6 +381,12 @@ export class ClassController {
     summary: "Remove staff from class",
     description:
       "Remove a staff member's assignment from this class for a specific subject.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff removal",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
   })
   @ApiParam({
     name: "classId",
@@ -332,6 +404,7 @@ export class ClassController {
     example: "123e4567-e89b-12d3-a456-426614174002",
   })
   async removeStaff(
+    @CampusContext() campusId: string,
     @Param("classId") classId: string,
     @Param("staffId") staffId: string,
     @Param("subjectId") subjectId: string,

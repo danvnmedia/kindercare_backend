@@ -9,6 +9,7 @@ import { GetStaffTypeByIdUseCase } from "@/application/user-management/use-cases
 import { GetAllStaffTypesUseCase } from "@/application/user-management/use-cases/staff-type/get-all-staff-types.use-case";
 import { UpdateStaffTypeUseCase } from "@/application/user-management/use-cases/staff-type/update-staff-type.use-case";
 import { DeleteStaffTypeUseCase } from "@/application/user-management/use-cases/staff-type/delete-staff-type.use-case";
+import { ReorderStaffTypesUseCase } from "@/application/user-management/use-cases/staff-type/reorder-staff-types.use-case";
 
 // Repository
 import { PrismaStaffTypeRepository } from "@/infra/persistence/prisma/repositories/prisma-staff-type.repository";
@@ -17,6 +18,8 @@ import { PrismaStaffTypeRepository } from "@/infra/persistence/prisma/repositori
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { UserManagementModule } from "./user-management.module";
+import { RequestContextModule } from "../context/request-context.module";
+import { CampusModule } from "./campus.module";
 
 /**
  * Staff Type Module
@@ -32,6 +35,8 @@ import { UserManagementModule } from "./user-management.module";
     PrismaModule, // Database access
     StandardResponseModule, // Query service for filtering and pagination
     forwardRef(() => UserManagementModule), // For ROLE_REPOSITORY dependency (circular dep)
+    RequestContextModule, // Provides RequestContext for ClerkAuthGuard
+    CampusModule, // Provides CAMPUS_REPOSITORY for CampusGuard
   ],
   controllers: [StaffTypeController],
   providers: [
@@ -41,6 +46,7 @@ import { UserManagementModule } from "./user-management.module";
     GetAllStaffTypesUseCase,
     UpdateStaffTypeUseCase,
     DeleteStaffTypeUseCase,
+    ReorderStaffTypesUseCase,
 
     // Repository
     {

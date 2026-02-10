@@ -16,6 +16,7 @@ export interface CreateStaffTypeInput {
   description?: string | null;
   defaultRoleId?: string | null;
   isActive?: boolean;
+  order?: number;
 }
 
 @Injectable()
@@ -58,6 +59,28 @@ export class CreateStaffTypeUseCase {
         }
       }
 
+      // Determine order: use provided order or auto-assign using maxOrder + 1
+      let order: number;
+      if (input.order !== undefined) {
+        // Validate order uniqueness when explicitly provided
+        const existingByOrder =
+          await this.staffTypeRepository.findByOrderAndCampus(
+            input.order,
+            input.campusId,
+          );
+        if (existingByOrder) {
+          throw new ConflictException(
+            `A staff type with order ${input.order} already exists in this campus`,
+          );
+        }
+        order = input.order;
+      } else {
+        // Auto-assign order: maxOrder + 1
+        const maxOrder =
+          await this.staffTypeRepository.getMaxOrder(input.campusId);
+        order = maxOrder + 1;
+      }
+
       // Create domain entity (validation happens in factory)
       const staffType = StaffType.create({
         campusId: input.campusId,
@@ -65,6 +88,7 @@ export class CreateStaffTypeUseCase {
         description: input.description ?? null,
         defaultRoleId: input.defaultRoleId ?? null,
         isActive: input.isActive ?? true,
+        order,
       });
 
       // Save to repository

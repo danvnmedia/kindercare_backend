@@ -11,7 +11,7 @@ export class DeletePostCategoryUseCase {
     private readonly postCategoryRepository: PostCategoryRepository,
   ) {}
 
-  async execute(id: string): Promise<PostCategory> {
+  async execute(id: string, campusId?: string): Promise<PostCategory> {
     this.logger.log(`Deactivating post category: ${id}`);
 
     // Step 1: Check existence
@@ -20,7 +20,14 @@ export class DeletePostCategoryUseCase {
       throw new NotFoundException(`Post category with ID ${id} not found`);
     }
 
-    // Step 2: Deactivate (soft delete) via domain method
+    // Step 2: Verify category belongs to the specified campus (if campusId provided)
+    if (campusId && category.campusId !== campusId) {
+      throw new NotFoundException(
+        `Post category with ID ${id} not found in this campus`,
+      );
+    }
+
+    // Step 3: Deactivate (soft delete) via domain method
     category.deactivate();
 
     // Step 3: Save to repository

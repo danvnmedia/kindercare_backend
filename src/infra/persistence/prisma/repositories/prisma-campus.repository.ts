@@ -28,7 +28,10 @@ export class PrismaCampusRepository implements CampusRepository {
     return prismaCampus ? PrismaCampusMapper.toDomain(prismaCampus) : null;
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<Campus>> {
+  async findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Campus>> {
     params.allowedFilterFields = ["name", "address", "phoneNumber", "isActive"];
     params.allowedSortFields = ["name", "createdAt", "updatedAt", "isActive"];
 
@@ -38,6 +41,7 @@ export class PrismaCampusRepository implements CampusRepository {
       params,
       {
         orderBy: { name: "asc" },
+        scope,
       },
       PrismaCampusMapper,
     );

@@ -11,14 +11,6 @@ import {
 
 export class CreateStaffTypeRequest {
   @ApiProperty({
-    description: "Campus ID where this staff type belongs",
-    example: "550e8400-e29b-41d4-a716-446655440000",
-  })
-  @IsUUID(4)
-  @IsNotEmpty()
-  campusId: string;
-
-  @ApiProperty({
     description: "Staff type name (unique within campus)",
     example: "Teacher",
     minLength: 1,

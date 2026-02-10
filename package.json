@@ -50,8 +50,8 @@
     "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
     "clerk:get-token": "ts-node -r tsconfig-paths/register scripts/get-clerk-token.ts",
     "cli:create-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
-    "cli:list-admins": "CLI_COMMAND=list ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
-    "cli:delete-admin": "CLI_COMMAND=delete ts-node -r tsconfig-paths/register src/cli/create-admin.ts",
+    "cli:list-admins": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts list",
+    "cli:delete-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts delete",
     "seed:students": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-students.ts"
   },
   "dependencies": {

@@ -20,17 +20,12 @@ export class ListPostsUseCase {
     try {
       this.logger.log(`Listing posts for campus: ${campusId}`);
 
-      // Force campus filter - parse existing filter or create new one
-      const existingFilter = query.filter ? JSON.parse(query.filter) : {};
-      existingFilter.campusId = campusId;
-      query.filter = JSON.stringify(existingFilter);
-
       // Default sort: pinned posts first, then by most recent
       if (!query.sort) {
         query.sort = "-isPinned,-createdAt";
       }
 
-      return this.postRepository.findMany(query);
+      return this.postRepository.findMany(query, { campusId });
     } catch (error) {
       this.logger.error(`Failed to list posts: ${error.message}`, error.stack);
       throw error;

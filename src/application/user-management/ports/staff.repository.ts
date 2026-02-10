@@ -62,8 +62,13 @@ export abstract class StaffRepository {
 
   /**
    * Find all staff with filtering, sorting, pagination using StandardRequest
+   * @param params - Standard query parameters (filters, sorts, pagination)
+   * @param scope - Optional system-enforced filters (e.g., campusId) that bypass allowedFilterFields
    */
-  abstract findAll(params: StandardRequest): Promise<PaginatedResult<Staff>>;
+  abstract findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Staff>>;
 
   /**
    * Save a new staff

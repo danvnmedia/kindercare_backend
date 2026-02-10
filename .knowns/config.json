@@ -32,6 +32,6 @@
     "id": "backend",
     "createdAt": "2026-01-03T19:36:40.613Z",
     "timeFormat": "24h",
-    "serverPort": 6420
+    "serverPort": 6421
   }
 }

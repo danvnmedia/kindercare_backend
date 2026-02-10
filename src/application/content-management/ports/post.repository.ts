@@ -19,7 +19,15 @@ export abstract class PostRepository {
   ): Promise<Post>;
   abstract delete(id: string): Promise<void>;
   abstract findById(id: string): Promise<Post | null>;
-  abstract findMany(query: StandardRequestDto): Promise<PaginatedResult<Post>>;
+  /**
+   * Find posts with filtering, sorting, pagination
+   * @param query - Standard query parameters (filters, sorts, pagination)
+   * @param scope - Optional system-enforced filters (e.g., campusId) that bypass allowedFilterFields
+   */
+  abstract findMany(
+    query: StandardRequestDto,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Post>>;
 
   /**
    * Count the number of active pinned posts for a campus.

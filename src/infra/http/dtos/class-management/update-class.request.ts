@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+} from "class-validator";
 
 export class UpdateClassRequest {
   @ApiProperty({
@@ -25,4 +31,13 @@ export class UpdateClassRequest {
   @IsString()
   @MaxLength(500)
   description?: string;
+
+  @ApiProperty({
+    description: "Grade level ID to assign to this class",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  gradeLevelId?: string;
 }

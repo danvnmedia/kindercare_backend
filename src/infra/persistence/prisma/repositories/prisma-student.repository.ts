@@ -95,7 +95,10 @@ export class PrismaStudentRepository implements StudentRepository {
     return prismaStudents.map(PrismaStudentMapper.toDomain);
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<Student>> {
+  async findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Student>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
       "campusId",
@@ -133,6 +136,7 @@ export class PrismaStudentRepository implements StudentRepository {
           },
         },
         orderBy: { studentCode: "desc" }, // Default sort: newest students first
+        scope,
       },
       PrismaStudentMapper,
     );

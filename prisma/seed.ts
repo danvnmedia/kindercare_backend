@@ -442,7 +442,7 @@ async function seedSuperAdmin() {
     },
   });
 
-  // Create super admin role (global)
+  // Create super admin role (global role with isSystemRole=true for admin bypass)
   await prisma.role.upsert({
     where: { id: SYSTEM_IDS.SUPER_ADMIN_ROLE },
     update: { isSystemRole: true, isSystemDefault: true },

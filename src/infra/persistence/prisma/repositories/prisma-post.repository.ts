@@ -130,7 +130,10 @@ export class PrismaPostRepository implements PostRepository {
     return post ? PrismaPostMapper.toDomain(post) : null;
   }
 
-  async findMany(query: StandardRequestDto): Promise<PaginatedResult<Post>> {
+  async findMany(
+    query: StandardRequestDto,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Post>> {
     query.allowedFilterFields = [
       "title",
       "content",
@@ -167,6 +170,7 @@ export class PrismaPostRepository implements PostRepository {
             },
           },
         },
+        scope,
       },
       PrismaPostMapper,
     );

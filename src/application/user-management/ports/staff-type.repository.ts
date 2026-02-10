@@ -23,6 +23,14 @@ export abstract class StaffTypeRepository {
   ): Promise<StaffType | null>;
 
   /**
+   * Find staff type by order within a campus (order unique per campus)
+   */
+  abstract findByOrderAndCampus(
+    order: number,
+    campusId: string,
+  ): Promise<StaffType | null>;
+
+  /**
    * Find all staff types for a campus
    */
   abstract findByCampusId(campusId: string): Promise<StaffType[]>;
@@ -58,4 +66,15 @@ export abstract class StaffTypeRepository {
    * Check if staff type exists and is active
    */
   abstract existsAndActive(id: string): Promise<boolean>;
+
+  /**
+   * Get the maximum order value for staff types in a campus
+   */
+  abstract getMaxOrder(campusId: string): Promise<number>;
+
+  /**
+   * Reorder staff types within a campus
+   * Uses two-phase transaction to avoid unique constraint violations
+   */
+  abstract reorder(campusId: string, ids: string[]): Promise<StaffType[]>;
 }
