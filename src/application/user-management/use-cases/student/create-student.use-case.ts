@@ -12,11 +12,10 @@ import { Student } from "@/domain/user-management/entities/student.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import { User } from "@/domain/user-management/user.entity";
+import { generateSecurePassword } from "@/core/utils/security.utils";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
-
-const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateStudentInput {
   campusId: string;
@@ -199,7 +198,7 @@ export class CreateStudentUseCase {
         email: student.email || undefined,
         fullName: student.fullName,
         phoneNumber: student.phoneNumber || undefined,
-        password: DEFAULT_WEAK_PASSWORD,
+        password: generateSecurePassword(),
       });
 
       const userEntity = User.create({

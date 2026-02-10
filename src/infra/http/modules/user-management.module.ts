@@ -29,6 +29,7 @@ import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-ca
 // Use Cases - Student
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { GetStudentByIdUseCase } from "@/application/user-management/use-cases/student/get-student-by-id.use-case";
 import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
@@ -135,6 +136,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     // Student Use Cases
     CreateStudentUseCase,
     GetAllStudentsUseCase,
+    GetStudentByIdUseCase,
     UpdateStudentUseCase,
     DeleteStudentUseCase,
     LinkStudentWithGuardianUseCase,

@@ -35,6 +35,7 @@ import { StandardRequestDto } from "@/core/modules/standard-response/dto/standar
 // Use Cases
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { GetStudentByIdUseCase } from "@/application/user-management/use-cases/student/get-student-by-id.use-case";
 import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
@@ -51,6 +52,7 @@ export class StudentController {
   constructor(
     private readonly createStudentUseCase: CreateStudentUseCase,
     private readonly getAllStudentsUseCase: GetAllStudentsUseCase,
+    private readonly getStudentByIdUseCase: GetStudentByIdUseCase,
     private readonly updateStudentUseCase: UpdateStudentUseCase,
     private readonly deleteStudentUseCase: DeleteStudentUseCase,
     private readonly linkStudentWithGuardianUseCase: LinkStudentWithGuardianUseCase,
@@ -97,6 +99,25 @@ export class StudentController {
     @StandardRequestParam() query: StandardRequestDto,
   ) {
     return this.getAllStudentsUseCase.execute({ campusId, params: query });
+  }
+
+  @Get(":id")
+  @StandardResponse({
+    message: "Student retrieved successfully",
+    type: StudentResponse,
+  })
+  @ApiOperation({
+    summary: "Get a student by ID",
+    description: "Retrieves a single student by their unique ID.",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  async findOne(@Param("id", ParseUUIDPipe) id: string) {
+    return this.getStudentByIdUseCase.execute(id);
   }
 
   @Patch(":id")

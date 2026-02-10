@@ -16,7 +16,6 @@ export interface FileProps {
   mimeType: string;
   size: bigint;
   extension: string | null;
-  contentHash: string | null; // SHA-256 hash for duplicate detection
 
   // File Purpose/Context
   purpose: FilePurpose;
@@ -67,10 +66,6 @@ export class File extends Entity<FileProps> {
 
   get extension() {
     return this.props.extension;
-  }
-
-  get contentHash() {
-    return this.props.contentHash;
   }
 
   get purpose() {
@@ -210,7 +205,6 @@ export class File extends Entity<FileProps> {
       | "storageProvider"
       | "extension"
       | "isDeleted"
-      | "contentHash"
       | "purpose"
       | "audienceType"
       | "audienceId"
@@ -227,7 +221,6 @@ export class File extends Entity<FileProps> {
         extension: props.extension ?? File.extractExtension(props.filename),
         status: props.status ?? FileStatus.PENDING,
         isDeleted: props.isDeleted ?? false,
-        contentHash: props.contentHash ?? null,
         purpose: props.purpose ?? FilePurpose.GENERAL,
         audienceType: props.audienceType ?? null,
         audienceId: props.audienceId ?? null,

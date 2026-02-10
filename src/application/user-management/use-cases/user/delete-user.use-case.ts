@@ -1,10 +1,12 @@
-import { Injectable, Inject, NotFoundException } from "@nestjs/common";
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { IdentityPort } from "@/application/ports/identity.port";
 import { UserRepository } from "../../ports/user.repository";
 import { UserNotFoundException } from "../../../../domain/user-management/exceptions/user-not-found.exception";
 
 @Injectable()
 export class DeleteUserUseCase {
+  private readonly logger = new Logger(DeleteUserUseCase.name);
+
   constructor(
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
@@ -24,9 +26,12 @@ export class DeleteUserUseCase {
 
       // 3. Delete from Clerk (best effort, don't fail if Clerk delete fails)
       if (user.clerkUid) {
-        await this.identityPort.deleteIdentity(user.clerkUid).catch(() => {
+        await this.identityPort.deleteIdentity(user.clerkUid).catch((err) => {
           // Log error but don't fail the operation
-          console.error(`Failed to delete Clerk user: ${user.clerkUid}`);
+          this.logger.error(
+            `Failed to delete Clerk user: ${user.clerkUid}`,
+            err,
+          );
         });
       }
     } catch (error) {

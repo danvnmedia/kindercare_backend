@@ -2,6 +2,7 @@ import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { generateSecurePassword } from "@/core/utils/security.utils";
 import {
   BadRequestException,
   ConflictException,
@@ -12,8 +13,6 @@ import {
 } from "@nestjs/common";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
-
-const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateStaffInput {
   campusId: string;
@@ -195,7 +194,7 @@ export class CreateStaffUseCase {
         email: input.email,
         fullName: input.fullName,
         phoneNumber: input.phoneNumber,
-        password: DEFAULT_WEAK_PASSWORD,
+        password: generateSecurePassword(),
       });
 
       this.logger.log(`Clerk user created: ${clerkUser.clerkUid}`);

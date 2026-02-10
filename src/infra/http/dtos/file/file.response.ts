@@ -69,13 +69,6 @@ export class FileResponse {
   @Expose()
   extension: string | null;
 
-  @ApiPropertyOptional({
-    description: "SHA-256 hash of the file content.",
-    example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  })
-  @Expose()
-  contentHash: string | null;
-
   @ApiProperty({
     description: "The purpose/category of the file.",
     enum: FilePurpose,

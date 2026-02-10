@@ -473,6 +473,39 @@ async function seedSuperAdmin() {
   console.log("  Created super admin user and role");
 }
 
+/**
+ * Create a Staff profile for the super admin user
+ * This must be called after campuses and staff types are seeded
+ */
+async function seedSuperAdminStaffProfile(
+  campusId: string,
+  staffTypeId: string,
+) {
+  console.log("Creating staff profile for super admin...");
+
+  const superAdminStaffId = "10000000-1000-4000-8000-100000000002";
+
+  await prisma.staff.upsert({
+    where: { id: superAdminStaffId },
+    update: {
+      userId: SYSTEM_IDS.SUPER_ADMIN_USER,
+    },
+    create: {
+      id: superAdminStaffId,
+      campusId: campusId,
+      fullName: "System Administrator",
+      email: "admin@kindercare.vn",
+      phoneNumber: "+15555550001",
+      gender: "MALE",
+      staffTypeId: staffTypeId,
+      userId: SYSTEM_IDS.SUPER_ADMIN_USER,
+      startDate: new Date("2024-01-01"),
+    },
+  });
+
+  console.log("  Created staff profile for super admin");
+}
+
 async function seedRolesForCampus(campusId: string, campusIndex: number) {
   const roles = [
     {
@@ -1310,6 +1343,11 @@ async function main() {
       roles,
     );
     console.log(`  Created 4 staff types`);
+
+    // Create staff profile for super admin (only for first campus)
+    if (campusIndex === 0) {
+      await seedSuperAdminStaffProfile(campusId, staffTypes["Principal"]);
+    }
 
     // Seed school years and subjects
     console.log("Seeding school years...");

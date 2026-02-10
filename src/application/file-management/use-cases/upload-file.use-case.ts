@@ -1,9 +1,10 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { File } from "@/domain/file-management/entities/file.entity";
 import { FilePurpose } from "@/domain/file-management/enums/file-purpose.enum";
 import { FileAudienceType } from "@/domain/file-management/enums/file-audience-type.enum";
+import { validateFileUpload } from "@/core/utils/security.utils";
 import { FileRepository } from "../ports/file.repository";
 import { StorageService } from "../ports/storage.service";
 
@@ -49,7 +50,14 @@ export class UploadFileUseCase {
     audienceType,
     audienceId,
   }: UploadFileUseCaseRequest): Promise<UploadFileUseCaseResponse> {
-    // TODO: Add file validation (mime type, size limits) here or in a domain service
+    // Validate file upload parameters (MIME type, size, extension)
+    const validation = validateFileUpload(filename, mimeType, size);
+    if (!validation.isValid) {
+      this.logger.warn(
+        `File upload validation failed: ${validation.error} - filename: ${filename}, mimeType: ${mimeType}, size: ${size}`,
+      );
+      return left(new BadRequestException(validation.error));
+    }
 
     const fileId = new UniqueEntityID().toString();
 

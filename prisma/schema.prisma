@@ -855,11 +855,10 @@ model File {
   storageProvider String  @default("LOCAL") @map("storage_provider")
 
   // File Metadata
-  filename    String  @map("filename")
-  mimeType    String  @map("mime_type")
-  size        BigInt
-  extension   String? @map("extension")
-  contentHash String? @map("content_hash") /// SHA-256 hash for duplicate detection
+  filename  String  @map("filename")
+  mimeType  String  @map("mime_type")
+  size      BigInt
+  extension String? @map("extension")
 
   // File Purpose/Context
   purpose      String  @default("GENERAL") /// GENERAL, POST_ATTACHMENT, PROFILE_PHOTO, ATTENDANCE_IMAGE
@@ -896,12 +895,10 @@ model File {
   @@index([key])
   @@index([isDeleted])
   @@index([createdAt])
-  @@index([contentHash])
   @@index([purpose])
   @@index([audienceType])
   @@index([classId])
   @@index([gradeLevelId])
-  @@index([campusId, contentHash]) // For duplicate detection within campus
   @@map("file")
 }
 

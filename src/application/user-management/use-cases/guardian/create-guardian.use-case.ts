@@ -2,6 +2,7 @@ import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { generateSecurePassword } from "@/core/utils/security.utils";
 import {
   BadRequestException,
   ConflictException,
@@ -10,8 +11,6 @@ import {
   Logger,
 } from "@nestjs/common";
 import { GuardianRepository } from "../../ports/guardian.repository";
-
-const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
 export interface CreateGuardianInput {
   campusId: string;
@@ -182,7 +181,7 @@ export class CreateGuardianUseCase {
         email: input.email || undefined,
         fullName: input.fullName,
         phoneNumber: input.phoneNumber,
-        password: DEFAULT_WEAK_PASSWORD,
+        password: generateSecurePassword(),
       });
 
       this.logger.log(`Clerk user created: ${clerkUser.clerkUid}`);
