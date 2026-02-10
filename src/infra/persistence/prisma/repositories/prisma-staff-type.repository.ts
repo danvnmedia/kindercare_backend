@@ -34,11 +34,24 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
       : null;
   }
 
+  async findByOrderAndCampus(
+    order: number,
+    campusId: string,
+  ): Promise<StaffType | null> {
+    const prismaStaffType = await this.prisma.staffType.findFirst({
+      where: { order, campusId },
+      include: { defaultRole: true },
+    });
+    return prismaStaffType
+      ? PrismaStaffTypeMapper.toDomain(prismaStaffType)
+      : null;
+  }
+
   async findByCampusId(campusId: string): Promise<StaffType[]> {
     const prismaStaffTypes = await this.prisma.staffType.findMany({
       where: { campusId },
       include: { defaultRole: true },
-      orderBy: { name: "asc" },
+      orderBy: { order: "asc" },
     });
     return PrismaStaffTypeMapper.toDomainArray(prismaStaffTypes);
   }
@@ -50,15 +63,22 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
       "description",
       "isActive",
       "defaultRoleId",
+      "order",
     ];
-    params.allowedSortFields = ["name", "createdAt", "updatedAt", "isActive"];
+    params.allowedSortFields = [
+      "name",
+      "order",
+      "createdAt",
+      "updatedAt",
+      "isActive",
+    ];
 
     return await this.queryService.executeQuery<StaffType>(
       this.prisma,
       "staffType",
       params,
       {
-        orderBy: { name: "asc" },
+        orderBy: { order: "asc" },
         include: { defaultRole: true },
       },
       PrismaStaffTypeMapper,
@@ -102,5 +122,45 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
       where: { id, isActive: true },
     });
     return count > 0;
+  }
+
+  async getMaxOrder(campusId: string): Promise<number> {
+    const result = await this.prisma.staffType.aggregate({
+      where: { campusId },
+      _max: { order: true },
+    });
+    return result._max.order ?? 0;
+  }
+
+  async reorder(campusId: string, ids: string[]): Promise<StaffType[]> {
+    // Two-phase update to avoid unique constraint violation on 'order' field
+    // Phase 1: Set all orders to negative temporary values (avoids collision)
+    // Phase 2: Set all orders to final positive values
+    await this.prisma.$transaction([
+      // Phase 1: Temporarily set to negative values
+      // Negative values won't conflict with existing positive orders
+      ...ids.map((id, index) =>
+        this.prisma.staffType.update({
+          where: { id },
+          data: { order: -(index + 1) },
+        }),
+      ),
+      // Phase 2: Set to final positive values
+      ...ids.map((id, index) =>
+        this.prisma.staffType.update({
+          where: { id },
+          data: { order: index + 1 },
+        }),
+      ),
+    ]);
+
+    // Fetch and return updated staff types sorted by order (within campus)
+    const updated = await this.prisma.staffType.findMany({
+      where: { id: { in: ids }, campusId },
+      include: { defaultRole: true },
+      orderBy: { order: "asc" },
+    });
+
+    return PrismaStaffTypeMapper.toDomainArray(updated);
   }
 }

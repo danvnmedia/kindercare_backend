@@ -7,6 +7,7 @@ import { GuardianController } from "../controllers/user-management/guardian.cont
 import { StaffController } from "../controllers/user-management/staff.controller";
 import { DangerGuardianController } from "../controllers/danger/danger-guardian.controller";
 import { DangerStaffController } from "../controllers/danger/danger-staff.controller";
+import { DangerStudentController } from "../controllers/danger/danger-student.controller";
 
 // NOTE: User use cases are commented out until they are refactored to work with Person-based model
 // import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
@@ -31,6 +32,8 @@ import { CreateStudentUseCase } from "@/application/user-management/use-cases/st
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
 import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
+import { ArchiveStudentUseCase } from "@/application/user-management/use-cases/student/archive-student.use-case";
+import { RestoreStudentUseCase } from "@/application/user-management/use-cases/student/restore-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
@@ -112,6 +115,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     StaffController,
     DangerGuardianController,
     DangerStaffController,
+    DangerStudentController,
   ],
   providers: [
     // NOTE: User Use Cases commented out until refactored
@@ -137,6 +141,8 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     GetAllStudentsUseCase,
     UpdateStudentUseCase,
     DeleteStudentUseCase,
+    ArchiveStudentUseCase,
+    RestoreStudentUseCase,
     LinkStudentWithGuardianUseCase,
     UnlinkStudentFromGuardianUseCase,
     GetStudentGuardiansUseCase,

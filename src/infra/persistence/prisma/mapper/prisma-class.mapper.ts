@@ -68,10 +68,11 @@ export class PrismaClassMapper {
     };
   }
 
-  static toPrismaUpdate(classEntity: Class): Prisma.ClassUpdateInput {
+  static toPrismaUpdate(classEntity: Class): Prisma.ClassUncheckedUpdateInput {
     return {
       name: classEntity.name,
       description: classEntity.description,
+      gradeLevelId: classEntity.gradeLevelId,
       updatedAt: classEntity.updatedAt,
     };
   }

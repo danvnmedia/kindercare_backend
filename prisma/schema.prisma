@@ -143,6 +143,7 @@ model StaffType {
   description   String?
   defaultRoleId String? @map("default_role_id") @db.Uuid
   isActive      Boolean @default(true) @map("is_active")
+  order         Int
 
   campus      Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
   defaultRole Role?   @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
@@ -152,8 +153,10 @@ model StaffType {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([campusId, name])
+  @@unique([campusId, order])
   @@index([campusId])
   @@index([defaultRoleId])
+  @@index([order])
   @@map("staff_type")
 }
 

@@ -9,6 +9,7 @@ import { GetStaffTypeByIdUseCase } from "@/application/user-management/use-cases
 import { GetAllStaffTypesUseCase } from "@/application/user-management/use-cases/staff-type/get-all-staff-types.use-case";
 import { UpdateStaffTypeUseCase } from "@/application/user-management/use-cases/staff-type/update-staff-type.use-case";
 import { DeleteStaffTypeUseCase } from "@/application/user-management/use-cases/staff-type/delete-staff-type.use-case";
+import { ReorderStaffTypesUseCase } from "@/application/user-management/use-cases/staff-type/reorder-staff-types.use-case";
 
 // Repository
 import { PrismaStaffTypeRepository } from "@/infra/persistence/prisma/repositories/prisma-staff-type.repository";
@@ -45,6 +46,7 @@ import { CampusModule } from "./campus.module";
     GetAllStaffTypesUseCase,
     UpdateStaffTypeUseCase,
     DeleteStaffTypeUseCase,
+    ReorderStaffTypesUseCase,
 
     // Repository
     {

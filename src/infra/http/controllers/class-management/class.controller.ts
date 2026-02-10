@@ -154,7 +154,7 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Update class",
-    description: "Update class name or description.",
+    description: "Update class name, description, or grade level.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

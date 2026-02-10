@@ -8,6 +8,7 @@ describe("StaffType Entity", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Teacher",
+        order: 1,
       });
 
       expect(staffType.campusId).toBe(validCampusId);
@@ -15,6 +16,7 @@ describe("StaffType Entity", () => {
       expect(staffType.description).toBeNull();
       expect(staffType.defaultRoleId).toBeNull();
       expect(staffType.isActive).toBe(true);
+      expect(staffType.order).toBe(1);
       expect(staffType.id).toBeDefined();
       expect(staffType.createdAt).toBeInstanceOf(Date);
       expect(staffType.updatedAt).toBeInstanceOf(Date);
@@ -28,18 +30,20 @@ describe("StaffType Entity", () => {
         description: "School principal role",
         defaultRoleId: roleId,
         isActive: false,
+        order: 2,
       });
 
       expect(staffType.name).toBe("Principal");
       expect(staffType.description).toBe("School principal role");
       expect(staffType.defaultRoleId).toBe(roleId);
       expect(staffType.isActive).toBe(false);
+      expect(staffType.order).toBe(2);
     });
 
     it("should create a staff type with provided id", () => {
       const id = "staff-type-123";
       const staffType = StaffType.create(
-        { campusId: validCampusId, name: "Nurse" },
+        { campusId: validCampusId, name: "Nurse", order: 1 },
         id,
       );
 
@@ -51,6 +55,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "  Teacher  ",
         description: "  Teacher description  ",
+        order: 1,
       });
 
       expect(staffType.name).toBe("Teacher");
@@ -58,27 +63,27 @@ describe("StaffType Entity", () => {
     });
 
     it("should throw error for missing campusId", () => {
-      expect(() => StaffType.create({ campusId: "", name: "Teacher" })).toThrow(
-        "Campus ID is required for staff type",
-      );
+      expect(() =>
+        StaffType.create({ campusId: "", name: "Teacher", order: 1 }),
+      ).toThrow("Campus ID is required for staff type");
     });
 
     it("should throw error for empty name", () => {
       expect(() =>
-        StaffType.create({ campusId: validCampusId, name: "" }),
+        StaffType.create({ campusId: validCampusId, name: "", order: 1 }),
       ).toThrow("Staff type name is required");
     });
 
     it("should throw error for whitespace-only name", () => {
       expect(() =>
-        StaffType.create({ campusId: validCampusId, name: "   " }),
+        StaffType.create({ campusId: validCampusId, name: "   ", order: 1 }),
       ).toThrow("Staff type name is required");
     });
 
     it("should throw error for name exceeding 100 characters", () => {
       const longName = "a".repeat(101);
       expect(() =>
-        StaffType.create({ campusId: validCampusId, name: longName }),
+        StaffType.create({ campusId: validCampusId, name: longName, order: 1 }),
       ).toThrow("Staff type name must be at most 100 characters");
     });
 
@@ -87,9 +92,30 @@ describe("StaffType Entity", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: maxName,
+        order: 1,
       });
 
       expect(staffType.name).toBe(maxName);
+    });
+
+    it("should throw error for negative order", () => {
+      expect(() =>
+        StaffType.create({
+          campusId: validCampusId,
+          name: "Teacher",
+          order: -1,
+        }),
+      ).toThrow("Order must be a non-negative number");
+    });
+
+    it("should accept order of 0", () => {
+      const staffType = StaffType.create({
+        campusId: validCampusId,
+        name: "Teacher",
+        order: 0,
+      });
+
+      expect(staffType.order).toBe(0);
     });
   });
 
@@ -102,6 +128,7 @@ describe("StaffType Entity", () => {
         name: "Original Name",
         description: "Original Description",
         defaultRoleId: "role-original",
+        order: 1,
       });
     });
 
@@ -190,6 +217,63 @@ describe("StaffType Entity", () => {
       expect(staffType.name).toBe("Trimmed Name");
       expect(staffType.description).toBe("Trimmed Description");
     });
+
+    it("should update order", () => {
+      staffType.update({ order: 5 });
+
+      expect(staffType.order).toBe(5);
+    });
+
+    it("should throw error for negative order when updating", () => {
+      expect(() => staffType.update({ order: -1 })).toThrow(
+        "Order must be a non-negative number",
+      );
+    });
+  });
+
+  describe("updateOrder", () => {
+    let staffType: StaffType;
+
+    beforeEach(() => {
+      staffType = StaffType.create({
+        campusId: validCampusId,
+        name: "Test",
+        order: 1,
+      });
+    });
+
+    it("should update order", () => {
+      staffType.updateOrder(5);
+
+      expect(staffType.order).toBe(5);
+    });
+
+    it("should allow order of 0", () => {
+      staffType.updateOrder(0);
+
+      expect(staffType.order).toBe(0);
+    });
+
+    it("should throw error for negative order", () => {
+      expect(() => staffType.updateOrder(-1)).toThrow(
+        "Order must be a non-negative number",
+      );
+    });
+
+    it("should update updatedAt timestamp", () => {
+      const originalUpdatedAt = staffType.updatedAt;
+
+      jest.useFakeTimers();
+      jest.advanceTimersByTime(1000);
+
+      staffType.updateOrder(10);
+
+      expect(staffType.updatedAt.getTime()).toBeGreaterThan(
+        originalUpdatedAt.getTime(),
+      );
+
+      jest.useRealTimers();
+    });
   });
 
   describe("activate", () => {
@@ -198,6 +282,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "Test",
         isActive: false,
+        order: 1,
       });
 
       staffType.activate();
@@ -210,6 +295,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "Test",
         isActive: true,
+        order: 1,
       });
       const originalUpdatedAt = staffType.updatedAt;
 
@@ -226,6 +312,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "Test",
         isActive: true,
+        order: 1,
       });
 
       staffType.deactivate();
@@ -238,6 +325,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "Test",
         isActive: false,
+        order: 1,
       });
       const originalUpdatedAt = staffType.updatedAt;
 
@@ -253,6 +341,7 @@ describe("StaffType Entity", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
+        order: 1,
       });
 
       staffType.setDefaultRole("new-role-id");
@@ -265,6 +354,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "Test",
         defaultRoleId: "existing-role",
+        order: 1,
       });
 
       staffType.setDefaultRole(null);
@@ -276,6 +366,7 @@ describe("StaffType Entity", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
+        order: 1,
       });
       const originalUpdatedAt = staffType.updatedAt;
 
@@ -298,6 +389,7 @@ describe("StaffType Entity", () => {
         campusId: validCampusId,
         name: "Test",
         defaultRoleId: "role-id",
+        order: 1,
       });
 
       expect(staffType.hasDefaultRole()).toBe(true);
@@ -307,6 +399,7 @@ describe("StaffType Entity", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
+        order: 1,
       });
 
       expect(staffType.hasDefaultRole()).toBe(false);

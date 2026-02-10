@@ -34,7 +34,8 @@ import { StandardRequestDto } from "@/core/modules/standard-response/dto/standar
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
 import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
-import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
+import { ArchiveStudentUseCase } from "@/application/user-management/use-cases/student/archive-student.use-case";
+import { RestoreStudentUseCase } from "@/application/user-management/use-cases/student/restore-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
@@ -49,7 +50,8 @@ export class StudentController {
     private readonly createStudentUseCase: CreateStudentUseCase,
     private readonly getAllStudentsUseCase: GetAllStudentsUseCase,
     private readonly updateStudentUseCase: UpdateStudentUseCase,
-    private readonly deleteStudentUseCase: DeleteStudentUseCase,
+    private readonly archiveStudentUseCase: ArchiveStudentUseCase,
+    private readonly restoreStudentUseCase: RestoreStudentUseCase,
     private readonly linkStudentWithGuardianUseCase: LinkStudentWithGuardianUseCase,
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
     private readonly getStudentGuardiansUseCase: GetStudentGuardiansUseCase,
@@ -142,12 +144,13 @@ export class StudentController {
   @Delete(":id")
   @RequireCampusAccess()
   @StandardResponse({
-    message: "Student deleted successfully",
-    type: null,
+    message: "Student archived successfully",
+    type: StudentResponse,
   })
   @ApiOperation({
-    summary: "Delete a student",
-    description: "Permanently deletes a student by ID.",
+    summary: "Archive a student (soft delete)",
+    description:
+      "Archives a student by setting isArchived=true and status=DROPPED. For permanent deletion, use DELETE /danger/students/:id.",
   })
   @ApiHeader({
     name: "x-campus-id",
@@ -160,12 +163,40 @@ export class StudentController {
     type: "string",
     format: "uuid",
   })
-  async delete(
+  async archive(
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) id: string,
   ) {
-    await this.deleteStudentUseCase.execute(id, campusId);
-    return null;
+    return await this.archiveStudentUseCase.execute(id, campusId);
+  }
+
+  @Patch(":id/restore")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Student restored successfully",
+    type: StudentResponse,
+  })
+  @ApiOperation({
+    summary: "Restore an archived student",
+    description:
+      "Restores an archived student by setting isArchived=false and status=ACTIVE.",
+  })
+  @ApiHeader({
+    name: "x-campus-id",
+    description: "Campus ID to scope the request",
+    required: true,
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  async restore(
+    @CampusContext() campusId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return await this.restoreStudentUseCase.execute(id, campusId);
   }
 
   // ========== Student-Guardian Relationship Endpoints ==========

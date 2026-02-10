@@ -48,6 +48,13 @@ export class StaffTypeResponse {
 
   @Expose()
   @ApiProperty({
+    description: "Display order of the staff type within the campus",
+    example: 1,
+  })
+  order: number;
+
+  @Expose()
+  @ApiProperty({
     description: "Creation timestamp",
     example: "2025-01-01T00:00:00.000Z",
   })
