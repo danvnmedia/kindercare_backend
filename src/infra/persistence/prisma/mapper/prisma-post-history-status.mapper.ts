@@ -3,7 +3,6 @@ import {
   Prisma,
 } from "@prisma/client";
 import { PostHistoryStatus } from "@/domain/content-management/entities/post-history-status.entity";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { PostStatus } from "@/domain/content-management";
 
 export class PrismaPostHistoryStatusMapper {

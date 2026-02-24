@@ -8,17 +8,29 @@ import {
   ValidateNested,
   IsUUID,
   IsObject,
+  ValidateIf,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { AudienceType } from "@/domain/content-management";
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 class UpdateAudienceDto {
+  @ApiProperty({
+    description: "The audience type",
+    enum: AudienceType,
+    example: "CLASS",
+  })
   @IsEnum(AudienceType)
   audienceType: AudienceType;
 
+  @ApiPropertyOptional({
+    description:
+      "The audience ID (required for CLASS, GRADE, STUDENT types; optional for ALL type)",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @ValidateIf((o) => o.audienceType !== AudienceType.ALL)
   @IsUUID()
-  audienceId: string;
+  audienceId?: string;
 }
 
 export class UpdatePostRequest {

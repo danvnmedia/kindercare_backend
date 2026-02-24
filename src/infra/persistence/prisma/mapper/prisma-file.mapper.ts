@@ -1,4 +1,3 @@
-import { UniqueEntityID } from "../../../../core/entities/unique-entity-id";
 import { File as DomainFile } from "../../../../domain/file-management/entities/file.entity";
 import { FileStatus } from "../../../../domain/file-management/enums/file-status.enum";
 import { FilePurpose } from "../../../../domain/file-management/enums/file-purpose.enum";

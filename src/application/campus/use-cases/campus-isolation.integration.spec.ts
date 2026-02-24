@@ -13,12 +13,7 @@ import {
   DEFAULT_CAMPUS_ID_A,
   DEFAULT_CAMPUS_ID_B,
 } from "@/test-utils";
-import {
-  createMockStaffRepository,
-  createMockStudentRepository,
-  createMockGuardianRepository,
-  createMockClassRepository,
-} from "@/test-utils";
+import { createMockStaffRepository } from "@/test-utils";
 
 describe("Campus Isolation Integration Tests", () => {
   const campusA = DEFAULT_CAMPUS_ID_A;

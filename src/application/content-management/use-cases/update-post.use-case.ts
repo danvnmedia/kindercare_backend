@@ -3,7 +3,6 @@ import {
   Inject,
   NotFoundException,
   ForbiddenException,
-  BadRequestException,
   Logger,
 } from "@nestjs/common";
 import { Post, PostAudience } from "@/domain/content-management";
@@ -26,7 +25,7 @@ export interface UpdatePostInput {
   publishAt?: Date;
   audiences?: {
     audienceType: AudienceType;
-    audienceId: string;
+    audienceId?: string;
   }[];
   categoryIds?: string[];
 }
@@ -119,14 +118,26 @@ export class UpdatePostUseCase {
         studentRepository: this.studentRepository,
       });
 
-      const audiences = input.audiences.map((audience) =>
-        PostAudience.create({
+      const audiences = input.audiences.map((audience) => {
+        // For ALL type, use campusId as audienceId if not provided
+        let audienceId: string;
+        if (audience.audienceId) {
+          audienceId = audience.audienceId;
+        } else if (audience.audienceType === AudienceType.ALL) {
+          audienceId = post.campusId;
+        } else {
+          throw new ForbiddenException(
+            `audienceId is required for ${audience.audienceType} audience type`,
+          );
+        }
+
+        return PostAudience.create({
           postId: post.id,
           campusId: post.campusId,
           audienceType: audience.audienceType,
-          audienceId: audience.audienceId,
-        }),
-      );
+          audienceId,
+        });
+      });
       post.setAudiences(audiences);
     }
   }

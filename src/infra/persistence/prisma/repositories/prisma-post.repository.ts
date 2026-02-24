@@ -43,7 +43,13 @@ export class PrismaPostRepository implements PostRepository {
       },
       include: {
         author: true,
-        audiences: true,
+        audiences: {
+          include: {
+            class: { select: { id: true, name: true } },
+            student: { select: { id: true, fullName: true } },
+            gradeLevel: { select: { id: true, name: true } },
+          },
+        },
         attachments: {
           include: {
             file: true,
@@ -89,7 +95,13 @@ export class PrismaPostRepository implements PostRepository {
       },
       include: {
         author: true,
-        audiences: true,
+        audiences: {
+          include: {
+            class: { select: { id: true, name: true } },
+            student: { select: { id: true, fullName: true } },
+            gradeLevel: { select: { id: true, name: true } },
+          },
+        },
         attachments: {
           include: {
             file: true,
@@ -119,10 +131,21 @@ export class PrismaPostRepository implements PostRepository {
             staffs: true,
           },
         },
-        audiences: true,
+        audiences: {
+          include: {
+            class: { select: { id: true, name: true } },
+            student: { select: { id: true, fullName: true } },
+            gradeLevel: { select: { id: true, name: true } },
+          },
+        },
         attachments: {
           include: {
             file: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
           },
         },
       },
@@ -163,10 +186,21 @@ export class PrismaPostRepository implements PostRepository {
               staffs: true,
             },
           },
-          audiences: true,
+          audiences: {
+          include: {
+            class: { select: { id: true, name: true } },
+            student: { select: { id: true, fullName: true } },
+            gradeLevel: { select: { id: true, name: true } },
+          },
+        },
           attachments: {
             include: {
               file: true,
+            },
+          },
+          categories: {
+            include: {
+              category: true,
             },
           },
         },
@@ -205,10 +239,21 @@ export class PrismaPostRepository implements PostRepository {
             staffs: true,
           },
         },
-        audiences: true,
+        audiences: {
+          include: {
+            class: { select: { id: true, name: true } },
+            student: { select: { id: true, fullName: true } },
+            gradeLevel: { select: { id: true, name: true } },
+          },
+        },
         attachments: {
           include: {
             file: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
           },
         },
       },

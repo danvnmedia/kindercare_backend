@@ -23,9 +23,13 @@ import { DeleteSchoolYearUseCase } from "@/application/class-management/use-case
 
 // Use Cases - Grade Level CUD
 import { CreateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/create-grade-level.use-case";
+import { GetGradeLevelByIdUseCase } from "@/application/class-management/use-cases/grade-level/get-grade-level-by-id.use-case";
 import { UpdateGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/update-grade-level.use-case";
 import { DeleteGradeLevelUseCase } from "@/application/class-management/use-cases/grade-level/delete-grade-level.use-case";
 import { ReorderGradeLevelsUseCase } from "@/application/class-management/use-cases/grade-level/reorder-grade-levels.use-case";
+
+// Use Cases - School Year Get By ID
+import { GetSchoolYearByIdUseCase } from "@/application/class-management/use-cases/school-year/get-school-year-by-id.use-case";
 
 // Use Cases - Enrollment
 import { EnrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/enroll-student.use-case";
@@ -87,9 +91,13 @@ import { RequestContextModule } from "../context/request-context.module";
 
     // Grade Level CUD Use Cases
     CreateGradeLevelUseCase,
+    GetGradeLevelByIdUseCase,
     UpdateGradeLevelUseCase,
     DeleteGradeLevelUseCase,
     ReorderGradeLevelsUseCase,
+
+    // School Year Get By ID Use Case
+    GetSchoolYearByIdUseCase,
 
     // Enrollment Use Cases
     EnrollStudentUseCase,

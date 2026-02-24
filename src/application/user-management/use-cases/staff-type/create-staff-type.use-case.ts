@@ -76,8 +76,9 @@ export class CreateStaffTypeUseCase {
         order = input.order;
       } else {
         // Auto-assign order: maxOrder + 1
-        const maxOrder =
-          await this.staffTypeRepository.getMaxOrder(input.campusId);
+        const maxOrder = await this.staffTypeRepository.getMaxOrder(
+          input.campusId,
+        );
         order = maxOrder + 1;
       }
 

@@ -4,7 +4,6 @@ import {
   Prisma,
 } from "@prisma/client";
 import { Attachment } from "@/domain/content-management";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { PrismaFileMapper } from "./prisma-file.mapper";
 
 /** Prisma attachment with optional file relation */

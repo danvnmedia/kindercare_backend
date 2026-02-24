@@ -203,7 +203,7 @@ export class StaffController {
     return await this.archiveStaffUseCase.execute(id, campusId);
   }
 
-  @Post(":id/restore")
+  @Patch(":id/restore")
   @RequireCampusAccess()
   @StandardResponse({
     message: "Staff restored successfully",

@@ -14,7 +14,6 @@ import {
   Post,
   PostHistoryStatus,
 } from "@/domain/content-management";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 
 @Injectable()
 export class PublishPostUseCase {

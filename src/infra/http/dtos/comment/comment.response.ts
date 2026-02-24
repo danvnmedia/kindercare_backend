@@ -1,5 +1,6 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
+import { UserResponse } from "../user.response";
 
 /**
  * Response DTO for a comment with nested replies
@@ -25,6 +26,13 @@ export class CommentResponse {
   })
   @Expose()
   userId: string;
+
+  @ApiPropertyOptional({
+    description: "The user who created the comment",
+  })
+  @Expose()
+  @Type(() => UserResponse)
+  user?: UserResponse;
 
   @ApiProperty({
     description: "The ID of the parent comment (null for root comments)",

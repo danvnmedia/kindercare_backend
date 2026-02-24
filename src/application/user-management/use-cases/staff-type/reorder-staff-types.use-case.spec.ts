@@ -1,8 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import {
-  BadRequestException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { ReorderStaffTypesUseCase } from "./reorder-staff-types.use-case";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { StaffType } from "@/domain/user-management/entities/staff-type.entity";

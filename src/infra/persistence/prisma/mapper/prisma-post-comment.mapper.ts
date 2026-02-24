@@ -1,12 +1,25 @@
-import { PostComment as PrismaPostComment, Prisma } from "@prisma/client";
+import {
+  PostComment as PrismaPostComment,
+  User as PrismaUser,
+  Guardian as PrismaGuardian,
+  Staff as PrismaStaff,
+  Prisma,
+} from "@prisma/client";
 import { PostComment } from "@/domain/content-management";
+import { PrismaUserMapper } from "./prisma-user.mapper";
+
+type PrismaUserWithProfile = PrismaUser & {
+  guardian?: PrismaGuardian | null;
+  staff?: PrismaStaff | null;
+};
 
 /**
- * Prisma PostComment model with optional parent relation.
+ * Prisma PostComment model with optional parent and user relations.
  * Used for loading comments with their parent for threading context.
  */
 type PrismaPostCommentWithRelations = PrismaPostComment & {
   parentComment?: PrismaPostComment | null;
+  user?: PrismaUserWithProfile | null;
 };
 
 /**
@@ -24,6 +37,9 @@ export class PrismaPostCommentMapper {
       {
         postId: prismaComment.postId,
         userId: prismaComment.userId,
+        user: prismaComment.user
+          ? PrismaUserMapper.toDomain(prismaComment.user)
+          : undefined,
         parentCommentId: prismaComment.parentCommentId,
         depth: prismaComment.depth,
         content: prismaComment.content,

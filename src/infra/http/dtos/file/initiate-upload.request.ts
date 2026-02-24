@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsIn,
   IsEnum,
+  IsUUID,
 } from "class-validator";
 import { FilePurpose } from "@/domain/file-management/enums/file-purpose.enum";
 import { FileAudienceType } from "@/domain/file-management/enums/file-audience-type.enum";

@@ -21,16 +21,18 @@ export class RemoveUsersFromRoleUseCase {
         throw new RoleNotFoundException(roleId);
       }
 
-      // 2. Validate all users exist
-      for (const userId of userIds) {
-        const user = await this.userRepository.findById(userId);
-        if (!user) {
-          throw new UserNotFoundException(userId);
-        }
+      // 2. Validate all users exist (parallelized to reduce latency)
+      const uniqueUserIds = [...new Set(userIds)];
+      const users = await Promise.all(
+        uniqueUserIds.map((userId) => this.userRepository.findById(userId)),
+      );
+      const missingUserIndex = users.findIndex((user) => !user);
+      if (missingUserIndex >= 0) {
+        throw new UserNotFoundException(uniqueUserIds[missingUserIndex]);
       }
 
       // 3. Remove users
-      await this.roleRepository.removeUsers(roleId, userIds);
+      await this.roleRepository.removeUsers(roleId, uniqueUserIds);
     } catch (error) {
       if (error instanceof RoleNotFoundException) {
         throw new NotFoundException(error.message);

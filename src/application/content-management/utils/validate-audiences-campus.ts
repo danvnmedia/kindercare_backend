@@ -15,6 +15,32 @@ export interface AudienceValidationDependencies {
   studentRepository: StudentRepository;
 }
 
+interface CampusScopedEntity {
+  id: string;
+  campusId: string;
+}
+
+function ensureEntitiesExistAndBelongToCampus<T extends CampusScopedEntity>(
+  ids: string[],
+  entities: T[],
+  campusId: string,
+  notFoundLabel: string,
+  campusMismatchMessage: (entity: T) => string,
+): void {
+  const foundIds = new Set(entities.map((entity) => entity.id));
+  for (const id of ids) {
+    if (!foundIds.has(id)) {
+      throw new BadRequestException(`${notFoundLabel} with ID ${id} not found`);
+    }
+  }
+
+  for (const entity of entities) {
+    if (entity.campusId !== campusId) {
+      throw new BadRequestException(campusMismatchMessage(entity));
+    }
+  }
+}
+
 /**
  * Validates that all audience targets (Class, GradeLevel, Student) belong to the specified campus.
  * Throws BadRequestException if any target is from a different campus or doesn't exist.
@@ -32,26 +58,26 @@ export async function validateAudiencesBelongToCampus(
     return;
   }
 
-  const classIds: string[] = [];
-  const gradeIds: string[] = [];
-  const studentIds: string[] = [];
+  const classIds = new Set<string>();
+  const gradeIds = new Set<string>();
+  const studentIds = new Set<string>();
 
   // Collect IDs by type
   for (const audience of audiences) {
     switch (audience.audienceType) {
       case AudienceType.CLASS:
         if (audience.audienceId) {
-          classIds.push(audience.audienceId);
+          classIds.add(audience.audienceId);
         }
         break;
       case AudienceType.GRADE:
         if (audience.audienceId) {
-          gradeIds.push(audience.audienceId);
+          gradeIds.add(audience.audienceId);
         }
         break;
       case AudienceType.STUDENT:
         if (audience.audienceId) {
-          studentIds.push(audience.audienceId);
+          studentIds.add(audience.audienceId);
         }
         break;
       case AudienceType.ALL:
@@ -60,66 +86,55 @@ export async function validateAudiencesBelongToCampus(
     }
   }
 
+  const uniqueClassIds = [...classIds];
+  const uniqueGradeIds = [...gradeIds];
+  const uniqueStudentIds = [...studentIds];
+
   // Validate classes belong to campus
-  if (classIds.length > 0) {
-    const classes = await deps.classRepository.findByIds(classIds);
-
-    // Check if all classes were found
-    const foundIds = new Set(classes.map((c) => c.id.toString()));
-    for (const id of classIds) {
-      if (!foundIds.has(id)) {
-        throw new BadRequestException(`Class with ID ${id} not found`);
-      }
-    }
-
-    // Check if all classes belong to the campus
-    for (const classEntity of classes) {
-      if (classEntity.campusId !== campusId) {
-        throw new BadRequestException(
-          `Class "${classEntity.name}" does not belong to the specified campus`,
-        );
-      }
-    }
+  if (uniqueClassIds.length > 0) {
+    const classes = await deps.classRepository.findByIds(uniqueClassIds);
+    ensureEntitiesExistAndBelongToCampus(
+      uniqueClassIds,
+      classes,
+      campusId,
+      "Class",
+      (classEntity) =>
+        `Class "${classEntity.name}" does not belong to the specified campus`,
+    );
   }
 
   // Validate grade levels belong to campus
-  if (gradeIds.length > 0) {
-    for (const gradeId of gradeIds) {
-      const gradeLevel = await deps.gradeLevelRepository.findById(gradeId);
+  if (uniqueGradeIds.length > 0) {
+    const gradeLevels = await Promise.all(
+      uniqueGradeIds.map((gradeId) =>
+        deps.gradeLevelRepository.findById(gradeId),
+      ),
+    );
+    const existingGradeLevels = gradeLevels.filter(
+      (gradeLevel): gradeLevel is NonNullable<typeof gradeLevel> =>
+        gradeLevel !== null,
+    );
 
-      if (!gradeLevel) {
-        throw new BadRequestException(
-          `Grade level with ID ${gradeId} not found`,
-        );
-      }
-
-      if (gradeLevel.campusId !== campusId) {
-        throw new BadRequestException(
-          `Grade level "${gradeLevel.name}" does not belong to the specified campus`,
-        );
-      }
-    }
+    ensureEntitiesExistAndBelongToCampus(
+      uniqueGradeIds,
+      existingGradeLevels,
+      campusId,
+      "Grade level",
+      (gradeLevel) =>
+        `Grade level "${gradeLevel.name}" does not belong to the specified campus`,
+    );
   }
 
   // Validate students belong to campus
-  if (studentIds.length > 0) {
-    const students = await deps.studentRepository.findByIds(studentIds);
-
-    // Check if all students were found
-    const foundIds = new Set(students.map((s) => s.id.toString()));
-    for (const id of studentIds) {
-      if (!foundIds.has(id)) {
-        throw new BadRequestException(`Student with ID ${id} not found`);
-      }
-    }
-
-    // Check if all students belong to the campus
-    for (const student of students) {
-      if (student.campusId !== campusId) {
-        throw new BadRequestException(
-          `Student "${student.fullName}" does not belong to the specified campus`,
-        );
-      }
-    }
+  if (uniqueStudentIds.length > 0) {
+    const students = await deps.studentRepository.findByIds(uniqueStudentIds);
+    ensureEntitiesExistAndBelongToCampus(
+      uniqueStudentIds,
+      students,
+      campusId,
+      "Student",
+      (student) =>
+        `Student "${student.fullName}" does not belong to the specified campus`,
+    );
   }
 }

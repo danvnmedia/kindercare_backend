@@ -248,10 +248,11 @@ export class PrismaQueryService {
       skip,
     };
 
-    let [data, count] = await Promise.all([
+    const [rawData, count] = await Promise.all([
       prismaClient[modelName].findMany(queryOptions),
       prismaClient[modelName].count({ where }),
     ]);
+    let data = rawData;
 
     const limit = Math.min(
       Number(params.limit) || params.defaultLimit || 10,

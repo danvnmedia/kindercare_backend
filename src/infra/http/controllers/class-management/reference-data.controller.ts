@@ -6,14 +6,12 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
   ApiOperation,
   ApiTags,
   ApiParam,
-  ApiQuery,
   ApiHeader,
   ApiBearerAuth,
 } from "@nestjs/swagger";
@@ -44,6 +42,10 @@ import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cas
 import { GetAllSchoolYearsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-school-years.use-case";
 import { GetAllSubjectsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-subjects.use-case";
 
+// Use Cases - Get By ID
+import { GetGradeLevelByIdUseCase } from "@/application/class-management/use-cases/grade-level/get-grade-level-by-id.use-case";
+import { GetSchoolYearByIdUseCase } from "@/application/class-management/use-cases/school-year/get-school-year-by-id.use-case";
+
 // Use Cases - School Year CUD
 import { CreateSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/create-school-year.use-case";
 import { UpdateSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/update-school-year.use-case";
@@ -63,7 +65,9 @@ export class ReferenceDataController {
   constructor(
     // Read Use Cases
     private readonly getAllGradeLevelsUseCase: GetAllGradeLevelsUseCase,
+    private readonly getGradeLevelByIdUseCase: GetGradeLevelByIdUseCase,
     private readonly getAllSchoolYearsUseCase: GetAllSchoolYearsUseCase,
+    private readonly getSchoolYearByIdUseCase: GetSchoolYearByIdUseCase,
     private readonly getAllSubjectsUseCase: GetAllSubjectsUseCase,
     // School Year CUD Use Cases
     private readonly createSchoolYearUseCase: CreateSchoolYearUseCase,
@@ -101,6 +105,34 @@ export class ReferenceDataController {
     @StandardRequestParam() query: StandardRequestDto,
   ) {
     return await this.getAllGradeLevelsUseCase.execute(campusId, query);
+  }
+
+  @Get("grade-levels/:id")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Grade level retrieved successfully",
+    type: GradeLevelResponse,
+  })
+  @ApiOperation({
+    summary: "Get a grade level by ID",
+    description: "Retrieve a single grade level by its ID within the specified campus.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID to verify grade level access",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Grade Level UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getGradeLevelById(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+  ) {
+    return await this.getGradeLevelByIdUseCase.execute(id, campusId);
   }
 
   @Post("grade-levels")
@@ -241,6 +273,34 @@ export class ReferenceDataController {
     @StandardRequestParam() query: StandardRequestDto,
   ) {
     return await this.getAllSchoolYearsUseCase.execute(campusId, query);
+  }
+
+  @Get("school-years/:id")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "School year retrieved successfully",
+    type: SchoolYearResponse,
+  })
+  @ApiOperation({
+    summary: "Get a school year by ID",
+    description: "Retrieve a single school year by its ID within the specified campus.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID to verify school year access",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "School Year UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getSchoolYearById(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+  ) {
+    return await this.getSchoolYearByIdUseCase.execute(id, campusId);
   }
 
   @Post("school-years")

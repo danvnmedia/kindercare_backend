@@ -26,6 +26,8 @@ export class LocalStorageService implements StorageService {
     contentType: string,
     expiresIn?: number,
   ): Promise<string> {
+    void contentType;
+    void expiresIn;
     // For local storage, we just return the direct URL where the file will be
     // accessible after it's been moved there by the client.
     // The client would then PUT the file directly to this URL.
@@ -53,6 +55,7 @@ export class LocalStorageService implements StorageService {
   }
 
   async getSignedUrl(key: string, expiresIn?: number): Promise<string> {
+    void expiresIn;
     return `${BASE_URL}/${key}`;
   }
 }

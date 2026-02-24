@@ -3,16 +3,16 @@ import { Expose } from "class-transformer";
 
 export class PostReactionResponse {
   @ApiProperty({
-    description: "Whether the current user has hearted this post.",
+    description: "Whether the current user has reacted to this post.",
     example: true,
   })
   @Expose()
-  hearted: boolean;
+  hasReacted: boolean;
 
   @ApiProperty({
-    description: "Total number of hearts on the post.",
+    description: "Total number of reactions on the post.",
     example: 42,
   })
   @Expose()
-  count: number;
+  reactionCount: number;
 }

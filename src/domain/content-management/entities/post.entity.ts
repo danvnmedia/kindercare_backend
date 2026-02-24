@@ -16,6 +16,13 @@ export const MAX_POST_TITLE_LENGTH = 200;
  */
 export type PostContent = Record<string, unknown> | null;
 
+export interface PostCategoryInfo {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+}
+
 export interface PostProps {
   campusId: string;
   authorId: string;
@@ -38,6 +45,7 @@ export interface PostProps {
   // Relations
   audiences: PostAudience[];
   attachments: Attachment[];
+  categories?: PostCategoryInfo[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,6 +126,10 @@ export class Post extends Entity<PostProps> {
 
   get attachments(): Attachment[] {
     return this.props.attachments;
+  }
+
+  get categories(): PostCategoryInfo[] {
+    return this.props.categories ?? [];
   }
 
   get createdAt(): Date {
@@ -471,6 +483,7 @@ export class Post extends Entity<PostProps> {
       | "status"
       | "audiences"
       | "attachments"
+      | "categories"
       | "content"
       | "contentText"
       | "contentVersion"
@@ -519,6 +532,7 @@ export class Post extends Entity<PostProps> {
         deletedAt: props.deletedAt ?? null,
         audiences: props.audiences ?? [],
         attachments: props.attachments ?? [],
+        categories: props.categories ?? [],
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
       },

@@ -18,7 +18,9 @@ const SYMBOLS = "!@#$%^&*()_+-=[]{}|;:,.<>?";
  * @param length - Password length (default: 16, minimum: 12)
  * @returns A secure random password
  */
-export function generateSecurePassword(length: number = PASSWORD_LENGTH): string {
+export function generateSecurePassword(
+  length: number = PASSWORD_LENGTH,
+): string {
   const minLength = 12;
   const actualLength = Math.max(length, minLength);
 

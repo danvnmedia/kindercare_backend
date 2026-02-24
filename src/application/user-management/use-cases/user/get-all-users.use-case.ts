@@ -1,7 +1,6 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { UserRepository, PaginatedUsers } from "../../ports/user.repository";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
-import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
 export interface GetAllUsersInput {
   page?: number;

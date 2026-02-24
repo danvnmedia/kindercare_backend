@@ -593,6 +593,7 @@ async function seedStaffTypesForCampus(
         name: st.name,
         description: st.description,
         defaultRoleId: roles[st.roleKey],
+        order: st.index,
       },
     });
     createdStaffTypes[st.name] = staffTypeId;

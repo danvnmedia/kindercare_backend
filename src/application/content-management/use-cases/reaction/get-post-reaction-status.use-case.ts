@@ -10,8 +10,8 @@ import { PostReactionRepository } from "../../ports/post-reaction.repository";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface PostReactionStatusResult {
-  hearted: boolean;
-  count: number;
+  hasReacted: boolean;
+  reactionCount: number;
 }
 
 @Injectable()
@@ -47,16 +47,16 @@ export class GetPostReactionStatusUseCase {
         );
       }
 
-      const [hearted, count] = await Promise.all([
+      const [hasReacted, reactionCount] = await Promise.all([
         this.postReactionRepository.existsByPostAndUser(postId, currentUser.id),
         this.postReactionRepository.countByPost(postId),
       ]);
 
       this.logger.log(
-        `Reaction status for post ${postId}: hearted=${hearted}, count=${count}`,
+        `Reaction status for post ${postId}: hasReacted=${hasReacted}, reactionCount=${reactionCount}`,
       );
 
-      return { hearted, count };
+      return { hasReacted, reactionCount };
     } catch (error) {
       this.logger.error(
         `Failed to get reaction status: ${error.message}`,

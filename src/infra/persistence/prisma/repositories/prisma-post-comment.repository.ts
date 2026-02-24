@@ -17,6 +17,14 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
   async findById(id: string): Promise<PostComment | null> {
     const prismaComment = await this.prisma.postComment.findUnique({
       where: { id },
+      include: {
+        user: {
+          include: {
+            guardians: true,
+            staffs: true,
+          },
+        },
+      },
     });
     return prismaComment
       ? PrismaPostCommentMapper.toDomain(prismaComment)
@@ -35,6 +43,14 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
       "postComment",
       params,
       {
+        include: {
+          user: {
+            include: {
+              guardians: true,
+              staffs: true,
+            },
+          },
+        },
         where: { postId },
         orderBy: { createdAt: "asc" },
       },
@@ -54,6 +70,14 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
       "postComment",
       params,
       {
+        include: {
+          user: {
+            include: {
+              guardians: true,
+              staffs: true,
+            },
+          },
+        },
         where: {
           postId,
           parentCommentId: null,
@@ -72,6 +96,14 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
       },
       orderBy: {
         createdAt: "asc",
+      },
+      include: {
+        user: {
+          include: {
+            guardians: true,
+            staffs: true,
+          },
+        },
       },
     });
     return PrismaPostCommentMapper.toDomainArray(prismaComments);

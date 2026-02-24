@@ -1,6 +1,7 @@
 import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
+import { User } from "@/domain/user-management/user.entity";
 
 /**
  * Maximum nesting depth for comments.
@@ -20,6 +21,7 @@ export const MAX_COMMENT_LENGTH = 1000;
 export interface PostCommentProps {
   postId: string;
   userId: string;
+  user?: User;
   parentCommentId: string | null;
   depth: number;
   content: string;
@@ -44,6 +46,10 @@ export class PostComment extends Entity<PostCommentProps> {
 
   get userId(): string {
     return this.props.userId;
+  }
+
+  get user(): User | undefined {
+    return this.props.user;
   }
 
   get parentCommentId(): string | null {
@@ -166,6 +172,7 @@ export class PostComment extends Entity<PostCommentProps> {
       | "deletedById"
       | "parentCommentId"
       | "depth"
+      | "user"
     >,
     id?: string,
   ): PostComment {

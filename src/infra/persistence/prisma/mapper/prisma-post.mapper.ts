@@ -1,6 +1,8 @@
 import {
   Post as PrismaPost,
   PostAudience as PrismaPostAudience,
+  PostCategoryLink as PrismaPostCategoryLink,
+  PostCategory as PrismaPostCategory,
   User as PrismaUser,
   Prisma,
   Guardian as PrismaGuardian,
@@ -9,11 +11,9 @@ import {
 import {
   Post,
   PostAudience,
-  Attachment,
   PostStatus,
   AudienceType,
 } from "@/domain/content-management";
-import { User } from "@/domain/user-management/user.entity";
 import {
   PrismaAttachmentMapper,
   PrismaAttachmentWithFile,
@@ -26,10 +26,15 @@ type PrismaUserWithProfile = PrismaUser & {
   staff?: PrismaStaff | null;
 };
 
+type PrismaPostCategoryLinkWithCategory = PrismaPostCategoryLink & {
+  category: PrismaPostCategory;
+};
+
 export type PrismaPostWithRelations = PrismaPost & {
   author: PrismaUserWithProfile;
   audiences: PrismaPostAudience[];
   attachments: PrismaAttachmentWithFile[];
+  categories?: PrismaPostCategoryLinkWithCategory[];
 };
 
 export class PrismaPostMapper {
@@ -58,6 +63,12 @@ export class PrismaPostMapper {
         attachments: PrismaAttachmentMapper.toDomainArray(
           prismaPost.attachments,
         ),
+        categories: prismaPost.categories?.map((link) => ({
+          id: link.category.id,
+          name: link.category.name,
+          color: link.category.color,
+          icon: link.category.icon,
+        })),
         createdAt: prismaPost.createdAt,
         updatedAt: prismaPost.updatedAt,
       },

@@ -3,7 +3,6 @@ import { AttachmentRepository } from "@/application/content-management/ports/att
 import { Attachment } from "@/domain/content-management";
 import { PrismaService } from "../prisma.service";
 import { PrismaAttachmentMapper } from "../mapper/prisma-attachment.mapper";
-import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 
 @Injectable()
 export class PrismaAttachmentRepository implements AttachmentRepository {

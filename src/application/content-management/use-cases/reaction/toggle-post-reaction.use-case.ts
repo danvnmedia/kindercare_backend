@@ -11,8 +11,8 @@ import { PostReaction } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface TogglePostReactionResult {
-  hearted: boolean;
-  count: number;
+  hasReacted: boolean;
+  reactionCount: number;
 }
 
 @Injectable()
@@ -54,13 +54,13 @@ export class TogglePostReactionUseCase {
           currentUser.id,
         );
 
-      let hearted: boolean;
-      let count: number;
+      let hasReacted: boolean;
+      let reactionCount: number;
 
       if (existingReaction) {
         await this.postReactionRepository.delete(postId, currentUser.id);
-        count = await this.postReactionRepository.countByPost(postId);
-        hearted = false;
+        reactionCount = await this.postReactionRepository.countByPost(postId);
+        hasReacted = false;
         this.logger.log(`Reaction removed for post: ${postId}`);
       } else {
         const reaction = PostReaction.create({
@@ -68,12 +68,12 @@ export class TogglePostReactionUseCase {
           userId: currentUser.id,
         });
         await this.postReactionRepository.save(reaction);
-        count = await this.postReactionRepository.countByPost(postId);
-        hearted = true;
+        reactionCount = await this.postReactionRepository.countByPost(postId);
+        hasReacted = true;
         this.logger.log(`Reaction added for post: ${postId}`);
       }
 
-      return { hearted, count };
+      return { hasReacted, reactionCount };
     } catch (error) {
       this.logger.error(
         `Failed to toggle reaction: ${error.message}`,

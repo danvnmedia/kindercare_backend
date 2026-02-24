@@ -11,6 +11,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+frontend-current-mockup/
+audit/
+
 # OS
 .DS_Store
 
@@ -157,5 +160,3 @@ generated/
 # Sub-agents
 .agents
 .claude
-
-

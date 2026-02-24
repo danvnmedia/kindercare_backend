@@ -1,9 +1,5 @@
 import { Injectable, Inject, Logger } from "@nestjs/common";
-import {
-  Permission,
-  CreatePermissionData,
-  PermissionEntity,
-} from "@/domain/rbac";
+import { CreatePermissionData } from "@/domain/rbac";
 import { PermissionRepository } from "../ports/permission.repository";
 
 /**

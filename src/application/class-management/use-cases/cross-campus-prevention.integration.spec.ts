@@ -3,11 +3,7 @@
  * Tests that operations involving multiple entities properly reject cross-campus scenarios
  */
 
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 import { EnrollStudentUseCase } from "./enrollment/enroll-student.use-case";
 import { AssignStaffToClassUseCase } from "./class-staff/assign-staff-to-class.use-case";
 import { EnrollmentRepository } from "../ports/enrollment.repository";
