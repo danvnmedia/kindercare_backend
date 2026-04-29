@@ -15,7 +15,7 @@ export class GuardianTransactionOps {
     id: string;
     campusId: string;
     fullName: string;
-    email: string | null;
+    email: string;
     phoneNumber: string;
     address: string | null;
     dateOfBirth: Date | null;
@@ -55,7 +55,7 @@ export class GuardianTransactionOps {
     id: string,
     data: {
       fullName?: string;
-      email?: string | null;
+      email?: string;
       phoneNumber?: string;
       address?: string | null;
       dateOfBirth?: Date | null;

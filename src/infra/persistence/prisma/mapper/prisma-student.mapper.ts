@@ -82,9 +82,8 @@ export class PrismaStudentMapper {
   }
 
   static toPrismaUpdate(student: Student): Prisma.StudentUpdateInput {
-    // Note: campusId is not included in updates - it's immutable
+    // campusId and studentCode are intentionally omitted - both are immutable after creation.
     return {
-      studentCode: student.studentCode,
       fullName: student.fullName,
       email: student.email,
       phoneNumber: student.phoneNumber,

@@ -62,7 +62,7 @@ export class CampusController {
   @ApiOperation({
     summary: "Get all campuses",
     description:
-      "Retrieve campuses the authenticated user has access to based on their role assignments. Users with global roles see all campuses. Supports pagination, filtering by name, address, phoneNumber, isActive.",
+      "Retrieve campuses the authenticated user has access to based on their role assignments. Users with global roles see all campuses. Supports pagination, filtering by name, address, phoneNumber, isArchived.",
   })
   async findAll(@StandardRequestParam() query: StandardRequestDto) {
     const user = await this.requestContext.getUserOrFail();
@@ -106,7 +106,8 @@ export class CampusController {
   })
   @ApiOperation({
     summary: "Update a campus",
-    description: "Update campus name, address, phone number, or active status.",
+    description:
+      "Update campus name, address, phone number, or archived status.",
   })
   @ApiParam({
     name: "id",
@@ -119,13 +120,13 @@ export class CampusController {
 
   @Delete(":id")
   @StandardResponse({
-    message: "Campus deactivated successfully",
+    message: "Campus archived successfully",
     type: CampusResponse,
   })
   @ApiOperation({
-    summary: "Deactivate a campus",
+    summary: "Archive a campus",
     description:
-      "Soft delete a campus by setting isActive to false. The campus data is retained.",
+      "Soft delete a campus by setting isArchived to true. The campus data is retained.",
   })
   @ApiParam({
     name: "id",

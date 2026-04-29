@@ -56,12 +56,14 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
     return PrismaStaffTypeMapper.toDomainArray(prismaStaffTypes);
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedResult<StaffType>> {
+  async findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<StaffType>> {
     params.allowedFilterFields = [
-      "campusId",
       "name",
       "description",
-      "isActive",
+      "isArchived",
       "defaultRoleId",
       "order",
     ];
@@ -70,7 +72,7 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
       "order",
       "createdAt",
       "updatedAt",
-      "isActive",
+      "isArchived",
     ];
 
     return await this.queryService.executeQuery<StaffType>(
@@ -80,6 +82,7 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
       {
         orderBy: { order: "asc" },
         include: { defaultRole: true },
+        scope,
       },
       PrismaStaffTypeMapper,
     );
@@ -117,9 +120,9 @@ export class PrismaStaffTypeRepository implements StaffTypeRepository {
     return count > 0;
   }
 
-  async existsAndActive(id: string): Promise<boolean> {
+  async existsAndNotArchived(id: string): Promise<boolean> {
     const count = await this.prisma.staffType.count({
-      where: { id, isActive: true },
+      where: { id, isArchived: false },
     });
     return count > 0;
   }

@@ -17,7 +17,7 @@ export interface UpdateStaffTypeInput {
   name?: string;
   description?: string | null;
   defaultRoleId?: string | null;
-  isActive?: boolean;
+  isArchived?: boolean;
   order?: number;
 }
 
@@ -93,8 +93,8 @@ export class UpdateStaffTypeUseCase {
       if (input.defaultRoleId !== undefined) {
         updateData.defaultRoleId = input.defaultRoleId;
       }
-      if (input.isActive !== undefined) {
-        updateData.isActive = input.isActive;
+      if (input.isArchived !== undefined) {
+        updateData.isArchived = input.isArchived;
       }
       if (input.order !== undefined) {
         updateData.order = input.order;

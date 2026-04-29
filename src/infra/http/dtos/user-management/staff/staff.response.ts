@@ -11,6 +11,13 @@ export class StaffResponse {
   campusId: string;
 
   @Expose()
+  @ApiProperty({
+    example: "ST-2025-000001",
+    description: "Campus-scoped, immutable staff code in format ST-YYYY-XXXXXX",
+  })
+  staffCode: string;
+
+  @Expose()
   @ApiProperty({ example: "Nguyễn Văn A" })
   fullName: string;
 

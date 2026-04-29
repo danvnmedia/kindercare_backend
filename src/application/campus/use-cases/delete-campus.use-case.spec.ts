@@ -21,9 +21,9 @@ describe("DeleteCampusUseCase", () => {
     useCase = new DeleteCampusUseCase(mockCampusRepository);
   });
 
-  it("should deactivate a campus successfully", async () => {
+  it("should archive a campus successfully", async () => {
     const activeCampus = Campus.create(
-      { name: "Active Campus", isActive: true },
+      { name: "Active Campus", isArchived: false },
       "campus-id",
     );
     mockCampusRepository.findById.mockResolvedValue(activeCampus);
@@ -31,20 +31,20 @@ describe("DeleteCampusUseCase", () => {
 
     const result = await useCase.execute("campus-id");
 
-    expect(result.isActive).toBe(false);
+    expect(result.isArchived).toBe(true);
     expect(mockCampusRepository.update).toHaveBeenCalled();
   });
 
-  it("should return campus as-is if already inactive", async () => {
-    const inactiveCampus = Campus.create(
-      { name: "Inactive Campus", isActive: false },
+  it("should return campus as-is if already archived", async () => {
+    const archivedCampus = Campus.create(
+      { name: "Archived Campus", isArchived: true },
       "campus-id",
     );
-    mockCampusRepository.findById.mockResolvedValue(inactiveCampus);
+    mockCampusRepository.findById.mockResolvedValue(archivedCampus);
 
     const result = await useCase.execute("campus-id");
 
-    expect(result.isActive).toBe(false);
+    expect(result.isArchived).toBe(true);
     expect(mockCampusRepository.update).not.toHaveBeenCalled();
   });
 

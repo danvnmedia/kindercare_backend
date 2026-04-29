@@ -15,7 +15,7 @@ export interface CreateStaffTypeInput {
   name: string;
   description?: string | null;
   defaultRoleId?: string | null;
-  isActive?: boolean;
+  isArchived?: boolean;
   order?: number;
 }
 
@@ -76,8 +76,9 @@ export class CreateStaffTypeUseCase {
         order = input.order;
       } else {
         // Auto-assign order: maxOrder + 1
-        const maxOrder =
-          await this.staffTypeRepository.getMaxOrder(input.campusId);
+        const maxOrder = await this.staffTypeRepository.getMaxOrder(
+          input.campusId,
+        );
         order = maxOrder + 1;
       }
 
@@ -87,7 +88,7 @@ export class CreateStaffTypeUseCase {
         name: input.name,
         description: input.description ?? null,
         defaultRoleId: input.defaultRoleId ?? null,
-        isActive: input.isActive ?? true,
+        isArchived: input.isArchived,
         order,
       });
 

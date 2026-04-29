@@ -16,10 +16,10 @@ const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 export interface CreateGuardianInput {
   campusId: string;
   fullName: string;
-  dateOfBirth: Date;
-  gender: Gender;
+  email: string;
   phoneNumber: string;
-  email?: string;
+  gender: Gender;
+  dateOfBirth?: Date;
   address?: string;
   occupation?: string;
   workAddress?: string;
@@ -55,7 +55,6 @@ export class CreateGuardianUseCase {
 
     // Step 3: Create Clerk user FIRST (external service - most likely to fail)
     const clerkUser = await this.createClerkUser(input);
-    const identifier = input.email || input.phoneNumber;
 
     try {
       // Step 4: DB Transaction - Create User + Guardian atomically using UnitOfWork
@@ -71,10 +70,10 @@ export class CreateGuardianUseCase {
         const guardianEntity = Guardian.create({
           campusId: input.campusId,
           fullName: input.fullName,
-          email: input.email || null,
+          email: input.email,
           phoneNumber: input.phoneNumber,
           address: input.address || null,
-          dateOfBirth: input.dateOfBirth,
+          dateOfBirth: input.dateOfBirth ?? null,
           gender: input.gender,
           occupation: input.occupation || null,
           workAddress: input.workAddress || null,
@@ -107,7 +106,7 @@ export class CreateGuardianUseCase {
       });
 
       this.logger.log(
-        `Guardian and User account created successfully for: ${identifier} in campus: ${input.campusId}`,
+        `Guardian and User account created successfully for: ${input.email} in campus: ${input.campusId}`,
       );
       return guardian;
     } catch (error) {
@@ -145,17 +144,15 @@ export class CreateGuardianUseCase {
   private async checkGuardianUniqueness(
     input: CreateGuardianInput,
   ): Promise<void> {
-    // Check email uniqueness only if email is provided (campus-scoped)
-    if (input.email) {
-      const existingByEmail = await this.guardianRepository.findByEmailInCampus(
-        input.campusId,
-        input.email,
+    // Check email uniqueness (campus-scoped)
+    const existingByEmail = await this.guardianRepository.findByEmailInCampus(
+      input.campusId,
+      input.email,
+    );
+    if (existingByEmail) {
+      throw new ConflictException(
+        `Guardian with email ${input.email} already exists in this campus`,
       );
-      if (existingByEmail) {
-        throw new ConflictException(
-          `Guardian with email ${input.email} already exists in this campus`,
-        );
-      }
     }
 
     // Check phone uniqueness (campus-scoped)
@@ -174,12 +171,11 @@ export class CreateGuardianUseCase {
   private async createClerkUser(
     input: CreateGuardianInput,
   ): Promise<ClerkUserResult> {
-    const identifier = input.email || input.phoneNumber;
-    this.logger.log(`Creating Clerk user for: ${identifier}`);
+    this.logger.log(`Creating Clerk user for: ${input.email}`);
 
     try {
       const clerkUser = await this.identityPort.provisionUser({
-        email: input.email || undefined,
+        email: input.email,
         fullName: input.fullName,
         phoneNumber: input.phoneNumber,
         password: DEFAULT_WEAK_PASSWORD,

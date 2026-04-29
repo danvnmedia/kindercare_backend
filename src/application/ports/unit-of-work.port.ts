@@ -63,7 +63,7 @@ export interface TransactionContext {
     id: string;
     campusId: string;
     fullName: string;
-    email: string | null;
+    email: string;
     phoneNumber: string;
     address: string | null;
     dateOfBirth: Date | null;
@@ -83,7 +83,7 @@ export interface TransactionContext {
     id: string,
     data: {
       fullName?: string;
-      email?: string | null;
+      email?: string;
       phoneNumber?: string;
       address?: string | null;
       dateOfBirth?: Date | null;
@@ -101,6 +101,7 @@ export interface TransactionContext {
   createStaff(data: {
     id: string;
     campusId: string;
+    staffCode: string;
     fullName: string;
     email: string;
     phoneNumber: string;

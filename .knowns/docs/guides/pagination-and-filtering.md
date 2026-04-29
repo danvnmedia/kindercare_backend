@@ -1,13 +1,14 @@
 ---
 title: Pagination and Filtering
+description: Backend API reference for pagination, sorting, and filtering
 createdAt: '2026-01-03T19:51:53.795Z'
-updatedAt: '2026-01-03T20:26:56.331Z'
-description: 'Backend API reference for pagination, sorting, and filtering'
+updatedAt: '2026-04-22T03:16:01.609Z'
 tags:
   - guides
   - api
   - pagination
 ---
+
 # Backend Pagination & Filtering API Reference
 
 ## Query Parameters
@@ -129,6 +130,10 @@ Standard paginated response structure:
 ### GET /students
 - **Filterable**: studentCode, fullName, email, phoneNumber, gender, nickname, isArchived, dateOfBirth
 - **Sortable**: createdAt, updatedAt, nickname, studentCode, fullName, dateOfBirth
+
+### GET /staff
+- **Filterable**: staffCode, fullName, email, phoneNumber, campusId, staffTypeId, gender, isArchived
+- **Sortable**: createdAt, updatedAt, staffCode, fullName, email, startDate
 
 ### GET /guardians
 - **Filterable**: fullName, email, phoneNumber, gender, occupation, workAddress, isArchived

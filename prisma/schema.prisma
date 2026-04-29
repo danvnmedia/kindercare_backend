@@ -18,18 +18,20 @@ model Campus {
   name        String
   address     String?
   phoneNumber String? @map("phone_number")
-  isActive    Boolean @default(true) @map("is_active")
+  isArchived  Boolean @default(false) @map("is_archived")
 
   // Relations - RBAC
   roles                Role[]
   userRoles            UserRole[]
   staffTypes           StaffType[]
   studentCodeSequences StudentCodeSequence[]
+  staffCodeSequences   StaffCodeSequence[]
 
   // Relations - Profiles
-  staff     Staff[]
-  guardians Guardian[]
-  students  Student[]
+  staff                  Staff[]
+  guardians              Guardian[]
+  students               Student[]
+  guardianRelationships  GuardianRelationship[]
 
   // Relations - Academic
   gradeLevels         GradeLevel[]
@@ -69,17 +71,40 @@ model StudentCodeSequence {
   @@map("student_code_sequence")
 }
 
+model StaffCodeSequence {
+  campusId   String   @map("campus_id") @db.Uuid
+  year       Int
+  lastNumber Int      @default(0) @map("last_number")
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  @@id([campusId, year])
+  @@map("staff_code_sequence")
+}
+
 // ==========================================
 // LOOKUP TABLES
 // ==========================================
 
 model GuardianRelationship {
-  id          String  @id
-  name        String  @unique
+  id          String  @id @default(uuid()) @db.Uuid
+  campusId    String  @map("campus_id") @db.Uuid
+  name        String
   description String?
+  isArchived  Boolean @default(false) @map("is_archived")
+  order       Int
 
+  campus           Campus           @relation(fields: [campusId], references: [id], onDelete: Restrict)
   guardianStudents GuardianStudent[]
 
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([campusId, name])
+  @@unique([campusId, order])
+  @@index([campusId])
+  @@index([order])
   @@map("guardian_relationship")
 }
 
@@ -142,7 +167,7 @@ model StaffType {
   name          String
   description   String?
   defaultRoleId String? @map("default_role_id") @db.Uuid
-  isActive      Boolean @default(true) @map("is_active")
+  isArchived    Boolean @default(false) @map("is_archived")
   order         Int
 
   campus      Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
@@ -273,6 +298,7 @@ model Student {
 
 model Staff {
   id          String    @id @default(uuid()) @db.Uuid
+  staffCode   String    @map("staff_code")
   fullName    String    @map("full_name")
   email       String    @db.Citext
   phoneNumber String    @map("phone_number")
@@ -301,6 +327,7 @@ model Staff {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Campus-scoped unique constraints
+  @@unique([campusId, staffCode])
   @@unique([campusId, email])
   @@unique([campusId, phoneNumber])
   @@unique([campusId, userId])
@@ -314,7 +341,7 @@ model Staff {
 model Guardian {
   id          String    @id @default(uuid()) @db.Uuid
   fullName    String    @map("full_name")
-  email       String?   @db.Citext
+  email       String    @db.Citext
   phoneNumber String    @map("phone_number")
   address     String?
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
@@ -359,7 +386,7 @@ model GuardianStudent {
   guardianId String   @map("guardian_id") @db.Uuid
 
   guardianRelationship   GuardianRelationship @relation(fields: [guardianRelationshipId], references: [id])
-  guardianRelationshipId String               @map("guardian_relationship_id")
+  guardianRelationshipId String               @map("guardian_relationship_id") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -720,8 +747,8 @@ model PostCategory {
   name     String
   color    String
   icon     String?
-  order    Int     @default(0)
-  isActive Boolean @default(true) @map("is_active")
+  order      Int     @default(0)
+  isArchived Boolean @default(false) @map("is_archived")
 
   campus Campus             @relation(fields: [campusId], references: [id], onDelete: Restrict)
   posts  PostCategoryLink[]
@@ -730,7 +757,7 @@ model PostCategory {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([campusId, name])
-  @@index([campusId, isActive])
+  @@index([campusId, isArchived])
   @@index([campusId, order])
   @@map("post_category")
 }

@@ -191,6 +191,17 @@ export class PrismaStudentRepository implements StudentRepository {
     });
   }
 
+  async updateGuardianRelationship(
+    studentId: string,
+    guardianId: string,
+    relationshipId: string,
+  ): Promise<void> {
+    await this.prisma.guardianStudent.update({
+      where: { studentId_guardianId: { studentId, guardianId } },
+      data: { guardianRelationshipId: relationshipId },
+    });
+  }
+
   async getStudentGuardians(studentId: string): Promise<any[]> {
     const studentGuardians = await this.prisma.guardianStudent.findMany({
       where: { studentId },

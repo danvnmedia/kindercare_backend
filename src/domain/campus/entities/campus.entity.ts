@@ -6,7 +6,7 @@ export interface CampusProps {
   name: string;
   address: string | null;
   phoneNumber: string | null;
-  isActive: boolean;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,8 +30,8 @@ export class Campus extends Entity<CampusProps> {
     return this.props.phoneNumber;
   }
 
-  get isActive(): boolean {
-    return this.props.isActive;
+  get isArchived(): boolean {
+    return this.props.isArchived;
   }
 
   get createdAt(): Date {
@@ -61,26 +61,26 @@ export class Campus extends Entity<CampusProps> {
       this.props.phoneNumber = data.phoneNumber;
     }
 
-    if (data.isActive !== undefined) {
-      this.props.isActive = data.isActive;
+    if (data.isArchived !== undefined) {
+      this.props.isArchived = data.isArchived;
     }
 
     this.touch();
   }
 
-  public activate(): void {
-    if (this.props.isActive) {
-      return; // Already active
+  public archive(): void {
+    if (this.props.isArchived) {
+      return; // Already archived
     }
-    this.props.isActive = true;
+    this.props.isArchived = true;
     this.touch();
   }
 
-  public deactivate(): void {
-    if (!this.props.isActive) {
-      return; // Already inactive
+  public unarchive(): void {
+    if (!this.props.isArchived) {
+      return; // Already not archived
     }
-    this.props.isActive = false;
+    this.props.isArchived = false;
     this.touch();
   }
 
@@ -114,7 +114,7 @@ export class Campus extends Entity<CampusProps> {
   public static create(
     props: Optional<
       CampusProps,
-      "createdAt" | "updatedAt" | "isActive" | "address" | "phoneNumber"
+      "createdAt" | "updatedAt" | "isArchived" | "address" | "phoneNumber"
     >,
     id?: string,
   ): Campus {
@@ -141,7 +141,7 @@ export class Campus extends Entity<CampusProps> {
       name: props.name.trim(),
       address: props.address?.trim() || null,
       phoneNumber: props.phoneNumber || null,
-      isActive: props.isActive ?? true,
+      isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

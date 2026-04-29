@@ -23,25 +23,24 @@ export class PrismaGuardianMapper {
    * Supports eager-loaded children data
    */
   static toDomain(prismaGuardian: PrismaGuardianWithRelations): Guardian {
-    const guardianProps = {
-      fullName: prismaGuardian.fullName,
-      email: prismaGuardian.email,
-      phoneNumber: prismaGuardian.phoneNumber,
-      address: prismaGuardian.address,
-      dateOfBirth: prismaGuardian.dateOfBirth,
-      gender: prismaGuardian.gender as Gender | null,
-      occupation: prismaGuardian.occupation,
-      workAddress: prismaGuardian.workAddress,
-      campusId: prismaGuardian.campusId,
-      userId: prismaGuardian.userId,
-      isArchived: prismaGuardian.isArchived,
-      createdAt: prismaGuardian.createdAt,
-      updatedAt: prismaGuardian.updatedAt,
-    };
-
-    const guardian = Guardian.create(guardianProps, prismaGuardian.id);
-
-    return guardian;
+    return Guardian.reconstitute(
+      {
+        fullName: prismaGuardian.fullName,
+        email: prismaGuardian.email,
+        phoneNumber: prismaGuardian.phoneNumber,
+        address: prismaGuardian.address,
+        dateOfBirth: prismaGuardian.dateOfBirth,
+        gender: prismaGuardian.gender as Gender | null,
+        occupation: prismaGuardian.occupation,
+        workAddress: prismaGuardian.workAddress,
+        campusId: prismaGuardian.campusId,
+        userId: prismaGuardian.userId,
+        isArchived: prismaGuardian.isArchived,
+        createdAt: prismaGuardian.createdAt,
+        updatedAt: prismaGuardian.updatedAt,
+      },
+      prismaGuardian.id,
+    );
   }
 
   /**
@@ -49,22 +48,24 @@ export class PrismaGuardianMapper {
    * Use to prevent circular references
    */
   static toDomainSimple(prismaGuardian: PrismaGuardian): Guardian {
-    const guardianProps = {
-      fullName: prismaGuardian.fullName,
-      email: prismaGuardian.email,
-      phoneNumber: prismaGuardian.phoneNumber,
-      address: prismaGuardian.address,
-      dateOfBirth: prismaGuardian.dateOfBirth,
-      gender: prismaGuardian.gender as Gender | null,
-      occupation: prismaGuardian.occupation,
-      workAddress: prismaGuardian.workAddress,
-      campusId: prismaGuardian.campusId,
-      userId: prismaGuardian.userId,
-      isArchived: prismaGuardian.isArchived,
-      createdAt: prismaGuardian.createdAt,
-      updatedAt: prismaGuardian.updatedAt,
-    };
-    return Guardian.create(guardianProps, prismaGuardian.id);
+    return Guardian.reconstitute(
+      {
+        fullName: prismaGuardian.fullName,
+        email: prismaGuardian.email,
+        phoneNumber: prismaGuardian.phoneNumber,
+        address: prismaGuardian.address,
+        dateOfBirth: prismaGuardian.dateOfBirth,
+        gender: prismaGuardian.gender as Gender | null,
+        occupation: prismaGuardian.occupation,
+        workAddress: prismaGuardian.workAddress,
+        campusId: prismaGuardian.campusId,
+        userId: prismaGuardian.userId,
+        isArchived: prismaGuardian.isArchived,
+        createdAt: prismaGuardian.createdAt,
+        updatedAt: prismaGuardian.updatedAt,
+      },
+      prismaGuardian.id,
+    );
   }
 
   /**

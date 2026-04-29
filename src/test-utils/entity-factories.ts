@@ -34,7 +34,7 @@ export function createCampus(
     name: string;
     address: string | null;
     phoneNumber: string | null;
-    isActive: boolean;
+    isArchived: boolean;
   }> = {},
 ): Campus {
   return Campus.create(
@@ -42,7 +42,7 @@ export function createCampus(
       name: overrides.name ?? "Test Campus",
       address: overrides.address ?? "123 Test Street",
       phoneNumber: overrides.phoneNumber ?? "+84901234567",
-      isActive: overrides.isActive ?? true,
+      isArchived: overrides.isArchived ?? false,
     },
     overrides.id ?? uuidv4(),
   );
@@ -55,6 +55,7 @@ export function createStaff(
   overrides: Partial<{
     id: string;
     campusId: string;
+    staffCode: string;
     fullName: string;
     email: string;
     phoneNumber: string;
@@ -68,9 +69,14 @@ export function createStaff(
   }> = {},
 ): Staff {
   const uniqueSuffix = uuidv4().slice(0, 8);
+  const sequence = Math.floor(1 + Math.random() * 999998);
+  const year = new Date().getFullYear();
   return Staff.create(
     {
       campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
+      staffCode:
+        overrides.staffCode ??
+        `ST-${year}-${String(sequence).padStart(6, "0")}`,
       fullName: overrides.fullName ?? "Test Staff",
       email: overrides.email ?? `staff-${uniqueSuffix}@test.com`,
       phoneNumber:

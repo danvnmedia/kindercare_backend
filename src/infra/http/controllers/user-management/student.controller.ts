@@ -25,6 +25,7 @@ import {
   UpdateStudentRequest,
   StudentResponse,
   LinkStudentGuardianRequest,
+  UpdateStudentGuardianRequest,
   StudentGuardianResponse,
   LinkStudentGuardianResponse,
 } from "../../dtos/user-management/student";
@@ -33,12 +34,14 @@ import { StandardRequestDto } from "@/core/modules/standard-response/dto/standar
 // Use Cases
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { GetStudentByIdUseCase } from "@/application/user-management/use-cases/student/get-student-by-id.use-case";
 import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { ArchiveStudentUseCase } from "@/application/user-management/use-cases/student/archive-student.use-case";
 import { RestoreStudentUseCase } from "@/application/user-management/use-cases/student/restore-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
+import { UpdateStudentGuardianRelationshipUseCase } from "@/application/user-management/use-cases/student/update-student-guardian-relationship.use-case";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 
 @Controller("students")
@@ -49,12 +52,14 @@ export class StudentController {
   constructor(
     private readonly createStudentUseCase: CreateStudentUseCase,
     private readonly getAllStudentsUseCase: GetAllStudentsUseCase,
+    private readonly getStudentByIdUseCase: GetStudentByIdUseCase,
     private readonly updateStudentUseCase: UpdateStudentUseCase,
     private readonly archiveStudentUseCase: ArchiveStudentUseCase,
     private readonly restoreStudentUseCase: RestoreStudentUseCase,
     private readonly linkStudentWithGuardianUseCase: LinkStudentWithGuardianUseCase,
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
     private readonly getStudentGuardiansUseCase: GetStudentGuardiansUseCase,
+    private readonly updateStudentGuardianRelationshipUseCase: UpdateStudentGuardianRelationshipUseCase,
   ) {}
 
   @Post()
@@ -106,6 +111,34 @@ export class StudentController {
     @StandardRequestParam() query: StandardRequestDto,
   ) {
     return this.getAllStudentsUseCase.execute({ campusId, params: query });
+  }
+
+  @Get(":id")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Student retrieved successfully",
+    type: StudentResponse,
+  })
+  @ApiOperation({
+    summary: "Get a student by ID",
+    description: "Retrieve a single student by their unique ID.",
+  })
+  @ApiHeader({
+    name: "x-campus-id",
+    description: "Campus ID to scope the request",
+    required: true,
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  async findOne(
+    @CampusContext() campusId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return await this.getStudentByIdUseCase.execute(id, campusId);
   }
 
   @Patch(":id")
@@ -272,6 +305,48 @@ export class StudentController {
       guardianId,
     });
     return null;
+  }
+
+  @Patch(":id/guardians/:guardianId")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Guardian relationship updated successfully",
+    type: LinkStudentGuardianResponse,
+  })
+  @ApiOperation({
+    summary: "Update guardian relationship type on an existing link",
+    description:
+      "Atomically updates the relationship type (e.g., Mother → Stepmother) on the existing student-guardian link without dropping and recreating the row.",
+  })
+  @ApiHeader({
+    name: "x-campus-id",
+    description: "Campus ID to scope the request",
+    required: true,
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  @ApiParam({
+    name: "guardianId",
+    description: "Guardian ID",
+    type: "string",
+    format: "uuid",
+  })
+  async updateGuardianRelationship(
+    @CampusContext() campusId: string,
+    @Param("id", ParseUUIDPipe) studentId: string,
+    @Param("guardianId", ParseUUIDPipe) guardianId: string,
+    @Body() dto: UpdateStudentGuardianRequest,
+  ) {
+    return await this.updateStudentGuardianRelationshipUseCase.execute({
+      studentId,
+      guardianId,
+      campusId,
+      relationshipId: dto.relationshipId,
+    });
   }
 
   @Get(":id/guardians")

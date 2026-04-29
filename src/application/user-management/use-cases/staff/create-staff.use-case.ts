@@ -1,4 +1,5 @@
 import { IdentityPort } from "@/application/ports/identity.port";
+import { StaffCodeGeneratorPort } from "@/application/ports/staff-code-generator.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
@@ -42,6 +43,7 @@ export class CreateStaffUseCase {
     private readonly staffTypeRepository: StaffTypeRepository,
     private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
+    private readonly staffCodeGenerator: StaffCodeGeneratorPort,
   ) {}
 
   async execute(input: CreateStaffInput): Promise<Staff> {
@@ -60,9 +62,9 @@ export class CreateStaffUseCase {
           `Staff type with ID ${input.staffTypeId} not found`,
         );
       }
-      if (!staffType.isActive) {
+      if (staffType.isArchived) {
         throw new BadRequestException(
-          `Staff type ${staffType.name} is inactive`,
+          `Staff type ${staffType.name} is archived`,
         );
       }
       if (staffType.campusId !== input.campusId) {
@@ -84,7 +86,12 @@ export class CreateStaffUseCase {
     const clerkUser = await this.createClerkUser(input);
 
     try {
-      // Step 4: DB Transaction - Create User + Staff + Role assignment atomically using UnitOfWork
+      // Step 4: Generate campus-scoped staff code (ST-YYYY-XXXXXX)
+      const staffCode = await this.staffCodeGenerator.generateNextCode(
+        input.campusId,
+      );
+
+      // Step 5: DB Transaction - Create User + Staff + Role assignment atomically using UnitOfWork
       const staff = await this.unitOfWork.run(async (tx) => {
         // Create User entity with clerkUid
         const user = await tx.createUser({
@@ -96,6 +103,7 @@ export class CreateStaffUseCase {
         // Create Staff domain entity with userId already linked
         const staffEntity = Staff.create({
           campusId: input.campusId,
+          staffCode,
           fullName: input.fullName,
           email: input.email,
           phoneNumber: input.phoneNumber,
@@ -111,6 +119,7 @@ export class CreateStaffUseCase {
         const createdStaff = await tx.createStaff({
           id: staffEntity.id,
           campusId: staffEntity.campusId,
+          staffCode: staffEntity.staffCode,
           fullName: staffEntity.fullName,
           email: staffEntity.email,
           phoneNumber: staffEntity.phoneNumber,
@@ -146,7 +155,7 @@ export class CreateStaffUseCase {
       );
       return staff;
     } catch (error) {
-      // Step 5: Compensation - Delete Clerk user if DB transaction fails
+      // Step 6: Compensation - Delete Clerk user if DB transaction fails
       this.logger.error(
         `DB transaction failed, compensating by deleting Clerk user: ${clerkUser.clerkUid}`,
       );

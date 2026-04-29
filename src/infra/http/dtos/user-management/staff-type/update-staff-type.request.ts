@@ -41,10 +41,10 @@ export class UpdateStaffTypeRequest {
   defaultRoleId?: string | null;
 
   @ApiPropertyOptional({
-    description: "Whether the staff type is active",
-    example: true,
+    description: "Whether the staff type is archived",
+    example: false,
   })
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  isArchived?: boolean;
 }

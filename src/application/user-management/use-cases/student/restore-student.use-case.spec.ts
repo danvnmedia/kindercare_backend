@@ -50,6 +50,7 @@ describe("RestoreStudentUseCase", () => {
       delete: jest.fn(),
       assignGuardians: jest.fn(),
       removeGuardians: jest.fn(),
+      updateGuardianRelationship: jest.fn(),
       getStudentGuardians: jest.fn(),
     } as jest.Mocked<StudentRepository>;
 

@@ -34,12 +34,12 @@ describe("CreateCampusUseCase", () => {
     expect(result.name).toBe("Main Campus");
     expect(result.address).toBe("123 Main Street");
     expect(result.phoneNumber).toBe("+84901234567");
-    expect(result.isActive).toBe(true);
+    expect(result.isArchived).toBe(false);
     expect(mockCampusRepository.findByName).toHaveBeenCalledWith("Main Campus");
     expect(mockCampusRepository.save).toHaveBeenCalled();
   });
 
-  it("should create a campus with default isActive true", async () => {
+  it("should create a campus with default isArchived false", async () => {
     mockCampusRepository.findByName.mockResolvedValue(null);
     mockCampusRepository.save.mockImplementation(async (campus) => campus);
 
@@ -47,19 +47,19 @@ describe("CreateCampusUseCase", () => {
       name: "Test Campus",
     });
 
-    expect(result.isActive).toBe(true);
+    expect(result.isArchived).toBe(false);
   });
 
-  it("should create a campus with custom isActive value", async () => {
+  it("should create a campus with custom isArchived value", async () => {
     mockCampusRepository.findByName.mockResolvedValue(null);
     mockCampusRepository.save.mockImplementation(async (campus) => campus);
 
     const result = await useCase.execute({
-      name: "Inactive Campus",
-      isActive: false,
+      name: "Archived Campus",
+      isArchived: true,
     });
 
-    expect(result.isActive).toBe(false);
+    expect(result.isArchived).toBe(true);
   });
 
   it("should throw ConflictException if campus name already exists", async () => {

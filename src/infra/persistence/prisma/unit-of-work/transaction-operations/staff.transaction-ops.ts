@@ -14,6 +14,7 @@ export class StaffTransactionOps {
   async createStaff(data: {
     id: string;
     campusId: string;
+    staffCode: string;
     fullName: string;
     email: string;
     phoneNumber: string;
@@ -31,6 +32,7 @@ export class StaffTransactionOps {
       data: {
         id: data.id,
         campusId: data.campusId,
+        staffCode: data.staffCode,
         fullName: data.fullName,
         email: data.email,
         phoneNumber: data.phoneNumber,

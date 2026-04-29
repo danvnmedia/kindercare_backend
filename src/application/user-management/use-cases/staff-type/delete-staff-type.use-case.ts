@@ -18,11 +18,11 @@ export class DeleteStaffTypeUseCase {
   ) {}
 
   /**
-   * Soft delete staff type by deactivating it (isActive = false)
+   * Soft delete staff type by archiving it (isArchived = true)
    */
   async execute(id: string): Promise<StaffType> {
     try {
-      this.logger.log(`Deactivating staff type: ${id}`);
+      this.logger.log(`Archiving staff type: ${id}`);
 
       // Find existing staff type
       const staffType = await this.staffTypeRepository.findById(id);
@@ -30,24 +30,24 @@ export class DeleteStaffTypeUseCase {
         throw new NotFoundException(`Staff type with ID "${id}" not found`);
       }
 
-      // Check if already inactive
-      if (!staffType.isActive) {
-        this.logger.log(`Staff type ${id} is already inactive`);
+      // Check if already archived
+      if (staffType.isArchived) {
+        this.logger.log(`Staff type ${id} is already archived`);
         return staffType;
       }
 
-      // Deactivate the staff type (soft delete)
-      staffType.deactivate();
+      // Archive the staff type (soft delete)
+      staffType.archive();
 
       // Save to repository
-      const deactivatedStaffType =
+      const archivedStaffType =
         await this.staffTypeRepository.update(staffType);
-      this.logger.log(`Staff type deactivated: ${deactivatedStaffType.id}`);
+      this.logger.log(`Staff type archived: ${archivedStaffType.id}`);
 
-      return deactivatedStaffType;
+      return archivedStaffType;
     } catch (error) {
       this.logger.error(
-        `Failed to deactivate staff type: ${error.message}`,
+        `Failed to archive staff type: ${error.message}`,
         error.stack,
       );
       if (error instanceof NotFoundException) {

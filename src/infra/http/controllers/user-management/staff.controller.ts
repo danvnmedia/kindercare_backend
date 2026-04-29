@@ -91,7 +91,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Get all staff members",
     description:
-      "Retrieve all staff members within a campus with advanced filtering, sorting, and pagination. Requires X-Campus-Id header. Supports filtering by fullName, email, phoneNumber, staffType, gender, isArchived. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
+      "Retrieve all staff members within a campus with advanced filtering, sorting, and pagination. Requires X-Campus-Id header. Supports filtering by staffCode, fullName, email, phoneNumber, staffType, gender, isArchived. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -141,7 +141,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Update staff",
     description:
-      "Update staff information within the specified campus. If staffType is changed, the associated user role will also be updated accordingly.",
+      "Update staff information within the specified campus. Email and phone number are synced to Clerk and enforce campus-scoped uniqueness. If staffType is changed, the associated user role will also be updated accordingly.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -162,6 +162,8 @@ export class StaffController {
     return await this.updateStaffUseCase.execute(id, {
       campusId,
       fullName: dto.fullName,
+      email: dto.email,
+      phoneNumber: dto.phoneNumber,
       staffTypeId: dto.staffTypeId,
       address: dto.address,
       dateOfBirth: dto.dateOfBirth,
@@ -196,7 +198,7 @@ export class StaffController {
     return await this.archiveStaffUseCase.execute(id, campusId);
   }
 
-  @Post(":id/restore")
+  @Patch(":id/restore")
   @RequireCampusAccess()
   @StandardResponse({
     message: "Staff restored successfully",

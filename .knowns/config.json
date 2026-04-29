@@ -4,7 +4,7 @@
   "createdAt": "2026-01-03T19:36:40.613Z",
   "settings": {
     "defaultPriority": "medium",
-    "defaultLabels": [],
+    "timeFormat": "24h",
     "statuses": [
       "todo",
       "in-progress",
@@ -14,24 +14,28 @@
       "on-hold",
       "urgent"
     ],
+    "statusColors": {
+      "blocked": "red",
+      "done": "green",
+      "in-progress": "blue",
+      "in-review": "purple",
+      "on-hold": "yellow",
+      "todo": "gray",
+      "urgent": "orange"
+    },
     "visibleColumns": [
       "todo",
       "in-progress",
       "done",
       "on-hold"
     ],
-    "statusColors": {
-      "todo": "gray",
-      "in-progress": "blue",
-      "in-review": "purple",
-      "done": "green",
-      "blocked": "red",
-      "on-hold": "yellow",
-      "urgent": "orange"
+    "semanticSearch": {
+      "enabled": true,
+      "model": "gte-small",
+      "huggingFaceId": "Xenova/gte-small",
+      "dimensions": 384,
+      "maxTokens": 512
     },
-    "id": "backend",
-    "createdAt": "2026-01-03T19:36:40.613Z",
-    "timeFormat": "24h",
     "serverPort": 6421
   }
 }

@@ -9,7 +9,7 @@ export class PrismaCampusMapper {
         name: prismaCampus.name,
         address: prismaCampus.address,
         phoneNumber: prismaCampus.phoneNumber,
-        isActive: prismaCampus.isActive,
+        isArchived: prismaCampus.isArchived,
         createdAt: prismaCampus.createdAt,
         updatedAt: prismaCampus.updatedAt,
       },
@@ -23,7 +23,7 @@ export class PrismaCampusMapper {
       name: campus.name,
       address: campus.address,
       phoneNumber: campus.phoneNumber,
-      isActive: campus.isActive,
+      isArchived: campus.isArchived,
       createdAt: campus.createdAt,
       updatedAt: campus.updatedAt,
     };
@@ -34,7 +34,7 @@ export class PrismaCampusMapper {
       name: campus.name,
       address: campus.address,
       phoneNumber: campus.phoneNumber,
-      isActive: campus.isActive,
+      isArchived: campus.isArchived,
       updatedAt: campus.updatedAt,
     };
   }

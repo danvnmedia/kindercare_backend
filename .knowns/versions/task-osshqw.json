@@ -1,0 +1,131 @@
+{
+  "taskId": "osshqw",
+  "currentVersion": 2,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "osshqw",
+      "version": 1,
+      "timestamp": "2026-04-14T02:35:18.3816101Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Domain entity with validation (name 1-100 chars, campusId required)"
+          },
+          {
+            "completed": false,
+            "text": "Repository port with all required methods"
+          },
+          {
+            "completed": false,
+            "text": "7 use cases: Create, GetAll, GetById, Update, Archive, Restore, Reorder"
+          },
+          {
+            "completed": false,
+            "text": "Prisma mapper (toDomain, toPrisma, toPrismaUpdate)"
+          },
+          {
+            "completed": false,
+            "text": "Prisma repository with PrismaQueryService integration"
+          },
+          {
+            "completed": false,
+            "text": "Controller with 7 endpoints + Swagger + guards"
+          },
+          {
+            "completed": false,
+            "text": "Request/Response DTOs with class-validator"
+          },
+          {
+            "completed": false,
+            "text": "NestJS module registered in AppModule"
+          },
+          {
+            "completed": false,
+            "text": "Duplicate name prevention returns 409 Conflict"
+          }
+        ],
+        "description": "Create full admin-managed reference data module following staff-type pattern: domain entity, repository port, 7 use cases (create, getAll, getById, update, archive, restore, reorder), Prisma mapper, Prisma repository, controller, DTOs, NestJS module. Campus-scoped with auto-order and two-phase reorder.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Guardian Relationship Type CRUD Module"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "osshqw",
+      "version": 2,
+      "timestamp": "2026-04-17T21:26:47.890139Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Domain entity with validation (name 1-100 chars, campusId required)",
+            "completed": false
+          },
+          {
+            "text": "Repository port with all required methods",
+            "completed": false
+          },
+          {
+            "text": "7 use cases: Create, GetAll, GetById, Update, Archive, Restore, Reorder",
+            "completed": false
+          },
+          {
+            "text": "Prisma mapper (toDomain, toPrisma, toPrismaUpdate)",
+            "completed": false
+          },
+          {
+            "text": "Prisma repository with PrismaQueryService integration",
+            "completed": false
+          },
+          {
+            "text": "Controller with 7 endpoints + Swagger + guards",
+            "completed": false
+          },
+          {
+            "text": "Request/Response DTOs with class-validator",
+            "completed": false
+          },
+          {
+            "text": "NestJS module registered in AppModule",
+            "completed": false
+          },
+          {
+            "text": "Duplicate name prevention returns 409 Conflict",
+            "completed": false
+          }
+        ],
+        "description": "Create full admin-managed reference data module following staff-type pattern: domain entity, repository port, 7 use cases (create, getAll, getById, update, archive, restore, reorder), Prisma mapper, Prisma repository, controller, DTOs, NestJS module. Campus-scoped with auto-order and two-phase reorder.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Guardian Relationship Type CRUD Module"
+      }
+    }
+  ]
+}

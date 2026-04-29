@@ -50,6 +50,15 @@ export class CreateStaffRequest {
   phoneNumber: string;
 
   @ApiProperty({
+    description: "Staff gender",
+    enum: Gender,
+    example: Gender.MALE,
+  })
+  @IsNotEmpty()
+  @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
+  gender: Gender;
+
+  @ApiProperty({
     description: "Staff type ID (references staff_type table)",
     example: "123e4567-e89b-12d3-a456-426614174001",
     required: false,
@@ -80,16 +89,6 @@ export class CreateStaffRequest {
   @TransformToUTCDate()
   @IsAdultDateOfBirth()
   dateOfBirth?: Date;
-
-  @ApiProperty({
-    description: "Staff gender",
-    enum: Gender,
-    example: Gender.MALE,
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
-  gender?: Gender;
 
   @ApiProperty({
     description: "Staff start date in ISO 8601 format (employment start)",

@@ -5,7 +5,6 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from "class-validator";
@@ -32,23 +31,12 @@ export class CreateGuardianRequest {
   fullName: string;
 
   @ApiProperty({
-    description:
-      "Guardian date of birth in ISO 8601 format (must be 18+ years old)",
-    example: "1985-03-20T00:00:00.000Z",
+    description: "Guardian email (required for account creation)",
+    example: "guardian@example.com",
   })
   @IsNotEmpty()
-  @TransformToUTCDate()
-  @IsAdultDateOfBirth()
-  dateOfBirth: Date;
-
-  @ApiProperty({
-    description: "Guardian gender",
-    enum: Gender,
-    example: Gender.FEMALE,
-  })
-  @IsNotEmpty()
-  @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
-  gender: Gender;
+  @IsEmail({}, { message: "Invalid email format" })
+  email: string;
 
   @ApiProperty({
     description: "Guardian phone number (required)",
@@ -60,13 +48,24 @@ export class CreateGuardianRequest {
   phoneNumber: string;
 
   @ApiProperty({
-    description: "Guardian email (optional)",
-    example: "guardian@example.com",
+    description: "Guardian gender",
+    enum: Gender,
+    example: Gender.FEMALE,
+  })
+  @IsNotEmpty()
+  @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
+  gender: Gender;
+
+  @ApiProperty({
+    description:
+      "Guardian date of birth in ISO 8601 format (must be 18+ years old when provided)",
+    example: "1985-03-20T00:00:00.000Z",
     required: false,
   })
   @IsOptional()
-  @IsEmail({}, { message: "Invalid email format" })
-  email?: string;
+  @TransformToUTCDate()
+  @IsAdultDateOfBirth()
+  dateOfBirth?: Date;
 
   @ApiProperty({
     description: "Guardian address",

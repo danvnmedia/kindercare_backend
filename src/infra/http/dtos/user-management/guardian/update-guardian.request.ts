@@ -6,6 +6,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  ValidateIf,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
@@ -61,7 +62,7 @@ export class UpdateGuardianRequest {
     description: "Guardian email",
     example: "guardian@example.com",
   })
-  @IsOptional()
+  @ValidateIf((o) => o.email !== undefined)
   @IsEmail({}, { message: "Invalid email format" })
   email?: string;
 

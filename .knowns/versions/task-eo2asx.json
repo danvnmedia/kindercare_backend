@@ -1,0 +1,431 @@
+{
+  "taskId": "eo2asx",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "eo2asx",
+      "version": 1,
+      "timestamp": "2026-02-13T03:14:05.838Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "newValue": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)"
+        }
+      ],
+      "snapshot": {
+        "title": "Standardize isActive to isArchived for Campus, StaffType, and PostCategory",
+        "description": "Reduce confusion by standardizing on a single soft-delete boolean pattern. Currently the codebase uses isActive (default true) on some tables and isArchived (default false) on others. Standardize Campus, StaffType, and PostCategory to use isArchived. User.isActive is intentionally kept as-is.",
+        "status": "todo",
+        "priority": "medium",
+        "labels": [
+          "refactor",
+          "schema"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+          },
+          {
+            "completed": false,
+            "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+          },
+          {
+            "completed": false,
+            "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+          },
+          {
+            "completed": false,
+            "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+          },
+          {
+            "completed": false,
+            "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+          },
+          {
+            "completed": false,
+            "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+          },
+          {
+            "completed": false,
+            "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests updated and passing"
+          }
+        ],
+        "implementationNotes": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "eo2asx",
+      "version": 2,
+      "timestamp": "2026-02-13T17:30:39.347Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "title": "Standardize isActive to isArchived for Campus, StaffType, and PostCategory",
+        "description": "Reduce confusion by standardizing on a single soft-delete boolean pattern. Currently the codebase uses isActive (default true) on some tables and isArchived (default false) on others. Standardize Campus, StaffType, and PostCategory to use isArchived. User.isActive is intentionally kept as-is.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "schema"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+          },
+          {
+            "completed": false,
+            "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+          },
+          {
+            "completed": false,
+            "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+          },
+          {
+            "completed": false,
+            "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+          },
+          {
+            "completed": false,
+            "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+          },
+          {
+            "completed": false,
+            "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+          },
+          {
+            "completed": false,
+            "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests updated and passing"
+          }
+        ],
+        "implementationNotes": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "eo2asx",
+      "version": 3,
+      "timestamp": "2026-02-13T17:38:49.163Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "newValue": "Phase 1: Prisma schema + migration\nPhase 2: Domain entities (Campus, StaffType, PostCategory)\nPhase 3: Application layer (use cases, ports)\nPhase 4: Infrastructure layer (mappers, repositories)\nPhase 5: HTTP layer (DTOs, controllers)\nPhase 6: Tests, seed, factories"
+        }
+      ],
+      "snapshot": {
+        "title": "Standardize isActive to isArchived for Campus, StaffType, and PostCategory",
+        "description": "Reduce confusion by standardizing on a single soft-delete boolean pattern. Currently the codebase uses isActive (default true) on some tables and isArchived (default false) on others. Standardize Campus, StaffType, and PostCategory to use isArchived. User.isActive is intentionally kept as-is.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "schema"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+          },
+          {
+            "completed": false,
+            "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+          },
+          {
+            "completed": false,
+            "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+          },
+          {
+            "completed": false,
+            "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+          },
+          {
+            "completed": false,
+            "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+          },
+          {
+            "completed": false,
+            "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+          },
+          {
+            "completed": false,
+            "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+          },
+          {
+            "completed": false,
+            "text": "All existing tests updated and passing"
+          }
+        ],
+        "implementationPlan": "Phase 1: Prisma schema + migration\nPhase 2: Domain entities (Campus, StaffType, PostCategory)\nPhase 3: Application layer (use cases, ports)\nPhase 4: Infrastructure layer (mappers, repositories)\nPhase 5: HTTP layer (DTOs, controllers)\nPhase 6: Tests, seed, factories",
+        "implementationNotes": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "eo2asx",
+      "version": 4,
+      "timestamp": "2026-02-13T17:48:37.433Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": [
+            {
+              "completed": false,
+              "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+            },
+            {
+              "completed": false,
+              "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+            },
+            {
+              "completed": false,
+              "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+            },
+            {
+              "completed": false,
+              "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+            },
+            {
+              "completed": false,
+              "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+            },
+            {
+              "completed": false,
+              "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+            },
+            {
+              "completed": false,
+              "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+            },
+            {
+              "completed": false,
+              "text": "All existing tests updated and passing"
+            }
+          ],
+          "newValue": [
+            {
+              "completed": true,
+              "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+            },
+            {
+              "completed": true,
+              "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+            },
+            {
+              "completed": true,
+              "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+            },
+            {
+              "completed": true,
+              "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+            },
+            {
+              "completed": true,
+              "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+            },
+            {
+              "completed": true,
+              "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+            },
+            {
+              "completed": true,
+              "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+            },
+            {
+              "completed": true,
+              "text": "All existing tests updated and passing"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "title": "Standardize isActive to isArchived for Campus, StaffType, and PostCategory",
+        "description": "Reduce confusion by standardizing on a single soft-delete boolean pattern. Currently the codebase uses isActive (default true) on some tables and isArchived (default false) on others. Standardize Campus, StaffType, and PostCategory to use isArchived. User.isActive is intentionally kept as-is.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "schema"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+          },
+          {
+            "completed": true,
+            "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+          },
+          {
+            "completed": true,
+            "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+          },
+          {
+            "completed": true,
+            "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+          },
+          {
+            "completed": true,
+            "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+          },
+          {
+            "completed": true,
+            "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+          },
+          {
+            "completed": true,
+            "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests updated and passing"
+          }
+        ],
+        "implementationPlan": "Phase 1: Prisma schema + migration\nPhase 2: Domain entities (Campus, StaffType, PostCategory)\nPhase 3: Application layer (use cases, ports)\nPhase 4: Infrastructure layer (mappers, repositories)\nPhase 5: HTTP layer (DTOs, controllers)\nPhase 6: Tests, seed, factories",
+        "implementationNotes": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "eo2asx",
+      "version": 5,
+      "timestamp": "2026-02-13T17:48:44.591Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)",
+          "newValue": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)\n\nDone: Standardized isActive→isArchived across Campus, StaffType, PostCategory. 43 files changed. All 473 tests pass. Migration includes data inversion for Campus/StaffType. Also fixed campus.guard and create/update-staff use cases that referenced StaffType.isActive."
+        }
+      ],
+      "snapshot": {
+        "title": "Standardize isActive to isArchived for Campus, StaffType, and PostCategory",
+        "description": "Reduce confusion by standardizing on a single soft-delete boolean pattern. Currently the codebase uses isActive (default true) on some tables and isArchived (default false) on others. Standardize Campus, StaffType, and PostCategory to use isArchived. User.isActive is intentionally kept as-is.",
+        "status": "in-progress",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "schema"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+          },
+          {
+            "completed": true,
+            "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+          },
+          {
+            "completed": true,
+            "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+          },
+          {
+            "completed": true,
+            "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+          },
+          {
+            "completed": true,
+            "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+          },
+          {
+            "completed": true,
+            "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+          },
+          {
+            "completed": true,
+            "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests updated and passing"
+          }
+        ],
+        "implementationPlan": "Phase 1: Prisma schema + migration\nPhase 2: Domain entities (Campus, StaffType, PostCategory)\nPhase 3: Application layer (use cases, ports)\nPhase 4: Infrastructure layer (mappers, repositories)\nPhase 5: HTTP layer (DTOs, controllers)\nPhase 6: Tests, seed, factories",
+        "implementationNotes": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)\n\nDone: Standardized isActive→isArchived across Campus, StaffType, PostCategory. 43 files changed. All 473 tests pass. Migration includes data inversion for Campus/StaffType. Also fixed campus.guard and create/update-staff use cases that referenced StaffType.isActive."
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "eo2asx",
+      "version": 6,
+      "timestamp": "2026-02-13T19:47:53.306Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "title": "Standardize isActive to isArchived for Campus, StaffType, and PostCategory",
+        "description": "Reduce confusion by standardizing on a single soft-delete boolean pattern. Currently the codebase uses isActive (default true) on some tables and isArchived (default false) on others. Standardize Campus, StaffType, and PostCategory to use isArchived. User.isActive is intentionally kept as-is.",
+        "status": "done",
+        "priority": "medium",
+        "assignee": "@me",
+        "labels": [
+          "refactor",
+          "schema"
+        ],
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Campus: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests, seed)"
+          },
+          {
+            "completed": true,
+            "text": "StaffType: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller, tests)"
+          },
+          {
+            "completed": true,
+            "text": "PostCategory: isActive replaced with isArchived across all layers (schema, entity, DTOs, mapper, repository, use cases, controller)"
+          },
+          {
+            "completed": true,
+            "text": "Prisma migration created with data migration for Campus and StaffType (invert existing boolean values)"
+          },
+          {
+            "completed": true,
+            "text": "Domain methods renamed: activate/deactivate → unarchive/archive, default changes from true → false"
+          },
+          {
+            "completed": true,
+            "text": "Repository existsAndActive renamed to existsAndNotArchived (StaffType), findActivesByCampusId removed or renamed (PostCategory)"
+          },
+          {
+            "completed": true,
+            "text": "Delete use cases updated: deactivate() → archive(), controller docs updated accordingly"
+          },
+          {
+            "completed": true,
+            "text": "All existing tests updated and passing"
+          }
+        ],
+        "implementationPlan": "Phase 1: Prisma schema + migration\nPhase 2: Domain entities (Campus, StaffType, PostCategory)\nPhase 3: Application layer (use cases, ports)\nPhase 4: Infrastructure layer (mappers, repositories)\nPhase 5: HTTP layer (DTOs, controllers)\nPhase 6: Tests, seed, factories",
+        "implementationNotes": "## Scope\n- **Change**: Campus, StaffType, PostCategory — isActive(true) → isArchived(false)\n- **Keep**: User.isActive unchanged\n- **Data migration**: Campus & StaffType need boolean inversion; PostCategory is empty, no data migration needed\n\n## Files by Entity\n\n### Campus (19 files)\n- prisma/schema.prisma (field + default)\n- src/domain/campus/entities/campus.entity.ts (props, getter, activate→unarchive, deactivate→archive, create factory default)\n- src/domain/campus/entities/campus.entity.spec.ts\n- src/application/campus/use-cases/create-campus.use-case.ts + spec\n- src/application/campus/use-cases/update-campus.use-case.ts + spec\n- src/application/campus/use-cases/delete-campus.use-case.ts + spec (deactivate→archive)\n- src/application/campus/use-cases/get-all-campuses.use-case.spec.ts\n- src/infra/persistence/prisma/mapper/prisma-campus.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-campus.repository.ts (filter/sort fields)\n- src/infra/http/dtos/campus/create-campus.request.ts\n- src/infra/http/dtos/campus/update-campus.request.ts\n- src/infra/http/dtos/campus/campus.response.ts\n- src/infra/http/controllers/campus.controller.ts (swagger docs)\n- src/test-utils/entity-factories.ts\n- prisma/seed.ts\n\n### StaffType (16 files)\n- prisma/schema.prisma\n- src/domain/user-management/entities/staff-type.entity.ts + spec\n- src/application/user-management/use-cases/staff-type/create-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/update-staff-type.use-case.ts\n- src/application/user-management/use-cases/staff-type/delete-staff-type.use-case.ts\n- src/application/user-management/ports/staff-type.repository.ts (existsAndActive→existsAndNotArchived)\n- src/infra/persistence/prisma/mapper/prisma-staff-type.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-staff-type.repository.ts\n- src/infra/http/dtos/user-management/staff-type/ (create, update, response)\n- src/infra/http/controllers/user-management/staff-type.controller.ts\n\n### PostCategory (8 files)\n- prisma/schema.prisma (field + index)\n- src/domain/content-management/entities/post-category.entity.ts\n- src/application/content-management/ports/post-category.repository.ts (findActivesByCampusId→findNonArchivedByCampusId)\n- src/application/content-management/use-cases/category/delete-post-category.use-case.ts\n- src/infra/persistence/prisma/mapper/prisma-post-category.mapper.ts\n- src/infra/persistence/prisma/repositories/prisma-post-category.repository.ts\n- src/infra/http/dtos/post/category/post-category.response.ts\n- src/infra/http/controllers/post-category.controller.ts\n\n## Migration SQL Pattern\nALTER TABLE \"campuses\" RENAME COLUMN \"is_active\" TO \"is_archived\";\nALTER TABLE \"campuses\" ALTER COLUMN \"is_archived\" SET DEFAULT false;\nUPDATE \"campuses\" SET \"is_archived\" = NOT \"is_archived\";\n(Same for staff_types table)\n(PostCategory: just rename + change default, no data inversion needed)\n\nDone: Standardized isActive→isArchived across Campus, StaffType, PostCategory. 43 files changed. All 473 tests pass. Migration includes data inversion for Campus/StaffType. Also fixed campus.guard and create/update-staff use cases that referenced StaffType.isActive."
+      }
+    }
+  ]
+}

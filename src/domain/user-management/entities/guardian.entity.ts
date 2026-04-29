@@ -16,8 +16,8 @@ export interface GuardianStudent {
 }
 
 export interface GuardianRelationshipType {
-  id: string; // "FATHER", "MOTHER", "GUARDIAN"
-  name: string; // "Bố", "Mẹ", "Người giám hộ"
+  id: string;
+  name: string;
   description: string | null;
 }
 
@@ -25,7 +25,7 @@ export interface GuardianRelationshipType {
 export interface GuardianProps {
   campusId: string;
   fullName: string;
-  email: string | null;
+  email: string;
   phoneNumber: string;
   address: string | null;
   dateOfBirth: Date | null;
@@ -55,7 +55,7 @@ export class Guardian extends Entity<GuardianProps> {
   get fullName(): string {
     return this.props.fullName;
   }
-  get email(): string | null {
+  get email(): string {
     return this.props.email;
   }
   get phoneNumber(): string {
@@ -143,28 +143,6 @@ export class Guardian extends Entity<GuardianProps> {
     this.props.updatedAt = new Date();
   }
 
-  // --- Static Helper Methods ---
-
-  /**
-   * Gets a display name for a guardian relationship ID.
-   */
-  public static getGuardianType(relationshipId: string): string {
-    const types: Record<string, string> = {
-      FATHER: "Father",
-      MOTHER: "Mother",
-      GUARDIAN: "Guardian",
-    };
-    return types[relationshipId] || "Guardian";
-  }
-
-  /**
-   * Validates a guardian relationship ID.
-   */
-  public static validateRelationshipId(relationshipId: string): boolean {
-    const validRelationships = ["FATHER", "MOTHER", "GUARDIAN"];
-    return validRelationships.includes(relationshipId);
-  }
-
   // --- Factory Method ---
 
   /**
@@ -189,9 +167,8 @@ export class Guardian extends Entity<GuardianProps> {
         "Full name is required and must be at least 2 characters.",
       );
     }
-    // Email is optional, but if provided must be valid
-    if (props.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(props.email)) {
-      throw new Error("Email must be a valid email address.");
+    if (!props.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(props.email)) {
+      throw new Error("Email is required and must be a valid email address.");
     }
     if (!props.phoneNumber || !/^\+[1-9]\d{1,14}$/.test(props.phoneNumber)) {
       throw new Error(
@@ -211,5 +188,10 @@ export class Guardian extends Entity<GuardianProps> {
     };
 
     return new Guardian(guardianProps, id ? new UniqueEntityID(id) : undefined);
+  }
+
+  // Reconstitute from persistence without re-running invariants.
+  public static reconstitute(props: GuardianProps, id: string): Guardian {
+    return new Guardian(props, new UniqueEntityID(id));
   }
 }

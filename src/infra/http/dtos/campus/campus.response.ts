@@ -34,10 +34,10 @@ export class CampusResponse {
 
   @Expose()
   @ApiProperty({
-    description: "Whether the campus is active",
-    example: true,
+    description: "Whether the campus is archived",
+    example: false,
   })
-  isActive: boolean;
+  isArchived: boolean;
 
   @Expose()
   @ApiProperty({

@@ -30,6 +30,7 @@ import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-ca
 // Use Cases - Student
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { GetAllStudentsUseCase } from "@/application/user-management/use-cases/student/get-all-students.use-case";
+import { GetStudentByIdUseCase } from "@/application/user-management/use-cases/student/get-student-by-id.use-case";
 import { UpdateStudentUseCase } from "@/application/user-management/use-cases/student/update-student.use-case";
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { ArchiveStudentUseCase } from "@/application/user-management/use-cases/student/archive-student.use-case";
@@ -37,6 +38,7 @@ import { RestoreStudentUseCase } from "@/application/user-management/use-cases/s
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
+import { UpdateStudentGuardianRelationshipUseCase } from "@/application/user-management/use-cases/student/update-student-guardian-relationship.use-case";
 
 // Use Cases - Guardian
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
@@ -46,6 +48,9 @@ import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/g
 import { DeleteGuardianUseCase } from "@/application/user-management/use-cases/guardian/delete-guardian.use-case";
 import { ArchiveGuardianUseCase } from "@/application/user-management/use-cases/guardian/archive-guardian.use-case";
 import { RestoreGuardianUseCase } from "@/application/user-management/use-cases/guardian/restore-guardian.use-case";
+import { LinkStudentToGuardianUseCase } from "@/application/user-management/use-cases/guardian/link-student-to-guardian.use-case";
+import { UnlinkStudentFromGuardianUseCase as UnlinkStudentFromGuardianUseCaseGuardianSide } from "@/application/user-management/use-cases/guardian/unlink-student-from-guardian.use-case";
+import { GetGuardianChildrenUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-children.use-case";
 
 // Use Cases - Staff
 import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
@@ -65,9 +70,11 @@ import { PrismaStaffRepository } from "@/infra/persistence/prisma/repositories/p
 
 // Ports
 import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
+import { StaffCodeGeneratorPort } from "@/application/ports/staff-code-generator.port";
 
 // Services (Infrastructure implementations)
 import { StudentCodeGeneratorService } from "@/infra/persistence/prisma/services/student-code-generator.service";
+import { StaffCodeGeneratorService } from "@/infra/persistence/prisma/services/staff-code-generator.service";
 
 // Modules
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
@@ -76,6 +83,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
 import { RbacModule } from "./rbac.module";
 import { CampusModule } from "./campus.module";
 import { StaffTypeModule } from "./staff-type.module";
+import { GuardianRelationshipTypeModule } from "./guardian-relationship-type.module";
 import { RequestContextModule } from "../context/request-context.module";
 
 // Guards
@@ -107,6 +115,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     CampusModule, // Campus repository for role campus validation
     RequestContextModule, // Request-scoped authentication context
     forwardRef(() => StaffTypeModule), // For STAFF_TYPE_REPOSITORY (circular dep with StaffTypeModule)
+    forwardRef(() => GuardianRelationshipTypeModule), // For GUARDIAN_RELATIONSHIP_TYPE_REPOSITORY (used by LinkStudentWithGuardianUseCase)
   ],
   controllers: [
     RoleController,
@@ -139,6 +148,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     // Student Use Cases
     CreateStudentUseCase,
     GetAllStudentsUseCase,
+    GetStudentByIdUseCase,
     UpdateStudentUseCase,
     DeleteStudentUseCase,
     ArchiveStudentUseCase,
@@ -146,11 +156,16 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     LinkStudentWithGuardianUseCase,
     UnlinkStudentFromGuardianUseCase,
     GetStudentGuardiansUseCase,
+    UpdateStudentGuardianRelationshipUseCase,
 
     // Port bindings (Port → Implementation)
     {
       provide: StudentCodeGeneratorPort,
       useClass: StudentCodeGeneratorService,
+    },
+    {
+      provide: StaffCodeGeneratorPort,
+      useClass: StaffCodeGeneratorService,
     },
 
     // Guardian Use Cases
@@ -161,6 +176,9 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     DeleteGuardianUseCase,
     ArchiveGuardianUseCase,
     RestoreGuardianUseCase,
+    LinkStudentToGuardianUseCase,
+    UnlinkStudentFromGuardianUseCaseGuardianSide,
+    GetGuardianChildrenUseCase,
 
     // Staff Use Cases
     CreateStaffUseCase,

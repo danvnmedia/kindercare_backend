@@ -8,12 +8,12 @@ import {
 } from "@nestjs/common";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
-import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { GuardianRelationshipTypeRepository } from "../../ports/guardian-relationship-type.repository";
 
 export interface LinkStudentWithGuardianInput {
   studentId: string;
   guardianId: string;
-  relationshipId: string; // FATHER, MOTHER, GUARDIAN
+  relationshipId: string;
 }
 
 export interface LinkStudentWithGuardianOutput {
@@ -32,6 +32,8 @@ export class LinkStudentWithGuardianUseCase {
     private readonly studentRepository: StudentRepository,
     @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
+    @Inject("GUARDIAN_RELATIONSHIP_TYPE_REPOSITORY")
+    private readonly guardianRelationshipTypeRepository: GuardianRelationshipTypeRepository,
   ) {}
 
   async execute(
@@ -42,10 +44,19 @@ export class LinkStudentWithGuardianUseCase {
         `Linking student ${input.studentId} with guardian ${input.guardianId} (${input.relationshipId})`,
       );
 
-      // Validate relationship ID
-      if (!Guardian.validateRelationshipId(input.relationshipId)) {
+      // Validate relationship type exists and is not archived
+      const relationshipType =
+        await this.guardianRelationshipTypeRepository.findById(
+          input.relationshipId,
+        );
+      if (!relationshipType) {
+        throw new NotFoundException(
+          `Guardian relationship type with ID "${input.relationshipId}" not found`,
+        );
+      }
+      if (relationshipType.isArchived) {
         throw new BadRequestException(
-          `Invalid relationship ID: ${input.relationshipId}. Must be FATHER, MOTHER, or GUARDIAN`,
+          `Guardian relationship type "${relationshipType.name}" is archived and cannot be used`,
         );
       }
 
@@ -89,14 +100,11 @@ export class LinkStudentWithGuardianUseCase {
         `Successfully linked student ${input.studentId} with guardian ${input.guardianId}`,
       );
 
-      // Get relationship name
-      const relationshipName = Guardian.getGuardianType(input.relationshipId);
-
       return {
         studentId: input.studentId,
         guardianId: input.guardianId,
         relationshipId: input.relationshipId,
-        relationshipName,
+        relationshipName: relationshipType.name,
       };
     } catch (error) {
       this.logger.error(

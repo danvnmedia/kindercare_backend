@@ -1,0 +1,42 @@
+{
+  "taskId": "ypdv3y",
+  "currentVersion": 2,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "ypdv3y",
+      "version": 1,
+      "timestamp": "2026-04-17T21:26:43.4215888Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        }
+      ],
+      "snapshot": {
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Student - Guardian Link"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "ypdv3y",
+      "version": 2,
+      "timestamp": "2026-04-17T21:26:44.8818664Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "priority": "medium",
+        "status": "done",
+        "title": "Student - Guardian Link"
+      }
+    }
+  ]
+}

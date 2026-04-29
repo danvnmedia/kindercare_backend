@@ -102,6 +102,17 @@ export abstract class StudentRepository {
   ): Promise<void>;
 
   /**
+   * Update the relationship type on an existing student-guardian link row.
+   * Caller is responsible for verifying the row exists; this performs the
+   * raw UPDATE on the composite key.
+   */
+  abstract updateGuardianRelationship(
+    studentId: string,
+    guardianId: string,
+    relationshipId: string,
+  ): Promise<void>;
+
+  /**
    * Get student guardians
    */
   abstract getStudentGuardians(studentId: string): Promise<any[]>;

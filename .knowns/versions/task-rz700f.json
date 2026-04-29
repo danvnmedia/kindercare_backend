@@ -1,0 +1,99 @@
+{
+  "taskId": "rz700f",
+  "currentVersion": 2,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "rz700f",
+      "version": 1,
+      "timestamp": "2026-04-14T02:35:22.0986657Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GuardianRelationshipType enum deleted from link-student-guardian.request.ts"
+          },
+          {
+            "completed": false,
+            "text": "relationshipId field uses IsUUID 4 validation"
+          },
+          {
+            "completed": false,
+            "text": "Guardian.validateRelationshipId() and Guardian.getGuardianType() removed"
+          },
+          {
+            "completed": false,
+            "text": "LinkStudentWithGuardianUseCase validates relationship via DB lookup"
+          },
+          {
+            "completed": false,
+            "text": "Existing student-side linking endpoints still work with UUID relationship IDs"
+          }
+        ],
+        "description": "Remove hardcoded GuardianRelationshipType enum from DTOs, remove Guardian.validateRelationshipId() and Guardian.getGuardianType() static methods. Update LinkStudentWithGuardianUseCase to validate relationship type via DB existence check. Update link-student-guardian.request.ts to accept IsUUID instead of IsEnum.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Remove Hardcoded Enum and Update Student-Side Linking"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "rz700f",
+      "version": 2,
+      "timestamp": "2026-04-17T21:26:37.8114961Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "GuardianRelationshipType enum deleted from link-student-guardian.request.ts",
+            "completed": false
+          },
+          {
+            "text": "relationshipId field uses IsUUID 4 validation",
+            "completed": false
+          },
+          {
+            "text": "Guardian.validateRelationshipId() and Guardian.getGuardianType() removed",
+            "completed": false
+          },
+          {
+            "text": "LinkStudentWithGuardianUseCase validates relationship via DB lookup",
+            "completed": false
+          },
+          {
+            "text": "Existing student-side linking endpoints still work with UUID relationship IDs",
+            "completed": false
+          }
+        ],
+        "description": "Remove hardcoded GuardianRelationshipType enum from DTOs, remove Guardian.validateRelationshipId() and Guardian.getGuardianType() static methods. Update LinkStudentWithGuardianUseCase to validate relationship type via DB existence check. Update link-student-guardian.request.ts to accept IsUUID instead of IsEnum.",
+        "labels": [
+          "from-spec"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "Remove Hardcoded Enum and Update Student-Side Linking"
+      }
+    }
+  ]
+}

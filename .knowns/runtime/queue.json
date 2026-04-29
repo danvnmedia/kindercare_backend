@@ -1,0 +1,223 @@
+{
+  "jobs": [
+    {
+      "id": "1777233334261168300-59928",
+      "key": "reindex-search::",
+      "kind": "reindex-search",
+      "requestedAt": "2026-04-26T19:55:34.2611683Z",
+      "runAfter": "2026-04-26T19:55:34.2611683Z"
+    }
+  ],
+  "recent": [
+    {
+      "jobId": "1776827761621671000-67364",
+      "key": "index-doc::guides/pagination-and-filtering",
+      "kind": "index-doc",
+      "target": "guides/pagination-and-filtering",
+      "success": true,
+      "completedAt": "2026-04-22T03:16:08.4425925Z",
+      "requestedAt": "2026-04-22T03:16:01.621671Z",
+      "startedAt": "2026-04-22T03:16:06.7943641Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776827748702888000-67364",
+      "key": "index-doc::guides/pagination-and-filtering",
+      "kind": "index-doc",
+      "target": "guides/pagination-and-filtering",
+      "success": true,
+      "completedAt": "2026-04-22T03:15:56.014562Z",
+      "requestedAt": "2026-04-22T03:15:48.702888Z",
+      "startedAt": "2026-04-22T03:15:54.1992533Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776791971232105500-67364",
+      "key": "index-memory::xw1paz",
+      "kind": "index-memory",
+      "target": "xw1paz",
+      "success": true,
+      "completedAt": "2026-04-21T17:19:37.7419199Z",
+      "requestedAt": "2026-04-21T17:19:31.2321055Z",
+      "startedAt": "2026-04-21T17:19:36.7100791Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776791959482051800-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T17:19:26.135638Z",
+      "requestedAt": "2026-04-21T17:19:19.4820518Z",
+      "startedAt": "2026-04-21T17:19:24.7093048Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776791950315201500-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T17:19:17.2354444Z",
+      "requestedAt": "2026-04-21T17:19:10.3152015Z",
+      "startedAt": "2026-04-21T17:19:15.7091029Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776791813099638500-67364",
+      "key": "index-doc::guides/code-generation-pattern",
+      "kind": "index-doc",
+      "target": "guides/code-generation-pattern",
+      "success": true,
+      "completedAt": "2026-04-21T17:17:00.2047238Z",
+      "requestedAt": "2026-04-21T17:16:53.0996385Z",
+      "startedAt": "2026-04-21T17:16:58.2063748Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776790426936668600-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T16:53:53.5002245Z",
+      "requestedAt": "2026-04-21T16:53:46.9366686Z",
+      "startedAt": "2026-04-21T16:53:52.1709995Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776789524124639800-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T16:38:50.3065932Z",
+      "requestedAt": "2026-04-21T16:38:44.1246398Z",
+      "startedAt": "2026-04-21T16:38:49.1503686Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776789512197605500-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T16:38:39.2208842Z",
+      "requestedAt": "2026-04-21T16:38:32.1976055Z",
+      "startedAt": "2026-04-21T16:38:37.6499711Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776789479742412800-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T16:38:06.3928843Z",
+      "requestedAt": "2026-04-21T16:37:59.7424128Z",
+      "startedAt": "2026-04-21T16:38:05.1489247Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776789447973164200-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T16:37:34.2655921Z",
+      "requestedAt": "2026-04-21T16:37:27.9731642Z",
+      "startedAt": "2026-04-21T16:37:33.1482874Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776789432561803900-67364",
+      "key": "index-task::k6vdnz",
+      "kind": "index-task",
+      "target": "k6vdnz",
+      "success": true,
+      "completedAt": "2026-04-21T16:37:18.6220954Z",
+      "requestedAt": "2026-04-21T16:37:12.5618039Z",
+      "startedAt": "2026-04-21T16:37:17.6479235Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776787630613260300-67364",
+      "key": "index-memory::9aa6hm",
+      "kind": "index-memory",
+      "target": "9aa6hm",
+      "success": true,
+      "completedAt": "2026-04-21T16:07:17.132038Z",
+      "requestedAt": "2026-04-21T16:07:10.6132603Z",
+      "startedAt": "2026-04-21T16:07:16.1063603Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776787614875084100-67364",
+      "key": "index-task::z3x2vg",
+      "kind": "index-task",
+      "target": "z3x2vg",
+      "success": true,
+      "completedAt": "2026-04-21T16:07:01.3637715Z",
+      "requestedAt": "2026-04-21T16:06:54.8750841Z",
+      "startedAt": "2026-04-21T16:07:00.1058891Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776787581583841500-67364",
+      "key": "index-task::z3x2vg",
+      "kind": "index-task",
+      "target": "z3x2vg",
+      "success": true,
+      "completedAt": "2026-04-21T16:06:28.0846054Z",
+      "requestedAt": "2026-04-21T16:06:21.5838415Z",
+      "startedAt": "2026-04-21T16:06:26.6051426Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776787198811569900-67364",
+      "key": "index-task::z3x2vg",
+      "kind": "index-task",
+      "target": "z3x2vg",
+      "success": true,
+      "completedAt": "2026-04-21T16:00:05.5592256Z",
+      "requestedAt": "2026-04-21T15:59:58.8115699Z",
+      "startedAt": "2026-04-21T16:00:04.0963266Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776786809163623800-67364",
+      "key": "index-task::z3x2vg",
+      "kind": "index-task",
+      "target": "z3x2vg",
+      "success": true,
+      "completedAt": "2026-04-21T15:53:35.814388Z",
+      "requestedAt": "2026-04-21T15:53:29.1636238Z",
+      "startedAt": "2026-04-21T15:53:34.5871546Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776786592732151500-67364",
+      "key": "index-task::z3x2vg",
+      "kind": "index-task",
+      "target": "z3x2vg",
+      "success": true,
+      "completedAt": "2026-04-21T15:49:59.3101176Z",
+      "requestedAt": "2026-04-21T15:49:52.7321515Z",
+      "startedAt": "2026-04-21T15:49:58.0825319Z",
+      "attemptCount": 1
+    },
+    {
+      "jobId": "1776786555026581700-67364",
+      "key": "index-task::z3x2vg",
+      "kind": "index-task",
+      "target": "z3x2vg",
+      "success": true,
+      "completedAt": "2026-04-21T15:49:21.1941631Z",
+      "requestedAt": "2026-04-21T15:49:15.0265817Z",
+      "startedAt": "2026-04-21T15:49:20.0810284Z",
+      "attemptCount": 1
+    }
+  ],
+  "updatedAt": "2026-04-26T19:55:34.2611683Z"
+}

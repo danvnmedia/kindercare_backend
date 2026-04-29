@@ -36,15 +36,15 @@ describe("Class Entity", () => {
     });
 
     it("should throw error for missing gradeLevelId", () => {
-      expect(() =>
-        Class.create({ ...defaultProps, gradeLevelId: "" }),
-      ).toThrow("Grade level is required");
+      expect(() => Class.create({ ...defaultProps, gradeLevelId: "" })).toThrow(
+        "Grade level is required",
+      );
     });
 
     it("should throw error for missing schoolYearId", () => {
-      expect(() =>
-        Class.create({ ...defaultProps, schoolYearId: "" }),
-      ).toThrow("School year is required");
+      expect(() => Class.create({ ...defaultProps, schoolYearId: "" })).toThrow(
+        "School year is required",
+      );
     });
   });
 

@@ -31,9 +31,9 @@ export abstract class PostCategoryRepository {
   ): Promise<PostCategory | null>;
 
   /**
-   * Find all active categories for a campus (for dropdown/selection)
+   * Find all non-archived categories for a campus (for dropdown/selection)
    */
-  abstract findActivesByCampusId(campusId: string): Promise<PostCategory[]>;
+  abstract findNonArchivedByCampusId(campusId: string): Promise<PostCategory[]>;
 
   /**
    * Get the maximum order value for categories in a campus

@@ -43,6 +43,7 @@ describe("AssignStaffToClassUseCase", () => {
     return Staff.create(
       {
         campusId: belongsToCampusId,
+        staffCode: "ST-2025-000001",
         fullName: "Test Staff",
         email: "test@example.com",
         phoneNumber: "+84912345678",

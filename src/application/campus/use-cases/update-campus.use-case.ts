@@ -16,7 +16,7 @@ export interface UpdateCampusInput {
   name?: string;
   address?: string | null;
   phoneNumber?: string | null;
-  isActive?: boolean;
+  isArchived?: boolean;
 }
 
 @Injectable()
@@ -60,8 +60,8 @@ export class UpdateCampusUseCase {
       if (input.phoneNumber !== undefined) {
         updateData.phoneNumber = input.phoneNumber;
       }
-      if (input.isActive !== undefined) {
-        updateData.isActive = input.isActive;
+      if (input.isArchived !== undefined) {
+        updateData.isArchived = input.isArchived;
       }
 
       // Update domain entity (validation happens in entity)
