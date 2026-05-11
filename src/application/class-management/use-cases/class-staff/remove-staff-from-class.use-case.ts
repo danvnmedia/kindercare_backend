@@ -1,7 +1,15 @@
-import { Injectable, Inject, Logger, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  Inject,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from "@nestjs/common";
 import { ClassStaffRepository } from "../../ports/class-staff.repository";
+import { ClassRepository } from "../../ports/class.repository";
 
 export interface RemoveStaffFromClassInput {
+  campusId: string;
   classId: string;
   staffId: string;
   subjectId: string;
@@ -14,6 +22,8 @@ export class RemoveStaffFromClassUseCase {
   constructor(
     @Inject("CLASS_STAFF_REPOSITORY")
     private readonly classStaffRepository: ClassStaffRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
   ) {}
 
   async execute(input: RemoveStaffFromClassInput): Promise<void> {
@@ -22,7 +32,18 @@ export class RemoveStaffFromClassUseCase {
         `Removing staff ${input.staffId} from class ${input.classId} for subject ${input.subjectId}`,
       );
 
-      // Step 1: Check if assignment exists
+      // Step 1: Validate class exists
+      const classEntity = await this.classRepository.findById(input.classId);
+      if (!classEntity) {
+        throw new NotFoundException(`Class with ID ${input.classId} not found`);
+      }
+
+      // Step 1b: Validate class belongs to the specified campus
+      if (classEntity.campusId !== input.campusId) {
+        throw new BadRequestException(`Class does not belong to this campus`);
+      }
+
+      // Step 2: Check if assignment exists
       const assignment = await this.classStaffRepository.findByCompositeKey(
         input.classId,
         input.staffId,
@@ -34,7 +55,7 @@ export class RemoveStaffFromClassUseCase {
         );
       }
 
-      // Step 2: Delete assignment
+      // Step 3: Delete assignment
       await this.classStaffRepository.delete(
         input.classId,
         input.staffId,
@@ -47,7 +68,13 @@ export class RemoveStaffFromClassUseCase {
         `Failed to remove staff: ${error.message}`,
         error.stack,
       );
-      throw error;
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
     }
   }
 }

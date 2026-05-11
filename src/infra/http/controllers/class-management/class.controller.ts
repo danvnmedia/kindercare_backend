@@ -24,16 +24,26 @@ import {
 } from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { StandardRequestParam } from "@/core/modules/standard-response/decorators/standard-request-param.decorator";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 
 import {
   CreateClassRequest,
   UpdateClassRequest,
   ClassResponse,
   EnrollStudentRequest,
+  WithdrawStudentRequest,
   EnrollmentResponse,
+  BulkEnrollStudentsRequest,
+  BulkEnrollStudentsResponse,
+  BulkTransferStudentsRequest,
+  BulkTransferStudentsResponse,
   AssignStaffRequest,
   ClassStaffResponse,
+  GetClassEnrollmentsQuery,
+  EligibleStudentsQuery,
 } from "../../dtos/class-management";
+import { StudentResponse } from "../../dtos/user-management/student";
 
 // Use Cases
 import { CreateClassUseCase } from "@/application/class-management/use-cases/class/create-class.use-case";
@@ -42,8 +52,11 @@ import { GetAllClassesUseCase } from "@/application/class-management/use-cases/c
 import { UpdateClassUseCase } from "@/application/class-management/use-cases/class/update-class.use-case";
 import { DeleteClassUseCase } from "@/application/class-management/use-cases/class/delete-class.use-case";
 import { EnrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/enroll-student.use-case";
+import { WithdrawStudentUseCase } from "@/application/class-management/use-cases/enrollment/withdraw-student.use-case";
+import { BulkEnrollStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-enroll-students.use-case";
+import { BulkTransferStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-transfer-students.use-case";
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
-import { UnenrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/unenroll-student.use-case";
+import { GetEligibleStudentsForClassUseCase } from "@/application/user-management/use-cases/student/get-eligible-students-for-class.use-case";
 import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
 import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
 import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
@@ -59,8 +72,11 @@ export class ClassController {
     private readonly updateClassUseCase: UpdateClassUseCase,
     private readonly deleteClassUseCase: DeleteClassUseCase,
     private readonly enrollStudentUseCase: EnrollStudentUseCase,
+    private readonly bulkEnrollStudentsUseCase: BulkEnrollStudentsUseCase,
+    private readonly bulkTransferStudentsUseCase: BulkTransferStudentsUseCase,
+    private readonly withdrawStudentUseCase: WithdrawStudentUseCase,
     private readonly getClassEnrollmentsUseCase: GetClassEnrollmentsUseCase,
-    private readonly unenrollStudentUseCase: UnenrollStudentUseCase,
+    private readonly getEligibleStudentsForClassUseCase: GetEligibleStudentsForClassUseCase,
     private readonly assignStaffToClassUseCase: AssignStaffToClassUseCase,
     private readonly getClassStaffUseCase: GetClassStaffUseCase,
     private readonly removeStaffFromClassUseCase: RemoveStaffFromClassUseCase,
@@ -240,6 +256,127 @@ export class ClassController {
     });
   }
 
+  @Post(":id/enrollments/bulk")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Bulk enroll completed",
+    type: BulkEnrollStudentsResponse,
+  })
+  @ApiOperation({
+    summary: "Bulk enroll students into a class",
+    description:
+      "Enrolls up to 100 students into a class in a single call. Whole-call validation (BATCH_EMPTY, BATCH_TOO_LARGE, DUPLICATE_STUDENT_IN_BATCH, class+campus, schoolYear bounds) short-circuits with 4xx and zero row work. Per-row validation is tolerant: failing rows appear in `skipped[]` with a stable machine `reason` and the rest persist atomically inside one transaction.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async bulkEnrollStudents(
+    @CampusContext() campusId: string,
+    @Param("id") classId: string,
+    @Body() dto: BulkEnrollStudentsRequest,
+  ) {
+    return await this.bulkEnrollStudentsUseCase.execute({
+      campusId,
+      classId,
+      enrollmentDate: new Date(dto.enrollmentDate),
+      note: dto.note,
+      students: dto.students.map((row) => ({
+        studentId: row.studentId,
+        note: row.note,
+      })),
+    });
+  }
+
+  @Post(":id/transfers/bulk")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Bulk transfer completed",
+    type: BulkTransferStudentsResponse,
+  })
+  @ApiOperation({
+    summary: "Bulk transfer students into a class",
+    description:
+      "Transfers up to 100 students into a target class in a single call. Whole-call validation (BATCH_EMPTY, BATCH_TOO_LARGE, DUPLICATE_STUDENT_IN_BATCH, target class+campus, transferDate within target schoolYear) short-circuits with 4xx and zero row work. Per-row validation (NO_ACTIVE_ENROLLMENT, TRANSFER_SOURCE_MISMATCH, TRANSFER_SAME_CLASS) is tolerant: failing rows appear in `skipped[]` and the rest persist. Each survivor's close+open pair runs in its own DB transaction, so a row-level DB error rolls back only that row.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Target class UUID (the class students are being transferred into)",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async bulkTransferStudents(
+    @CampusContext() campusId: string,
+    @Param("id") classId: string,
+    @Body() dto: BulkTransferStudentsRequest,
+  ) {
+    return await this.bulkTransferStudentsUseCase.execute({
+      campusId,
+      classId,
+      transferDate: new Date(dto.transferDate),
+      note: dto.note,
+      students: dto.students.map((row) => ({
+        studentId: row.studentId,
+        fromClassId: row.fromClassId,
+        note: row.note,
+      })),
+    });
+  }
+
+  @Post(":id/enrollments/:enrollmentId/withdraw")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Student withdrawn successfully",
+    type: EnrollmentResponse,
+  })
+  @ApiOperation({
+    summary: "Withdraw a student from class",
+    description:
+      "Closes the enrollment period for the given enrollmentId. Defaults to today if endDate is omitted. A second withdraw on the same row returns 409 ENROLLMENT_ALREADY_CLOSED.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "enrollmentId",
+    description: "Enrollment UUID",
+    example: "123e4567-e89b-12d3-a456-426614174001",
+  })
+  async withdrawStudent(
+    @CampusContext() campusId: string,
+    @Param("id") _classId: string,
+    @Param("enrollmentId") enrollmentId: string,
+    @Body() dto: WithdrawStudentRequest,
+  ) {
+    return await this.withdrawStudentUseCase.execute({
+      enrollmentId,
+      campusId,
+      reason: dto.reason,
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+      note: dto.note,
+    });
+  }
+
   @Get(":id/enrollments")
   @RequireCampusAccess()
   @StandardResponse({
@@ -249,7 +386,8 @@ export class ClassController {
   })
   @ApiOperation({
     summary: "Get class enrollments",
-    description: "Get all students enrolled in this class.",
+    description:
+      "Get students enrolled in this class. By default, returns only active enrollments (endDate IS NULL). Pass `includeHistorical=true` to also include closed (transferred/withdrawn) periods, ordered by enrollmentDate DESC.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -262,26 +400,40 @@ export class ClassController {
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
+  @ApiQuery({
+    name: "includeHistorical",
+    required: false,
+    type: Boolean,
+    description:
+      "When true, include closed enrollment periods alongside active ones. Defaults to false.",
+  })
   async getEnrollments(
     @CampusContext() campusId: string,
     @Param("id") classId: string,
+    @Query() query: GetClassEnrollmentsQuery,
   ) {
-    return await this.getClassEnrollmentsUseCase.execute(classId, campusId);
+    return await this.getClassEnrollmentsUseCase.execute({
+      classId,
+      campusId,
+      includeHistorical: query.includeHistorical,
+    });
   }
 
-  @Delete(":classId/enrollments/:enrollmentId")
+  @Get(":classId/eligible-students")
   @RequireCampusAccess()
   @StandardResponse({
-    message: "Student unenrolled successfully",
-    type: null,
+    message: "Eligible students retrieved successfully",
+    type: StudentResponse,
+    isPaginated: true,
   })
   @ApiOperation({
-    summary: "Unenroll student from class",
-    description: "Remove a student's enrollment from this class.",
+    summary: "Get students eligible to be enrolled into this class",
+    description:
+      "Returns paginated students at the same campus as the class, not archived, with no currently active enrollment in any class. Defaults to status=ACTIVE; caller may opt in to WAITING, TRIAL, DEFERRED via includeStatuses. DROPPED and GRADUATED are rejected at validation. Cross-campus class lookups return 404.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
-    description: "Campus UUID to scope the unenrollment",
+    description: "Campus UUID to scope the eligibility check",
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
@@ -290,17 +442,33 @@ export class ClassController {
     description: "Class UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  @ApiParam({
-    name: "enrollmentId",
-    description: "Enrollment UUID",
-    example: "123e4567-e89b-12d3-a456-426614174001",
+  @ApiQuery({
+    name: "search",
+    required: false,
+    type: String,
+    description: "Case-insensitive substring match on fullName",
   })
-  async unenrollStudent(
+  @ApiQuery({
+    name: "includeStatuses",
+    required: false,
+    type: String,
+    description:
+      "Comma-separated student statuses (ACTIVE, WAITING, TRIAL, DEFERRED). Defaults to ACTIVE.",
+    example: "ACTIVE,WAITING",
+  })
+  async getEligibleStudents(
     @CampusContext() campusId: string,
-    @Param("enrollmentId") enrollmentId: string,
+    @Param("classId") classId: string,
+    @StandardRequestParam() params: StandardRequest,
+    @Query() query: EligibleStudentsQuery,
   ) {
-    await this.unenrollStudentUseCase.execute(enrollmentId, campusId);
-    return null;
+    return await this.getEligibleStudentsForClassUseCase.execute({
+      classId,
+      campusId,
+      params,
+      search: query.search,
+      includeStatuses: query.includeStatuses,
+    });
   }
 
   // ==================== Staff Assignment Endpoints ====================
@@ -408,6 +576,7 @@ export class ClassController {
     @Param("subjectId") subjectId: string,
   ) {
     await this.removeStaffFromClassUseCase.execute({
+      campusId,
       classId,
       staffId,
       subjectId,

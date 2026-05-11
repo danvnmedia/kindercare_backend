@@ -1,0 +1,347 @@
+{
+  "taskId": "q9gt2v",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "q9gt2v",
+      "version": 1,
+      "timestamp": "2026-05-05T23:32:58.412246Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Extend `Enrollment` entity in `src/domain/class-management/entities/enrollment.entity.ts` with `endDate: Date | null` and `exitReason: ExitReason | null`. Add `ExitReason` enum (`TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`). Implement `isActive()` returning `endDate === null`. Implement immutable `withdraw(date, reason)` returning a new entity instance. Enforce constructor invariant: `endDate` and `exitReason` must both be null or both set. Add domain errors `EnrollmentAlreadyClosedError` and `InvalidEndDateError`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-3, FR-4, FR-5, FR-6\nBlocked by: Task 1 (schema migration)",
+        "labels": [
+          "from-spec",
+          "domain"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Domain entity — endDate, exitReason, withdraw(), invariants"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "q9gt2v",
+      "version": 2,
+      "timestamp": "2026-05-05T23:33:47.2905774Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "`ExitReason` enum added with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`"
+            },
+            {
+              "completed": false,
+              "text": "`Enrollment.isActive()` returns `true` iff `endDate === null`"
+            },
+            {
+              "completed": false,
+              "text": "`Enrollment.withdraw(date, reason)` returns a new entity instance with `endDate=date, exitReason=reason` (immutable)"
+            },
+            {
+              "completed": false,
+              "text": "Calling `withdraw()` on an already-closed entity throws `EnrollmentAlreadyClosedError`"
+            },
+            {
+              "completed": false,
+              "text": "`withdraw()` with `date \u003c enrollmentDate` or `date \u003e today` throws `InvalidEndDateError`"
+            },
+            {
+              "completed": false,
+              "text": "Constructor enforces XOR invariant: `endDate` and `exitReason` must both be null or both set; otherwise throw"
+            },
+            {
+              "completed": false,
+              "text": "Unit tests in `enrollment.entity.spec.ts` cover `isActive`, `withdraw` happy path, all withdraw error paths, and the constructor invariant"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`ExitReason` enum added with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`"
+          },
+          {
+            "completed": false,
+            "text": "`Enrollment.isActive()` returns `true` iff `endDate === null`"
+          },
+          {
+            "completed": false,
+            "text": "`Enrollment.withdraw(date, reason)` returns a new entity instance with `endDate=date, exitReason=reason` (immutable)"
+          },
+          {
+            "completed": false,
+            "text": "Calling `withdraw()` on an already-closed entity throws `EnrollmentAlreadyClosedError`"
+          },
+          {
+            "completed": false,
+            "text": "`withdraw()` with `date \u003c enrollmentDate` or `date \u003e today` throws `InvalidEndDateError`"
+          },
+          {
+            "completed": false,
+            "text": "Constructor enforces XOR invariant: `endDate` and `exitReason` must both be null or both set; otherwise throw"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests in `enrollment.entity.spec.ts` cover `isActive`, `withdraw` happy path, all withdraw error paths, and the constructor invariant"
+          }
+        ],
+        "description": "Extend `Enrollment` entity in `src/domain/class-management/entities/enrollment.entity.ts` with `endDate: Date | null` and `exitReason: ExitReason | null`. Add `ExitReason` enum (`TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`). Implement `isActive()` returning `endDate === null`. Implement immutable `withdraw(date, reason)` returning a new entity instance. Enforce constructor invariant: `endDate` and `exitReason` must both be null or both set. Add domain errors `EnrollmentAlreadyClosedError` and `InvalidEndDateError`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-3, FR-4, FR-5, FR-6\nBlocked by: Task 1 (schema migration)",
+        "labels": [
+          "from-spec",
+          "domain"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Domain entity — endDate, exitReason, withdraw(), invariants"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "q9gt2v",
+      "version": 3,
+      "timestamp": "2026-05-06T01:50:27.916495Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`ExitReason` enum added with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`"
+          },
+          {
+            "completed": false,
+            "text": "`Enrollment.isActive()` returns `true` iff `endDate === null`"
+          },
+          {
+            "completed": false,
+            "text": "`Enrollment.withdraw(date, reason)` returns a new entity instance with `endDate=date, exitReason=reason` (immutable)"
+          },
+          {
+            "completed": false,
+            "text": "Calling `withdraw()` on an already-closed entity throws `EnrollmentAlreadyClosedError`"
+          },
+          {
+            "completed": false,
+            "text": "`withdraw()` with `date \u003c enrollmentDate` or `date \u003e today` throws `InvalidEndDateError`"
+          },
+          {
+            "completed": false,
+            "text": "Constructor enforces XOR invariant: `endDate` and `exitReason` must both be null or both set; otherwise throw"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests in `enrollment.entity.spec.ts` cover `isActive`, `withdraw` happy path, all withdraw error paths, and the constructor invariant"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Extend `Enrollment` entity in `src/domain/class-management/entities/enrollment.entity.ts` with `endDate: Date | null` and `exitReason: ExitReason | null`. Add `ExitReason` enum (`TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`). Implement `isActive()` returning `endDate === null`. Implement immutable `withdraw(date, reason)` returning a new entity instance. Enforce constructor invariant: `endDate` and `exitReason` must both be null or both set. Add domain errors `EnrollmentAlreadyClosedError` and `InvalidEndDateError`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-3, FR-4, FR-5, FR-6\nBlocked by: Task 1 (schema migration)",
+        "labels": [
+          "from-spec",
+          "domain"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Domain entity — endDate, exitReason, withdraw(), invariants"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "q9gt2v",
+      "version": 4,
+      "timestamp": "2026-05-06T01:52:28.1912537Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "## Implementation Plan\n\nExtend the `Enrollment` domain entity with period semantics. Convention deviations from the task description: project uses `*.exception.ts` (suffix `Exception`) and `\u003carea\u003e/enums/`, `\u003carea\u003e/exceptions/` folders — I'll use `EnrollmentAlreadyClosedException` and `InvalidEndDateException` instead of the `Error` suffix mentioned in the description (HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are mapped at the use-case/controller layer in tasks @task-q0oqvy and @task-q9rt9n, not here).\n\n### Step 1 — Add `ExitReason` enum\n- Create `src/domain/class-management/enums/exit-reason.enum.ts` with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED` (PascalCase enum, SCREAMING_SNAKE_CASE values — matches `student-status.enum.ts` convention).\n- Create `src/domain/class-management/enums/index.ts` barrel.\n\n### Step 2 — Add domain exceptions\n- Create `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — extends `Error`, takes `enrollmentId: string`.\n- Create `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — extends `Error`, takes a contextual reason message (used for both \"date \u003c enrollmentDate\" and \"date \u003e today\").\n- Create `src/domain/class-management/exceptions/index.ts` barrel.\n- Pattern reference: `src/domain/user-management/exceptions/email-already-exists.exception.ts`.\n\n### Step 3 — Extend `Enrollment` entity (props, getters, factory invariant)\nFile: `src/domain/class-management/entities/enrollment.entity.ts`\n- Add `endDate: Date | null` and `exitReason: ExitReason | null` to `EnrollmentProps`.\n- Add matching getters.\n- Add `isActive(): boolean` returning `this.props.endDate === null`.\n- In `Enrollment.create()`, default missing `endDate`/`exitReason` to `null` (keeps existing mapper call sites working until @task-jvdbpl updates the mapper).\n- Enforce XOR invariant: if exactly one of `endDate`/`exitReason` is non-null, throw `Error(\"Enrollment endDate and exitReason must both be set or both be null\")`. Used by both factory and `withdraw()` reconstruction path.\n\n### Step 4 — Implement immutable `withdraw(date, reason)`\n- Throws `EnrollmentAlreadyClosedException` if `!isActive()`.\n- Validates `date \u003e= enrollmentDate` and `date \u003c= today` (compare on date components, not time-of-day) — throws `InvalidEndDateException` otherwise.\n- Returns a NEW `Enrollment` instance via `Enrollment.create({ ...this.props, endDate, exitReason })` preserving the same `id` (pass `this.id` as the second arg) so identity is stable across the immutable transition.\n- The current entity instance is left untouched (immutability check via test).\n\n### Step 5 — Unit tests\n- Create `src/domain/class-management/entities/enrollment.entity.spec.ts` mirroring the style of `class.entity.spec.ts`.\n- Coverage:\n  - `isActive()` — true when `endDate=null`, false when set.\n  - `withdraw()` happy path — returns new instance with `endDate`, `exitReason` set; original instance unchanged; new instance has same `id`.\n  - `withdraw()` error paths — already-closed throws `EnrollmentAlreadyClosedException`; date before `enrollmentDate` throws `InvalidEndDateException`; date in future throws `InvalidEndDateException`.\n  - Constructor invariant — `create({ endDate: someDate })` (no reason) throws; `create({ exitReason: ExitReason.WITHDRAWN })` (no date) throws; both null OK; both set OK.\n- Run `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts`.\n\n### Step 6 — Wire exports \u0026 validate\n- Update `src/domain/class-management/index.ts` to re-export `enums` and `exceptions` barrels.\n- Run `npx tsc --noEmit` to confirm no breakage in mapper/use-cases that call `Enrollment.create(...)`.\n- Run full enrollment-related test suite: `npx jest src/application/class-management/use-cases/enrollment` and `src/domain/class-management`.\n- Run Knowns validation on this task.\n\n### Out of scope (handled in dependent tasks)\n- Mapper updates for `endDate`/`exitReason` — @task-jvdbpl\n- HTTP layer mapping domain exceptions → `409 ENROLLMENT_ALREADY_CLOSED` / `400 INVALID_END_DATE` — @task-q0oqvy\n- Use-case enforcement of \"active-only\" mutations on `update()` — @task-q0oqvy / @task-zffh6i\n\n### AC ↔ Step mapping\n| Task AC | Step |\n|---|---|\n| ExitReason enum added | 1 |\n| isActive() returns true iff endDate null | 3 |\n| withdraw() immutable returns new entity | 4 |\n| Already-closed throws EnrollmentAlreadyClosedException | 4 |\n| date \u003c enrollmentDate or \u003e today throws InvalidEndDateException | 4 |\n| Constructor XOR invariant | 3 |\n| Unit tests cover all of the above | 5 |\n\n| Spec AC | Step |\n|---|---|\n| AC-5 | 3 |\n| AC-6 | 3, 4 |\n| AC-7 | 3 |\n| AC-8 | 4 |\n"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`ExitReason` enum added with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`"
+          },
+          {
+            "completed": false,
+            "text": "`Enrollment.isActive()` returns `true` iff `endDate === null`"
+          },
+          {
+            "completed": false,
+            "text": "`Enrollment.withdraw(date, reason)` returns a new entity instance with `endDate=date, exitReason=reason` (immutable)"
+          },
+          {
+            "completed": false,
+            "text": "Calling `withdraw()` on an already-closed entity throws `EnrollmentAlreadyClosedError`"
+          },
+          {
+            "completed": false,
+            "text": "`withdraw()` with `date \u003c enrollmentDate` or `date \u003e today` throws `InvalidEndDateError`"
+          },
+          {
+            "completed": false,
+            "text": "Constructor enforces XOR invariant: `endDate` and `exitReason` must both be null or both set; otherwise throw"
+          },
+          {
+            "completed": false,
+            "text": "Unit tests in `enrollment.entity.spec.ts` cover `isActive`, `withdraw` happy path, all withdraw error paths, and the constructor invariant"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Extend `Enrollment` entity in `src/domain/class-management/entities/enrollment.entity.ts` with `endDate: Date | null` and `exitReason: ExitReason | null`. Add `ExitReason` enum (`TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`). Implement `isActive()` returning `endDate === null`. Implement immutable `withdraw(date, reason)` returning a new entity instance. Enforce constructor invariant: `endDate` and `exitReason` must both be null or both set. Add domain errors `EnrollmentAlreadyClosedError` and `InvalidEndDateError`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-3, FR-4, FR-5, FR-6\nBlocked by: Task 1 (schema migration)",
+        "implementationPlan": "## Implementation Plan\n\nExtend the `Enrollment` domain entity with period semantics. Convention deviations from the task description: project uses `*.exception.ts` (suffix `Exception`) and `\u003carea\u003e/enums/`, `\u003carea\u003e/exceptions/` folders — I'll use `EnrollmentAlreadyClosedException` and `InvalidEndDateException` instead of the `Error` suffix mentioned in the description (HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are mapped at the use-case/controller layer in tasks @task-q0oqvy and @task-q9rt9n, not here).\n\n### Step 1 — Add `ExitReason` enum\n- Create `src/domain/class-management/enums/exit-reason.enum.ts` with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED` (PascalCase enum, SCREAMING_SNAKE_CASE values — matches `student-status.enum.ts` convention).\n- Create `src/domain/class-management/enums/index.ts` barrel.\n\n### Step 2 — Add domain exceptions\n- Create `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — extends `Error`, takes `enrollmentId: string`.\n- Create `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — extends `Error`, takes a contextual reason message (used for both \"date \u003c enrollmentDate\" and \"date \u003e today\").\n- Create `src/domain/class-management/exceptions/index.ts` barrel.\n- Pattern reference: `src/domain/user-management/exceptions/email-already-exists.exception.ts`.\n\n### Step 3 — Extend `Enrollment` entity (props, getters, factory invariant)\nFile: `src/domain/class-management/entities/enrollment.entity.ts`\n- Add `endDate: Date | null` and `exitReason: ExitReason | null` to `EnrollmentProps`.\n- Add matching getters.\n- Add `isActive(): boolean` returning `this.props.endDate === null`.\n- In `Enrollment.create()`, default missing `endDate`/`exitReason` to `null` (keeps existing mapper call sites working until @task-jvdbpl updates the mapper).\n- Enforce XOR invariant: if exactly one of `endDate`/`exitReason` is non-null, throw `Error(\"Enrollment endDate and exitReason must both be set or both be null\")`. Used by both factory and `withdraw()` reconstruction path.\n\n### Step 4 — Implement immutable `withdraw(date, reason)`\n- Throws `EnrollmentAlreadyClosedException` if `!isActive()`.\n- Validates `date \u003e= enrollmentDate` and `date \u003c= today` (compare on date components, not time-of-day) — throws `InvalidEndDateException` otherwise.\n- Returns a NEW `Enrollment` instance via `Enrollment.create({ ...this.props, endDate, exitReason })` preserving the same `id` (pass `this.id` as the second arg) so identity is stable across the immutable transition.\n- The current entity instance is left untouched (immutability check via test).\n\n### Step 5 — Unit tests\n- Create `src/domain/class-management/entities/enrollment.entity.spec.ts` mirroring the style of `class.entity.spec.ts`.\n- Coverage:\n  - `isActive()` — true when `endDate=null`, false when set.\n  - `withdraw()` happy path — returns new instance with `endDate`, `exitReason` set; original instance unchanged; new instance has same `id`.\n  - `withdraw()` error paths — already-closed throws `EnrollmentAlreadyClosedException`; date before `enrollmentDate` throws `InvalidEndDateException`; date in future throws `InvalidEndDateException`.\n  - Constructor invariant — `create({ endDate: someDate })` (no reason) throws; `create({ exitReason: ExitReason.WITHDRAWN })` (no date) throws; both null OK; both set OK.\n- Run `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts`.\n\n### Step 6 — Wire exports \u0026 validate\n- Update `src/domain/class-management/index.ts` to re-export `enums` and `exceptions` barrels.\n- Run `npx tsc --noEmit` to confirm no breakage in mapper/use-cases that call `Enrollment.create(...)`.\n- Run full enrollment-related test suite: `npx jest src/application/class-management/use-cases/enrollment` and `src/domain/class-management`.\n- Run Knowns validation on this task.\n\n### Out of scope (handled in dependent tasks)\n- Mapper updates for `endDate`/`exitReason` — @task-jvdbpl\n- HTTP layer mapping domain exceptions → `409 ENROLLMENT_ALREADY_CLOSED` / `400 INVALID_END_DATE` — @task-q0oqvy\n- Use-case enforcement of \"active-only\" mutations on `update()` — @task-q0oqvy / @task-zffh6i\n\n### AC ↔ Step mapping\n| Task AC | Step |\n|---|---|\n| ExitReason enum added | 1 |\n| isActive() returns true iff endDate null | 3 |\n| withdraw() immutable returns new entity | 4 |\n| Already-closed throws EnrollmentAlreadyClosedException | 4 |\n| date \u003c enrollmentDate or \u003e today throws InvalidEndDateException | 4 |\n| Constructor XOR invariant | 3 |\n| Unit tests cover all of the above | 5 |\n\n| Spec AC | Step |\n|---|---|\n| AC-5 | 3 |\n| AC-6 | 3, 4 |\n| AC-7 | 3 |\n| AC-8 | 4 |\n",
+        "labels": [
+          "from-spec",
+          "domain"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Domain entity — endDate, exitReason, withdraw(), invariants"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "q9gt2v",
+      "version": 5,
+      "timestamp": "2026-05-06T01:56:40.9146864Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implementation complete (2026-05-05).\n\n**Files created**\n- `src/domain/class-management/enums/exit-reason.enum.ts` — `ExitReason` enum with TRANSFERRED|WITHDRAWN|COMPLETED|GRADUATED.\n- `src/domain/class-management/enums/index.ts` — barrel.\n- `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — `EnrollmentAlreadyClosedException` (extends Error, takes enrollmentId).\n- `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — `InvalidEndDateException` (extends Error, takes contextual reason string).\n- `src/domain/class-management/exceptions/index.ts` — barrel.\n- `src/domain/class-management/entities/enrollment.entity.spec.ts` — 17 unit tests (all green).\n\n**Files modified**\n- `src/domain/class-management/entities/enrollment.entity.ts` — added `endDate`/`exitReason` props + getters, `isActive()`, immutable `withdraw(date, reason)`, XOR factory invariant, private `toDateOnly()` for date-only comparisons.\n- `src/domain/class-management/index.ts` — re-exports `enums` and `exceptions` barrels.\n\n**Convention deviation from task description (decided in plan, kept):** Used `*.exception.ts` / `Exception` suffix per `@doc/patterns/exception-pattern` and `@doc/conventions/naming-conventions` rather than the spec's textual `*Error` suffix. HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are still mapped at the use-case/controller layer in @task-q0oqvy and @task-q9rt9n.\n\n**Backwards compatibility:** `Enrollment.create()` defaults `endDate`/`exitReason` to `null`. Existing call sites (`PrismaEnrollmentMapper.toDomain`, `EnrollStudentUseCase`) continue to work without modification — the mapper update lands in @task-jvdbpl.\n\n**Verification**\n- `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts` → 17 passed.\n- `npx jest src/application/class-management/use-cases/enrollment src/domain/class-management` → 38 passed (no regressions).\n- `npx tsc --noEmit` → clean.\n\n**SOLID compliance**\n- SRP: enum + each exception + entity each in their own file with one responsibility.\n- OCP: `withdraw()` returns a new instance instead of mutating, so the entity is open for extension via composition without modifying the existing `update()` flow.\n- LSP: subclass behavior matches `Entity\u003cProps\u003e` base — no behavioral surprises.\n- ISP: `UpdateEnrollmentData` and `CreateEnrollmentData` types narrow what callers may pass.\n- DIP: domain layer depends only on `Entity`, `UniqueEntityID`, `Optional` (core abstractions) — no Nest/Prisma. Exceptions extend the language `Error` only."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "`ExitReason` enum added with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`"
+          },
+          {
+            "completed": true,
+            "text": "`Enrollment.isActive()` returns `true` iff `endDate === null`"
+          },
+          {
+            "completed": true,
+            "text": "`Enrollment.withdraw(date, reason)` returns a new entity instance with `endDate=date, exitReason=reason` (immutable)"
+          },
+          {
+            "completed": true,
+            "text": "Calling `withdraw()` on an already-closed entity throws `EnrollmentAlreadyClosedError`"
+          },
+          {
+            "completed": true,
+            "text": "`withdraw()` with `date \u003c enrollmentDate` or `date \u003e today` throws `InvalidEndDateError`"
+          },
+          {
+            "completed": true,
+            "text": "Constructor enforces XOR invariant: `endDate` and `exitReason` must both be null or both set; otherwise throw"
+          },
+          {
+            "completed": true,
+            "text": "Unit tests in `enrollment.entity.spec.ts` cover `isActive`, `withdraw` happy path, all withdraw error paths, and the constructor invariant"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Extend `Enrollment` entity in `src/domain/class-management/entities/enrollment.entity.ts` with `endDate: Date | null` and `exitReason: ExitReason | null`. Add `ExitReason` enum (`TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`). Implement `isActive()` returning `endDate === null`. Implement immutable `withdraw(date, reason)` returning a new entity instance. Enforce constructor invariant: `endDate` and `exitReason` must both be null or both set. Add domain errors `EnrollmentAlreadyClosedError` and `InvalidEndDateError`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-3, FR-4, FR-5, FR-6\nBlocked by: Task 1 (schema migration)",
+        "implementationNotes": "Implementation complete (2026-05-05).\n\n**Files created**\n- `src/domain/class-management/enums/exit-reason.enum.ts` — `ExitReason` enum with TRANSFERRED|WITHDRAWN|COMPLETED|GRADUATED.\n- `src/domain/class-management/enums/index.ts` — barrel.\n- `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — `EnrollmentAlreadyClosedException` (extends Error, takes enrollmentId).\n- `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — `InvalidEndDateException` (extends Error, takes contextual reason string).\n- `src/domain/class-management/exceptions/index.ts` — barrel.\n- `src/domain/class-management/entities/enrollment.entity.spec.ts` — 17 unit tests (all green).\n\n**Files modified**\n- `src/domain/class-management/entities/enrollment.entity.ts` — added `endDate`/`exitReason` props + getters, `isActive()`, immutable `withdraw(date, reason)`, XOR factory invariant, private `toDateOnly()` for date-only comparisons.\n- `src/domain/class-management/index.ts` — re-exports `enums` and `exceptions` barrels.\n\n**Convention deviation from task description (decided in plan, kept):** Used `*.exception.ts` / `Exception` suffix per `@doc/patterns/exception-pattern` and `@doc/conventions/naming-conventions` rather than the spec's textual `*Error` suffix. HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are still mapped at the use-case/controller layer in @task-q0oqvy and @task-q9rt9n.\n\n**Backwards compatibility:** `Enrollment.create()` defaults `endDate`/`exitReason` to `null`. Existing call sites (`PrismaEnrollmentMapper.toDomain`, `EnrollStudentUseCase`) continue to work without modification — the mapper update lands in @task-jvdbpl.\n\n**Verification**\n- `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts` → 17 passed.\n- `npx jest src/application/class-management/use-cases/enrollment src/domain/class-management` → 38 passed (no regressions).\n- `npx tsc --noEmit` → clean.\n\n**SOLID compliance**\n- SRP: enum + each exception + entity each in their own file with one responsibility.\n- OCP: `withdraw()` returns a new instance instead of mutating, so the entity is open for extension via composition without modifying the existing `update()` flow.\n- LSP: subclass behavior matches `Entity\u003cProps\u003e` base — no behavioral surprises.\n- ISP: `UpdateEnrollmentData` and `CreateEnrollmentData` types narrow what callers may pass.\n- DIP: domain layer depends only on `Entity`, `UniqueEntityID`, `Optional` (core abstractions) — no Nest/Prisma. Exceptions extend the language `Error` only.",
+        "implementationPlan": "## Implementation Plan\n\nExtend the `Enrollment` domain entity with period semantics. Convention deviations from the task description: project uses `*.exception.ts` (suffix `Exception`) and `\u003carea\u003e/enums/`, `\u003carea\u003e/exceptions/` folders — I'll use `EnrollmentAlreadyClosedException` and `InvalidEndDateException` instead of the `Error` suffix mentioned in the description (HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are mapped at the use-case/controller layer in tasks @task-q0oqvy and @task-q9rt9n, not here).\n\n### Step 1 — Add `ExitReason` enum\n- Create `src/domain/class-management/enums/exit-reason.enum.ts` with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED` (PascalCase enum, SCREAMING_SNAKE_CASE values — matches `student-status.enum.ts` convention).\n- Create `src/domain/class-management/enums/index.ts` barrel.\n\n### Step 2 — Add domain exceptions\n- Create `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — extends `Error`, takes `enrollmentId: string`.\n- Create `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — extends `Error`, takes a contextual reason message (used for both \"date \u003c enrollmentDate\" and \"date \u003e today\").\n- Create `src/domain/class-management/exceptions/index.ts` barrel.\n- Pattern reference: `src/domain/user-management/exceptions/email-already-exists.exception.ts`.\n\n### Step 3 — Extend `Enrollment` entity (props, getters, factory invariant)\nFile: `src/domain/class-management/entities/enrollment.entity.ts`\n- Add `endDate: Date | null` and `exitReason: ExitReason | null` to `EnrollmentProps`.\n- Add matching getters.\n- Add `isActive(): boolean` returning `this.props.endDate === null`.\n- In `Enrollment.create()`, default missing `endDate`/`exitReason` to `null` (keeps existing mapper call sites working until @task-jvdbpl updates the mapper).\n- Enforce XOR invariant: if exactly one of `endDate`/`exitReason` is non-null, throw `Error(\"Enrollment endDate and exitReason must both be set or both be null\")`. Used by both factory and `withdraw()` reconstruction path.\n\n### Step 4 — Implement immutable `withdraw(date, reason)`\n- Throws `EnrollmentAlreadyClosedException` if `!isActive()`.\n- Validates `date \u003e= enrollmentDate` and `date \u003c= today` (compare on date components, not time-of-day) — throws `InvalidEndDateException` otherwise.\n- Returns a NEW `Enrollment` instance via `Enrollment.create({ ...this.props, endDate, exitReason })` preserving the same `id` (pass `this.id` as the second arg) so identity is stable across the immutable transition.\n- The current entity instance is left untouched (immutability check via test).\n\n### Step 5 — Unit tests\n- Create `src/domain/class-management/entities/enrollment.entity.spec.ts` mirroring the style of `class.entity.spec.ts`.\n- Coverage:\n  - `isActive()` — true when `endDate=null`, false when set.\n  - `withdraw()` happy path — returns new instance with `endDate`, `exitReason` set; original instance unchanged; new instance has same `id`.\n  - `withdraw()` error paths — already-closed throws `EnrollmentAlreadyClosedException`; date before `enrollmentDate` throws `InvalidEndDateException`; date in future throws `InvalidEndDateException`.\n  - Constructor invariant — `create({ endDate: someDate })` (no reason) throws; `create({ exitReason: ExitReason.WITHDRAWN })` (no date) throws; both null OK; both set OK.\n- Run `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts`.\n\n### Step 6 — Wire exports \u0026 validate\n- Update `src/domain/class-management/index.ts` to re-export `enums` and `exceptions` barrels.\n- Run `npx tsc --noEmit` to confirm no breakage in mapper/use-cases that call `Enrollment.create(...)`.\n- Run full enrollment-related test suite: `npx jest src/application/class-management/use-cases/enrollment` and `src/domain/class-management`.\n- Run Knowns validation on this task.\n\n### Out of scope (handled in dependent tasks)\n- Mapper updates for `endDate`/`exitReason` — @task-jvdbpl\n- HTTP layer mapping domain exceptions → `409 ENROLLMENT_ALREADY_CLOSED` / `400 INVALID_END_DATE` — @task-q0oqvy\n- Use-case enforcement of \"active-only\" mutations on `update()` — @task-q0oqvy / @task-zffh6i\n\n### AC ↔ Step mapping\n| Task AC | Step |\n|---|---|\n| ExitReason enum added | 1 |\n| isActive() returns true iff endDate null | 3 |\n| withdraw() immutable returns new entity | 4 |\n| Already-closed throws EnrollmentAlreadyClosedException | 4 |\n| date \u003c enrollmentDate or \u003e today throws InvalidEndDateException | 4 |\n| Constructor XOR invariant | 3 |\n| Unit tests cover all of the above | 5 |\n\n| Spec AC | Step |\n|---|---|\n| AC-5 | 3 |\n| AC-6 | 3, 4 |\n| AC-7 | 3 |\n| AC-8 | 4 |",
+        "labels": [
+          "from-spec",
+          "domain"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Domain entity — endDate, exitReason, withdraw(), invariants"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "q9gt2v",
+      "version": 6,
+      "timestamp": "2026-05-06T01:57:15.9492913Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        },
+        {
+          "field": "implementationNotes",
+          "oldValue": "Implementation complete (2026-05-05).\n\n**Files created**\n- `src/domain/class-management/enums/exit-reason.enum.ts` — `ExitReason` enum with TRANSFERRED|WITHDRAWN|COMPLETED|GRADUATED.\n- `src/domain/class-management/enums/index.ts` — barrel.\n- `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — `EnrollmentAlreadyClosedException` (extends Error, takes enrollmentId).\n- `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — `InvalidEndDateException` (extends Error, takes contextual reason string).\n- `src/domain/class-management/exceptions/index.ts` — barrel.\n- `src/domain/class-management/entities/enrollment.entity.spec.ts` — 17 unit tests (all green).\n\n**Files modified**\n- `src/domain/class-management/entities/enrollment.entity.ts` — added `endDate`/`exitReason` props + getters, `isActive()`, immutable `withdraw(date, reason)`, XOR factory invariant, private `toDateOnly()` for date-only comparisons.\n- `src/domain/class-management/index.ts` — re-exports `enums` and `exceptions` barrels.\n\n**Convention deviation from task description (decided in plan, kept):** Used `*.exception.ts` / `Exception` suffix per `@doc/patterns/exception-pattern` and `@doc/conventions/naming-conventions` rather than the spec's textual `*Error` suffix. HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are still mapped at the use-case/controller layer in @task-q0oqvy and @task-q9rt9n.\n\n**Backwards compatibility:** `Enrollment.create()` defaults `endDate`/`exitReason` to `null`. Existing call sites (`PrismaEnrollmentMapper.toDomain`, `EnrollStudentUseCase`) continue to work without modification — the mapper update lands in @task-jvdbpl.\n\n**Verification**\n- `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts` → 17 passed.\n- `npx jest src/application/class-management/use-cases/enrollment src/domain/class-management` → 38 passed (no regressions).\n- `npx tsc --noEmit` → clean.\n\n**SOLID compliance**\n- SRP: enum + each exception + entity each in their own file with one responsibility.\n- OCP: `withdraw()` returns a new instance instead of mutating, so the entity is open for extension via composition without modifying the existing `update()` flow.\n- LSP: subclass behavior matches `Entity\u003cProps\u003e` base — no behavioral surprises.\n- ISP: `UpdateEnrollmentData` and `CreateEnrollmentData` types narrow what callers may pass.\n- DIP: domain layer depends only on `Entity`, `UniqueEntityID`, `Optional` (core abstractions) — no Nest/Prisma. Exceptions extend the language `Error` only.",
+          "newValue": "Implementation complete (2026-05-05).\n\n**Files created**\n- src/domain/class-management/enums/exit-reason.enum.ts — `ExitReason` enum with TRANSFERRED|WITHDRAWN|COMPLETED|GRADUATED.\n- src/domain/class-management/enums/index.ts — barrel.\n- src/domain/class-management/exceptions/enrollment-already-closed.exception.ts — `EnrollmentAlreadyClosedException` (extends Error, takes enrollmentId).\n- src/domain/class-management/exceptions/invalid-end-date.exception.ts — `InvalidEndDateException` (extends Error, takes contextual reason string).\n- src/domain/class-management/exceptions/index.ts — barrel.\n- src/domain/class-management/entities/enrollment.entity.spec.ts — 17 unit tests (all green).\n\n**Files modified**\n- src/domain/class-management/entities/enrollment.entity.ts — added `endDate`/`exitReason` props + getters, `isActive()`, immutable `withdraw(date, reason)`, XOR factory invariant, private `toDateOnly()` for date-only comparisons.\n- src/domain/class-management/index.ts — re-exports `enums` and `exceptions` barrels.\n\n**Convention deviation from task description (decided in plan, kept):** Used *.exception.ts / `Exception` suffix per @doc/patterns/exception-pattern and @doc/conventions/naming-conventions rather than the spec's textual `*Error` suffix. HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are still mapped at the use-case/controller layer in @task-q0oqvy and @task-q9rt9n.\n\n**Backwards compatibility:** `Enrollment.create()` defaults `endDate`/`exitReason` to `null`. Existing call sites (`PrismaEnrollmentMapper.toDomain`, `EnrollStudentUseCase`) continue to work without modification — the mapper update lands in @task-jvdbpl.\n\n**Verification**\n- npx jest src/domain/class-management/entities/enrollment.entity.spec.ts → 17 passed.\n- npx jest src/application/class-management/use-cases/enrollment src/domain/class-management → 38 passed (no regressions).\n- npx tsc --noEmit → clean.\n\n**SOLID compliance**\n- SRP: enum + each exception + entity each in their own file with one responsibility.\n- OCP: `withdraw()` returns a new instance instead of mutating, so the entity is open for extension via composition without modifying the existing `update()` flow.\n- LSP: subclass behavior matches `Entity\u003cProps\u003e` base — no behavioral surprises.\n- ISP: `UpdateEnrollmentData` and `CreateEnrollmentData` types narrow what callers may pass.\n- DIP: domain layer depends only on `Entity`, `UniqueEntityID`, `Optional` (core abstractions) — no Nest/Prisma. Exceptions extend the language `Error` only."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "`ExitReason` enum added with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`",
+            "completed": true
+          },
+          {
+            "text": "`Enrollment.isActive()` returns `true` iff `endDate === null`",
+            "completed": true
+          },
+          {
+            "text": "`Enrollment.withdraw(date, reason)` returns a new entity instance with `endDate=date, exitReason=reason` (immutable)",
+            "completed": true
+          },
+          {
+            "text": "Calling `withdraw()` on an already-closed entity throws `EnrollmentAlreadyClosedError`",
+            "completed": true
+          },
+          {
+            "text": "`withdraw()` with `date \u003c enrollmentDate` or `date \u003e today` throws `InvalidEndDateError`",
+            "completed": true
+          },
+          {
+            "text": "Constructor enforces XOR invariant: `endDate` and `exitReason` must both be null or both set; otherwise throw",
+            "completed": true
+          },
+          {
+            "text": "Unit tests in `enrollment.entity.spec.ts` cover `isActive`, `withdraw` happy path, all withdraw error paths, and the constructor invariant",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "Extend `Enrollment` entity in `src/domain/class-management/entities/enrollment.entity.ts` with `endDate: Date | null` and `exitReason: ExitReason | null`. Add `ExitReason` enum (`TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED`). Implement `isActive()` returning `endDate === null`. Implement immutable `withdraw(date, reason)` returning a new entity instance. Enforce constructor invariant: `endDate` and `exitReason` must both be null or both set. Add domain errors `EnrollmentAlreadyClosedError` and `InvalidEndDateError`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-3, FR-4, FR-5, FR-6\nBlocked by: Task 1 (schema migration)",
+        "implementationNotes": "Implementation complete (2026-05-05).\n\n**Files created**\n- src/domain/class-management/enums/exit-reason.enum.ts — `ExitReason` enum with TRANSFERRED|WITHDRAWN|COMPLETED|GRADUATED.\n- src/domain/class-management/enums/index.ts — barrel.\n- src/domain/class-management/exceptions/enrollment-already-closed.exception.ts — `EnrollmentAlreadyClosedException` (extends Error, takes enrollmentId).\n- src/domain/class-management/exceptions/invalid-end-date.exception.ts — `InvalidEndDateException` (extends Error, takes contextual reason string).\n- src/domain/class-management/exceptions/index.ts — barrel.\n- src/domain/class-management/entities/enrollment.entity.spec.ts — 17 unit tests (all green).\n\n**Files modified**\n- src/domain/class-management/entities/enrollment.entity.ts — added `endDate`/`exitReason` props + getters, `isActive()`, immutable `withdraw(date, reason)`, XOR factory invariant, private `toDateOnly()` for date-only comparisons.\n- src/domain/class-management/index.ts — re-exports `enums` and `exceptions` barrels.\n\n**Convention deviation from task description (decided in plan, kept):** Used *.exception.ts / `Exception` suffix per @doc/patterns/exception-pattern and @doc/conventions/naming-conventions rather than the spec's textual `*Error` suffix. HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are still mapped at the use-case/controller layer in @task-q0oqvy and @task-q9rt9n.\n\n**Backwards compatibility:** `Enrollment.create()` defaults `endDate`/`exitReason` to `null`. Existing call sites (`PrismaEnrollmentMapper.toDomain`, `EnrollStudentUseCase`) continue to work without modification — the mapper update lands in @task-jvdbpl.\n\n**Verification**\n- npx jest src/domain/class-management/entities/enrollment.entity.spec.ts → 17 passed.\n- npx jest src/application/class-management/use-cases/enrollment src/domain/class-management → 38 passed (no regressions).\n- npx tsc --noEmit → clean.\n\n**SOLID compliance**\n- SRP: enum + each exception + entity each in their own file with one responsibility.\n- OCP: `withdraw()` returns a new instance instead of mutating, so the entity is open for extension via composition without modifying the existing `update()` flow.\n- LSP: subclass behavior matches `Entity\u003cProps\u003e` base — no behavioral surprises.\n- ISP: `UpdateEnrollmentData` and `CreateEnrollmentData` types narrow what callers may pass.\n- DIP: domain layer depends only on `Entity`, `UniqueEntityID`, `Optional` (core abstractions) — no Nest/Prisma. Exceptions extend the language `Error` only.",
+        "implementationPlan": "## Implementation Plan\n\nExtend the `Enrollment` domain entity with period semantics. Convention deviations from the task description: project uses `*.exception.ts` (suffix `Exception`) and `\u003carea\u003e/enums/`, `\u003carea\u003e/exceptions/` folders — I'll use `EnrollmentAlreadyClosedException` and `InvalidEndDateException` instead of the `Error` suffix mentioned in the description (HTTP error codes `ENROLLMENT_ALREADY_CLOSED` / `INVALID_END_DATE` are mapped at the use-case/controller layer in tasks @task-q0oqvy and @task-q9rt9n, not here).\n\n### Step 1 — Add `ExitReason` enum\n- Create `src/domain/class-management/enums/exit-reason.enum.ts` with values `TRANSFERRED | WITHDRAWN | COMPLETED | GRADUATED` (PascalCase enum, SCREAMING_SNAKE_CASE values — matches `student-status.enum.ts` convention).\n- Create `src/domain/class-management/enums/index.ts` barrel.\n\n### Step 2 — Add domain exceptions\n- Create `src/domain/class-management/exceptions/enrollment-already-closed.exception.ts` — extends `Error`, takes `enrollmentId: string`.\n- Create `src/domain/class-management/exceptions/invalid-end-date.exception.ts` — extends `Error`, takes a contextual reason message (used for both \"date \u003c enrollmentDate\" and \"date \u003e today\").\n- Create `src/domain/class-management/exceptions/index.ts` barrel.\n- Pattern reference: `src/domain/user-management/exceptions/email-already-exists.exception.ts`.\n\n### Step 3 — Extend `Enrollment` entity (props, getters, factory invariant)\nFile: `src/domain/class-management/entities/enrollment.entity.ts`\n- Add `endDate: Date | null` and `exitReason: ExitReason | null` to `EnrollmentProps`.\n- Add matching getters.\n- Add `isActive(): boolean` returning `this.props.endDate === null`.\n- In `Enrollment.create()`, default missing `endDate`/`exitReason` to `null` (keeps existing mapper call sites working until @task-jvdbpl updates the mapper).\n- Enforce XOR invariant: if exactly one of `endDate`/`exitReason` is non-null, throw `Error(\"Enrollment endDate and exitReason must both be set or both be null\")`. Used by both factory and `withdraw()` reconstruction path.\n\n### Step 4 — Implement immutable `withdraw(date, reason)`\n- Throws `EnrollmentAlreadyClosedException` if `!isActive()`.\n- Validates `date \u003e= enrollmentDate` and `date \u003c= today` (compare on date components, not time-of-day) — throws `InvalidEndDateException` otherwise.\n- Returns a NEW `Enrollment` instance via `Enrollment.create({ ...this.props, endDate, exitReason })` preserving the same `id` (pass `this.id` as the second arg) so identity is stable across the immutable transition.\n- The current entity instance is left untouched (immutability check via test).\n\n### Step 5 — Unit tests\n- Create `src/domain/class-management/entities/enrollment.entity.spec.ts` mirroring the style of `class.entity.spec.ts`.\n- Coverage:\n  - `isActive()` — true when `endDate=null`, false when set.\n  - `withdraw()` happy path — returns new instance with `endDate`, `exitReason` set; original instance unchanged; new instance has same `id`.\n  - `withdraw()` error paths — already-closed throws `EnrollmentAlreadyClosedException`; date before `enrollmentDate` throws `InvalidEndDateException`; date in future throws `InvalidEndDateException`.\n  - Constructor invariant — `create({ endDate: someDate })` (no reason) throws; `create({ exitReason: ExitReason.WITHDRAWN })` (no date) throws; both null OK; both set OK.\n- Run `npx jest src/domain/class-management/entities/enrollment.entity.spec.ts`.\n\n### Step 6 — Wire exports \u0026 validate\n- Update `src/domain/class-management/index.ts` to re-export `enums` and `exceptions` barrels.\n- Run `npx tsc --noEmit` to confirm no breakage in mapper/use-cases that call `Enrollment.create(...)`.\n- Run full enrollment-related test suite: `npx jest src/application/class-management/use-cases/enrollment` and `src/domain/class-management`.\n- Run Knowns validation on this task.\n\n### Out of scope (handled in dependent tasks)\n- Mapper updates for `endDate`/`exitReason` — @task-jvdbpl\n- HTTP layer mapping domain exceptions → `409 ENROLLMENT_ALREADY_CLOSED` / `400 INVALID_END_DATE` — @task-q0oqvy\n- Use-case enforcement of \"active-only\" mutations on `update()` — @task-q0oqvy / @task-zffh6i\n\n### AC ↔ Step mapping\n| Task AC | Step |\n|---|---|\n| ExitReason enum added | 1 |\n| isActive() returns true iff endDate null | 3 |\n| withdraw() immutable returns new entity | 4 |\n| Already-closed throws EnrollmentAlreadyClosedException | 4 |\n| date \u003c enrollmentDate or \u003e today throws InvalidEndDateException | 4 |\n| Constructor XOR invariant | 3 |\n| Unit tests cover all of the above | 5 |\n\n| Spec AC | Step |\n|---|---|\n| AC-5 | 3 |\n| AC-6 | 3, 4 |\n| AC-7 | 3 |\n| AC-8 | 4 |",
+        "labels": [
+          "from-spec",
+          "domain"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Domain entity — endDate, exitReason, withdraw(), invariants"
+      }
+    }
+  ]
+}

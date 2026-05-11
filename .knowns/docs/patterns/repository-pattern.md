@@ -1,104 +1,201 @@
 ---
 title: Repository Pattern
+description: Repository ports (application layer) and Prisma implementations (infra layer) with campus-scoped query patterns
 createdAt: '2026-01-03T19:52:13.114Z'
-updatedAt: '2026-01-11T05:35:38.690Z'
-description: Data access abstraction pattern
+updatedAt: '2026-05-05T17:39:49.992Z'
 tags:
   - patterns
   - repository
   - persistence
+  - campus
+  - prisma
 ---
+
 # Repository Pattern
 
-## Overview
+> Data access. Port at `src/application/{module}/ports/{entity}.repository.ts`; implementation at `src/infra/persistence/prisma/repositories/prisma-{entity}.repository.ts`.
 
-The repository pattern provides a clean abstraction for data access. It consists of a Port (abstract class defining the contract) in the application layer and an Implementation using Prisma in the infrastructure layer.
+The repository is the **only** boundary between domain code and Prisma. Use cases depend on the port; the implementation is wired in the module via a string token.
 
-## Locations
+## Port (Application Layer)
 
-- Port: src/application/{module}/ports/{entity}.repository.ts
-- Implementation: src/infra/persistence/prisma/repositories/prisma-{entity}.repository.ts
+The port defines the contract using domain types only — no Prisma in the signature.
 
-## Port (Abstract Class)
+```typescript
+import { Student } from "@/domain/user-management/entities/student.entity";
+import { StandardRequest, PaginatedResult } from "@/core/modules/standard-response";
 
-Defines the contract for data access. Located in the application layer to maintain dependency inversion.
+export interface StudentRepository {
+  // Single-entity reads
+  findById(id: string): Promise<Student | null>;
+  findByIds(ids: string[]): Promise<Student[]>;
 
-The port is an abstract class with methods like:
-- findById(id: string): Promise<Entity | null>
-- findByEmail(email: string): Promise<Entity | null>
-- findAll(params: StandardRequest): Promise<PaginatedResult<Entity>>
-- save(entity: Entity): Promise<Entity>
-- update(entity: Entity): Promise<Entity>
-- delete(id: string): Promise<void>
+  // Global lookups (system tasks; rarely used in business logic)
+  findByEmail(email: string): Promise<Student | null>;
+  findByPhoneNumber(phoneNumber: string): Promise<Student | null>;
 
-## Standard Methods
+  // Campus-scoped lookups (preferred in business logic)
+  findByEmailInCampus(campusId: string, email: string): Promise<Student | null>;
+  findByPhoneNumberInCampus(campusId: string, phoneNumber: string): Promise<Student | null>;
+  findByStudentCodeInCampus(campusId: string, studentCode: string): Promise<Student | null>;
+  findByCampusId(campusId: string): Promise<Student[]>;
 
-Every repository should implement these core methods:
+  // Paginated list (PrismaQueryService-driven)
+  findAll(params: StandardRequest, scope?: Record<string, any>): Promise<PaginatedResult<Student>>;
 
-1. findById - Find by primary key
-2. findAll - Paginated list with filtering and sorting
-3. save - Create new entity
-4. update - Update existing entity
-5. delete - Delete by ID
+  // Writes
+  save(student: Student): Promise<Student>;
+  update(student: Student): Promise<Student>;
+  delete(id: string): Promise<void>;
+
+  // Domain-specific methods
+  assignGuardians(studentId: string, relations: Array<{ guardianId: string; relationshipId: string }>): Promise<void>;
+  removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
+  updateGuardianRelationship(studentId: string, guardianId: string, relationshipId: string): Promise<void>;
+  getStudentGuardians(studentId: string): Promise<StudentGuardianInfo[]>;
+}
+```
+
+The codebase mixes **`interface`** (most repositories) and **abstract class** (older ones). Either is acceptable; `interface` is preferred for new ports because it can't carry implementation by accident.
 
 ## Implementation (Prisma)
 
-The Prisma implementation uses PrismaService and PrismaQueryService. Key patterns:
+```typescript
+@Injectable()
+export class PrismaStudentRepository implements StudentRepository {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,    // for findAll
+  ) {}
 
-1. Use mapper.toDomain for queries with includes
-2. Use mapper.toDomainSimple for simple queries
-3. Use mapper.toPrisma for save operations
-4. Use mapper.toPrismaUpdate for update operations
+  async findById(id: string): Promise<Student | null> {
+    const row = await this.prisma.student.findUnique({
+      where: { id },
+      include: { guardians: { include: { guardian: true, guardianRelationship: true } } },
+    });
+    return row ? PrismaStudentMapper.toDomain(row) : null;
+  }
 
-For findAll, set allowedFilterFields and allowedSortFields on params, then use queryService.executeQuery.
+  async save(student: Student): Promise<Student> {
+    const created = await this.prisma.student.create({
+      data: PrismaStudentMapper.toPrisma(student),
+    });
+    return PrismaStudentMapper.toDomain(created);
+  }
 
-## Dependency Injection
+  async update(student: Student): Promise<Student> {
+    const updated = await this.prisma.student.update({
+      where: { id: student.id },
+      data: PrismaStudentMapper.toPrismaUpdate(student),
+    });
+    return PrismaStudentMapper.toDomain(updated);
+  }
 
-Register in module providers:
-provide: 'STAFF_REPOSITORY', useClass: PrismaStaffRepository
+  async findAll(
+    params: StandardRequest,
+    scope?: Record<string, any>,
+  ): Promise<PaginatedResult<Student>> {
+    params.allowedFilterFields = ["studentCode", "fullName", "email", "phoneNumber", "gender", "isArchived", "dateOfBirth", "status"];
+    params.allowedSortFields = ["createdAt", "updatedAt", "studentCode", "fullName", "dateOfBirth"];
 
-Inject in use cases:
-@Inject('STAFF_REPOSITORY') private readonly staffRepository: StaffRepository
+    return this.queryService.executeQuery<Student>(
+      this.prisma,
+      "student",
+      params,
+      {
+        include: { guardians: { include: { guardian: true, guardianRelationship: true } } },
+        orderBy: { studentCode: "desc" },
+        scope,                            // <-- system-enforced campus filter
+      },
+      PrismaStudentMapper,
+    );
+  }
+}
+```
 
-## PrismaQueryService
+## Campus-Scoped Query Patterns
 
-Use for standardized pagination, filtering, and sorting. It takes the Prisma client, model name, StandardRequest params, include options, and mapper class.
+### Pattern 1 — `*InCampus` lookups
 
-## Best Practices
+Compound queries scoped by `campusId`. Use these for uniqueness checks in business logic.
 
-1. Return domain entities, not Prisma models
-2. Use toDomain for methods with includes, toDomainSimple without
-3. Define allowedFilterFields and allowedSortFields for findAll
-4. Always include necessary relations in queries
-5. Let mapper handle all Prisma to domain conversion
-6. Use abstract class (not interface) for ports
+```typescript
+async findByEmailInCampus(campusId: string, email: string): Promise<Staff | null> {
+  const row = await this.prisma.staff.findFirst({
+    where: { campusId, email },
+  });
+  return row ? PrismaStaffMapper.toDomain(row) : null;
+}
+```
 
+### Pattern 2 — Compound key lookups
 
+Where Prisma supports compound unique constraints, use the typed lookup:
 
-## Campus-Filtered Query Patterns
+```typescript
+async findBySchoolYearGradeAndName(
+  campusId: string, schoolYearId: string, gradeLevelId: string, name: string,
+): Promise<Class | null> {
+  const row = await this.prisma.class.findUnique({
+    where: { campusId_schoolYearId_gradeLevelId_name: { campusId, schoolYearId, gradeLevelId, name } },
+  });
+  return row ? PrismaClassMapper.toDomain(row) : null;
+}
+```
 
-In the multi-campus architecture, repositories must filter data by campus. All campus-scoped entities have a \ property.
+### Pattern 3 — Paginated queries with `scope`
 
-### Pattern 1: Campus-Scoped Find Methods
+The `scope` argument to `PrismaQueryService.executeQuery` is **system-enforced**: it merges into `where` last and overrides any user-supplied filter on the same field. This is the **only** correct way to scope a list endpoint by campus.
 
-Add methods that accept campusId for campus-scoped lookups:
+```typescript
+return this.queryService.executeQuery<Post>(
+  this.prisma, "post", params,
+  { scope: { campusId, isDeleted: false } },
+  PrismaPostMapper,
+);
+```
 
-\
-### Pattern 2: Compound Key Lookups
+> Don't add `campusId` to `allowedFilterFields`. The user-supplied `?filter=...` query parameter is expected to be untrusted; `scope` is the trust boundary.
 
-Use Prisma compound unique constraints for efficient campus-scoped lookups:
+### Pattern 4 — Global vs campus-scoped entities
 
-\
-### Pattern 3: Paginated Campus-Scoped Queries
+A few entities are global or hybrid:
 
-Use PrismaQueryService with mandatory campus filter:
+| Entity | Scope |
+|--------|-------|
+| `User` | Global — one identity, multiple campus role assignments |
+| `Permission` | Global — defines what actions exist |
+| `Role` | Hybrid — `campusId: null` for system roles, UUID for campus-specific roles |
+| `UserRole` | Hybrid — `campusId: null` for global assignment, UUID for campus-specific |
 
-\
-### Pattern 4: Global vs Campus-Scoped Entities
+For these, the repository should not assume a campus filter. Use case logic decides whether to scope.
 
-Some entities (like Role) can be global or campus-scoped:
+## What Repositories Must NOT Do
 
-\
-### Campus Validation in Repositories
+- **Validate access.** Whether the caller can read this campus is the guard's job; whether two entities are in the same campus is the use case's job.
+- **Apply business rules.** No `if (entity.isArchived) throw ...` — that belongs on the entity or use case.
+- **Dispatch events / call queues.** The repository is a pure persistence boundary.
+- **Convert errors.** Let Prisma errors bubble up. Use cases interpret them.
 
-Repositories should NOT validate campus access - that's the use case's responsibility. Repositories simply filter by the campusId provided.
+## Repository ↔ UnitOfWork
+
+When a use case must write to multiple tables atomically, **don't** chain repository calls. Use the Unit of Work, which exposes per-domain transaction operations:
+
+```typescript
+await this.unitOfWork.run(async (tx) => {
+  const user = await tx.createUser({ clerkUid, isActive: true });
+  await tx.createStaff({ id, campusId, userId: user.id, /* … */ });
+  await tx.assignRoles(user.id, [{ roleId, campusId }]);
+});
+```
+
+See [@doc/patterns/unit-of-work-pattern](patterns/unit-of-work-pattern). The repository's normal `save`/`update` methods stay non-transactional and are used outside the UoW path.
+
+## Reference
+
+| File | Notable |
+|------|---------|
+| `src/application/user-management/ports/student.repository.ts` | Mixed global + campus-scoped methods, guardian relationship operations |
+| `src/infra/persistence/prisma/repositories/prisma-student.repository.ts` | Uses `PrismaQueryService.executeQuery` with `scope` |
+| `src/infra/persistence/prisma/repositories/prisma-post.repository.ts` | Filters out soft-deleted posts in default queries |
+| `src/infra/persistence/prisma/services/prisma-query.service.ts` | The query builder behind `findAll` (in `core/modules/standard-response/services/`) |

@@ -3,6 +3,12 @@ import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 
+export interface GetClassEnrollmentsInput {
+  classId: string;
+  campusId: string;
+  includeHistorical?: boolean;
+}
+
 @Injectable()
 export class GetClassEnrollmentsUseCase {
   private readonly logger = new Logger(GetClassEnrollmentsUseCase.name);
@@ -14,37 +20,28 @@ export class GetClassEnrollmentsUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(classId: string, campusId?: string): Promise<Enrollment[]> {
-    try {
-      this.logger.log(`Fetching enrollments for class: ${classId}`);
+  async execute(input: GetClassEnrollmentsInput): Promise<Enrollment[]> {
+    const includeHistorical = input.includeHistorical ?? false;
+    this.logger.log(
+      `Fetching enrollments for class ${input.classId} (includeHistorical=${includeHistorical})`,
+    );
 
-      // Validate class exists
-      const classEntity = await this.classRepository.findById(classId);
-      if (!classEntity) {
-        throw new NotFoundException(`Class with ID ${classId} not found`);
-      }
-
-      // Verify class belongs to the specified campus (if campusId provided)
-      if (campusId && classEntity.campusId !== campusId) {
-        throw new NotFoundException(
-          `Class with ID ${classId} not found in this campus`,
-        );
-      }
-
-      const enrollments =
-        await this.enrollmentRepository.findByClassId(classId);
-
-      this.logger.log(
-        `Found ${enrollments.length} enrollments for class ${classId}`,
+    // Resolve target class. Cross-campus + missing both surface as 404 to
+    // hide existence (matches AC-13 pattern across this module).
+    const classEntity = await this.classRepository.findById(input.classId);
+    if (!classEntity || classEntity.campusId !== input.campusId) {
+      throw new NotFoundException(
+        `Class with ID ${input.classId} not found`,
       );
-
-      return enrollments;
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch class enrollments: ${error.message}`,
-        error.stack,
-      );
-      throw error;
     }
+
+    const enrollments = includeHistorical
+      ? await this.enrollmentRepository.findHistoricalByClassId(input.classId)
+      : await this.enrollmentRepository.findActiveByClassId(input.classId);
+
+    this.logger.log(
+      `Found ${enrollments.length} enrollments for class ${input.classId}`,
+    );
+    return enrollments;
   }
 }

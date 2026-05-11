@@ -69,6 +69,35 @@ export abstract class StudentRepository {
   ): Promise<PaginatedResult<Student>>;
 
   /**
+   * Find students eligible to be enrolled into the given class.
+   *
+   * A student is "eligible" iff:
+   *   - student.isArchived = false
+   *   - student.status ∈ caller-supplied includeStatuses (default ACTIVE,
+   *     surfaced via `params.filter.status.in` by the caller)
+   *   - student is at `scope.campusId` (system-enforced; cannot be overridden)
+   *   - NOT EXISTS any enrollment row for this student with endDate IS NULL
+   *     (the student is not currently active in ANY class — including the
+   *     target class itself, per specs/bulk-enrollment AC-13)
+   *
+   * Pagination, sort, and search go through the standard PrismaQueryService
+   * path so list-endpoint semantics stay consistent with `findAll`.
+   *
+   * @param classId - The target class id. Reserved for future filters (e.g.
+   *   excluding students with a prior closed enrollment in this class). Today
+   *   the campus scoping comes from `scope.campusId`, which the caller derives
+   *   from `class.campusId` after a cross-campus 404 check (D5).
+   * @param params - Standard query parameters (filters, sorts, pagination).
+   * @param scope - System-enforced filters; `campusId` is required for campus
+   *   isolation.
+   */
+  abstract findEligibleForClass(
+    classId: string,
+    params: StandardRequest,
+    scope?: { campusId: string },
+  ): Promise<PaginatedResult<Student>>;
+
+  /**
    * Save a new or existing student
    */
   abstract save(student: Student): Promise<Student>;

@@ -172,6 +172,11 @@ export function createGuardian(
 
 /**
  * Create a Class entity with defaults
+ *
+ * Default-attaches a SchoolYear relation with a wide date range
+ * (2020-01-01 to 2030-12-31) so use cases that validate enrollmentDate
+ * against `class.schoolYear.startDate`/`endDate` can run with realistic
+ * test data without each spec needing to wire one up.
  */
 export function createClass(
   overrides: Partial<{
@@ -181,15 +186,31 @@ export function createClass(
     gradeLevelId: string;
     schoolYearId: string;
     description: string | null;
+    schoolYear: SchoolYear;
   }> = {},
 ): Class {
+  const campusId = overrides.campusId ?? DEFAULT_CAMPUS_ID_A;
+  const schoolYearId =
+    overrides.schoolYearId ?? overrides.schoolYear?.id ?? "school-year-1";
+  const schoolYear =
+    overrides.schoolYear ??
+    SchoolYear.create(
+      {
+        campusId,
+        name: "Test School Year",
+        startDate: new Date("2020-01-01T00:00:00.000Z"),
+        endDate: new Date("2030-12-31T00:00:00.000Z"),
+      },
+      schoolYearId,
+    );
   return Class.create(
     {
-      campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
+      campusId,
       name: overrides.name ?? "Test Class",
       gradeLevelId: overrides.gradeLevelId ?? "grade-level-1",
-      schoolYearId: overrides.schoolYearId ?? "school-year-1",
+      schoolYearId,
       description: overrides.description ?? null,
+      schoolYear,
     },
     overrides.id ?? uuidv4(),
   );

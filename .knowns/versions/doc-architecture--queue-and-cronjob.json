@@ -1,0 +1,49 @@
+{
+  "docPath": "architecture/queue-and-cronjob",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "docPath": "architecture/queue-and-cronjob",
+      "version": 1,
+      "timestamp": "2026-05-05T17:49:46.722447Z",
+      "changes": [
+        {
+          "field": "title",
+          "oldValue": null,
+          "newValue": "Queue and Cronjob"
+        },
+        {
+          "field": "description",
+          "oldValue": null,
+          "newValue": "Async background work via BullMQ + Redis, and scheduled tasks via NestJS @Cron"
+        },
+        {
+          "field": "tags",
+          "oldValue": null,
+          "newValue": [
+            "architecture",
+            "queue",
+            "bullmq",
+            "cron",
+            "scheduled",
+            "async"
+          ]
+        }
+      ],
+      "snapshot": {
+        "content": "# Queue and Cronjob\n\n\u003e Background work uses **BullMQ** (Redis-backed) for jobs and **NestJS `@Cron`** for scheduled tasks. Both are application-level scaffolding; new work goes here when it shouldn't block the request.\n\n## Queue (BullMQ)\n\n### Module wiring\n\n`src/infra/queue/queue.module.ts`:\n\n```typescript\n@Module({\n  imports: [\n    BullModule.forRootAsync({\n      inject: [ConfigService],\n      useFactory: async (configService: ConfigService) =\u003e ({\n        redis: {\n          host: configService.get(\"REDIS_HOST\", \"localhost\"),\n          port: configService.get(\"REDIS_PORT\", 6379),\n          password: configService.get(\"REDIS_PASSWORD\"),\n        },\n      }),\n    }),\n    BullModule.registerQueue({ name: \"email\" }),\n  ],\n  providers: [EmailProcessor, QueueService],\n  exports: [QueueService, BullModule],\n})\nexport class QueueModule {}\n```\n\n`QueueModule` is imported by `AppModule`, so BullMQ is available app-wide.\n\n### Defining a queue\n\nEach queue has a string name and a processor. Currently:\n\n| Queue | Processor | Purpose |\n|-------|-----------|---------|\n| `email` | `EmailProcessor` | Outbound email (placeholder implementation) |\n\nTo add a new queue:\n\n1. **Register** in `QueueModule.imports`: `BullModule.registerQueue({ name: \"notify-guardian\" })`.\n2. **Create the processor** at `src/infra/queue/processors/notify-guardian.processor.ts`:\n   ```typescript\n   @Processor(\"notify-guardian\")\n   export class NotifyGuardianProcessor {\n     private readonly logger = new Logger(NotifyGuardianProcessor.name);\n\n     @Process(\"send\")\n     async handleSend(job: Job\u003cNotifyGuardianJobData\u003e) {\n       this.logger.log(`Sending notification to ${job.data.guardianId}`);\n       // … work\n       return { success: true, sentAt: new Date() };\n     }\n   }\n   ```\n3. **Add the processor** to `QueueModule.providers`.\n4. **Expose** an enqueue method on `QueueService` (or inject the queue directly via `@InjectQueue(\"notify-guardian\")`).\n\n### Enqueueing a job\n\n```typescript\n// src/infra/queue/queue.service.ts\n@Injectable()\nexport class QueueService {\n  constructor(@InjectQueue(\"email\") private emailQueue: Queue) {}\n\n  async addEmailJob(data: EmailJobData, delay?: number) {\n    const job = await this.emailQueue.add(\"send-email\", data, {\n      delay,\n      attempts: 3,\n      backoff: { type: \"exponential\", delay: 2000 },\n    });\n    return job.id;\n  }\n}\n```\n\nStandard options:\n\n- `attempts: 3` — total tries including the first.\n- `backoff: { type: \"exponential\", delay: 2000 }` — 2s, 4s, 8s.\n- `delay` — schedule for the future (in ms).\n\n### Calling from a use case\n\nInject `QueueService` (or the queue directly) and enqueue inside the same handler that did the DB write:\n\n```typescript\nasync execute(input: PublishPostInput): Promise\u003cPost\u003e {\n  const post = await this.publishPostUseCase.execute(input);\n  await this.queueService.addEmailJob({\n    to: parent.email,\n    subject: `New post: ${post.title}`,\n    text: post.contentText,\n  });\n  return post;\n}\n```\n\nIf the DB transaction was wrapped in `unitOfWork.run`, enqueue **inside** the closure so an aborted transaction doesn't leave dangling jobs. (BullMQ jobs are not transactional with Postgres, but at least the enqueue won't run if the transaction throws first.)\n\n### Status \u0026 monitoring\n\n`QueueService.getEmailQueueStatus()` returns the four counts (waiting, active, completed, failed). The intended consumer is an admin dashboard or a health-check endpoint.\n\nFor development, BullMQ ships a UI (`@bull-board/express`) — not currently mounted. If you need real visibility, mount it under an admin route gated by a system role.\n\n## Cronjob (NestJS Schedule)\n\n### Module wiring\n\n`src/infra/cronjob/cronjob.module.ts`:\n\n```typescript\n@Module({\n  imports: [ScheduleModule.forRoot()],\n  providers: [CleanupTask],\n})\nexport class CronjobModule {}\n```\n\n`ScheduleModule.forRoot()` enables the `@Cron`, `@Interval`, and `@Timeout` decorators.\n\n### Defining a task\n\n```typescript\n@Injectable()\nexport class CleanupTask {\n  private readonly logger = new Logger(CleanupTask.name);\n\n  @Cron(CronExpression.EVERY_HOUR)\n  async handleCleanup() {\n    this.logger.log(\"Starting cleanup task...\");\n    // … work\n  }\n\n  @Cron(\"0 0 * * *\")              // daily at midnight UTC\n  async handleDailyCleanup() {\n    this.logger.log(\"Starting daily cleanup task...\");\n    // … work\n  }\n}\n```\n\nNestJS supports:\n\n- `@Cron(expression, options?)` — standard cron expression.\n- `@Cron(CronExpression.EVERY_*)` — preset enum (every second/minute/hour/day/week).\n- `@Interval(milliseconds)` — fixed-rate.\n- `@Timeout(milliseconds)` — fire once after delay.\n\n### Adding a task\n\n1. Create `src/infra/cronjob/tasks/{name}.task.ts`.\n2. Register in `CronjobModule.providers`.\n3. Inject any required services (the task is a NestJS provider — full DI available).\n\n```typescript\n@Injectable()\nexport class PurgeOrphanFilesTask {\n  constructor(\n    @Inject(\"FILE_REPOSITORY\") private readonly fileRepository: FileRepository,\n    private readonly storageService: StorageService,\n  ) {}\n\n  @Cron(\"0 3 * * *\", { timeZone: \"Asia/Ho_Chi_Minh\" })\n  async purgeOrphans(): Promise\u003cvoid\u003e {\n    const orphans = await this.fileRepository.findSoftDeletedOlderThan(30);\n    for (const file of orphans) {\n      await this.storageService.delete(file.key);\n      await this.fileRepository.delete(file.id);\n    }\n  }\n}\n```\n\n### Time zone\n\nBy default, `@Cron` uses the server's local time. Always pass `timeZone` explicitly when the schedule is business-time sensitive (e.g. \"send report at 6 AM Vietnam time\").\n\n## When to Use What\n\n| Need | Use |\n|------|-----|\n| Send an email after creating a record | Queue (BullMQ) |\n| Retry on failure | Queue with `attempts` |\n| Schedule for a specific future time (one-off) | Queue with `delay` |\n| Recurring task (daily, hourly) | Cron |\n| Long-running batch job | Queue (split into smaller jobs) |\n| Synchronous side effect within a request | Direct method call (no queue) |\n| Reaction across modules with no time pressure | Queue — keeps modules decoupled |\n\n## Failure Handling\n\n### Queue jobs\n\n- BullMQ retries based on `attempts` + `backoff`.\n- Failed jobs land in the \"failed\" set — operator-visible via `getEmailQueueStatus()`.\n- If you want a permanent dead-letter, write a job-event handler:\n  ```typescript\n  @OnQueueFailed()\n  onFailed(job: Job, error: Error) {\n    this.logger.error(`Job ${job.id} failed permanently`, error.stack);\n    // … persist to a dead_letter table\n  }\n  ```\n\n### Cron tasks\n\n- A failing cron task logs and continues — it doesn't crash the app.\n- The next scheduled tick runs as normal.\n- For tasks that need an external alert on failure, push to Sentry/Datadog from the catch block.\n\n## Testability\n\n- **Cron tasks**: instantiate the class directly in unit tests; call the handler method without going through the scheduler.\n- **Queue processors**: same — `EmailProcessor.handleSendEmail({ data: {...} } as Job\u003cEmailJobData\u003e)`. Mock the queue dependency in use case tests rather than the real BullMQ.\n\n## Pitfalls\n\n| Mistake | Symptom |\n|---------|---------|\n| Enqueueing inside a transaction that may roll back | Job runs even though the data didn't persist (or vice versa) — see [@doc/patterns/saga-pattern](patterns/saga-pattern) for cross-system thinking |\n| Forgetting `attempts` | Transient Redis blips fail jobs permanently |\n| Cron tasks doing heavy DB work without a UoW | Writes are not atomic |\n| Running cron on multiple replicas | Same task fires N times — use a leader lock or a single dedicated worker process |\n| Time zone drift | Always pass `timeZone` when wall-clock matters |\n| Scheduling via `setTimeout` instead of BullMQ `delay` | Lost on process restart |\n\n## Reference\n\n| File | Notes |\n|------|-------|\n| `src/infra/queue/queue.module.ts` | BullMQ wiring |\n| `src/infra/queue/queue.service.ts` | Convenience enqueue methods |\n| `src/infra/queue/processors/email.processor.ts` | Processor template |\n| `src/infra/cronjob/cronjob.module.ts` | `ScheduleModule.forRoot()` |\n| `src/infra/cronjob/tasks/cleanup.task.ts` | Cron task template |\n",
+        "description": "Async background work via BullMQ + Redis, and scheduled tasks via NestJS @Cron",
+        "tags": [
+          "architecture",
+          "queue",
+          "bullmq",
+          "cron",
+          "scheduled",
+          "async"
+        ],
+        "title": "Queue and Cronjob"
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "docPath": "patterns/domain-events-pattern",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "docPath": "patterns/domain-events-pattern",
+      "version": 1,
+      "timestamp": "2026-05-05T17:33:12.3028562Z",
+      "changes": [
+        {
+          "field": "title",
+          "oldValue": "Domain Events Pattern",
+          "newValue": "Domain Events Pattern (Not Implemented)"
+        },
+        {
+          "field": "description",
+          "oldValue": "Event-driven workflows pattern",
+          "newValue": "Aspirational pattern. The codebase does not currently emit domain events; cross-system reactions are wired with the saga + Unit of Work pattern instead."
+        },
+        {
+          "field": "content",
+          "oldValue": "# Domain Events Pattern\n\n\u003e Event-driven workflows. Located in src/domain/{module}/events/\n\n---\n\n## Base Event\n\nDomainEvent\u003cT\u003e provides:\n- occurredOn: Date (when event was created)\n- payload: T (event data)\n- abstract eventName: string (e.g., 'order.created')\n\n---\n\n## Creating Events\n\n1. Define payload interface with event data\n2. Extend DomainEvent with payload type\n3. Implement eventName getter\n4. Add static create() factory method\n\n---\n\n## Entity with Events\n\nEntityWithEvents\u003cT\u003e extends Entity\u003cT\u003e with:\n- Private _domainEvents array\n- addDomainEvent(event): Adds event to queue\n- clearDomainEvents(): Clears queue after dispatch\n- hasDomainEvents(): Checks if events pending\n\n---\n\n## Usage\n\n1. Entity extends EntityWithEvents\u003cProps\u003e\n2. In entity methods, call addDomainEvent() for state changes\n3. Repository dispatches events after persistence\n4. Event handlers process events asynchronously\n\n---\n\n## Example Flow\n\n1. Order.create() adds OrderCreatedEvent\n2. orderRepository.save() persists order\n3. Repository dispatches all domain events\n4. OrderEventHandlers.handleOrderCreated() runs\n5. order.clearDomainEvents() clears queue",
+          "newValue": "# Domain Events Pattern (Not Implemented)\n\n\u003e **Status**: This pattern is **not currently implemented** in the codebase. There are no `DomainEvent` base classes, no `EntityWithEvents`, and no event dispatcher. Entities track their own state changes synchronously inside `Entity\u003cProps\u003e` methods (see [@doc/patterns/entity-pattern](patterns/entity-pattern)).\n\n## What the Codebase Does Instead\n\nWhen an action needs to trigger work in another part of the system, the codebase uses one of these approaches:\n\n| Need | Mechanism | Example |\n|------|-----------|---------|\n| Atomic multi-table writes | Unit of Work + `TransactionContext` | `CreateStaffUseCase` creating `User` + `Staff` + `UserRole` |\n| Cross-system orchestration with rollback | Saga (Clerk + DB) | `UpdateGuardianUseCase` reverting Clerk on DB failure |\n| Append-only audit log | Direct write inside the same transaction | `PostHistoryStatus` row written when post status changes |\n| Async background work | BullMQ queue | `QueueService.addEmailJob` → `EmailProcessor` |\n| Recurring scheduled work | NestJS `@Cron(...)` | `CleanupTask` |\n\nReferences:\n\n- [@doc/patterns/unit-of-work-pattern](patterns/unit-of-work-pattern)\n- [@doc/patterns/saga-pattern](patterns/saga-pattern)\n- [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob)\n\n## When You Might Want True Domain Events\n\nAdopt domain events if multiple **independent** modules need to react to the same fact and you want them decoupled. Today the reactions are few and direct, so the cost of an event bus outweighs the benefit. Don't add `DomainEvent` until at least three callers want to react to the same fact and the in-line approach is causing real coupling.\n\n## If You Add Them Later\n\nA reasonable starter shape (do not introduce until needed):\n\n```typescript\n// src/core/events/domain-event.ts\nexport abstract class DomainEvent\u003cT = unknown\u003e {\n  readonly occurredOn: Date = new Date();\n  abstract readonly eventName: string;\n  abstract readonly payload: T;\n}\n\n// src/core/entities/entity-with-events.ts\nexport abstract class EntityWithEvents\u003cProps\u003e extends Entity\u003cProps\u003e {\n  private _events: DomainEvent[] = [];\n\n  protected addDomainEvent(event: DomainEvent): void { this._events.push(event); }\n  public domainEvents(): readonly DomainEvent[] { return this._events; }\n  public clearDomainEvents(): void { this._events = []; }\n}\n```\n\nRepositories would then dispatch events after a successful `save`/`update`. Until that need is real, keep this doc as a marker so contributors don't reintroduce the bullet points across the codebase.\n"
+        },
+        {
+          "field": "tags",
+          "oldValue": [
+            "patterns",
+            "events",
+            "domain"
+          ],
+          "newValue": [
+            "patterns",
+            "events",
+            "domain",
+            "not-implemented",
+            "aspirational"
+          ]
+        }
+      ],
+      "snapshot": {
+        "content": "# Domain Events Pattern (Not Implemented)\n\n\u003e **Status**: This pattern is **not currently implemented** in the codebase. There are no `DomainEvent` base classes, no `EntityWithEvents`, and no event dispatcher. Entities track their own state changes synchronously inside `Entity\u003cProps\u003e` methods (see [@doc/patterns/entity-pattern](patterns/entity-pattern)).\n\n## What the Codebase Does Instead\n\nWhen an action needs to trigger work in another part of the system, the codebase uses one of these approaches:\n\n| Need | Mechanism | Example |\n|------|-----------|---------|\n| Atomic multi-table writes | Unit of Work + `TransactionContext` | `CreateStaffUseCase` creating `User` + `Staff` + `UserRole` |\n| Cross-system orchestration with rollback | Saga (Clerk + DB) | `UpdateGuardianUseCase` reverting Clerk on DB failure |\n| Append-only audit log | Direct write inside the same transaction | `PostHistoryStatus` row written when post status changes |\n| Async background work | BullMQ queue | `QueueService.addEmailJob` → `EmailProcessor` |\n| Recurring scheduled work | NestJS `@Cron(...)` | `CleanupTask` |\n\nReferences:\n\n- [@doc/patterns/unit-of-work-pattern](patterns/unit-of-work-pattern)\n- [@doc/patterns/saga-pattern](patterns/saga-pattern)\n- [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob)\n\n## When You Might Want True Domain Events\n\nAdopt domain events if multiple **independent** modules need to react to the same fact and you want them decoupled. Today the reactions are few and direct, so the cost of an event bus outweighs the benefit. Don't add `DomainEvent` until at least three callers want to react to the same fact and the in-line approach is causing real coupling.\n\n## If You Add Them Later\n\nA reasonable starter shape (do not introduce until needed):\n\n```typescript\n// src/core/events/domain-event.ts\nexport abstract class DomainEvent\u003cT = unknown\u003e {\n  readonly occurredOn: Date = new Date();\n  abstract readonly eventName: string;\n  abstract readonly payload: T;\n}\n\n// src/core/entities/entity-with-events.ts\nexport abstract class EntityWithEvents\u003cProps\u003e extends Entity\u003cProps\u003e {\n  private _events: DomainEvent[] = [];\n\n  protected addDomainEvent(event: DomainEvent): void { this._events.push(event); }\n  public domainEvents(): readonly DomainEvent[] { return this._events; }\n  public clearDomainEvents(): void { this._events = []; }\n}\n```\n\nRepositories would then dispatch events after a successful `save`/`update`. Until that need is real, keep this doc as a marker so contributors don't reintroduce the bullet points across the codebase.\n",
+        "description": "Aspirational pattern. The codebase does not currently emit domain events; cross-system reactions are wired with the saga + Unit of Work pattern instead.",
+        "tags": [
+          "patterns",
+          "events",
+          "domain",
+          "not-implemented",
+          "aspirational"
+        ],
+        "title": "Domain Events Pattern (Not Implemented)"
+      }
+    }
+  ]
+}

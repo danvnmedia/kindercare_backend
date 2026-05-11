@@ -41,11 +41,15 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         findByStudentClassDate: jest.fn(),
         findByClassId: jest.fn(),
         findByStudentId: jest.fn(),
+        findActiveByStudentId: jest.fn(),
+        findActiveByClassId: jest.fn(),
+        findHistoricalByClassId: jest.fn(),
+        findAllByStudentId: jest.fn(),
         findAll: jest.fn(),
         save: jest.fn(),
         update: jest.fn(),
-        delete: jest.fn(),
-        deleteByStudentAndClass: jest.fn(),
+        transferEnrollment: jest.fn(),
+        saveMany: jest.fn(),
       } as jest.Mocked<EnrollmentRepository>;
 
       mockClassRepository = {
@@ -71,6 +75,7 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         findByCampusId: jest.fn(),
         findByIds: jest.fn(),
         findAll: jest.fn(),
+        findEligibleForClass: jest.fn(),
         save: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
@@ -413,11 +418,15 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         findByStudentClassDate: jest.fn(),
         findByClassId: jest.fn(),
         findByStudentId: jest.fn(),
+        findActiveByStudentId: jest.fn(),
+        findActiveByClassId: jest.fn(),
+        findHistoricalByClassId: jest.fn(),
+        findAllByStudentId: jest.fn(),
         findAll: jest.fn(),
         save: jest.fn(),
         update: jest.fn(),
-        delete: jest.fn(),
-        deleteByStudentAndClass: jest.fn(),
+        transferEnrollment: jest.fn(),
+        saveMany: jest.fn(),
       } as jest.Mocked<EnrollmentRepository>;
 
       const mockClassRepository = {
@@ -443,6 +452,7 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         findByCampusId: jest.fn(),
         findByIds: jest.fn(),
         findAll: jest.fn(),
+        findEligibleForClass: jest.fn(),
         save: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),

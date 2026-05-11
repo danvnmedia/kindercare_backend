@@ -1,0 +1,294 @@
+{
+  "taskId": "zffh6i",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "zffh6i",
+      "version": 1,
+      "timestamp": "2026-05-05T23:33:16.0537471Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Update `EnrollStudentUseCase` in `src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts` to reject when student has *any* active enrollment (use new `findActiveByStudentId`), not just same class → `STUDENT_ALREADY_ENROLLED` (409). Add school-year date-bounds check on `enrollmentDate` against `class.schoolYear.startDate/endDate` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400). Validation order: campus-scope → school-year bounds → already-enrolled → persistence. Update `enroll-student.use-case.spec.ts` for new error paths.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-8, FR-17 (enroll path), NFR-5, NFR-6\nBlocked by: Task 3 (repository)",
+        "labels": [
+          "from-spec",
+          "use-case"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Broaden EnrollStudentUseCase + school-year date bounds"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "zffh6i",
+      "version": 2,
+      "timestamp": "2026-05-05T23:34:00.7369741Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "Already-enrolled check uses `findActiveByStudentId` (any class), not class-scoped lookup → `STUDENT_ALREADY_ENROLLED` (409)"
+            },
+            {
+              "completed": false,
+              "text": "School-year date-bounds check rejects `enrollmentDate` outside `[class.schoolYear.startDate, class.schoolYear.endDate]` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400)"
+            },
+            {
+              "completed": false,
+              "text": "Validation order: campus-scope → school-year bounds → already-enrolled → persistence"
+            },
+            {
+              "completed": false,
+              "text": "After withdraw on prior class, re-enroll into any class succeeds (regression)"
+            },
+            {
+              "completed": false,
+              "text": "`enroll-student.use-case.spec.ts` updated for new error paths and broadened active check"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Already-enrolled check uses `findActiveByStudentId` (any class), not class-scoped lookup → `STUDENT_ALREADY_ENROLLED` (409)"
+          },
+          {
+            "completed": false,
+            "text": "School-year date-bounds check rejects `enrollmentDate` outside `[class.schoolYear.startDate, class.schoolYear.endDate]` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400)"
+          },
+          {
+            "completed": false,
+            "text": "Validation order: campus-scope → school-year bounds → already-enrolled → persistence"
+          },
+          {
+            "completed": false,
+            "text": "After withdraw on prior class, re-enroll into any class succeeds (regression)"
+          },
+          {
+            "completed": false,
+            "text": "`enroll-student.use-case.spec.ts` updated for new error paths and broadened active check"
+          }
+        ],
+        "description": "Update `EnrollStudentUseCase` in `src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts` to reject when student has *any* active enrollment (use new `findActiveByStudentId`), not just same class → `STUDENT_ALREADY_ENROLLED` (409). Add school-year date-bounds check on `enrollmentDate` against `class.schoolYear.startDate/endDate` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400). Validation order: campus-scope → school-year bounds → already-enrolled → persistence. Update `enroll-student.use-case.spec.ts` for new error paths.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-8, FR-17 (enroll path), NFR-5, NFR-6\nBlocked by: Task 3 (repository)",
+        "labels": [
+          "from-spec",
+          "use-case"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Broaden EnrollStudentUseCase + school-year date bounds"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "zffh6i",
+      "version": 3,
+      "timestamp": "2026-05-06T03:28:42.6703021Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Already-enrolled check uses `findActiveByStudentId` (any class), not class-scoped lookup → `STUDENT_ALREADY_ENROLLED` (409)"
+          },
+          {
+            "completed": false,
+            "text": "School-year date-bounds check rejects `enrollmentDate` outside `[class.schoolYear.startDate, class.schoolYear.endDate]` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400)"
+          },
+          {
+            "completed": false,
+            "text": "Validation order: campus-scope → school-year bounds → already-enrolled → persistence"
+          },
+          {
+            "completed": false,
+            "text": "After withdraw on prior class, re-enroll into any class succeeds (regression)"
+          },
+          {
+            "completed": false,
+            "text": "`enroll-student.use-case.spec.ts` updated for new error paths and broadened active check"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollStudentUseCase` in `src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts` to reject when student has *any* active enrollment (use new `findActiveByStudentId`), not just same class → `STUDENT_ALREADY_ENROLLED` (409). Add school-year date-bounds check on `enrollmentDate` against `class.schoolYear.startDate/endDate` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400). Validation order: campus-scope → school-year bounds → already-enrolled → persistence. Update `enroll-student.use-case.spec.ts` for new error paths.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-8, FR-17 (enroll path), NFR-5, NFR-6\nBlocked by: Task 3 (repository)",
+        "labels": [
+          "from-spec",
+          "use-case"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Broaden EnrollStudentUseCase + school-year date bounds"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "zffh6i",
+      "version": 4,
+      "timestamp": "2026-05-06T03:32:09.7019311Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "## Implementation Plan\n\n**Context:** EnrollmentRepository.findActiveByStudentId already exists (jvdbpl). PrismaClassRepository.findById already eager-loads schoolYear, so class.schoolYear is reliable in production. SchoolYear exposes isWithinDateRange(date). Test factory createClass currently builds a Class without the schoolYear relation — needs extension.\n\nSpec ref: @doc/specs/class-enrollment-period-model (FR-8, FR-17 enroll path; ACs 21, 22, 27; Scenarios 4, 9, 10; NFR-5/6)\n\n### Steps\n\n1. **Update EnrollStudentUseCase** in src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts to enforce the new validation order:\n   1. class exists → NotFoundException\n   2. class.campusId === input.campusId → BadRequestException (\"Class does not belong to this campus\") — unchanged\n   3. student exists → NotFoundException\n   4. student.campusId === input.campusId → BadRequestException — unchanged\n   5. **NEW** school-year bounds: `classEntity.schoolYear!.isWithinDateRange(input.enrollmentDate)` → false → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`\n   6. **NEW** active-anywhere: `enrollmentRepository.findActiveByStudentId(input.studentId)` → non-null → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   7. existing same-date duplicate check via `findByStudentClassDate` — kept (composite-key safety, returns 409 with the existing message)\n   8. save\n   - Use NestJS HTTP exceptions per existing project convention (NFR-5 mentions \"DomainException hierarchy\" but no such class exists in repo — flagged below).\n   - The schoolYear non-null assertion is safe because PrismaClassRepository.findById always includes it; keeping it explicit signals the dependency.\n\n2. **Extend createClass test factory** in src/test-utils/entity-factories.ts to optionally accept a SchoolYear relation, defaulting to a wide range (e.g., 2020-01-01 to 2030-12-31) so existing tests continue to pass with realistic data:\n   - Add `schoolYear?: SchoolYear` to overrides type\n   - Default-build a SchoolYear via `SchoolYear.create({...wide range, campusId})` and attach via Class.create's `schoolYear` prop\n   - Existing call sites need no changes (broad default)\n\n3. **Update enroll-student.use-case.spec.ts** in src/application/class-management/use-cases/enrollment/:\n   - Update local `createMockClass` to also include a SchoolYear with default wide range; add an optional `schoolYearRange?: { startDate; endDate }` override for the bounds tests\n   - Set `mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null)` in beforeEach (default no-active) so existing happy-path tests continue\n   - Existing test \"duplicate enrollment exists on same date\" still works (active=null fall-through)\n   - **AC-21 / Scenario 9**: new test — student already active in another class → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   - **AC-22 / Scenario 4**: regression test — after withdraw (active=null), enrollment in any class succeeds; assert findActiveByStudentId returned null and save was called\n   - **AC-27 / Scenario 10**: two new tests — enrollmentDate before schoolYear.startDate → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`, enrollmentDate after schoolYear.endDate → same\n   - Validation-order test: when both school-year bounds and active-anywhere would fail, school-year fires first (campus-scope still fires before both)\n\n4. **Verify cross-campus-prevention.integration.spec.ts** continues to pass:\n   - Its happy-path test uses `new Date()` (today) as enrollmentDate; the broadened createClass default (2020-2030 SchoolYear) covers today.\n   - Its `findActiveByStudentId` mock returns undefined by default → falsy → no false-positive STUDENT_ALREADY_ENROLLED.\n   - \"should validate class campus before checking student campus\" still holds — campus-scope is still step 2.\n   - No code changes expected; verify via test run.\n\n5. **Validate**:\n   - `npx tsc --noEmit` clean\n   - `npx jest enroll-student.use-case.spec.ts` → all green\n   - `npx jest cross-campus-prevention.integration.spec.ts` → all green\n   - `npx jest src/application/class-management src/domain/class-management src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → no regressions across the whole class-management/domain surface (createClass factory change has cross-cutting reach)\n   - `mcp_knowns_validate({ entity: \"zffh6i\" })` → 0 errors\n   - Append notes, check ACs, stop timer, mark done; SDD workflow.\n\n### Scope sizing\n3 files modified — fits one session. Test-factory change is additive (default-build SchoolYear) so backwards compatible.\n\n### Plan-quality notes\n- **NFR-5 vs project reality:** NFR-5 says \"use the project's existing DomainException hierarchy\". `Grep DomainException src/` returns 0 matches — no such hierarchy exists. The existing EnrollStudentUseCase, the just-shipped WithdrawStudentUseCase (q0oqvy), and the global filter all use NestJS HTTP exceptions directly. Sticking with that convention; flagging that NFR-5's wording may be aspirational rather than descriptive of current state.\n- **Existing same-date check kept**: spec doesn't ask to remove it. It's a defensive layer against the (studentId, classId, enrollmentDate) composite-key DB constraint and provides a clearer error than a raw Prisma unique-violation. Leaving it in place after the new active-anywhere check.\n- **Test factory generalization**: `createClass` is widely used in tests. Default SchoolYear with broad range (2020–2030) means all existing assertions continue to pass; only the new school-year-bounds tests will override. Cross-cutting risk mitigated by running the full class-management/domain test suite as part of validation."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "Already-enrolled check uses `findActiveByStudentId` (any class), not class-scoped lookup → `STUDENT_ALREADY_ENROLLED` (409)"
+          },
+          {
+            "completed": false,
+            "text": "School-year date-bounds check rejects `enrollmentDate` outside `[class.schoolYear.startDate, class.schoolYear.endDate]` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400)"
+          },
+          {
+            "completed": false,
+            "text": "Validation order: campus-scope → school-year bounds → already-enrolled → persistence"
+          },
+          {
+            "completed": false,
+            "text": "After withdraw on prior class, re-enroll into any class succeeds (regression)"
+          },
+          {
+            "completed": false,
+            "text": "`enroll-student.use-case.spec.ts` updated for new error paths and broadened active check"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollStudentUseCase` in `src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts` to reject when student has *any* active enrollment (use new `findActiveByStudentId`), not just same class → `STUDENT_ALREADY_ENROLLED` (409). Add school-year date-bounds check on `enrollmentDate` against `class.schoolYear.startDate/endDate` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400). Validation order: campus-scope → school-year bounds → already-enrolled → persistence. Update `enroll-student.use-case.spec.ts` for new error paths.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-8, FR-17 (enroll path), NFR-5, NFR-6\nBlocked by: Task 3 (repository)",
+        "implementationPlan": "## Implementation Plan\n\n**Context:** EnrollmentRepository.findActiveByStudentId already exists (jvdbpl). PrismaClassRepository.findById already eager-loads schoolYear, so class.schoolYear is reliable in production. SchoolYear exposes isWithinDateRange(date). Test factory createClass currently builds a Class without the schoolYear relation — needs extension.\n\nSpec ref: @doc/specs/class-enrollment-period-model (FR-8, FR-17 enroll path; ACs 21, 22, 27; Scenarios 4, 9, 10; NFR-5/6)\n\n### Steps\n\n1. **Update EnrollStudentUseCase** in src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts to enforce the new validation order:\n   1. class exists → NotFoundException\n   2. class.campusId === input.campusId → BadRequestException (\"Class does not belong to this campus\") — unchanged\n   3. student exists → NotFoundException\n   4. student.campusId === input.campusId → BadRequestException — unchanged\n   5. **NEW** school-year bounds: `classEntity.schoolYear!.isWithinDateRange(input.enrollmentDate)` → false → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`\n   6. **NEW** active-anywhere: `enrollmentRepository.findActiveByStudentId(input.studentId)` → non-null → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   7. existing same-date duplicate check via `findByStudentClassDate` — kept (composite-key safety, returns 409 with the existing message)\n   8. save\n   - Use NestJS HTTP exceptions per existing project convention (NFR-5 mentions \"DomainException hierarchy\" but no such class exists in repo — flagged below).\n   - The schoolYear non-null assertion is safe because PrismaClassRepository.findById always includes it; keeping it explicit signals the dependency.\n\n2. **Extend createClass test factory** in src/test-utils/entity-factories.ts to optionally accept a SchoolYear relation, defaulting to a wide range (e.g., 2020-01-01 to 2030-12-31) so existing tests continue to pass with realistic data:\n   - Add `schoolYear?: SchoolYear` to overrides type\n   - Default-build a SchoolYear via `SchoolYear.create({...wide range, campusId})` and attach via Class.create's `schoolYear` prop\n   - Existing call sites need no changes (broad default)\n\n3. **Update enroll-student.use-case.spec.ts** in src/application/class-management/use-cases/enrollment/:\n   - Update local `createMockClass` to also include a SchoolYear with default wide range; add an optional `schoolYearRange?: { startDate; endDate }` override for the bounds tests\n   - Set `mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null)` in beforeEach (default no-active) so existing happy-path tests continue\n   - Existing test \"duplicate enrollment exists on same date\" still works (active=null fall-through)\n   - **AC-21 / Scenario 9**: new test — student already active in another class → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   - **AC-22 / Scenario 4**: regression test — after withdraw (active=null), enrollment in any class succeeds; assert findActiveByStudentId returned null and save was called\n   - **AC-27 / Scenario 10**: two new tests — enrollmentDate before schoolYear.startDate → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`, enrollmentDate after schoolYear.endDate → same\n   - Validation-order test: when both school-year bounds and active-anywhere would fail, school-year fires first (campus-scope still fires before both)\n\n4. **Verify cross-campus-prevention.integration.spec.ts** continues to pass:\n   - Its happy-path test uses `new Date()` (today) as enrollmentDate; the broadened createClass default (2020-2030 SchoolYear) covers today.\n   - Its `findActiveByStudentId` mock returns undefined by default → falsy → no false-positive STUDENT_ALREADY_ENROLLED.\n   - \"should validate class campus before checking student campus\" still holds — campus-scope is still step 2.\n   - No code changes expected; verify via test run.\n\n5. **Validate**:\n   - `npx tsc --noEmit` clean\n   - `npx jest enroll-student.use-case.spec.ts` → all green\n   - `npx jest cross-campus-prevention.integration.spec.ts` → all green\n   - `npx jest src/application/class-management src/domain/class-management src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → no regressions across the whole class-management/domain surface (createClass factory change has cross-cutting reach)\n   - `mcp_knowns_validate({ entity: \"zffh6i\" })` → 0 errors\n   - Append notes, check ACs, stop timer, mark done; SDD workflow.\n\n### Scope sizing\n3 files modified — fits one session. Test-factory change is additive (default-build SchoolYear) so backwards compatible.\n\n### Plan-quality notes\n- **NFR-5 vs project reality:** NFR-5 says \"use the project's existing DomainException hierarchy\". `Grep DomainException src/` returns 0 matches — no such hierarchy exists. The existing EnrollStudentUseCase, the just-shipped WithdrawStudentUseCase (q0oqvy), and the global filter all use NestJS HTTP exceptions directly. Sticking with that convention; flagging that NFR-5's wording may be aspirational rather than descriptive of current state.\n- **Existing same-date check kept**: spec doesn't ask to remove it. It's a defensive layer against the (studentId, classId, enrollmentDate) composite-key DB constraint and provides a clearer error than a raw Prisma unique-violation. Leaving it in place after the new active-anywhere check.\n- **Test factory generalization**: `createClass` is widely used in tests. Default SchoolYear with broad range (2020–2030) means all existing assertions continue to pass; only the new school-year-bounds tests will override. Cross-cutting risk mitigated by running the full class-management/domain test suite as part of validation.",
+        "labels": [
+          "from-spec",
+          "use-case"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Broaden EnrollStudentUseCase + school-year date bounds"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "zffh6i",
+      "version": 5,
+      "timestamp": "2026-05-06T11:18:10.7224437Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implementation complete.\n\nFiles modified (3):\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts — inserted school-year-bounds check (step 3) and active-anywhere check (step 4) between campus-scope and the existing same-date duplicate check; uses class.schoolYear!.isWithinDateRange(date) (PrismaClassRepository always loads schoolYear); errors map to BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\") and ConflictException(\"STUDENT_ALREADY_ENROLLED\")\n- src/test-utils/entity-factories.ts — extended createClass to default-attach a SchoolYear (2020-01-01 → 2030-12-31); added optional `schoolYear` override; aligns schoolYearId with override id when provided\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.spec.ts — local createMockClass now builds SchoolYear with `schoolYearRange` override; beforeEach defaults findActiveByStudentId.mockResolvedValue(null); +6 new tests (AC-21, AC-22 regression, AC-27 before/after/inclusive-boundary, validation-order)\n\nSOLID / Clean Architecture compliance:\n- DIP: dependency on EnrollmentRepository abstract port unchanged; no new infra-layer leaks into the use case\n- SRP: use case orchestrates eight ordered checks; SchoolYear.isWithinDateRange owns the date-range domain rule (entity, not use case)\n- OCP: existing same-date duplicate check kept as a defensive composite-key layer; new checks added in front of it without modifying it\n- LSP: createClass test factory now consistently provides a fully-loaded Class (schoolYear relation), matching production's PrismaClassRepository.findById behavior\n- ISP: only the two newly-needed methods (findActiveByStudentId, isWithinDateRange) are touched at call sites\n\nVerification:\n- npx tsc --noEmit → EXIT=0\n- npx jest enroll-student.use-case.spec.ts + cross-campus-prevention.integration.spec.ts → 22/22 passed\n- npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts → 116/116 across 12 suites (no regressions; up from 110 since new tests added)\n- npx jest campus-isolation.integration.spec.ts (other createClass consumer outside the main run) → 12/12\n- mcp_knowns_validate(zffh6i) → 0 errors\n\nConvention note: NFR-5 mentions a \"DomainException hierarchy\"; verified absent (Grep DomainException src/ → 0 hits). Continued project convention of NestJS HTTP exceptions in the use-case layer per approved option A."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "Already-enrolled check uses `findActiveByStudentId` (any class), not class-scoped lookup → `STUDENT_ALREADY_ENROLLED` (409)"
+          },
+          {
+            "completed": true,
+            "text": "School-year date-bounds check rejects `enrollmentDate` outside `[class.schoolYear.startDate, class.schoolYear.endDate]` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400)"
+          },
+          {
+            "completed": true,
+            "text": "Validation order: campus-scope → school-year bounds → already-enrolled → persistence"
+          },
+          {
+            "completed": true,
+            "text": "After withdraw on prior class, re-enroll into any class succeeds (regression)"
+          },
+          {
+            "completed": true,
+            "text": "`enroll-student.use-case.spec.ts` updated for new error paths and broadened active check"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollStudentUseCase` in `src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts` to reject when student has *any* active enrollment (use new `findActiveByStudentId`), not just same class → `STUDENT_ALREADY_ENROLLED` (409). Add school-year date-bounds check on `enrollmentDate` against `class.schoolYear.startDate/endDate` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400). Validation order: campus-scope → school-year bounds → already-enrolled → persistence. Update `enroll-student.use-case.spec.ts` for new error paths.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-8, FR-17 (enroll path), NFR-5, NFR-6\nBlocked by: Task 3 (repository)",
+        "implementationNotes": "Implementation complete.\n\nFiles modified (3):\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts — inserted school-year-bounds check (step 3) and active-anywhere check (step 4) between campus-scope and the existing same-date duplicate check; uses class.schoolYear!.isWithinDateRange(date) (PrismaClassRepository always loads schoolYear); errors map to BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\") and ConflictException(\"STUDENT_ALREADY_ENROLLED\")\n- src/test-utils/entity-factories.ts — extended createClass to default-attach a SchoolYear (2020-01-01 → 2030-12-31); added optional `schoolYear` override; aligns schoolYearId with override id when provided\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.spec.ts — local createMockClass now builds SchoolYear with `schoolYearRange` override; beforeEach defaults findActiveByStudentId.mockResolvedValue(null); +6 new tests (AC-21, AC-22 regression, AC-27 before/after/inclusive-boundary, validation-order)\n\nSOLID / Clean Architecture compliance:\n- DIP: dependency on EnrollmentRepository abstract port unchanged; no new infra-layer leaks into the use case\n- SRP: use case orchestrates eight ordered checks; SchoolYear.isWithinDateRange owns the date-range domain rule (entity, not use case)\n- OCP: existing same-date duplicate check kept as a defensive composite-key layer; new checks added in front of it without modifying it\n- LSP: createClass test factory now consistently provides a fully-loaded Class (schoolYear relation), matching production's PrismaClassRepository.findById behavior\n- ISP: only the two newly-needed methods (findActiveByStudentId, isWithinDateRange) are touched at call sites\n\nVerification:\n- npx tsc --noEmit → EXIT=0\n- npx jest enroll-student.use-case.spec.ts + cross-campus-prevention.integration.spec.ts → 22/22 passed\n- npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts → 116/116 across 12 suites (no regressions; up from 110 since new tests added)\n- npx jest campus-isolation.integration.spec.ts (other createClass consumer outside the main run) → 12/12\n- mcp_knowns_validate(zffh6i) → 0 errors\n\nConvention note: NFR-5 mentions a \"DomainException hierarchy\"; verified absent (Grep DomainException src/ → 0 hits). Continued project convention of NestJS HTTP exceptions in the use-case layer per approved option A.",
+        "implementationPlan": "## Implementation Plan\n\n**Context:** EnrollmentRepository.findActiveByStudentId already exists (jvdbpl). PrismaClassRepository.findById already eager-loads schoolYear, so class.schoolYear is reliable in production. SchoolYear exposes isWithinDateRange(date). Test factory createClass currently builds a Class without the schoolYear relation — needs extension.\n\nSpec ref: @doc/specs/class-enrollment-period-model (FR-8, FR-17 enroll path; ACs 21, 22, 27; Scenarios 4, 9, 10; NFR-5/6)\n\n### Steps\n\n1. **Update EnrollStudentUseCase** in src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts to enforce the new validation order:\n   1. class exists → NotFoundException\n   2. class.campusId === input.campusId → BadRequestException (\"Class does not belong to this campus\") — unchanged\n   3. student exists → NotFoundException\n   4. student.campusId === input.campusId → BadRequestException — unchanged\n   5. **NEW** school-year bounds: `classEntity.schoolYear!.isWithinDateRange(input.enrollmentDate)` → false → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`\n   6. **NEW** active-anywhere: `enrollmentRepository.findActiveByStudentId(input.studentId)` → non-null → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   7. existing same-date duplicate check via `findByStudentClassDate` — kept (composite-key safety, returns 409 with the existing message)\n   8. save\n   - Use NestJS HTTP exceptions per existing project convention (NFR-5 mentions \"DomainException hierarchy\" but no such class exists in repo — flagged below).\n   - The schoolYear non-null assertion is safe because PrismaClassRepository.findById always includes it; keeping it explicit signals the dependency.\n\n2. **Extend createClass test factory** in src/test-utils/entity-factories.ts to optionally accept a SchoolYear relation, defaulting to a wide range (e.g., 2020-01-01 to 2030-12-31) so existing tests continue to pass with realistic data:\n   - Add `schoolYear?: SchoolYear` to overrides type\n   - Default-build a SchoolYear via `SchoolYear.create({...wide range, campusId})` and attach via Class.create's `schoolYear` prop\n   - Existing call sites need no changes (broad default)\n\n3. **Update enroll-student.use-case.spec.ts** in src/application/class-management/use-cases/enrollment/:\n   - Update local `createMockClass` to also include a SchoolYear with default wide range; add an optional `schoolYearRange?: { startDate; endDate }` override for the bounds tests\n   - Set `mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null)` in beforeEach (default no-active) so existing happy-path tests continue\n   - Existing test \"duplicate enrollment exists on same date\" still works (active=null fall-through)\n   - **AC-21 / Scenario 9**: new test — student already active in another class → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   - **AC-22 / Scenario 4**: regression test — after withdraw (active=null), enrollment in any class succeeds; assert findActiveByStudentId returned null and save was called\n   - **AC-27 / Scenario 10**: two new tests — enrollmentDate before schoolYear.startDate → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`, enrollmentDate after schoolYear.endDate → same\n   - Validation-order test: when both school-year bounds and active-anywhere would fail, school-year fires first (campus-scope still fires before both)\n\n4. **Verify cross-campus-prevention.integration.spec.ts** continues to pass:\n   - Its happy-path test uses `new Date()` (today) as enrollmentDate; the broadened createClass default (2020-2030 SchoolYear) covers today.\n   - Its `findActiveByStudentId` mock returns undefined by default → falsy → no false-positive STUDENT_ALREADY_ENROLLED.\n   - \"should validate class campus before checking student campus\" still holds — campus-scope is still step 2.\n   - No code changes expected; verify via test run.\n\n5. **Validate**:\n   - `npx tsc --noEmit` clean\n   - `npx jest enroll-student.use-case.spec.ts` → all green\n   - `npx jest cross-campus-prevention.integration.spec.ts` → all green\n   - `npx jest src/application/class-management src/domain/class-management src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → no regressions across the whole class-management/domain surface (createClass factory change has cross-cutting reach)\n   - `mcp_knowns_validate({ entity: \"zffh6i\" })` → 0 errors\n   - Append notes, check ACs, stop timer, mark done; SDD workflow.\n\n### Scope sizing\n3 files modified — fits one session. Test-factory change is additive (default-build SchoolYear) so backwards compatible.\n\n### Plan-quality notes\n- **NFR-5 vs project reality:** NFR-5 says \"use the project's existing DomainException hierarchy\". `Grep DomainException src/` returns 0 matches — no such hierarchy exists. The existing EnrollStudentUseCase, the just-shipped WithdrawStudentUseCase (q0oqvy), and the global filter all use NestJS HTTP exceptions directly. Sticking with that convention; flagging that NFR-5's wording may be aspirational rather than descriptive of current state.\n- **Existing same-date check kept**: spec doesn't ask to remove it. It's a defensive layer against the (studentId, classId, enrollmentDate) composite-key DB constraint and provides a clearer error than a raw Prisma unique-violation. Leaving it in place after the new active-anywhere check.\n- **Test factory generalization**: `createClass` is widely used in tests. Default SchoolYear with broad range (2020–2030) means all existing assertions continue to pass; only the new school-year-bounds tests will override. Cross-cutting risk mitigated by running the full class-management/domain test suite as part of validation.",
+        "labels": [
+          "from-spec",
+          "use-case"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Broaden EnrollStudentUseCase + school-year date bounds"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "zffh6i",
+      "version": 6,
+      "timestamp": "2026-05-06T11:18:17.1457831Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "Already-enrolled check uses `findActiveByStudentId` (any class), not class-scoped lookup → `STUDENT_ALREADY_ENROLLED` (409)",
+            "completed": true
+          },
+          {
+            "text": "School-year date-bounds check rejects `enrollmentDate` outside `[class.schoolYear.startDate, class.schoolYear.endDate]` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400)",
+            "completed": true
+          },
+          {
+            "text": "Validation order: campus-scope → school-year bounds → already-enrolled → persistence",
+            "completed": true
+          },
+          {
+            "text": "After withdraw on prior class, re-enroll into any class succeeds (regression)",
+            "completed": true
+          },
+          {
+            "text": "`enroll-student.use-case.spec.ts` updated for new error paths and broadened active check",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollStudentUseCase` in `src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts` to reject when student has *any* active enrollment (use new `findActiveByStudentId`), not just same class → `STUDENT_ALREADY_ENROLLED` (409). Add school-year date-bounds check on `enrollmentDate` against `class.schoolYear.startDate/endDate` → `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (400). Validation order: campus-scope → school-year bounds → already-enrolled → persistence. Update `enroll-student.use-case.spec.ts` for new error paths.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-8, FR-17 (enroll path), NFR-5, NFR-6\nBlocked by: Task 3 (repository)",
+        "implementationNotes": "Implementation complete.\n\nFiles modified (3):\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts — inserted school-year-bounds check (step 3) and active-anywhere check (step 4) between campus-scope and the existing same-date duplicate check; uses class.schoolYear!.isWithinDateRange(date) (PrismaClassRepository always loads schoolYear); errors map to BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\") and ConflictException(\"STUDENT_ALREADY_ENROLLED\")\n- src/test-utils/entity-factories.ts — extended createClass to default-attach a SchoolYear (2020-01-01 → 2030-12-31); added optional `schoolYear` override; aligns schoolYearId with override id when provided\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.spec.ts — local createMockClass now builds SchoolYear with `schoolYearRange` override; beforeEach defaults findActiveByStudentId.mockResolvedValue(null); +6 new tests (AC-21, AC-22 regression, AC-27 before/after/inclusive-boundary, validation-order)\n\nSOLID / Clean Architecture compliance:\n- DIP: dependency on EnrollmentRepository abstract port unchanged; no new infra-layer leaks into the use case\n- SRP: use case orchestrates eight ordered checks; SchoolYear.isWithinDateRange owns the date-range domain rule (entity, not use case)\n- OCP: existing same-date duplicate check kept as a defensive composite-key layer; new checks added in front of it without modifying it\n- LSP: createClass test factory now consistently provides a fully-loaded Class (schoolYear relation), matching production's PrismaClassRepository.findById behavior\n- ISP: only the two newly-needed methods (findActiveByStudentId, isWithinDateRange) are touched at call sites\n\nVerification:\n- npx tsc --noEmit → EXIT=0\n- npx jest enroll-student.use-case.spec.ts + cross-campus-prevention.integration.spec.ts → 22/22 passed\n- npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts → 116/116 across 12 suites (no regressions; up from 110 since new tests added)\n- npx jest campus-isolation.integration.spec.ts (other createClass consumer outside the main run) → 12/12\n- mcp_knowns_validate(zffh6i) → 0 errors\n\nConvention note: NFR-5 mentions a \"DomainException hierarchy\"; verified absent (Grep DomainException src/ → 0 hits). Continued project convention of NestJS HTTP exceptions in the use-case layer per approved option A.",
+        "implementationPlan": "## Implementation Plan\n\n**Context:** EnrollmentRepository.findActiveByStudentId already exists (jvdbpl). PrismaClassRepository.findById already eager-loads schoolYear, so class.schoolYear is reliable in production. SchoolYear exposes isWithinDateRange(date). Test factory createClass currently builds a Class without the schoolYear relation — needs extension.\n\nSpec ref: @doc/specs/class-enrollment-period-model (FR-8, FR-17 enroll path; ACs 21, 22, 27; Scenarios 4, 9, 10; NFR-5/6)\n\n### Steps\n\n1. **Update EnrollStudentUseCase** in src/application/class-management/use-cases/enrollment/enroll-student.use-case.ts to enforce the new validation order:\n   1. class exists → NotFoundException\n   2. class.campusId === input.campusId → BadRequestException (\"Class does not belong to this campus\") — unchanged\n   3. student exists → NotFoundException\n   4. student.campusId === input.campusId → BadRequestException — unchanged\n   5. **NEW** school-year bounds: `classEntity.schoolYear!.isWithinDateRange(input.enrollmentDate)` → false → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`\n   6. **NEW** active-anywhere: `enrollmentRepository.findActiveByStudentId(input.studentId)` → non-null → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   7. existing same-date duplicate check via `findByStudentClassDate` — kept (composite-key safety, returns 409 with the existing message)\n   8. save\n   - Use NestJS HTTP exceptions per existing project convention (NFR-5 mentions \"DomainException hierarchy\" but no such class exists in repo — flagged below).\n   - The schoolYear non-null assertion is safe because PrismaClassRepository.findById always includes it; keeping it explicit signals the dependency.\n\n2. **Extend createClass test factory** in src/test-utils/entity-factories.ts to optionally accept a SchoolYear relation, defaulting to a wide range (e.g., 2020-01-01 to 2030-12-31) so existing tests continue to pass with realistic data:\n   - Add `schoolYear?: SchoolYear` to overrides type\n   - Default-build a SchoolYear via `SchoolYear.create({...wide range, campusId})` and attach via Class.create's `schoolYear` prop\n   - Existing call sites need no changes (broad default)\n\n3. **Update enroll-student.use-case.spec.ts** in src/application/class-management/use-cases/enrollment/:\n   - Update local `createMockClass` to also include a SchoolYear with default wide range; add an optional `schoolYearRange?: { startDate; endDate }` override for the bounds tests\n   - Set `mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null)` in beforeEach (default no-active) so existing happy-path tests continue\n   - Existing test \"duplicate enrollment exists on same date\" still works (active=null fall-through)\n   - **AC-21 / Scenario 9**: new test — student already active in another class → `ConflictException(\"STUDENT_ALREADY_ENROLLED\")`\n   - **AC-22 / Scenario 4**: regression test — after withdraw (active=null), enrollment in any class succeeds; assert findActiveByStudentId returned null and save was called\n   - **AC-27 / Scenario 10**: two new tests — enrollmentDate before schoolYear.startDate → `BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\")`, enrollmentDate after schoolYear.endDate → same\n   - Validation-order test: when both school-year bounds and active-anywhere would fail, school-year fires first (campus-scope still fires before both)\n\n4. **Verify cross-campus-prevention.integration.spec.ts** continues to pass:\n   - Its happy-path test uses `new Date()` (today) as enrollmentDate; the broadened createClass default (2020-2030 SchoolYear) covers today.\n   - Its `findActiveByStudentId` mock returns undefined by default → falsy → no false-positive STUDENT_ALREADY_ENROLLED.\n   - \"should validate class campus before checking student campus\" still holds — campus-scope is still step 2.\n   - No code changes expected; verify via test run.\n\n5. **Validate**:\n   - `npx tsc --noEmit` clean\n   - `npx jest enroll-student.use-case.spec.ts` → all green\n   - `npx jest cross-campus-prevention.integration.spec.ts` → all green\n   - `npx jest src/application/class-management src/domain/class-management src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → no regressions across the whole class-management/domain surface (createClass factory change has cross-cutting reach)\n   - `mcp_knowns_validate({ entity: \"zffh6i\" })` → 0 errors\n   - Append notes, check ACs, stop timer, mark done; SDD workflow.\n\n### Scope sizing\n3 files modified — fits one session. Test-factory change is additive (default-build SchoolYear) so backwards compatible.\n\n### Plan-quality notes\n- **NFR-5 vs project reality:** NFR-5 says \"use the project's existing DomainException hierarchy\". `Grep DomainException src/` returns 0 matches — no such hierarchy exists. The existing EnrollStudentUseCase, the just-shipped WithdrawStudentUseCase (q0oqvy), and the global filter all use NestJS HTTP exceptions directly. Sticking with that convention; flagging that NFR-5's wording may be aspirational rather than descriptive of current state.\n- **Existing same-date check kept**: spec doesn't ask to remove it. It's a defensive layer against the (studentId, classId, enrollmentDate) composite-key DB constraint and provides a clearer error than a raw Prisma unique-violation. Leaving it in place after the new active-anywhere check.\n- **Test factory generalization**: `createClass` is widely used in tests. Default SchoolYear with broad range (2020–2030) means all existing assertions continue to pass; only the new school-year-bounds tests will override. Cross-cutting risk mitigated by running the full class-management/domain test suite as part of validation.",
+        "labels": [
+          "from-spec",
+          "use-case"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Broaden EnrollStudentUseCase + school-year date bounds"
+      }
+    }
+  ]
+}

@@ -64,7 +64,23 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 3: Check for duplicate enrollment
+      // Step 3: Validate enrollmentDate within the class's school year.
+      // PrismaClassRepository.findById always eager-loads schoolYear, so
+      // the non-null assertion reflects a real invariant.
+      if (!classEntity.schoolYear!.isWithinDateRange(input.enrollmentDate)) {
+        throw new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
+      }
+
+      // Step 4: Reject if student has any currently-active enrollment.
+      // Caller must transfer (atomic) or withdraw + enroll (two steps).
+      const activeEnrollment =
+        await this.enrollmentRepository.findActiveByStudentId(input.studentId);
+      if (activeEnrollment) {
+        throw new ConflictException("STUDENT_ALREADY_ENROLLED");
+      }
+
+      // Step 5: Defensive composite-key check (student, class, enrollmentDate).
+      // The DB-level constraint would otherwise raise an opaque unique-violation.
       const existingEnrollment =
         await this.enrollmentRepository.findByStudentClassDate(
           input.studentId,
@@ -77,7 +93,7 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 4: Create and save enrollment
+      // Step 6: Create and save enrollment
       const enrollment = Enrollment.create({
         classId: input.classId,
         studentId: input.studentId,

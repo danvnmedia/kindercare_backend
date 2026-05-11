@@ -142,6 +142,47 @@ export class PrismaStudentRepository implements StudentRepository {
     );
   }
 
+  async findEligibleForClass(
+    _classId: string,
+    params: StandardRequest,
+    scope?: { campusId: string },
+  ): Promise<PaginatedResult<Student>> {
+    // Narrow user-controllable surface: caller can filter by fullName (ilike
+    // for ?search) and status (for ?includeStatuses); everything else is
+    // system-enforced via `where` + `scope`.
+    params.allowedFilterFields = ["fullName", "studentCode", "status"];
+    params.allowedSortFields = [
+      "fullName",
+      "studentCode",
+      "dateOfBirth",
+      "createdAt",
+    ];
+
+    return await this.queryService.executeQuery<Student>(
+      this.prisma,
+      "student",
+      params,
+      {
+        where: {
+          isArchived: false,
+          // NOT EXISTS active enrollment for this student in ANY class.
+          enrollments: { none: { endDate: null } },
+        },
+        include: {
+          guardians: {
+            include: {
+              guardian: true,
+              guardianRelationship: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        scope,
+      },
+      PrismaStudentMapper,
+    );
+  }
+
   async save(student: Student): Promise<Student> {
     const prismaData = PrismaStudentMapper.toPrisma(student);
     const created = await this.prisma.student.create({

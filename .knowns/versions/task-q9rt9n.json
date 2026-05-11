@@ -1,0 +1,354 @@
+{
+  "taskId": "q9rt9n",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "q9rt9n",
+      "version": 1,
+      "timestamp": "2026-05-05T23:33:24.6333968Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "New `TransferStudentUseCase` in `src/application/class-management/use-cases/enrollment/` taking `(studentId, toClassId, campusId, transferDate?, note?, fromClassId?)`. Inside a single `prisma.$transaction(async tx =\u003e ...)` close the active enrollment (`endDate=transferDate, exitReason=TRANSFERRED`) and insert a new enrollment in `toClassId` (`enrollmentDate=transferDate`). Default `transferDate = today`. Errors: `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `INVALID_TRANSFER_DATE`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (validated against the *target* class's school year). New `student-enrollment.controller.ts` (or extension to `student.controller.ts`) hosting `POST /students/:studentId/transfer` with body `{ toClassId: UUID; transferDate?: ISODate; fromClassId?: UUID; note?: string }`, returning `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-10, FR-14, FR-17 (transfer path), NFR-3, NFR-4, NFR-5, NFR-6\nBlocked by: Tasks 4, 5",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "transaction"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "TransferStudentUseCase + HTTP route (atomic transaction)"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "q9rt9n",
+      "version": 2,
+      "timestamp": "2026-05-05T23:34:07.2391744Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "`TransferStudentUseCase` runs close + open inside a single `prisma.$transaction(async tx =\u003e ...)`; failure of either rolls both back"
+            },
+            {
+              "completed": false,
+              "text": "Default `transferDate = today`; closed row gets `endDate=transferDate, exitReason=TRANSFERRED`; opened row gets `enrollmentDate=transferDate, endDate=null`"
+            },
+            {
+              "completed": false,
+              "text": "Errors mapped: 409 NO_ACTIVE_ENROLLMENT, 409 TRANSFER_SAME_CLASS, 409 TRANSFER_SOURCE_MISMATCH, 400 INVALID_TRANSFER_DATE, 400 ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR (target class)"
+            },
+            {
+              "completed": false,
+              "text": "`POST /students/:studentId/transfer` DTO validates `toClassId` UUID, optional `transferDate` ISO, optional `fromClassId` UUID, optional `note`; respects `X-Campus-Id` (no campusId in body)"
+            },
+            {
+              "completed": false,
+              "text": "Returns `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`"
+            },
+            {
+              "completed": false,
+              "text": "Use-case unit tests cover every error case (no-active, same-class, source-mismatch, invalid-date, out-of-school-year)"
+            },
+            {
+              "completed": false,
+              "text": "Integration test forces opened-row insert failure and asserts the original close was rolled back (active row remains `endDate=null`)"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`TransferStudentUseCase` runs close + open inside a single `prisma.$transaction(async tx =\u003e ...)`; failure of either rolls both back"
+          },
+          {
+            "completed": false,
+            "text": "Default `transferDate = today`; closed row gets `endDate=transferDate, exitReason=TRANSFERRED`; opened row gets `enrollmentDate=transferDate, endDate=null`"
+          },
+          {
+            "completed": false,
+            "text": "Errors mapped: 409 NO_ACTIVE_ENROLLMENT, 409 TRANSFER_SAME_CLASS, 409 TRANSFER_SOURCE_MISMATCH, 400 INVALID_TRANSFER_DATE, 400 ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR (target class)"
+          },
+          {
+            "completed": false,
+            "text": "`POST /students/:studentId/transfer` DTO validates `toClassId` UUID, optional `transferDate` ISO, optional `fromClassId` UUID, optional `note`; respects `X-Campus-Id` (no campusId in body)"
+          },
+          {
+            "completed": false,
+            "text": "Returns `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`"
+          },
+          {
+            "completed": false,
+            "text": "Use-case unit tests cover every error case (no-active, same-class, source-mismatch, invalid-date, out-of-school-year)"
+          },
+          {
+            "completed": false,
+            "text": "Integration test forces opened-row insert failure and asserts the original close was rolled back (active row remains `endDate=null`)"
+          }
+        ],
+        "description": "New `TransferStudentUseCase` in `src/application/class-management/use-cases/enrollment/` taking `(studentId, toClassId, campusId, transferDate?, note?, fromClassId?)`. Inside a single `prisma.$transaction(async tx =\u003e ...)` close the active enrollment (`endDate=transferDate, exitReason=TRANSFERRED`) and insert a new enrollment in `toClassId` (`enrollmentDate=transferDate`). Default `transferDate = today`. Errors: `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `INVALID_TRANSFER_DATE`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (validated against the *target* class's school year). New `student-enrollment.controller.ts` (or extension to `student.controller.ts`) hosting `POST /students/:studentId/transfer` with body `{ toClassId: UUID; transferDate?: ISODate; fromClassId?: UUID; note?: string }`, returning `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-10, FR-14, FR-17 (transfer path), NFR-3, NFR-4, NFR-5, NFR-6\nBlocked by: Tasks 4, 5",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "transaction"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "TransferStudentUseCase + HTTP route (atomic transaction)"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "q9rt9n",
+      "version": 3,
+      "timestamp": "2026-05-06T11:47:11.5630417Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`TransferStudentUseCase` runs close + open inside a single `prisma.$transaction(async tx =\u003e ...)`; failure of either rolls both back"
+          },
+          {
+            "completed": false,
+            "text": "Default `transferDate = today`; closed row gets `endDate=transferDate, exitReason=TRANSFERRED`; opened row gets `enrollmentDate=transferDate, endDate=null`"
+          },
+          {
+            "completed": false,
+            "text": "Errors mapped: 409 NO_ACTIVE_ENROLLMENT, 409 TRANSFER_SAME_CLASS, 409 TRANSFER_SOURCE_MISMATCH, 400 INVALID_TRANSFER_DATE, 400 ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR (target class)"
+          },
+          {
+            "completed": false,
+            "text": "`POST /students/:studentId/transfer` DTO validates `toClassId` UUID, optional `transferDate` ISO, optional `fromClassId` UUID, optional `note`; respects `X-Campus-Id` (no campusId in body)"
+          },
+          {
+            "completed": false,
+            "text": "Returns `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`"
+          },
+          {
+            "completed": false,
+            "text": "Use-case unit tests cover every error case (no-active, same-class, source-mismatch, invalid-date, out-of-school-year)"
+          },
+          {
+            "completed": false,
+            "text": "Integration test forces opened-row insert failure and asserts the original close was rolled back (active row remains `endDate=null`)"
+          }
+        ],
+        "assignee": "@me",
+        "description": "New `TransferStudentUseCase` in `src/application/class-management/use-cases/enrollment/` taking `(studentId, toClassId, campusId, transferDate?, note?, fromClassId?)`. Inside a single `prisma.$transaction(async tx =\u003e ...)` close the active enrollment (`endDate=transferDate, exitReason=TRANSFERRED`) and insert a new enrollment in `toClassId` (`enrollmentDate=transferDate`). Default `transferDate = today`. Errors: `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `INVALID_TRANSFER_DATE`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (validated against the *target* class's school year). New `student-enrollment.controller.ts` (or extension to `student.controller.ts`) hosting `POST /students/:studentId/transfer` with body `{ toClassId: UUID; transferDate?: ISODate; fromClassId?: UUID; note?: string }`, returning `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-10, FR-14, FR-17 (transfer path), NFR-3, NFR-4, NFR-5, NFR-6\nBlocked by: Tasks 4, 5",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "transaction"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "TransferStudentUseCase + HTTP route (atomic transaction)"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "q9rt9n",
+      "version": 4,
+      "timestamp": "2026-05-06T11:51:36.2172253Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "## Implementation Plan — TransferStudentUseCase + atomic transaction\n\n### Context\n- Spec: @doc/specs/class-enrollment-period-model (sections \"Acceptance Criteria\" → AC-14..20, AC-28; \"Locked Decisions\" D4 (atomic transfer); Scenarios 1, 5, 8, 11)\n- Existing primitives ready: `Enrollment.withdraw(date, reason)` (AC-6/8), `EnrollmentRepository.findActiveByStudentId` (AC-21 work), `Class.schoolYear` eager-loaded by `PrismaClassRepository.findById` (AC-27 work)\n- Convention (per zffh6i decision): NestJS HTTP exceptions, no `DomainException` hierarchy\n\n### Architectural choice\nAtomicity is encapsulated in the repository layer via a new port method `transferEnrollment(closed, opened)`, implemented with `prisma.$transaction(async tx =\u003e ...)`. The use case stays in the application layer with no infrastructure dependency (DIP). Spec's \"single prisma.$transaction\" requirement is satisfied at the repository boundary.\n\n### Steps\n\n1. **Domain port** — Add `transferEnrollment(closed: Enrollment, opened: Enrollment): Promise\u003c{ closed: Enrollment; opened: Enrollment }\u003e` to `EnrollmentRepository` at `src/application/class-management/ports/enrollment.repository.ts`. JSDoc that the impl MUST run both writes inside a single transaction.\n\n2. **Repository impl** — Implement `transferEnrollment` in `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` using `this.prisma.$transaction(async (tx) =\u003e ...)`. Inside: `tx.enrollment.update({ where:{id:closed.id}, data: PrismaEnrollmentMapper.toPrismaUpdate(closed), include:{class,student} })` then `tx.enrollment.create({ data: PrismaEnrollmentMapper.toPrisma(opened), include:{class,student} })`. Map both back to domain. Returns `{ closed, opened }`.\n\n3. **Use case** — Create `TransferStudentUseCase` at `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts`. Input `{ studentId, toClassId, campusId, transferDate?, fromClassId?, note? }`. Validation order (each step → fail-fast):\n   1. Resolve target class via `classRepository.findById(toClassId)`. 404 NotFoundException if missing OR `class.campusId !== campusId` (hide existence — same convention as withdraw AC-13).\n   2. Resolve active enrollment via `enrollmentRepository.findActiveByStudentId(studentId)`. 409 ConflictException(\"NO_ACTIVE_ENROLLMENT\") if none. **AC-18**.\n   3. If `fromClassId` provided and `!== active.classId`: 409 ConflictException(\"TRANSFER_SOURCE_MISMATCH\"). **AC-17**.\n   4. If `active.classId === toClassId`: 409 ConflictException(\"TRANSFER_SAME_CLASS\"). **AC-16**.\n   5. If `targetClass.schoolYear!.isWithinDateRange(transferDate)` is false: 400 BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\"). **AC-28**.\n   6. Build `closed = active.withdraw(transferDate, ExitReason.TRANSFERRED)` — catch `InvalidEndDateException` → 400 BadRequestException(\"INVALID_TRANSFER_DATE: ...message\"). **AC-19**. (Reuses existing AC-8 invariants.)\n   7. Build `opened = Enrollment.create({ classId:toClassId, studentId, enrollmentDate:transferDate, note })`.\n   8. Call `enrollmentRepository.transferEnrollment(closed, opened)` (atomic) → return `{ closed, opened }`. **AC-14, AC-15, AC-20**.\n   - Default `transferDate = new Date()` when omitted.\n\n4. **Request DTO** — `src/infra/http/dtos/class-management/transfer-student.request.ts`: `@IsUUID toClassId`, `@IsOptional @IsDateString transferDate?`, `@IsOptional @IsUUID fromClassId?`, `@IsOptional @IsString @MaxLength(500) note?`. NO `campusId` in body (`X-Campus-Id` header). **AC-(http) DTO part**.\n\n5. **Response DTO** — `src/infra/http/dtos/class-management/transfer-student.response.ts`: `{ closed: EnrollmentResponse; opened: EnrollmentResponse }` with `@Type(() =\u003e EnrollmentResponse)` for class-transformer. Update `dtos/class-management/index.ts` barrel.\n\n6. **HTTP controller** — Create `src/infra/http/controllers/class-management/student-enrollment.controller.ts` with `@Controller(\"students\")`, `@UseGuards(ClerkAuthGuard)`, `@RequireCampusAccess()`. Route `POST :studentId/transfer`, `@StandardResponse({ message:\"Student transferred successfully\", type: TransferStudentResponse })`, `@CampusContext() campusId`, `@Param(\"studentId\") studentId`, `@Body() dto: TransferStudentRequest`. Maps DTO → use-case input (parse `transferDate` to Date if provided). **AC-(http)**.\n\n7. **Module wiring** — Register `TransferStudentUseCase` and `StudentEnrollmentController` in `src/infra/http/modules/class-management.module.ts`. Add barrel export in `src/application/class-management/use-cases/enrollment/index.ts`.\n\n8. **Use-case unit tests** (`transfer-student.use-case.spec.ts`) — typed `jest.Mocked\u003cEnrollmentRepository\u003e` + `jest.Mocked\u003cClassRepository\u003e`. Cover: default-today happy path returning `{closed,opened}`; AC-15 explicit transferDate; AC-16 same-class; AC-17 source-mismatch; AC-18 no-active; AC-19 invalid-date (before active.enrollmentDate, after today); AC-28 out-of-school-year (before/after target schoolYear range); cross-campus target → 404; validation-order (transferEnrollment NOT called when any check fails). Also assert `closed.exitReason === TRANSFERRED` and `opened.endDate === null`. **AC #1, #2, #3, #6**.\n\n9. **Repository integration test** — Extend `prisma-enrollment.repository.spec.ts` with a `transferEnrollment` describe block. Mock `prisma.$transaction` so it actually invokes the callback with a tx mock. Verify: (a) on happy path both `tx.enrollment.update` and `tx.enrollment.create` are called and results mapped; (b) on forced second-op throw, the error propagates and only one prisma op was attempted inside the `$transaction` callback before the throw — proves both ops live inside the same transaction wrapper. This is the `$transaction`-bounded equivalent of \"rollback\" available without a real DB. **AC #7 (rollback)**.\n\n10. **Validate** — `npx tsc --noEmit`, run new+adjacent specs, run `src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts campus-isolation.integration.spec.ts cross-campus-prevention.integration.spec.ts`, then `mcp_knowns_validate { entity: \"q9rt9n\" }`.\n\n### AC Coverage Map (task ACs)\n| Plan step | Task AC | Spec AC |\n|---|---|---|\n| 2 (repo $transaction) + 3.8 + 9 | #1, #7 | AC-20 |\n| 3.6, 3.7, 3.8 | #2 | AC-14, AC-15 |\n| 3.2–3.6 + 8 | #3, #6 | AC-16, AC-17, AC-18, AC-19, AC-28 |\n| 4, 6 | #4 | (HTTP wiring) |\n| 5, 6 | #5 | AC-14 (return shape) |\n\n### Files (new / modified)\n**New:** `transfer-student.use-case.ts`, `transfer-student.use-case.spec.ts`, `transfer-student.request.ts`, `transfer-student.response.ts`, `student-enrollment.controller.ts`\n**Modified:** `enrollment.repository.ts` (port), `prisma-enrollment.repository.ts`, `prisma-enrollment.repository.spec.ts`, `dtos/class-management/index.ts`, `enrollment/index.ts`, `class-management.module.ts`\n\n### Risk / open questions\n- **Q1 (atomicity verification depth):** Plan step 9 verifies `$transaction` wrapping at the repo level via mock, since the project's other \"integration\" specs are mock-based (no test DB harness). If you want a real-DB rollback proof for AC-20, we'd need to introduce a Prisma test-container harness — out of scope here unless you say otherwise. **Confirm: mock-based AC-20 verification OK?**\n- **Q2 (controller location):** New `student-enrollment.controller.ts` lives in `controllers/class-management/` (cohesion with the use case) even though the URL is `/students/:studentId/...`. This avoids bloating `user-management/student.controller.ts`. **OK?**\n- Step 9 touches the existing `prisma-enrollment.repository.spec.ts`; ~6 new test blocks. All other steps create new files. Total touched files: 6 modified, 5 new — within scope."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`TransferStudentUseCase` runs close + open inside a single `prisma.$transaction(async tx =\u003e ...)`; failure of either rolls both back"
+          },
+          {
+            "completed": false,
+            "text": "Default `transferDate = today`; closed row gets `endDate=transferDate, exitReason=TRANSFERRED`; opened row gets `enrollmentDate=transferDate, endDate=null`"
+          },
+          {
+            "completed": false,
+            "text": "Errors mapped: 409 NO_ACTIVE_ENROLLMENT, 409 TRANSFER_SAME_CLASS, 409 TRANSFER_SOURCE_MISMATCH, 400 INVALID_TRANSFER_DATE, 400 ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR (target class)"
+          },
+          {
+            "completed": false,
+            "text": "`POST /students/:studentId/transfer` DTO validates `toClassId` UUID, optional `transferDate` ISO, optional `fromClassId` UUID, optional `note`; respects `X-Campus-Id` (no campusId in body)"
+          },
+          {
+            "completed": false,
+            "text": "Returns `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`"
+          },
+          {
+            "completed": false,
+            "text": "Use-case unit tests cover every error case (no-active, same-class, source-mismatch, invalid-date, out-of-school-year)"
+          },
+          {
+            "completed": false,
+            "text": "Integration test forces opened-row insert failure and asserts the original close was rolled back (active row remains `endDate=null`)"
+          }
+        ],
+        "assignee": "@me",
+        "description": "New `TransferStudentUseCase` in `src/application/class-management/use-cases/enrollment/` taking `(studentId, toClassId, campusId, transferDate?, note?, fromClassId?)`. Inside a single `prisma.$transaction(async tx =\u003e ...)` close the active enrollment (`endDate=transferDate, exitReason=TRANSFERRED`) and insert a new enrollment in `toClassId` (`enrollmentDate=transferDate`). Default `transferDate = today`. Errors: `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `INVALID_TRANSFER_DATE`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (validated against the *target* class's school year). New `student-enrollment.controller.ts` (or extension to `student.controller.ts`) hosting `POST /students/:studentId/transfer` with body `{ toClassId: UUID; transferDate?: ISODate; fromClassId?: UUID; note?: string }`, returning `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-10, FR-14, FR-17 (transfer path), NFR-3, NFR-4, NFR-5, NFR-6\nBlocked by: Tasks 4, 5",
+        "implementationPlan": "## Implementation Plan — TransferStudentUseCase + atomic transaction\n\n### Context\n- Spec: @doc/specs/class-enrollment-period-model (sections \"Acceptance Criteria\" → AC-14..20, AC-28; \"Locked Decisions\" D4 (atomic transfer); Scenarios 1, 5, 8, 11)\n- Existing primitives ready: `Enrollment.withdraw(date, reason)` (AC-6/8), `EnrollmentRepository.findActiveByStudentId` (AC-21 work), `Class.schoolYear` eager-loaded by `PrismaClassRepository.findById` (AC-27 work)\n- Convention (per zffh6i decision): NestJS HTTP exceptions, no `DomainException` hierarchy\n\n### Architectural choice\nAtomicity is encapsulated in the repository layer via a new port method `transferEnrollment(closed, opened)`, implemented with `prisma.$transaction(async tx =\u003e ...)`. The use case stays in the application layer with no infrastructure dependency (DIP). Spec's \"single prisma.$transaction\" requirement is satisfied at the repository boundary.\n\n### Steps\n\n1. **Domain port** — Add `transferEnrollment(closed: Enrollment, opened: Enrollment): Promise\u003c{ closed: Enrollment; opened: Enrollment }\u003e` to `EnrollmentRepository` at `src/application/class-management/ports/enrollment.repository.ts`. JSDoc that the impl MUST run both writes inside a single transaction.\n\n2. **Repository impl** — Implement `transferEnrollment` in `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` using `this.prisma.$transaction(async (tx) =\u003e ...)`. Inside: `tx.enrollment.update({ where:{id:closed.id}, data: PrismaEnrollmentMapper.toPrismaUpdate(closed), include:{class,student} })` then `tx.enrollment.create({ data: PrismaEnrollmentMapper.toPrisma(opened), include:{class,student} })`. Map both back to domain. Returns `{ closed, opened }`.\n\n3. **Use case** — Create `TransferStudentUseCase` at `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts`. Input `{ studentId, toClassId, campusId, transferDate?, fromClassId?, note? }`. Validation order (each step → fail-fast):\n   1. Resolve target class via `classRepository.findById(toClassId)`. 404 NotFoundException if missing OR `class.campusId !== campusId` (hide existence — same convention as withdraw AC-13).\n   2. Resolve active enrollment via `enrollmentRepository.findActiveByStudentId(studentId)`. 409 ConflictException(\"NO_ACTIVE_ENROLLMENT\") if none. **AC-18**.\n   3. If `fromClassId` provided and `!== active.classId`: 409 ConflictException(\"TRANSFER_SOURCE_MISMATCH\"). **AC-17**.\n   4. If `active.classId === toClassId`: 409 ConflictException(\"TRANSFER_SAME_CLASS\"). **AC-16**.\n   5. If `targetClass.schoolYear!.isWithinDateRange(transferDate)` is false: 400 BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\"). **AC-28**.\n   6. Build `closed = active.withdraw(transferDate, ExitReason.TRANSFERRED)` — catch `InvalidEndDateException` → 400 BadRequestException(\"INVALID_TRANSFER_DATE: ...message\"). **AC-19**. (Reuses existing AC-8 invariants.)\n   7. Build `opened = Enrollment.create({ classId:toClassId, studentId, enrollmentDate:transferDate, note })`.\n   8. Call `enrollmentRepository.transferEnrollment(closed, opened)` (atomic) → return `{ closed, opened }`. **AC-14, AC-15, AC-20**.\n   - Default `transferDate = new Date()` when omitted.\n\n4. **Request DTO** — `src/infra/http/dtos/class-management/transfer-student.request.ts`: `@IsUUID toClassId`, `@IsOptional @IsDateString transferDate?`, `@IsOptional @IsUUID fromClassId?`, `@IsOptional @IsString @MaxLength(500) note?`. NO `campusId` in body (`X-Campus-Id` header). **AC-(http) DTO part**.\n\n5. **Response DTO** — `src/infra/http/dtos/class-management/transfer-student.response.ts`: `{ closed: EnrollmentResponse; opened: EnrollmentResponse }` with `@Type(() =\u003e EnrollmentResponse)` for class-transformer. Update `dtos/class-management/index.ts` barrel.\n\n6. **HTTP controller** — Create `src/infra/http/controllers/class-management/student-enrollment.controller.ts` with `@Controller(\"students\")`, `@UseGuards(ClerkAuthGuard)`, `@RequireCampusAccess()`. Route `POST :studentId/transfer`, `@StandardResponse({ message:\"Student transferred successfully\", type: TransferStudentResponse })`, `@CampusContext() campusId`, `@Param(\"studentId\") studentId`, `@Body() dto: TransferStudentRequest`. Maps DTO → use-case input (parse `transferDate` to Date if provided). **AC-(http)**.\n\n7. **Module wiring** — Register `TransferStudentUseCase` and `StudentEnrollmentController` in `src/infra/http/modules/class-management.module.ts`. Add barrel export in `src/application/class-management/use-cases/enrollment/index.ts`.\n\n8. **Use-case unit tests** (`transfer-student.use-case.spec.ts`) — typed `jest.Mocked\u003cEnrollmentRepository\u003e` + `jest.Mocked\u003cClassRepository\u003e`. Cover: default-today happy path returning `{closed,opened}`; AC-15 explicit transferDate; AC-16 same-class; AC-17 source-mismatch; AC-18 no-active; AC-19 invalid-date (before active.enrollmentDate, after today); AC-28 out-of-school-year (before/after target schoolYear range); cross-campus target → 404; validation-order (transferEnrollment NOT called when any check fails). Also assert `closed.exitReason === TRANSFERRED` and `opened.endDate === null`. **AC #1, #2, #3, #6**.\n\n9. **Repository integration test** — Extend `prisma-enrollment.repository.spec.ts` with a `transferEnrollment` describe block. Mock `prisma.$transaction` so it actually invokes the callback with a tx mock. Verify: (a) on happy path both `tx.enrollment.update` and `tx.enrollment.create` are called and results mapped; (b) on forced second-op throw, the error propagates and only one prisma op was attempted inside the `$transaction` callback before the throw — proves both ops live inside the same transaction wrapper. This is the `$transaction`-bounded equivalent of \"rollback\" available without a real DB. **AC #7 (rollback)**.\n\n10. **Validate** — `npx tsc --noEmit`, run new+adjacent specs, run `src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts campus-isolation.integration.spec.ts cross-campus-prevention.integration.spec.ts`, then `mcp_knowns_validate { entity: \"q9rt9n\" }`.\n\n### AC Coverage Map (task ACs)\n| Plan step | Task AC | Spec AC |\n|---|---|---|\n| 2 (repo $transaction) + 3.8 + 9 | #1, #7 | AC-20 |\n| 3.6, 3.7, 3.8 | #2 | AC-14, AC-15 |\n| 3.2–3.6 + 8 | #3, #6 | AC-16, AC-17, AC-18, AC-19, AC-28 |\n| 4, 6 | #4 | (HTTP wiring) |\n| 5, 6 | #5 | AC-14 (return shape) |\n\n### Files (new / modified)\n**New:** `transfer-student.use-case.ts`, `transfer-student.use-case.spec.ts`, `transfer-student.request.ts`, `transfer-student.response.ts`, `student-enrollment.controller.ts`\n**Modified:** `enrollment.repository.ts` (port), `prisma-enrollment.repository.ts`, `prisma-enrollment.repository.spec.ts`, `dtos/class-management/index.ts`, `enrollment/index.ts`, `class-management.module.ts`\n\n### Risk / open questions\n- **Q1 (atomicity verification depth):** Plan step 9 verifies `$transaction` wrapping at the repo level via mock, since the project's other \"integration\" specs are mock-based (no test DB harness). If you want a real-DB rollback proof for AC-20, we'd need to introduce a Prisma test-container harness — out of scope here unless you say otherwise. **Confirm: mock-based AC-20 verification OK?**\n- **Q2 (controller location):** New `student-enrollment.controller.ts` lives in `controllers/class-management/` (cohesion with the use case) even though the URL is `/students/:studentId/...`. This avoids bloating `user-management/student.controller.ts`. **OK?**\n- Step 9 touches the existing `prisma-enrollment.repository.spec.ts`; ~6 new test blocks. All other steps create new files. Total touched files: 6 modified, 5 new — within scope.",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "transaction"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "TransferStudentUseCase + HTTP route (atomic transaction)"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "q9rt9n",
+      "version": 5,
+      "timestamp": "2026-05-06T12:16:48.9241233Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "## Implementation complete (2026-05-06)\n\n### Files added\n- `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts` — orchestrates 8-step validation pipeline, atomic persistence delegated to repo\n- `src/application/class-management/use-cases/enrollment/transfer-student.use-case.spec.ts` — 14 tests covering AC-14..20, AC-28, cross-campus 404, validation order\n- `src/infra/http/dtos/class-management/transfer-student.request.ts` — class-validator DTO (toClassId UUID, optional transferDate ISO, fromClassId UUID, note ≤500)\n- `src/infra/http/dtos/class-management/transfer-student.response.ts` — `{ closed, opened }` shape with @Type(() =\u003e EnrollmentResponse)\n- `src/infra/http/controllers/class-management/student-enrollment.controller.ts` — `POST /students/:studentId/transfer` with `@CampusContext()`, `@RequireCampusAccess()`, `@StandardResponse({ type: TransferStudentResponse })`\n\n### Files modified\n- `src/application/class-management/ports/enrollment.repository.ts` — added abstract `transferEnrollment(closed, opened)` method\n- `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` — implemented `transferEnrollment` with `prisma.$transaction(async tx =\u003e { update; create })`\n- `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` — added 3 tests for the new method (happy path + create-throw rollback + update-throw rollback)\n- `src/infra/http/dtos/class-management/index.ts` — added barrel exports for transfer DTOs\n- `src/application/class-management/use-cases/enrollment/index.ts` — added barrel export for transfer use case\n- `src/infra/http/modules/class-management.module.ts` — registered `TransferStudentUseCase` and `StudentEnrollmentController`\n- `src/application/class-management/use-cases/enrollment/{enroll-student,withdraw-student}.use-case.spec.ts` + `cross-campus-prevention.integration.spec.ts` — added `transferEnrollment: jest.fn()` to test mocks to satisfy the extended port\n\n### SOLID / Clean Architecture confirmation\n- **DIP** — use case depends only on `EnrollmentRepository` and `ClassRepository` ports; atomicity (a `prisma.$transaction` infrastructure concern) is encapsulated in `PrismaEnrollmentRepository.transferEnrollment`. Application layer has zero Prisma imports.\n- **SRP** — domain invariants (date bounds, XOR endDate/exitReason) stay on `Enrollment` and `SchoolYear`. Use case orchestrates ordered checks. Controller maps DTO ↔ use-case input. Each layer has one reason to change.\n- **OCP** — port extended (no breaking change to existing callers); new use case sits beside `WithdrawStudentUseCase` without modifying it. New controller composes the use case in a focused class rather than bloating `StudentController`.\n- **LSP** — `transferEnrollment` returns the same domain `Enrollment` shape as `update`/`save`, fully substitutable.\n- **ISP** — all controller dependencies are scoped to the single use case it composes.\n\n### Convention notes\n- NestJS HTTP exceptions (`NotFoundException`, `ConflictException`, `BadRequestException`) — matches `WithdrawStudentUseCase` and `EnrollStudentUseCase` (per zffh6i decision; no `DomainException` hierarchy in this codebase).\n- Cross-campus target = 404 hide-existence, matching withdraw AC-13 (`NotFoundException` not `ForbiddenException`).\n- Validation order is fail-fast: target-class → active enrollment → source-mismatch → same-class → school-year bounds → date-invariant (catch InvalidEndDateException → BadRequest INVALID_TRANSFER_DATE). Test asserts later validations not consulted when an earlier one fails.\n- Default `transferDate = new Date()` set at the use-case entry, so the default flows through both the school-year check AND the withdraw call consistently.\n\n### Verification\n- `npx tsc --noEmit` → EXIT=0 (clean)\n- `npx jest transfer-student.use-case.spec.ts` → **14/14**\n- `npx jest prisma-enrollment.repository.spec.ts` → **12/12** (3 new transferEnrollment tests + 9 prior)\n- `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` → **133/133** across 13 suites (up from 116; +17 new tests, zero regressions)\n- `npx jest campus-isolation.integration.spec.ts` → **12/12**\n\n### AC-20 verification depth\nMock-based as approved (Q1=A): `prisma.$transaction` mocked to actually invoke its work callback with a tx-bound delegate. Two failure scenarios exercised: (a) create-op throw — propagates with both update+create called inside the wrapper and zero writes outside; (b) update-op throw — propagates without ever calling create. This proves the writes live inside the same `$transaction` scope, which is the source of rollback semantics in real Prisma. A real-DB harness would prove the database-level rollback but is out of scope here."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "`TransferStudentUseCase` runs close + open inside a single `prisma.$transaction(async tx =\u003e ...)`; failure of either rolls both back"
+          },
+          {
+            "completed": true,
+            "text": "Default `transferDate = today`; closed row gets `endDate=transferDate, exitReason=TRANSFERRED`; opened row gets `enrollmentDate=transferDate, endDate=null`"
+          },
+          {
+            "completed": true,
+            "text": "Errors mapped: 409 NO_ACTIVE_ENROLLMENT, 409 TRANSFER_SAME_CLASS, 409 TRANSFER_SOURCE_MISMATCH, 400 INVALID_TRANSFER_DATE, 400 ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR (target class)"
+          },
+          {
+            "completed": true,
+            "text": "`POST /students/:studentId/transfer` DTO validates `toClassId` UUID, optional `transferDate` ISO, optional `fromClassId` UUID, optional `note`; respects `X-Campus-Id` (no campusId in body)"
+          },
+          {
+            "completed": true,
+            "text": "Returns `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`"
+          },
+          {
+            "completed": true,
+            "text": "Use-case unit tests cover every error case (no-active, same-class, source-mismatch, invalid-date, out-of-school-year)"
+          },
+          {
+            "completed": true,
+            "text": "Integration test forces opened-row insert failure and asserts the original close was rolled back (active row remains `endDate=null`)"
+          }
+        ],
+        "assignee": "@me",
+        "description": "New `TransferStudentUseCase` in `src/application/class-management/use-cases/enrollment/` taking `(studentId, toClassId, campusId, transferDate?, note?, fromClassId?)`. Inside a single `prisma.$transaction(async tx =\u003e ...)` close the active enrollment (`endDate=transferDate, exitReason=TRANSFERRED`) and insert a new enrollment in `toClassId` (`enrollmentDate=transferDate`). Default `transferDate = today`. Errors: `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `INVALID_TRANSFER_DATE`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (validated against the *target* class's school year). New `student-enrollment.controller.ts` (or extension to `student.controller.ts`) hosting `POST /students/:studentId/transfer` with body `{ toClassId: UUID; transferDate?: ISODate; fromClassId?: UUID; note?: string }`, returning `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-10, FR-14, FR-17 (transfer path), NFR-3, NFR-4, NFR-5, NFR-6\nBlocked by: Tasks 4, 5",
+        "implementationNotes": "## Implementation complete (2026-05-06)\n\n### Files added\n- `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts` — orchestrates 8-step validation pipeline, atomic persistence delegated to repo\n- `src/application/class-management/use-cases/enrollment/transfer-student.use-case.spec.ts` — 14 tests covering AC-14..20, AC-28, cross-campus 404, validation order\n- `src/infra/http/dtos/class-management/transfer-student.request.ts` — class-validator DTO (toClassId UUID, optional transferDate ISO, fromClassId UUID, note ≤500)\n- `src/infra/http/dtos/class-management/transfer-student.response.ts` — `{ closed, opened }` shape with @Type(() =\u003e EnrollmentResponse)\n- `src/infra/http/controllers/class-management/student-enrollment.controller.ts` — `POST /students/:studentId/transfer` with `@CampusContext()`, `@RequireCampusAccess()`, `@StandardResponse({ type: TransferStudentResponse })`\n\n### Files modified\n- `src/application/class-management/ports/enrollment.repository.ts` — added abstract `transferEnrollment(closed, opened)` method\n- `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` — implemented `transferEnrollment` with `prisma.$transaction(async tx =\u003e { update; create })`\n- `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` — added 3 tests for the new method (happy path + create-throw rollback + update-throw rollback)\n- `src/infra/http/dtos/class-management/index.ts` — added barrel exports for transfer DTOs\n- `src/application/class-management/use-cases/enrollment/index.ts` — added barrel export for transfer use case\n- `src/infra/http/modules/class-management.module.ts` — registered `TransferStudentUseCase` and `StudentEnrollmentController`\n- `src/application/class-management/use-cases/enrollment/{enroll-student,withdraw-student}.use-case.spec.ts` + `cross-campus-prevention.integration.spec.ts` — added `transferEnrollment: jest.fn()` to test mocks to satisfy the extended port\n\n### SOLID / Clean Architecture confirmation\n- **DIP** — use case depends only on `EnrollmentRepository` and `ClassRepository` ports; atomicity (a `prisma.$transaction` infrastructure concern) is encapsulated in `PrismaEnrollmentRepository.transferEnrollment`. Application layer has zero Prisma imports.\n- **SRP** — domain invariants (date bounds, XOR endDate/exitReason) stay on `Enrollment` and `SchoolYear`. Use case orchestrates ordered checks. Controller maps DTO ↔ use-case input. Each layer has one reason to change.\n- **OCP** — port extended (no breaking change to existing callers); new use case sits beside `WithdrawStudentUseCase` without modifying it. New controller composes the use case in a focused class rather than bloating `StudentController`.\n- **LSP** — `transferEnrollment` returns the same domain `Enrollment` shape as `update`/`save`, fully substitutable.\n- **ISP** — all controller dependencies are scoped to the single use case it composes.\n\n### Convention notes\n- NestJS HTTP exceptions (`NotFoundException`, `ConflictException`, `BadRequestException`) — matches `WithdrawStudentUseCase` and `EnrollStudentUseCase` (per zffh6i decision; no `DomainException` hierarchy in this codebase).\n- Cross-campus target = 404 hide-existence, matching withdraw AC-13 (`NotFoundException` not `ForbiddenException`).\n- Validation order is fail-fast: target-class → active enrollment → source-mismatch → same-class → school-year bounds → date-invariant (catch InvalidEndDateException → BadRequest INVALID_TRANSFER_DATE). Test asserts later validations not consulted when an earlier one fails.\n- Default `transferDate = new Date()` set at the use-case entry, so the default flows through both the school-year check AND the withdraw call consistently.\n\n### Verification\n- `npx tsc --noEmit` → EXIT=0 (clean)\n- `npx jest transfer-student.use-case.spec.ts` → **14/14**\n- `npx jest prisma-enrollment.repository.spec.ts` → **12/12** (3 new transferEnrollment tests + 9 prior)\n- `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` → **133/133** across 13 suites (up from 116; +17 new tests, zero regressions)\n- `npx jest campus-isolation.integration.spec.ts` → **12/12**\n\n### AC-20 verification depth\nMock-based as approved (Q1=A): `prisma.$transaction` mocked to actually invoke its work callback with a tx-bound delegate. Two failure scenarios exercised: (a) create-op throw — propagates with both update+create called inside the wrapper and zero writes outside; (b) update-op throw — propagates without ever calling create. This proves the writes live inside the same `$transaction` scope, which is the source of rollback semantics in real Prisma. A real-DB harness would prove the database-level rollback but is out of scope here.",
+        "implementationPlan": "## Implementation Plan — TransferStudentUseCase + atomic transaction\n\n### Context\n- Spec: @doc/specs/class-enrollment-period-model (sections \"Acceptance Criteria\" → AC-14..20, AC-28; \"Locked Decisions\" D4 (atomic transfer); Scenarios 1, 5, 8, 11)\n- Existing primitives ready: `Enrollment.withdraw(date, reason)` (AC-6/8), `EnrollmentRepository.findActiveByStudentId` (AC-21 work), `Class.schoolYear` eager-loaded by `PrismaClassRepository.findById` (AC-27 work)\n- Convention (per zffh6i decision): NestJS HTTP exceptions, no `DomainException` hierarchy\n\n### Architectural choice\nAtomicity is encapsulated in the repository layer via a new port method `transferEnrollment(closed, opened)`, implemented with `prisma.$transaction(async tx =\u003e ...)`. The use case stays in the application layer with no infrastructure dependency (DIP). Spec's \"single prisma.$transaction\" requirement is satisfied at the repository boundary.\n\n### Steps\n\n1. **Domain port** — Add `transferEnrollment(closed: Enrollment, opened: Enrollment): Promise\u003c{ closed: Enrollment; opened: Enrollment }\u003e` to `EnrollmentRepository` at `src/application/class-management/ports/enrollment.repository.ts`. JSDoc that the impl MUST run both writes inside a single transaction.\n\n2. **Repository impl** — Implement `transferEnrollment` in `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` using `this.prisma.$transaction(async (tx) =\u003e ...)`. Inside: `tx.enrollment.update({ where:{id:closed.id}, data: PrismaEnrollmentMapper.toPrismaUpdate(closed), include:{class,student} })` then `tx.enrollment.create({ data: PrismaEnrollmentMapper.toPrisma(opened), include:{class,student} })`. Map both back to domain. Returns `{ closed, opened }`.\n\n3. **Use case** — Create `TransferStudentUseCase` at `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts`. Input `{ studentId, toClassId, campusId, transferDate?, fromClassId?, note? }`. Validation order (each step → fail-fast):\n   1. Resolve target class via `classRepository.findById(toClassId)`. 404 NotFoundException if missing OR `class.campusId !== campusId` (hide existence — same convention as withdraw AC-13).\n   2. Resolve active enrollment via `enrollmentRepository.findActiveByStudentId(studentId)`. 409 ConflictException(\"NO_ACTIVE_ENROLLMENT\") if none. **AC-18**.\n   3. If `fromClassId` provided and `!== active.classId`: 409 ConflictException(\"TRANSFER_SOURCE_MISMATCH\"). **AC-17**.\n   4. If `active.classId === toClassId`: 409 ConflictException(\"TRANSFER_SAME_CLASS\"). **AC-16**.\n   5. If `targetClass.schoolYear!.isWithinDateRange(transferDate)` is false: 400 BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\"). **AC-28**.\n   6. Build `closed = active.withdraw(transferDate, ExitReason.TRANSFERRED)` — catch `InvalidEndDateException` → 400 BadRequestException(\"INVALID_TRANSFER_DATE: ...message\"). **AC-19**. (Reuses existing AC-8 invariants.)\n   7. Build `opened = Enrollment.create({ classId:toClassId, studentId, enrollmentDate:transferDate, note })`.\n   8. Call `enrollmentRepository.transferEnrollment(closed, opened)` (atomic) → return `{ closed, opened }`. **AC-14, AC-15, AC-20**.\n   - Default `transferDate = new Date()` when omitted.\n\n4. **Request DTO** — `src/infra/http/dtos/class-management/transfer-student.request.ts`: `@IsUUID toClassId`, `@IsOptional @IsDateString transferDate?`, `@IsOptional @IsUUID fromClassId?`, `@IsOptional @IsString @MaxLength(500) note?`. NO `campusId` in body (`X-Campus-Id` header). **AC-(http) DTO part**.\n\n5. **Response DTO** — `src/infra/http/dtos/class-management/transfer-student.response.ts`: `{ closed: EnrollmentResponse; opened: EnrollmentResponse }` with `@Type(() =\u003e EnrollmentResponse)` for class-transformer. Update `dtos/class-management/index.ts` barrel.\n\n6. **HTTP controller** — Create `src/infra/http/controllers/class-management/student-enrollment.controller.ts` with `@Controller(\"students\")`, `@UseGuards(ClerkAuthGuard)`, `@RequireCampusAccess()`. Route `POST :studentId/transfer`, `@StandardResponse({ message:\"Student transferred successfully\", type: TransferStudentResponse })`, `@CampusContext() campusId`, `@Param(\"studentId\") studentId`, `@Body() dto: TransferStudentRequest`. Maps DTO → use-case input (parse `transferDate` to Date if provided). **AC-(http)**.\n\n7. **Module wiring** — Register `TransferStudentUseCase` and `StudentEnrollmentController` in `src/infra/http/modules/class-management.module.ts`. Add barrel export in `src/application/class-management/use-cases/enrollment/index.ts`.\n\n8. **Use-case unit tests** (`transfer-student.use-case.spec.ts`) — typed `jest.Mocked\u003cEnrollmentRepository\u003e` + `jest.Mocked\u003cClassRepository\u003e`. Cover: default-today happy path returning `{closed,opened}`; AC-15 explicit transferDate; AC-16 same-class; AC-17 source-mismatch; AC-18 no-active; AC-19 invalid-date (before active.enrollmentDate, after today); AC-28 out-of-school-year (before/after target schoolYear range); cross-campus target → 404; validation-order (transferEnrollment NOT called when any check fails). Also assert `closed.exitReason === TRANSFERRED` and `opened.endDate === null`. **AC #1, #2, #3, #6**.\n\n9. **Repository integration test** — Extend `prisma-enrollment.repository.spec.ts` with a `transferEnrollment` describe block. Mock `prisma.$transaction` so it actually invokes the callback with a tx mock. Verify: (a) on happy path both `tx.enrollment.update` and `tx.enrollment.create` are called and results mapped; (b) on forced second-op throw, the error propagates and only one prisma op was attempted inside the `$transaction` callback before the throw — proves both ops live inside the same transaction wrapper. This is the `$transaction`-bounded equivalent of \"rollback\" available without a real DB. **AC #7 (rollback)**.\n\n10. **Validate** — `npx tsc --noEmit`, run new+adjacent specs, run `src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts campus-isolation.integration.spec.ts cross-campus-prevention.integration.spec.ts`, then `mcp_knowns_validate { entity: \"q9rt9n\" }`.\n\n### AC Coverage Map (task ACs)\n| Plan step | Task AC | Spec AC |\n|---|---|---|\n| 2 (repo $transaction) + 3.8 + 9 | #1, #7 | AC-20 |\n| 3.6, 3.7, 3.8 | #2 | AC-14, AC-15 |\n| 3.2–3.6 + 8 | #3, #6 | AC-16, AC-17, AC-18, AC-19, AC-28 |\n| 4, 6 | #4 | (HTTP wiring) |\n| 5, 6 | #5 | AC-14 (return shape) |\n\n### Files (new / modified)\n**New:** `transfer-student.use-case.ts`, `transfer-student.use-case.spec.ts`, `transfer-student.request.ts`, `transfer-student.response.ts`, `student-enrollment.controller.ts`\n**Modified:** `enrollment.repository.ts` (port), `prisma-enrollment.repository.ts`, `prisma-enrollment.repository.spec.ts`, `dtos/class-management/index.ts`, `enrollment/index.ts`, `class-management.module.ts`\n\n### Risk / open questions\n- **Q1 (atomicity verification depth):** Plan step 9 verifies `$transaction` wrapping at the repo level via mock, since the project's other \"integration\" specs are mock-based (no test DB harness). If you want a real-DB rollback proof for AC-20, we'd need to introduce a Prisma test-container harness — out of scope here unless you say otherwise. **Confirm: mock-based AC-20 verification OK?**\n- **Q2 (controller location):** New `student-enrollment.controller.ts` lives in `controllers/class-management/` (cohesion with the use case) even though the URL is `/students/:studentId/...`. This avoids bloating `user-management/student.controller.ts`. **OK?**\n- Step 9 touches the existing `prisma-enrollment.repository.spec.ts`; ~6 new test blocks. All other steps create new files. Total touched files: 6 modified, 5 new — within scope.",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "transaction"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "TransferStudentUseCase + HTTP route (atomic transaction)"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "q9rt9n",
+      "version": 6,
+      "timestamp": "2026-05-06T12:16:56.9652691Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "`TransferStudentUseCase` runs close + open inside a single `prisma.$transaction(async tx =\u003e ...)`; failure of either rolls both back",
+            "completed": true
+          },
+          {
+            "text": "Default `transferDate = today`; closed row gets `endDate=transferDate, exitReason=TRANSFERRED`; opened row gets `enrollmentDate=transferDate, endDate=null`",
+            "completed": true
+          },
+          {
+            "text": "Errors mapped: 409 NO_ACTIVE_ENROLLMENT, 409 TRANSFER_SAME_CLASS, 409 TRANSFER_SOURCE_MISMATCH, 400 INVALID_TRANSFER_DATE, 400 ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR (target class)",
+            "completed": true
+          },
+          {
+            "text": "`POST /students/:studentId/transfer` DTO validates `toClassId` UUID, optional `transferDate` ISO, optional `fromClassId` UUID, optional `note`; respects `X-Campus-Id` (no campusId in body)",
+            "completed": true
+          },
+          {
+            "text": "Returns `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`",
+            "completed": true
+          },
+          {
+            "text": "Use-case unit tests cover every error case (no-active, same-class, source-mismatch, invalid-date, out-of-school-year)",
+            "completed": true
+          },
+          {
+            "text": "Integration test forces opened-row insert failure and asserts the original close was rolled back (active row remains `endDate=null`)",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "New `TransferStudentUseCase` in `src/application/class-management/use-cases/enrollment/` taking `(studentId, toClassId, campusId, transferDate?, note?, fromClassId?)`. Inside a single `prisma.$transaction(async tx =\u003e ...)` close the active enrollment (`endDate=transferDate, exitReason=TRANSFERRED`) and insert a new enrollment in `toClassId` (`enrollmentDate=transferDate`). Default `transferDate = today`. Errors: `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `INVALID_TRANSFER_DATE`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR` (validated against the *target* class's school year). New `student-enrollment.controller.ts` (or extension to `student.controller.ts`) hosting `POST /students/:studentId/transfer` with body `{ toClassId: UUID; transferDate?: ISODate; fromClassId?: UUID; note?: string }`, returning `{ closed: EnrollmentResponse, opened: EnrollmentResponse }`.\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-10, FR-14, FR-17 (transfer path), NFR-3, NFR-4, NFR-5, NFR-6\nBlocked by: Tasks 4, 5",
+        "implementationNotes": "## Implementation complete (2026-05-06)\n\n### Files added\n- `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts` — orchestrates 8-step validation pipeline, atomic persistence delegated to repo\n- `src/application/class-management/use-cases/enrollment/transfer-student.use-case.spec.ts` — 14 tests covering AC-14..20, AC-28, cross-campus 404, validation order\n- `src/infra/http/dtos/class-management/transfer-student.request.ts` — class-validator DTO (toClassId UUID, optional transferDate ISO, fromClassId UUID, note ≤500)\n- `src/infra/http/dtos/class-management/transfer-student.response.ts` — `{ closed, opened }` shape with @Type(() =\u003e EnrollmentResponse)\n- `src/infra/http/controllers/class-management/student-enrollment.controller.ts` — `POST /students/:studentId/transfer` with `@CampusContext()`, `@RequireCampusAccess()`, `@StandardResponse({ type: TransferStudentResponse })`\n\n### Files modified\n- `src/application/class-management/ports/enrollment.repository.ts` — added abstract `transferEnrollment(closed, opened)` method\n- `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` — implemented `transferEnrollment` with `prisma.$transaction(async tx =\u003e { update; create })`\n- `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` — added 3 tests for the new method (happy path + create-throw rollback + update-throw rollback)\n- `src/infra/http/dtos/class-management/index.ts` — added barrel exports for transfer DTOs\n- `src/application/class-management/use-cases/enrollment/index.ts` — added barrel export for transfer use case\n- `src/infra/http/modules/class-management.module.ts` — registered `TransferStudentUseCase` and `StudentEnrollmentController`\n- `src/application/class-management/use-cases/enrollment/{enroll-student,withdraw-student}.use-case.spec.ts` + `cross-campus-prevention.integration.spec.ts` — added `transferEnrollment: jest.fn()` to test mocks to satisfy the extended port\n\n### SOLID / Clean Architecture confirmation\n- **DIP** — use case depends only on `EnrollmentRepository` and `ClassRepository` ports; atomicity (a `prisma.$transaction` infrastructure concern) is encapsulated in `PrismaEnrollmentRepository.transferEnrollment`. Application layer has zero Prisma imports.\n- **SRP** — domain invariants (date bounds, XOR endDate/exitReason) stay on `Enrollment` and `SchoolYear`. Use case orchestrates ordered checks. Controller maps DTO ↔ use-case input. Each layer has one reason to change.\n- **OCP** — port extended (no breaking change to existing callers); new use case sits beside `WithdrawStudentUseCase` without modifying it. New controller composes the use case in a focused class rather than bloating `StudentController`.\n- **LSP** — `transferEnrollment` returns the same domain `Enrollment` shape as `update`/`save`, fully substitutable.\n- **ISP** — all controller dependencies are scoped to the single use case it composes.\n\n### Convention notes\n- NestJS HTTP exceptions (`NotFoundException`, `ConflictException`, `BadRequestException`) — matches `WithdrawStudentUseCase` and `EnrollStudentUseCase` (per zffh6i decision; no `DomainException` hierarchy in this codebase).\n- Cross-campus target = 404 hide-existence, matching withdraw AC-13 (`NotFoundException` not `ForbiddenException`).\n- Validation order is fail-fast: target-class → active enrollment → source-mismatch → same-class → school-year bounds → date-invariant (catch InvalidEndDateException → BadRequest INVALID_TRANSFER_DATE). Test asserts later validations not consulted when an earlier one fails.\n- Default `transferDate = new Date()` set at the use-case entry, so the default flows through both the school-year check AND the withdraw call consistently.\n\n### Verification\n- `npx tsc --noEmit` → EXIT=0 (clean)\n- `npx jest transfer-student.use-case.spec.ts` → **14/14**\n- `npx jest prisma-enrollment.repository.spec.ts` → **12/12** (3 new transferEnrollment tests + 9 prior)\n- `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` → **133/133** across 13 suites (up from 116; +17 new tests, zero regressions)\n- `npx jest campus-isolation.integration.spec.ts` → **12/12**\n\n### AC-20 verification depth\nMock-based as approved (Q1=A): `prisma.$transaction` mocked to actually invoke its work callback with a tx-bound delegate. Two failure scenarios exercised: (a) create-op throw — propagates with both update+create called inside the wrapper and zero writes outside; (b) update-op throw — propagates without ever calling create. This proves the writes live inside the same `$transaction` scope, which is the source of rollback semantics in real Prisma. A real-DB harness would prove the database-level rollback but is out of scope here.",
+        "implementationPlan": "## Implementation Plan — TransferStudentUseCase + atomic transaction\n\n### Context\n- Spec: @doc/specs/class-enrollment-period-model (sections \"Acceptance Criteria\" → AC-14..20, AC-28; \"Locked Decisions\" D4 (atomic transfer); Scenarios 1, 5, 8, 11)\n- Existing primitives ready: `Enrollment.withdraw(date, reason)` (AC-6/8), `EnrollmentRepository.findActiveByStudentId` (AC-21 work), `Class.schoolYear` eager-loaded by `PrismaClassRepository.findById` (AC-27 work)\n- Convention (per zffh6i decision): NestJS HTTP exceptions, no `DomainException` hierarchy\n\n### Architectural choice\nAtomicity is encapsulated in the repository layer via a new port method `transferEnrollment(closed, opened)`, implemented with `prisma.$transaction(async tx =\u003e ...)`. The use case stays in the application layer with no infrastructure dependency (DIP). Spec's \"single prisma.$transaction\" requirement is satisfied at the repository boundary.\n\n### Steps\n\n1. **Domain port** — Add `transferEnrollment(closed: Enrollment, opened: Enrollment): Promise\u003c{ closed: Enrollment; opened: Enrollment }\u003e` to `EnrollmentRepository` at `src/application/class-management/ports/enrollment.repository.ts`. JSDoc that the impl MUST run both writes inside a single transaction.\n\n2. **Repository impl** — Implement `transferEnrollment` in `src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts` using `this.prisma.$transaction(async (tx) =\u003e ...)`. Inside: `tx.enrollment.update({ where:{id:closed.id}, data: PrismaEnrollmentMapper.toPrismaUpdate(closed), include:{class,student} })` then `tx.enrollment.create({ data: PrismaEnrollmentMapper.toPrisma(opened), include:{class,student} })`. Map both back to domain. Returns `{ closed, opened }`.\n\n3. **Use case** — Create `TransferStudentUseCase` at `src/application/class-management/use-cases/enrollment/transfer-student.use-case.ts`. Input `{ studentId, toClassId, campusId, transferDate?, fromClassId?, note? }`. Validation order (each step → fail-fast):\n   1. Resolve target class via `classRepository.findById(toClassId)`. 404 NotFoundException if missing OR `class.campusId !== campusId` (hide existence — same convention as withdraw AC-13).\n   2. Resolve active enrollment via `enrollmentRepository.findActiveByStudentId(studentId)`. 409 ConflictException(\"NO_ACTIVE_ENROLLMENT\") if none. **AC-18**.\n   3. If `fromClassId` provided and `!== active.classId`: 409 ConflictException(\"TRANSFER_SOURCE_MISMATCH\"). **AC-17**.\n   4. If `active.classId === toClassId`: 409 ConflictException(\"TRANSFER_SAME_CLASS\"). **AC-16**.\n   5. If `targetClass.schoolYear!.isWithinDateRange(transferDate)` is false: 400 BadRequestException(\"ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR\"). **AC-28**.\n   6. Build `closed = active.withdraw(transferDate, ExitReason.TRANSFERRED)` — catch `InvalidEndDateException` → 400 BadRequestException(\"INVALID_TRANSFER_DATE: ...message\"). **AC-19**. (Reuses existing AC-8 invariants.)\n   7. Build `opened = Enrollment.create({ classId:toClassId, studentId, enrollmentDate:transferDate, note })`.\n   8. Call `enrollmentRepository.transferEnrollment(closed, opened)` (atomic) → return `{ closed, opened }`. **AC-14, AC-15, AC-20**.\n   - Default `transferDate = new Date()` when omitted.\n\n4. **Request DTO** — `src/infra/http/dtos/class-management/transfer-student.request.ts`: `@IsUUID toClassId`, `@IsOptional @IsDateString transferDate?`, `@IsOptional @IsUUID fromClassId?`, `@IsOptional @IsString @MaxLength(500) note?`. NO `campusId` in body (`X-Campus-Id` header). **AC-(http) DTO part**.\n\n5. **Response DTO** — `src/infra/http/dtos/class-management/transfer-student.response.ts`: `{ closed: EnrollmentResponse; opened: EnrollmentResponse }` with `@Type(() =\u003e EnrollmentResponse)` for class-transformer. Update `dtos/class-management/index.ts` barrel.\n\n6. **HTTP controller** — Create `src/infra/http/controllers/class-management/student-enrollment.controller.ts` with `@Controller(\"students\")`, `@UseGuards(ClerkAuthGuard)`, `@RequireCampusAccess()`. Route `POST :studentId/transfer`, `@StandardResponse({ message:\"Student transferred successfully\", type: TransferStudentResponse })`, `@CampusContext() campusId`, `@Param(\"studentId\") studentId`, `@Body() dto: TransferStudentRequest`. Maps DTO → use-case input (parse `transferDate` to Date if provided). **AC-(http)**.\n\n7. **Module wiring** — Register `TransferStudentUseCase` and `StudentEnrollmentController` in `src/infra/http/modules/class-management.module.ts`. Add barrel export in `src/application/class-management/use-cases/enrollment/index.ts`.\n\n8. **Use-case unit tests** (`transfer-student.use-case.spec.ts`) — typed `jest.Mocked\u003cEnrollmentRepository\u003e` + `jest.Mocked\u003cClassRepository\u003e`. Cover: default-today happy path returning `{closed,opened}`; AC-15 explicit transferDate; AC-16 same-class; AC-17 source-mismatch; AC-18 no-active; AC-19 invalid-date (before active.enrollmentDate, after today); AC-28 out-of-school-year (before/after target schoolYear range); cross-campus target → 404; validation-order (transferEnrollment NOT called when any check fails). Also assert `closed.exitReason === TRANSFERRED` and `opened.endDate === null`. **AC #1, #2, #3, #6**.\n\n9. **Repository integration test** — Extend `prisma-enrollment.repository.spec.ts` with a `transferEnrollment` describe block. Mock `prisma.$transaction` so it actually invokes the callback with a tx mock. Verify: (a) on happy path both `tx.enrollment.update` and `tx.enrollment.create` are called and results mapped; (b) on forced second-op throw, the error propagates and only one prisma op was attempted inside the `$transaction` callback before the throw — proves both ops live inside the same transaction wrapper. This is the `$transaction`-bounded equivalent of \"rollback\" available without a real DB. **AC #7 (rollback)**.\n\n10. **Validate** — `npx tsc --noEmit`, run new+adjacent specs, run `src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts campus-isolation.integration.spec.ts cross-campus-prevention.integration.spec.ts`, then `mcp_knowns_validate { entity: \"q9rt9n\" }`.\n\n### AC Coverage Map (task ACs)\n| Plan step | Task AC | Spec AC |\n|---|---|---|\n| 2 (repo $transaction) + 3.8 + 9 | #1, #7 | AC-20 |\n| 3.6, 3.7, 3.8 | #2 | AC-14, AC-15 |\n| 3.2–3.6 + 8 | #3, #6 | AC-16, AC-17, AC-18, AC-19, AC-28 |\n| 4, 6 | #4 | (HTTP wiring) |\n| 5, 6 | #5 | AC-14 (return shape) |\n\n### Files (new / modified)\n**New:** `transfer-student.use-case.ts`, `transfer-student.use-case.spec.ts`, `transfer-student.request.ts`, `transfer-student.response.ts`, `student-enrollment.controller.ts`\n**Modified:** `enrollment.repository.ts` (port), `prisma-enrollment.repository.ts`, `prisma-enrollment.repository.spec.ts`, `dtos/class-management/index.ts`, `enrollment/index.ts`, `class-management.module.ts`\n\n### Risk / open questions\n- **Q1 (atomicity verification depth):** Plan step 9 verifies `$transaction` wrapping at the repo level via mock, since the project's other \"integration\" specs are mock-based (no test DB harness). If you want a real-DB rollback proof for AC-20, we'd need to introduce a Prisma test-container harness — out of scope here unless you say otherwise. **Confirm: mock-based AC-20 verification OK?**\n- **Q2 (controller location):** New `student-enrollment.controller.ts` lives in `controllers/class-management/` (cohesion with the use case) even though the URL is `/students/:studentId/...`. This avoids bloating `user-management/student.controller.ts`. **OK?**\n- Step 9 touches the existing `prisma-enrollment.repository.spec.ts`; ~6 new test blocks. All other steps create new files. Total touched files: 6 modified, 5 new — within scope.",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "transaction"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "TransferStudentUseCase + HTTP route (atomic transaction)"
+      }
+    }
+  ]
+}

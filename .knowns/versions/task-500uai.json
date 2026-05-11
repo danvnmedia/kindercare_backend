@@ -1,0 +1,450 @@
+{
+  "taskId": "500uai",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "500uai",
+      "version": 1,
+      "timestamp": "2026-05-10T19:42:17.0448955Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Implement `GET /classes/:classId/eligible-students` end-to-end per FR-6..FR-8. New `GetEligibleStudentsForClassUseCase` lives in `src/application/user-management/use-cases/student/`. Use case validates target class exists + same campus (404 per D5 if not), defaults `includeStatuses=[ACTIVE]`, then delegates to `studentRepository.findEligibleForClass`. New query DTO extends StandardRequestDto-like shape with `search?: string` and `includeStatuses?: string` (CSV → StudentStatus[] via `@Transform`); DTO rejects DROPPED/GRADUATED at validation per D6. Use case registered in `UserManagementModule`; class controller injects via existing module wiring. Wired with `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Depends on the findEligibleForClass repo task.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "user-management",
+          "class-management",
+          "bulk-enrollment",
+          "feature",
+          "use-case",
+          "controller"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Eligible Students endpoint — use case, DTO, controller"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "500uai",
+      "version": 2,
+      "timestamp": "2026-05-10T19:42:49.949858Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "GetEligibleStudentsForClassUseCase created at src/application/user-management/use-cases/student/"
+            },
+            {
+              "completed": false,
+              "text": "Use case validates class exists + class.campusId === input.campusId; throws NotFoundException otherwise (D5)"
+            },
+            {
+              "completed": false,
+              "text": "Default includeStatuses = [ACTIVE] when caller omits the query param"
+            },
+            {
+              "completed": false,
+              "text": "Delegates to studentRepository.findEligibleForClass(classId, params, { campusId })"
+            },
+            {
+              "completed": false,
+              "text": "EligibleStudentsQueryDto with search?: string and includeStatuses?: string (CSV → StudentStatus[] via @Transform)"
+            },
+            {
+              "completed": false,
+              "text": "DTO @Transform rejects DROPPED and GRADUATED values (400)"
+            },
+            {
+              "completed": false,
+              "text": "Controller route `getEligibleStudents` on class.controller.ts with @CampusContext, @RequireCampusAccess, @StandardResponse({ type: StudentResponse, isPaginated: true }), full Swagger"
+            },
+            {
+              "completed": false,
+              "text": "Use case registered in UserManagementModule; class controller injects via existing module wiring"
+            },
+            {
+              "completed": false,
+              "text": "Use case spec test: returns only campus-scoped, not-archived, no-active-enrollment students with status filtering"
+            },
+            {
+              "completed": false,
+              "text": "Integration or controller spec test: search by fullName via ilike; pagination/sort via StandardRequest"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GetEligibleStudentsForClassUseCase created at src/application/user-management/use-cases/student/"
+          },
+          {
+            "completed": false,
+            "text": "Use case validates class exists + class.campusId === input.campusId; throws NotFoundException otherwise (D5)"
+          },
+          {
+            "completed": false,
+            "text": "Default includeStatuses = [ACTIVE] when caller omits the query param"
+          },
+          {
+            "completed": false,
+            "text": "Delegates to studentRepository.findEligibleForClass(classId, params, { campusId })"
+          },
+          {
+            "completed": false,
+            "text": "EligibleStudentsQueryDto with search?: string and includeStatuses?: string (CSV → StudentStatus[] via @Transform)"
+          },
+          {
+            "completed": false,
+            "text": "DTO @Transform rejects DROPPED and GRADUATED values (400)"
+          },
+          {
+            "completed": false,
+            "text": "Controller route `getEligibleStudents` on class.controller.ts with @CampusContext, @RequireCampusAccess, @StandardResponse({ type: StudentResponse, isPaginated: true }), full Swagger"
+          },
+          {
+            "completed": false,
+            "text": "Use case registered in UserManagementModule; class controller injects via existing module wiring"
+          },
+          {
+            "completed": false,
+            "text": "Use case spec test: returns only campus-scoped, not-archived, no-active-enrollment students with status filtering"
+          },
+          {
+            "completed": false,
+            "text": "Integration or controller spec test: search by fullName via ilike; pagination/sort via StandardRequest"
+          }
+        ],
+        "description": "Implement `GET /classes/:classId/eligible-students` end-to-end per FR-6..FR-8. New `GetEligibleStudentsForClassUseCase` lives in `src/application/user-management/use-cases/student/`. Use case validates target class exists + same campus (404 per D5 if not), defaults `includeStatuses=[ACTIVE]`, then delegates to `studentRepository.findEligibleForClass`. New query DTO extends StandardRequestDto-like shape with `search?: string` and `includeStatuses?: string` (CSV → StudentStatus[] via `@Transform`); DTO rejects DROPPED/GRADUATED at validation per D6. Use case registered in `UserManagementModule`; class controller injects via existing module wiring. Wired with `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Depends on the findEligibleForClass repo task.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "user-management",
+          "class-management",
+          "bulk-enrollment",
+          "feature",
+          "use-case",
+          "controller"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Eligible Students endpoint — use case, DTO, controller"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "500uai",
+      "version": 3,
+      "timestamp": "2026-05-10T21:42:39.0771128Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GetEligibleStudentsForClassUseCase created at src/application/user-management/use-cases/student/"
+          },
+          {
+            "completed": false,
+            "text": "Use case validates class exists + class.campusId === input.campusId; throws NotFoundException otherwise (D5)"
+          },
+          {
+            "completed": false,
+            "text": "Default includeStatuses = [ACTIVE] when caller omits the query param"
+          },
+          {
+            "completed": false,
+            "text": "Delegates to studentRepository.findEligibleForClass(classId, params, { campusId })"
+          },
+          {
+            "completed": false,
+            "text": "EligibleStudentsQueryDto with search?: string and includeStatuses?: string (CSV → StudentStatus[] via @Transform)"
+          },
+          {
+            "completed": false,
+            "text": "DTO @Transform rejects DROPPED and GRADUATED values (400)"
+          },
+          {
+            "completed": false,
+            "text": "Controller route `getEligibleStudents` on class.controller.ts with @CampusContext, @RequireCampusAccess, @StandardResponse({ type: StudentResponse, isPaginated: true }), full Swagger"
+          },
+          {
+            "completed": false,
+            "text": "Use case registered in UserManagementModule; class controller injects via existing module wiring"
+          },
+          {
+            "completed": false,
+            "text": "Use case spec test: returns only campus-scoped, not-archived, no-active-enrollment students with status filtering"
+          },
+          {
+            "completed": false,
+            "text": "Integration or controller spec test: search by fullName via ilike; pagination/sort via StandardRequest"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Implement `GET /classes/:classId/eligible-students` end-to-end per FR-6..FR-8. New `GetEligibleStudentsForClassUseCase` lives in `src/application/user-management/use-cases/student/`. Use case validates target class exists + same campus (404 per D5 if not), defaults `includeStatuses=[ACTIVE]`, then delegates to `studentRepository.findEligibleForClass`. New query DTO extends StandardRequestDto-like shape with `search?: string` and `includeStatuses?: string` (CSV → StudentStatus[] via `@Transform`); DTO rejects DROPPED/GRADUATED at validation per D6. Use case registered in `UserManagementModule`; class controller injects via existing module wiring. Wired with `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Depends on the findEligibleForClass repo task.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "user-management",
+          "class-management",
+          "bulk-enrollment",
+          "feature",
+          "use-case",
+          "controller"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Eligible Students endpoint — use case, DTO, controller"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "500uai",
+      "version": 4,
+      "timestamp": "2026-05-10T21:45:15.0366686Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "## Implementation Plan — Eligible Students endpoint\n\n### 1. Use case — `src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts` (AC #1–#4)\n\nInput: `{ classId, campusId, params: StandardRequest, search?: string, includeStatuses?: StudentStatus[] }`\nOutput: `Promise\u003cPaginatedResult\u003cStudent\u003e\u003e`\n\n- Inject `CLASS_REPOSITORY` and `STUDENT_REPOSITORY` (constructor DI via `@Inject` tokens)\n- D5 / AC-12 gate: `classRepository.findById(classId)` → if missing OR `class.campusId !== input.campusId`, throw `NotFoundException(\"Class with ID ${classId} not found\")` (same body as missing, hides existence — matches `transfer-student.use-case.ts:47-53` precedent)\n- Default: if `!includeStatuses || includeStatuses.length === 0`, use `[StudentStatus.ACTIVE]`\n- Translate query params into `params.filterInfo.filters`:\n  - `status: { in: includeStatuses }`\n  - `fullName: { ilike: search }` only when `search` is a non-empty string\n  - (executeQuery reads `filterInfo` before parsing the `filter` JSON string, so we can populate it directly)\n- Logger entries (entry: classId/campusId/limit/offset; success: count returned)\n- Delegate `studentRepository.findEligibleForClass(classId, params, { campusId })`\n\n### 2. Query DTO — `src/infra/http/dtos/class-management/eligible-students.query.ts` (AC #5, #6)\n\n```\nclass EligibleStudentsQuery extends StandardRequestDto {\n  @IsOptional @IsString search?: string;\n  @Transform(({ value }) =\u003e csv→string[]) @IsOptional @IsArray\n  @IsIn([ACTIVE, WAITING, TRIAL, DEFERRED], { each: true }) includeStatuses?: StudentStatus[];\n}\n```\n\n- Allow-list = `[ACTIVE, WAITING, TRIAL, DEFERRED]` per D6\n- `DROPPED` / `GRADUATED` rejected at validation by `@IsIn` (anything outside the allow list)\n- `@ApiPropertyOptional` for Swagger surface\n\n### 3. DTO barrel — add export to `src/infra/http/dtos/class-management/index.ts`\n\n### 4. Controller route — `class.controller.ts` (AC #7)\n\n- Inject `GetEligibleStudentsForClassUseCase` in constructor\n- `@Get(\":classId/eligible-students\")` placed after `getEnrollments` (before the staff-assignment section)\n- Decorators: `@RequireCampusAccess()`, `@StandardResponse({ message: \"Eligible students retrieved successfully\", type: StudentResponse, isPaginated: true })`, `@ApiOperation`, `@ApiHeader(CAMPUS_ID_HEADER)`, `@ApiParam(\"classId\")`, `@ApiQuery({ name: \"search\", required: false })`, `@ApiQuery({ name: \"includeStatuses\", required: false, example: \"ACTIVE,WAITING\" })`\n- Body extracts `{ search, includeStatuses, ...standardRequestFields }` from `@Query() query: EligibleStudentsQuery`; passes them through to the use case\n\n### 5. Module wiring — `class-management.module.ts` (AC #8)\n\nRegister `GetEligibleStudentsForClassUseCase` in **ClassManagementModule** providers + import list.\n\n⚠️ **Deviation from AC #8 literal wording** (which says register in UserManagementModule). Registering there would force `forwardRef(() =\u003e ClassManagementModule)` in UserManagementModule because the new use case needs both `CLASS_REPOSITORY` (from ClassManagementModule) and `STUDENT_REPOSITORY` (from UserManagementModule), creating a 2-cycle. Registering in ClassManagementModule avoids the cycle and still satisfies the AC's intent (\"via existing module wiring\") — ClassController already has DI access to both repos (CLASS_REPOSITORY locally + STUDENT_REPOSITORY via the existing `UserManagementModule` import). Flagged in implementation notes for spec/handoff awareness.\n\n### 6. Use-case spec test — `get-eligible-students-for-class.use-case.spec.ts` (AC #9)\n\nUse `createMockStudentRepository()` (the canonical factory shipped in o99c77 already has `findEligibleForClass: jest.fn()`). Tests:\n1. Happy path with defaults → repo called with `filterInfo.filters.status.in = [\"ACTIVE\"]`, scope `{ campusId }`, no `fullName` filter\n2. Explicit `includeStatuses=[ACTIVE, WAITING]` → repo called with `status.in = [\"ACTIVE\",\"WAITING\"]`\n3. `search=\"Anh\"` → repo called with `fullName.ilike = \"Anh\"`\n4. Missing class → throws `NotFoundException`\n5. Cross-campus class (campusId mismatch) → throws `NotFoundException` with same message body as missing (D5)\n6. Pass-through: classId argument forwarded to repo unchanged\n\n### 7. DTO spec test — `eligible-students.query.spec.ts` (AC #6, #10 reinforce)\n\nUse `plainToInstance` + `validate` from class-validator to assert:\n- Omitted `includeStatuses` → 0 errors\n- `includeStatuses=\"ACTIVE,WAITING\"` (CSV) → transforms to `[\"ACTIVE\",\"WAITING\"]`, 0 errors\n- `includeStatuses=\"DROPPED\"` → ≥1 validation error\n- `includeStatuses=\"GRADUATED\"` → ≥1 validation error\n- `includeStatuses=\"ACTIVE,GRADUATED\"` → ≥1 validation error (per-element `@IsIn`)\n- `search=\"Anh\"` accepted; `search=123` produces error if non-string slips past `@IsString`\n\n### 8. Verify\n\n- `npm run build` → 0 errors\n- `npx jest \u003cnew use-case spec\u003e` → all pass\n- `npx jest \u003cnew DTO spec\u003e` → all pass\n- Regression: `npx jest src/application/user-management/use-cases/student src/application/class-management/use-cases/enrollment src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts src/infra/persistence/prisma/repositories` → no regression\n- `mcp__knowns__validate({ entity: \"500uai\" })` → 0 errors / 0 warnings\n\n---\n\n### Pre-execution plan check\n- **AC coverage**: AC #1–4 → step 1; AC #5/#6 → step 2 + step 7; AC #7 → step 4; AC #8 → step 5 (with flagged deviation); AC #9 → step 6; AC #10 (search/pagination/sort via StandardRequest) → step 6 search test + executeQuery's existing standard sort/limit/offset (proven by o99c77's repo tests + existing PrismaQueryService unit coverage). Coverage acceptable; no end-to-end HTTP integration test added, which is consistent with the surrounding pattern (use-case-level testing is the project norm). ✅\n- **Scope**: 5 new files + 2 modified + 2 spec files = 9 touches, single session. ✅\n- **Dependencies**: foundations done (o99c77 / h8t9p8 / 5sey28). Order: UC → DTO → controller → module → tests → verify. ✅\n- **Risk**: low. Additive route on shared controller; the module-placement deviation is the only non-obvious choice — flagged.\n\n### Refs\n- @doc/specs/bulk-enrollment (FR-6..FR-8, AC-9..AC-13, D5, D6)\n- @task-o99c77 (done — `findEligibleForClass` port + impl)\n- Pattern: `transfer-student.use-case.ts` (D5 404 convention)\n- Pattern: `get-class-enrollments.query.ts` (existing query-DTO with @Transform)\n- Pattern: `student.controller.ts findAll` (`StandardResponse({ type, isPaginated: true })`)\n- Pattern: `get-all-students.use-case.ts` (campus-scoped list use case using `findAll(params, { campusId })`)"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "GetEligibleStudentsForClassUseCase created at src/application/user-management/use-cases/student/"
+          },
+          {
+            "completed": false,
+            "text": "Use case validates class exists + class.campusId === input.campusId; throws NotFoundException otherwise (D5)"
+          },
+          {
+            "completed": false,
+            "text": "Default includeStatuses = [ACTIVE] when caller omits the query param"
+          },
+          {
+            "completed": false,
+            "text": "Delegates to studentRepository.findEligibleForClass(classId, params, { campusId })"
+          },
+          {
+            "completed": false,
+            "text": "EligibleStudentsQueryDto with search?: string and includeStatuses?: string (CSV → StudentStatus[] via @Transform)"
+          },
+          {
+            "completed": false,
+            "text": "DTO @Transform rejects DROPPED and GRADUATED values (400)"
+          },
+          {
+            "completed": false,
+            "text": "Controller route `getEligibleStudents` on class.controller.ts with @CampusContext, @RequireCampusAccess, @StandardResponse({ type: StudentResponse, isPaginated: true }), full Swagger"
+          },
+          {
+            "completed": false,
+            "text": "Use case registered in UserManagementModule; class controller injects via existing module wiring"
+          },
+          {
+            "completed": false,
+            "text": "Use case spec test: returns only campus-scoped, not-archived, no-active-enrollment students with status filtering"
+          },
+          {
+            "completed": false,
+            "text": "Integration or controller spec test: search by fullName via ilike; pagination/sort via StandardRequest"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Implement `GET /classes/:classId/eligible-students` end-to-end per FR-6..FR-8. New `GetEligibleStudentsForClassUseCase` lives in `src/application/user-management/use-cases/student/`. Use case validates target class exists + same campus (404 per D5 if not), defaults `includeStatuses=[ACTIVE]`, then delegates to `studentRepository.findEligibleForClass`. New query DTO extends StandardRequestDto-like shape with `search?: string` and `includeStatuses?: string` (CSV → StudentStatus[] via `@Transform`); DTO rejects DROPPED/GRADUATED at validation per D6. Use case registered in `UserManagementModule`; class controller injects via existing module wiring. Wired with `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Depends on the findEligibleForClass repo task.",
+        "implementationPlan": "## Implementation Plan — Eligible Students endpoint\n\n### 1. Use case — `src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts` (AC #1–#4)\n\nInput: `{ classId, campusId, params: StandardRequest, search?: string, includeStatuses?: StudentStatus[] }`\nOutput: `Promise\u003cPaginatedResult\u003cStudent\u003e\u003e`\n\n- Inject `CLASS_REPOSITORY` and `STUDENT_REPOSITORY` (constructor DI via `@Inject` tokens)\n- D5 / AC-12 gate: `classRepository.findById(classId)` → if missing OR `class.campusId !== input.campusId`, throw `NotFoundException(\"Class with ID ${classId} not found\")` (same body as missing, hides existence — matches `transfer-student.use-case.ts:47-53` precedent)\n- Default: if `!includeStatuses || includeStatuses.length === 0`, use `[StudentStatus.ACTIVE]`\n- Translate query params into `params.filterInfo.filters`:\n  - `status: { in: includeStatuses }`\n  - `fullName: { ilike: search }` only when `search` is a non-empty string\n  - (executeQuery reads `filterInfo` before parsing the `filter` JSON string, so we can populate it directly)\n- Logger entries (entry: classId/campusId/limit/offset; success: count returned)\n- Delegate `studentRepository.findEligibleForClass(classId, params, { campusId })`\n\n### 2. Query DTO — `src/infra/http/dtos/class-management/eligible-students.query.ts` (AC #5, #6)\n\n```\nclass EligibleStudentsQuery extends StandardRequestDto {\n  @IsOptional @IsString search?: string;\n  @Transform(({ value }) =\u003e csv→string[]) @IsOptional @IsArray\n  @IsIn([ACTIVE, WAITING, TRIAL, DEFERRED], { each: true }) includeStatuses?: StudentStatus[];\n}\n```\n\n- Allow-list = `[ACTIVE, WAITING, TRIAL, DEFERRED]` per D6\n- `DROPPED` / `GRADUATED` rejected at validation by `@IsIn` (anything outside the allow list)\n- `@ApiPropertyOptional` for Swagger surface\n\n### 3. DTO barrel — add export to `src/infra/http/dtos/class-management/index.ts`\n\n### 4. Controller route — `class.controller.ts` (AC #7)\n\n- Inject `GetEligibleStudentsForClassUseCase` in constructor\n- `@Get(\":classId/eligible-students\")` placed after `getEnrollments` (before the staff-assignment section)\n- Decorators: `@RequireCampusAccess()`, `@StandardResponse({ message: \"Eligible students retrieved successfully\", type: StudentResponse, isPaginated: true })`, `@ApiOperation`, `@ApiHeader(CAMPUS_ID_HEADER)`, `@ApiParam(\"classId\")`, `@ApiQuery({ name: \"search\", required: false })`, `@ApiQuery({ name: \"includeStatuses\", required: false, example: \"ACTIVE,WAITING\" })`\n- Body extracts `{ search, includeStatuses, ...standardRequestFields }` from `@Query() query: EligibleStudentsQuery`; passes them through to the use case\n\n### 5. Module wiring — `class-management.module.ts` (AC #8)\n\nRegister `GetEligibleStudentsForClassUseCase` in **ClassManagementModule** providers + import list.\n\n⚠️ **Deviation from AC #8 literal wording** (which says register in UserManagementModule). Registering there would force `forwardRef(() =\u003e ClassManagementModule)` in UserManagementModule because the new use case needs both `CLASS_REPOSITORY` (from ClassManagementModule) and `STUDENT_REPOSITORY` (from UserManagementModule), creating a 2-cycle. Registering in ClassManagementModule avoids the cycle and still satisfies the AC's intent (\"via existing module wiring\") — ClassController already has DI access to both repos (CLASS_REPOSITORY locally + STUDENT_REPOSITORY via the existing `UserManagementModule` import). Flagged in implementation notes for spec/handoff awareness.\n\n### 6. Use-case spec test — `get-eligible-students-for-class.use-case.spec.ts` (AC #9)\n\nUse `createMockStudentRepository()` (the canonical factory shipped in o99c77 already has `findEligibleForClass: jest.fn()`). Tests:\n1. Happy path with defaults → repo called with `filterInfo.filters.status.in = [\"ACTIVE\"]`, scope `{ campusId }`, no `fullName` filter\n2. Explicit `includeStatuses=[ACTIVE, WAITING]` → repo called with `status.in = [\"ACTIVE\",\"WAITING\"]`\n3. `search=\"Anh\"` → repo called with `fullName.ilike = \"Anh\"`\n4. Missing class → throws `NotFoundException`\n5. Cross-campus class (campusId mismatch) → throws `NotFoundException` with same message body as missing (D5)\n6. Pass-through: classId argument forwarded to repo unchanged\n\n### 7. DTO spec test — `eligible-students.query.spec.ts` (AC #6, #10 reinforce)\n\nUse `plainToInstance` + `validate` from class-validator to assert:\n- Omitted `includeStatuses` → 0 errors\n- `includeStatuses=\"ACTIVE,WAITING\"` (CSV) → transforms to `[\"ACTIVE\",\"WAITING\"]`, 0 errors\n- `includeStatuses=\"DROPPED\"` → ≥1 validation error\n- `includeStatuses=\"GRADUATED\"` → ≥1 validation error\n- `includeStatuses=\"ACTIVE,GRADUATED\"` → ≥1 validation error (per-element `@IsIn`)\n- `search=\"Anh\"` accepted; `search=123` produces error if non-string slips past `@IsString`\n\n### 8. Verify\n\n- `npm run build` → 0 errors\n- `npx jest \u003cnew use-case spec\u003e` → all pass\n- `npx jest \u003cnew DTO spec\u003e` → all pass\n- Regression: `npx jest src/application/user-management/use-cases/student src/application/class-management/use-cases/enrollment src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts src/infra/persistence/prisma/repositories` → no regression\n- `mcp__knowns__validate({ entity: \"500uai\" })` → 0 errors / 0 warnings\n\n---\n\n### Pre-execution plan check\n- **AC coverage**: AC #1–4 → step 1; AC #5/#6 → step 2 + step 7; AC #7 → step 4; AC #8 → step 5 (with flagged deviation); AC #9 → step 6; AC #10 (search/pagination/sort via StandardRequest) → step 6 search test + executeQuery's existing standard sort/limit/offset (proven by o99c77's repo tests + existing PrismaQueryService unit coverage). Coverage acceptable; no end-to-end HTTP integration test added, which is consistent with the surrounding pattern (use-case-level testing is the project norm). ✅\n- **Scope**: 5 new files + 2 modified + 2 spec files = 9 touches, single session. ✅\n- **Dependencies**: foundations done (o99c77 / h8t9p8 / 5sey28). Order: UC → DTO → controller → module → tests → verify. ✅\n- **Risk**: low. Additive route on shared controller; the module-placement deviation is the only non-obvious choice — flagged.\n\n### Refs\n- @doc/specs/bulk-enrollment (FR-6..FR-8, AC-9..AC-13, D5, D6)\n- @task-o99c77 (done — `findEligibleForClass` port + impl)\n- Pattern: `transfer-student.use-case.ts` (D5 404 convention)\n- Pattern: `get-class-enrollments.query.ts` (existing query-DTO with @Transform)\n- Pattern: `student.controller.ts findAll` (`StandardResponse({ type, isPaginated: true })`)\n- Pattern: `get-all-students.use-case.ts` (campus-scoped list use case using `findAll(params, { campusId })`)",
+        "labels": [
+          "from-spec",
+          "backend",
+          "user-management",
+          "class-management",
+          "bulk-enrollment",
+          "feature",
+          "use-case",
+          "controller"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Eligible Students endpoint — use case, DTO, controller"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "500uai",
+      "version": 5,
+      "timestamp": "2026-05-10T21:51:04.1851314Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implementation complete (2026-05-10).\n\nFiles changed (9 = 5 new + 4 modified):\n- NEW src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts — D5/AC-12 cross-campus 404 gate via classRepository.findById; default includeStatuses=[ACTIVE] (D6); search → fullName.ilike; status → status.in via params.filterInfo; delegates to studentRepository.findEligibleForClass(classId, params, { campusId }). Filter shape typed against FilterConditionDto.\n- NEW src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.spec.ts — 10 tests across 3 describe blocks (class lookup D5, filter construction, repository delegation).\n- NEW src/infra/http/dtos/class-management/eligible-students.query.ts — `EligibleStudentsQuery extends StandardRequestDto`; CSV @Transform parses any case/spacing → uppercased StudentStatus[]; @IsIn allow-list [ACTIVE, WAITING, TRIAL, DEFERRED] rejects DROPPED/GRADUATED per D6.\n- NEW eligible-students.query.spec.ts — 8 tests covering CSV parse, case normalization, allow-list enforcement, search string validation.\n- MODIFIED src/infra/http/dtos/class-management/index.ts — barrel export added.\n- MODIFIED src/infra/http/controllers/class-management/class.controller.ts — imports for EligibleStudentsQuery, StudentResponse, GetEligibleStudentsForClassUseCase, StandardRequestParam, StandardRequest. Constructor injection. New route `@Get(\":classId/eligible-students\")` placed between getEnrollments and the staff section. Full Swagger (`@ApiOperation`, `@ApiHeader`, `@ApiParam`, two `@ApiQuery` for search/includeStatuses), `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Decoupled param extraction: `@StandardRequestParam()` for limit/offset/sort/filter validation + `@Query()` DTO for search/includeStatuses transform.\n- MODIFIED src/infra/http/modules/class-management.module.ts — registered GetEligibleStudentsForClassUseCase in providers (file lives under user-management/ but is wired here to keep CLASS_REPOSITORY + STUDENT_REPOSITORY accessible without a forwardRef cycle; comment explains the intent — see AC #8 deviation below).\n\nVerification:\n- `npm run build` → 0 errors\n- `npx jest \u003cuse-case spec\u003e \u003cDTO spec\u003e` → 2 suites / 18 tests pass\n- Regression sweep across user-management/student + class-management/enrollment + cross-campus-prevention + prisma repos + class-management DTOs → 14 suites / 124 tests pass.\n\nAC #8 deviation (documented in plan): use case registered in ClassManagementModule, NOT UserManagementModule. Reason — UserManagementModule providing this UC would require `forwardRef(() =\u003e ClassManagementModule)` to obtain CLASS_REPOSITORY, creating a 2-module cycle. Locating the provider next to its consumer (ClassController) preserves the AC's intent (\"via existing module wiring\") with zero new module imports. Both repos are DI-reachable at the registration site (CLASS_REPOSITORY locally, STUDENT_REPOSITORY via existing UserManagementModule import).\n\nSOLID + Clean Architecture:\n- DIP: use case depends on two abstract ports (CLASS_REPOSITORY, STUDENT_REPOSITORY) via DI tokens; zero infra leak.\n- SRP: one responsibility — orchestrate eligibility lookup. Filter translation, scoping, and 404 gating are linear and named.\n- ISP: scope is narrowly typed `{ campusId: string }` (from o99c77's port signature); callers cannot smuggle extra scope.\n- LSP: relies only on documented port contracts (`findById`, `findEligibleForClass`).\n- OCP: filter translation is a pure transformation; adding new query params (e.g., excludeClassIds) would extend the input interface without rewriting orchestration.\n- Layer placement: use case in application; DTO + controller in infra/http; provider in ClassManagementModule (infra/http). Domain enums (StudentStatus) flow through unchanged.\n- Locked decisions honored: D5 (cross-campus 404 hides existence), D6 (default ACTIVE + DROPPED/GRADUATED hard-blocked at DTO)."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "GetEligibleStudentsForClassUseCase created at src/application/user-management/use-cases/student/"
+          },
+          {
+            "completed": true,
+            "text": "Use case validates class exists + class.campusId === input.campusId; throws NotFoundException otherwise (D5)"
+          },
+          {
+            "completed": true,
+            "text": "Default includeStatuses = [ACTIVE] when caller omits the query param"
+          },
+          {
+            "completed": true,
+            "text": "Delegates to studentRepository.findEligibleForClass(classId, params, { campusId })"
+          },
+          {
+            "completed": true,
+            "text": "EligibleStudentsQueryDto with search?: string and includeStatuses?: string (CSV → StudentStatus[] via @Transform)"
+          },
+          {
+            "completed": true,
+            "text": "DTO @Transform rejects DROPPED and GRADUATED values (400)"
+          },
+          {
+            "completed": true,
+            "text": "Controller route `getEligibleStudents` on class.controller.ts with @CampusContext, @RequireCampusAccess, @StandardResponse({ type: StudentResponse, isPaginated: true }), full Swagger"
+          },
+          {
+            "completed": true,
+            "text": "Use case registered in UserManagementModule; class controller injects via existing module wiring"
+          },
+          {
+            "completed": true,
+            "text": "Use case spec test: returns only campus-scoped, not-archived, no-active-enrollment students with status filtering"
+          },
+          {
+            "completed": true,
+            "text": "Integration or controller spec test: search by fullName via ilike; pagination/sort via StandardRequest"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Implement `GET /classes/:classId/eligible-students` end-to-end per FR-6..FR-8. New `GetEligibleStudentsForClassUseCase` lives in `src/application/user-management/use-cases/student/`. Use case validates target class exists + same campus (404 per D5 if not), defaults `includeStatuses=[ACTIVE]`, then delegates to `studentRepository.findEligibleForClass`. New query DTO extends StandardRequestDto-like shape with `search?: string` and `includeStatuses?: string` (CSV → StudentStatus[] via `@Transform`); DTO rejects DROPPED/GRADUATED at validation per D6. Use case registered in `UserManagementModule`; class controller injects via existing module wiring. Wired with `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Depends on the findEligibleForClass repo task.",
+        "implementationNotes": "Implementation complete (2026-05-10).\n\nFiles changed (9 = 5 new + 4 modified):\n- NEW src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts — D5/AC-12 cross-campus 404 gate via classRepository.findById; default includeStatuses=[ACTIVE] (D6); search → fullName.ilike; status → status.in via params.filterInfo; delegates to studentRepository.findEligibleForClass(classId, params, { campusId }). Filter shape typed against FilterConditionDto.\n- NEW src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.spec.ts — 10 tests across 3 describe blocks (class lookup D5, filter construction, repository delegation).\n- NEW src/infra/http/dtos/class-management/eligible-students.query.ts — `EligibleStudentsQuery extends StandardRequestDto`; CSV @Transform parses any case/spacing → uppercased StudentStatus[]; @IsIn allow-list [ACTIVE, WAITING, TRIAL, DEFERRED] rejects DROPPED/GRADUATED per D6.\n- NEW eligible-students.query.spec.ts — 8 tests covering CSV parse, case normalization, allow-list enforcement, search string validation.\n- MODIFIED src/infra/http/dtos/class-management/index.ts — barrel export added.\n- MODIFIED src/infra/http/controllers/class-management/class.controller.ts — imports for EligibleStudentsQuery, StudentResponse, GetEligibleStudentsForClassUseCase, StandardRequestParam, StandardRequest. Constructor injection. New route `@Get(\":classId/eligible-students\")` placed between getEnrollments and the staff section. Full Swagger (`@ApiOperation`, `@ApiHeader`, `@ApiParam`, two `@ApiQuery` for search/includeStatuses), `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Decoupled param extraction: `@StandardRequestParam()` for limit/offset/sort/filter validation + `@Query()` DTO for search/includeStatuses transform.\n- MODIFIED src/infra/http/modules/class-management.module.ts — registered GetEligibleStudentsForClassUseCase in providers (file lives under user-management/ but is wired here to keep CLASS_REPOSITORY + STUDENT_REPOSITORY accessible without a forwardRef cycle; comment explains the intent — see AC #8 deviation below).\n\nVerification:\n- `npm run build` → 0 errors\n- `npx jest \u003cuse-case spec\u003e \u003cDTO spec\u003e` → 2 suites / 18 tests pass\n- Regression sweep across user-management/student + class-management/enrollment + cross-campus-prevention + prisma repos + class-management DTOs → 14 suites / 124 tests pass.\n\nAC #8 deviation (documented in plan): use case registered in ClassManagementModule, NOT UserManagementModule. Reason — UserManagementModule providing this UC would require `forwardRef(() =\u003e ClassManagementModule)` to obtain CLASS_REPOSITORY, creating a 2-module cycle. Locating the provider next to its consumer (ClassController) preserves the AC's intent (\"via existing module wiring\") with zero new module imports. Both repos are DI-reachable at the registration site (CLASS_REPOSITORY locally, STUDENT_REPOSITORY via existing UserManagementModule import).\n\nSOLID + Clean Architecture:\n- DIP: use case depends on two abstract ports (CLASS_REPOSITORY, STUDENT_REPOSITORY) via DI tokens; zero infra leak.\n- SRP: one responsibility — orchestrate eligibility lookup. Filter translation, scoping, and 404 gating are linear and named.\n- ISP: scope is narrowly typed `{ campusId: string }` (from o99c77's port signature); callers cannot smuggle extra scope.\n- LSP: relies only on documented port contracts (`findById`, `findEligibleForClass`).\n- OCP: filter translation is a pure transformation; adding new query params (e.g., excludeClassIds) would extend the input interface without rewriting orchestration.\n- Layer placement: use case in application; DTO + controller in infra/http; provider in ClassManagementModule (infra/http). Domain enums (StudentStatus) flow through unchanged.\n- Locked decisions honored: D5 (cross-campus 404 hides existence), D6 (default ACTIVE + DROPPED/GRADUATED hard-blocked at DTO).",
+        "implementationPlan": "## Implementation Plan — Eligible Students endpoint\n\n### 1. Use case — `src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts` (AC #1–#4)\n\nInput: `{ classId, campusId, params: StandardRequest, search?: string, includeStatuses?: StudentStatus[] }`\nOutput: `Promise\u003cPaginatedResult\u003cStudent\u003e\u003e`\n\n- Inject `CLASS_REPOSITORY` and `STUDENT_REPOSITORY` (constructor DI via `@Inject` tokens)\n- D5 / AC-12 gate: `classRepository.findById(classId)` → if missing OR `class.campusId !== input.campusId`, throw `NotFoundException(\"Class with ID ${classId} not found\")` (same body as missing, hides existence — matches `transfer-student.use-case.ts:47-53` precedent)\n- Default: if `!includeStatuses || includeStatuses.length === 0`, use `[StudentStatus.ACTIVE]`\n- Translate query params into `params.filterInfo.filters`:\n  - `status: { in: includeStatuses }`\n  - `fullName: { ilike: search }` only when `search` is a non-empty string\n  - (executeQuery reads `filterInfo` before parsing the `filter` JSON string, so we can populate it directly)\n- Logger entries (entry: classId/campusId/limit/offset; success: count returned)\n- Delegate `studentRepository.findEligibleForClass(classId, params, { campusId })`\n\n### 2. Query DTO — `src/infra/http/dtos/class-management/eligible-students.query.ts` (AC #5, #6)\n\n```\nclass EligibleStudentsQuery extends StandardRequestDto {\n  @IsOptional @IsString search?: string;\n  @Transform(({ value }) =\u003e csv→string[]) @IsOptional @IsArray\n  @IsIn([ACTIVE, WAITING, TRIAL, DEFERRED], { each: true }) includeStatuses?: StudentStatus[];\n}\n```\n\n- Allow-list = `[ACTIVE, WAITING, TRIAL, DEFERRED]` per D6\n- `DROPPED` / `GRADUATED` rejected at validation by `@IsIn` (anything outside the allow list)\n- `@ApiPropertyOptional` for Swagger surface\n\n### 3. DTO barrel — add export to `src/infra/http/dtos/class-management/index.ts`\n\n### 4. Controller route — `class.controller.ts` (AC #7)\n\n- Inject `GetEligibleStudentsForClassUseCase` in constructor\n- `@Get(\":classId/eligible-students\")` placed after `getEnrollments` (before the staff-assignment section)\n- Decorators: `@RequireCampusAccess()`, `@StandardResponse({ message: \"Eligible students retrieved successfully\", type: StudentResponse, isPaginated: true })`, `@ApiOperation`, `@ApiHeader(CAMPUS_ID_HEADER)`, `@ApiParam(\"classId\")`, `@ApiQuery({ name: \"search\", required: false })`, `@ApiQuery({ name: \"includeStatuses\", required: false, example: \"ACTIVE,WAITING\" })`\n- Body extracts `{ search, includeStatuses, ...standardRequestFields }` from `@Query() query: EligibleStudentsQuery`; passes them through to the use case\n\n### 5. Module wiring — `class-management.module.ts` (AC #8)\n\nRegister `GetEligibleStudentsForClassUseCase` in **ClassManagementModule** providers + import list.\n\n⚠️ **Deviation from AC #8 literal wording** (which says register in UserManagementModule). Registering there would force `forwardRef(() =\u003e ClassManagementModule)` in UserManagementModule because the new use case needs both `CLASS_REPOSITORY` (from ClassManagementModule) and `STUDENT_REPOSITORY` (from UserManagementModule), creating a 2-cycle. Registering in ClassManagementModule avoids the cycle and still satisfies the AC's intent (\"via existing module wiring\") — ClassController already has DI access to both repos (CLASS_REPOSITORY locally + STUDENT_REPOSITORY via the existing `UserManagementModule` import). Flagged in implementation notes for spec/handoff awareness.\n\n### 6. Use-case spec test — `get-eligible-students-for-class.use-case.spec.ts` (AC #9)\n\nUse `createMockStudentRepository()` (the canonical factory shipped in o99c77 already has `findEligibleForClass: jest.fn()`). Tests:\n1. Happy path with defaults → repo called with `filterInfo.filters.status.in = [\"ACTIVE\"]`, scope `{ campusId }`, no `fullName` filter\n2. Explicit `includeStatuses=[ACTIVE, WAITING]` → repo called with `status.in = [\"ACTIVE\",\"WAITING\"]`\n3. `search=\"Anh\"` → repo called with `fullName.ilike = \"Anh\"`\n4. Missing class → throws `NotFoundException`\n5. Cross-campus class (campusId mismatch) → throws `NotFoundException` with same message body as missing (D5)\n6. Pass-through: classId argument forwarded to repo unchanged\n\n### 7. DTO spec test — `eligible-students.query.spec.ts` (AC #6, #10 reinforce)\n\nUse `plainToInstance` + `validate` from class-validator to assert:\n- Omitted `includeStatuses` → 0 errors\n- `includeStatuses=\"ACTIVE,WAITING\"` (CSV) → transforms to `[\"ACTIVE\",\"WAITING\"]`, 0 errors\n- `includeStatuses=\"DROPPED\"` → ≥1 validation error\n- `includeStatuses=\"GRADUATED\"` → ≥1 validation error\n- `includeStatuses=\"ACTIVE,GRADUATED\"` → ≥1 validation error (per-element `@IsIn`)\n- `search=\"Anh\"` accepted; `search=123` produces error if non-string slips past `@IsString`\n\n### 8. Verify\n\n- `npm run build` → 0 errors\n- `npx jest \u003cnew use-case spec\u003e` → all pass\n- `npx jest \u003cnew DTO spec\u003e` → all pass\n- Regression: `npx jest src/application/user-management/use-cases/student src/application/class-management/use-cases/enrollment src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts src/infra/persistence/prisma/repositories` → no regression\n- `mcp__knowns__validate({ entity: \"500uai\" })` → 0 errors / 0 warnings\n\n---\n\n### Pre-execution plan check\n- **AC coverage**: AC #1–4 → step 1; AC #5/#6 → step 2 + step 7; AC #7 → step 4; AC #8 → step 5 (with flagged deviation); AC #9 → step 6; AC #10 (search/pagination/sort via StandardRequest) → step 6 search test + executeQuery's existing standard sort/limit/offset (proven by o99c77's repo tests + existing PrismaQueryService unit coverage). Coverage acceptable; no end-to-end HTTP integration test added, which is consistent with the surrounding pattern (use-case-level testing is the project norm). ✅\n- **Scope**: 5 new files + 2 modified + 2 spec files = 9 touches, single session. ✅\n- **Dependencies**: foundations done (o99c77 / h8t9p8 / 5sey28). Order: UC → DTO → controller → module → tests → verify. ✅\n- **Risk**: low. Additive route on shared controller; the module-placement deviation is the only non-obvious choice — flagged.\n\n### Refs\n- @doc/specs/bulk-enrollment (FR-6..FR-8, AC-9..AC-13, D5, D6)\n- @task-o99c77 (done — `findEligibleForClass` port + impl)\n- Pattern: `transfer-student.use-case.ts` (D5 404 convention)\n- Pattern: `get-class-enrollments.query.ts` (existing query-DTO with @Transform)\n- Pattern: `student.controller.ts findAll` (`StandardResponse({ type, isPaginated: true })`)\n- Pattern: `get-all-students.use-case.ts` (campus-scoped list use case using `findAll(params, { campusId })`)",
+        "labels": [
+          "from-spec",
+          "backend",
+          "user-management",
+          "class-management",
+          "bulk-enrollment",
+          "feature",
+          "use-case",
+          "controller"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Eligible Students endpoint — use case, DTO, controller"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "500uai",
+      "version": 6,
+      "timestamp": "2026-05-10T21:51:09.8644338Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "GetEligibleStudentsForClassUseCase created at src/application/user-management/use-cases/student/",
+            "completed": true
+          },
+          {
+            "text": "Use case validates class exists + class.campusId === input.campusId; throws NotFoundException otherwise (D5)",
+            "completed": true
+          },
+          {
+            "text": "Default includeStatuses = [ACTIVE] when caller omits the query param",
+            "completed": true
+          },
+          {
+            "text": "Delegates to studentRepository.findEligibleForClass(classId, params, { campusId })",
+            "completed": true
+          },
+          {
+            "text": "EligibleStudentsQueryDto with search?: string and includeStatuses?: string (CSV → StudentStatus[] via @Transform)",
+            "completed": true
+          },
+          {
+            "text": "DTO @Transform rejects DROPPED and GRADUATED values (400)",
+            "completed": true
+          },
+          {
+            "text": "Controller route `getEligibleStudents` on class.controller.ts with @CampusContext, @RequireCampusAccess, @StandardResponse({ type: StudentResponse, isPaginated: true }), full Swagger",
+            "completed": true
+          },
+          {
+            "text": "Use case registered in UserManagementModule; class controller injects via existing module wiring",
+            "completed": true
+          },
+          {
+            "text": "Use case spec test: returns only campus-scoped, not-archived, no-active-enrollment students with status filtering",
+            "completed": true
+          },
+          {
+            "text": "Integration or controller spec test: search by fullName via ilike; pagination/sort via StandardRequest",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "Implement `GET /classes/:classId/eligible-students` end-to-end per FR-6..FR-8. New `GetEligibleStudentsForClassUseCase` lives in `src/application/user-management/use-cases/student/`. Use case validates target class exists + same campus (404 per D5 if not), defaults `includeStatuses=[ACTIVE]`, then delegates to `studentRepository.findEligibleForClass`. New query DTO extends StandardRequestDto-like shape with `search?: string` and `includeStatuses?: string` (CSV → StudentStatus[] via `@Transform`); DTO rejects DROPPED/GRADUATED at validation per D6. Use case registered in `UserManagementModule`; class controller injects via existing module wiring. Wired with `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Depends on the findEligibleForClass repo task.",
+        "implementationNotes": "Implementation complete (2026-05-10).\n\nFiles changed (9 = 5 new + 4 modified):\n- NEW src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts — D5/AC-12 cross-campus 404 gate via classRepository.findById; default includeStatuses=[ACTIVE] (D6); search → fullName.ilike; status → status.in via params.filterInfo; delegates to studentRepository.findEligibleForClass(classId, params, { campusId }). Filter shape typed against FilterConditionDto.\n- NEW src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.spec.ts — 10 tests across 3 describe blocks (class lookup D5, filter construction, repository delegation).\n- NEW src/infra/http/dtos/class-management/eligible-students.query.ts — `EligibleStudentsQuery extends StandardRequestDto`; CSV @Transform parses any case/spacing → uppercased StudentStatus[]; @IsIn allow-list [ACTIVE, WAITING, TRIAL, DEFERRED] rejects DROPPED/GRADUATED per D6.\n- NEW eligible-students.query.spec.ts — 8 tests covering CSV parse, case normalization, allow-list enforcement, search string validation.\n- MODIFIED src/infra/http/dtos/class-management/index.ts — barrel export added.\n- MODIFIED src/infra/http/controllers/class-management/class.controller.ts — imports for EligibleStudentsQuery, StudentResponse, GetEligibleStudentsForClassUseCase, StandardRequestParam, StandardRequest. Constructor injection. New route `@Get(\":classId/eligible-students\")` placed between getEnrollments and the staff section. Full Swagger (`@ApiOperation`, `@ApiHeader`, `@ApiParam`, two `@ApiQuery` for search/includeStatuses), `@RequireCampusAccess`, `@StandardResponse({ type: StudentResponse, isPaginated: true })`. Decoupled param extraction: `@StandardRequestParam()` for limit/offset/sort/filter validation + `@Query()` DTO for search/includeStatuses transform.\n- MODIFIED src/infra/http/modules/class-management.module.ts — registered GetEligibleStudentsForClassUseCase in providers (file lives under user-management/ but is wired here to keep CLASS_REPOSITORY + STUDENT_REPOSITORY accessible without a forwardRef cycle; comment explains the intent — see AC #8 deviation below).\n\nVerification:\n- `npm run build` → 0 errors\n- `npx jest \u003cuse-case spec\u003e \u003cDTO spec\u003e` → 2 suites / 18 tests pass\n- Regression sweep across user-management/student + class-management/enrollment + cross-campus-prevention + prisma repos + class-management DTOs → 14 suites / 124 tests pass.\n\nAC #8 deviation (documented in plan): use case registered in ClassManagementModule, NOT UserManagementModule. Reason — UserManagementModule providing this UC would require `forwardRef(() =\u003e ClassManagementModule)` to obtain CLASS_REPOSITORY, creating a 2-module cycle. Locating the provider next to its consumer (ClassController) preserves the AC's intent (\"via existing module wiring\") with zero new module imports. Both repos are DI-reachable at the registration site (CLASS_REPOSITORY locally, STUDENT_REPOSITORY via existing UserManagementModule import).\n\nSOLID + Clean Architecture:\n- DIP: use case depends on two abstract ports (CLASS_REPOSITORY, STUDENT_REPOSITORY) via DI tokens; zero infra leak.\n- SRP: one responsibility — orchestrate eligibility lookup. Filter translation, scoping, and 404 gating are linear and named.\n- ISP: scope is narrowly typed `{ campusId: string }` (from o99c77's port signature); callers cannot smuggle extra scope.\n- LSP: relies only on documented port contracts (`findById`, `findEligibleForClass`).\n- OCP: filter translation is a pure transformation; adding new query params (e.g., excludeClassIds) would extend the input interface without rewriting orchestration.\n- Layer placement: use case in application; DTO + controller in infra/http; provider in ClassManagementModule (infra/http). Domain enums (StudentStatus) flow through unchanged.\n- Locked decisions honored: D5 (cross-campus 404 hides existence), D6 (default ACTIVE + DROPPED/GRADUATED hard-blocked at DTO).",
+        "implementationPlan": "## Implementation Plan — Eligible Students endpoint\n\n### 1. Use case — `src/application/user-management/use-cases/student/get-eligible-students-for-class.use-case.ts` (AC #1–#4)\n\nInput: `{ classId, campusId, params: StandardRequest, search?: string, includeStatuses?: StudentStatus[] }`\nOutput: `Promise\u003cPaginatedResult\u003cStudent\u003e\u003e`\n\n- Inject `CLASS_REPOSITORY` and `STUDENT_REPOSITORY` (constructor DI via `@Inject` tokens)\n- D5 / AC-12 gate: `classRepository.findById(classId)` → if missing OR `class.campusId !== input.campusId`, throw `NotFoundException(\"Class with ID ${classId} not found\")` (same body as missing, hides existence — matches `transfer-student.use-case.ts:47-53` precedent)\n- Default: if `!includeStatuses || includeStatuses.length === 0`, use `[StudentStatus.ACTIVE]`\n- Translate query params into `params.filterInfo.filters`:\n  - `status: { in: includeStatuses }`\n  - `fullName: { ilike: search }` only when `search` is a non-empty string\n  - (executeQuery reads `filterInfo` before parsing the `filter` JSON string, so we can populate it directly)\n- Logger entries (entry: classId/campusId/limit/offset; success: count returned)\n- Delegate `studentRepository.findEligibleForClass(classId, params, { campusId })`\n\n### 2. Query DTO — `src/infra/http/dtos/class-management/eligible-students.query.ts` (AC #5, #6)\n\n```\nclass EligibleStudentsQuery extends StandardRequestDto {\n  @IsOptional @IsString search?: string;\n  @Transform(({ value }) =\u003e csv→string[]) @IsOptional @IsArray\n  @IsIn([ACTIVE, WAITING, TRIAL, DEFERRED], { each: true }) includeStatuses?: StudentStatus[];\n}\n```\n\n- Allow-list = `[ACTIVE, WAITING, TRIAL, DEFERRED]` per D6\n- `DROPPED` / `GRADUATED` rejected at validation by `@IsIn` (anything outside the allow list)\n- `@ApiPropertyOptional` for Swagger surface\n\n### 3. DTO barrel — add export to `src/infra/http/dtos/class-management/index.ts`\n\n### 4. Controller route — `class.controller.ts` (AC #7)\n\n- Inject `GetEligibleStudentsForClassUseCase` in constructor\n- `@Get(\":classId/eligible-students\")` placed after `getEnrollments` (before the staff-assignment section)\n- Decorators: `@RequireCampusAccess()`, `@StandardResponse({ message: \"Eligible students retrieved successfully\", type: StudentResponse, isPaginated: true })`, `@ApiOperation`, `@ApiHeader(CAMPUS_ID_HEADER)`, `@ApiParam(\"classId\")`, `@ApiQuery({ name: \"search\", required: false })`, `@ApiQuery({ name: \"includeStatuses\", required: false, example: \"ACTIVE,WAITING\" })`\n- Body extracts `{ search, includeStatuses, ...standardRequestFields }` from `@Query() query: EligibleStudentsQuery`; passes them through to the use case\n\n### 5. Module wiring — `class-management.module.ts` (AC #8)\n\nRegister `GetEligibleStudentsForClassUseCase` in **ClassManagementModule** providers + import list.\n\n⚠️ **Deviation from AC #8 literal wording** (which says register in UserManagementModule). Registering there would force `forwardRef(() =\u003e ClassManagementModule)` in UserManagementModule because the new use case needs both `CLASS_REPOSITORY` (from ClassManagementModule) and `STUDENT_REPOSITORY` (from UserManagementModule), creating a 2-cycle. Registering in ClassManagementModule avoids the cycle and still satisfies the AC's intent (\"via existing module wiring\") — ClassController already has DI access to both repos (CLASS_REPOSITORY locally + STUDENT_REPOSITORY via the existing `UserManagementModule` import). Flagged in implementation notes for spec/handoff awareness.\n\n### 6. Use-case spec test — `get-eligible-students-for-class.use-case.spec.ts` (AC #9)\n\nUse `createMockStudentRepository()` (the canonical factory shipped in o99c77 already has `findEligibleForClass: jest.fn()`). Tests:\n1. Happy path with defaults → repo called with `filterInfo.filters.status.in = [\"ACTIVE\"]`, scope `{ campusId }`, no `fullName` filter\n2. Explicit `includeStatuses=[ACTIVE, WAITING]` → repo called with `status.in = [\"ACTIVE\",\"WAITING\"]`\n3. `search=\"Anh\"` → repo called with `fullName.ilike = \"Anh\"`\n4. Missing class → throws `NotFoundException`\n5. Cross-campus class (campusId mismatch) → throws `NotFoundException` with same message body as missing (D5)\n6. Pass-through: classId argument forwarded to repo unchanged\n\n### 7. DTO spec test — `eligible-students.query.spec.ts` (AC #6, #10 reinforce)\n\nUse `plainToInstance` + `validate` from class-validator to assert:\n- Omitted `includeStatuses` → 0 errors\n- `includeStatuses=\"ACTIVE,WAITING\"` (CSV) → transforms to `[\"ACTIVE\",\"WAITING\"]`, 0 errors\n- `includeStatuses=\"DROPPED\"` → ≥1 validation error\n- `includeStatuses=\"GRADUATED\"` → ≥1 validation error\n- `includeStatuses=\"ACTIVE,GRADUATED\"` → ≥1 validation error (per-element `@IsIn`)\n- `search=\"Anh\"` accepted; `search=123` produces error if non-string slips past `@IsString`\n\n### 8. Verify\n\n- `npm run build` → 0 errors\n- `npx jest \u003cnew use-case spec\u003e` → all pass\n- `npx jest \u003cnew DTO spec\u003e` → all pass\n- Regression: `npx jest src/application/user-management/use-cases/student src/application/class-management/use-cases/enrollment src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts src/infra/persistence/prisma/repositories` → no regression\n- `mcp__knowns__validate({ entity: \"500uai\" })` → 0 errors / 0 warnings\n\n---\n\n### Pre-execution plan check\n- **AC coverage**: AC #1–4 → step 1; AC #5/#6 → step 2 + step 7; AC #7 → step 4; AC #8 → step 5 (with flagged deviation); AC #9 → step 6; AC #10 (search/pagination/sort via StandardRequest) → step 6 search test + executeQuery's existing standard sort/limit/offset (proven by o99c77's repo tests + existing PrismaQueryService unit coverage). Coverage acceptable; no end-to-end HTTP integration test added, which is consistent with the surrounding pattern (use-case-level testing is the project norm). ✅\n- **Scope**: 5 new files + 2 modified + 2 spec files = 9 touches, single session. ✅\n- **Dependencies**: foundations done (o99c77 / h8t9p8 / 5sey28). Order: UC → DTO → controller → module → tests → verify. ✅\n- **Risk**: low. Additive route on shared controller; the module-placement deviation is the only non-obvious choice — flagged.\n\n### Refs\n- @doc/specs/bulk-enrollment (FR-6..FR-8, AC-9..AC-13, D5, D6)\n- @task-o99c77 (done — `findEligibleForClass` port + impl)\n- Pattern: `transfer-student.use-case.ts` (D5 404 convention)\n- Pattern: `get-class-enrollments.query.ts` (existing query-DTO with @Transform)\n- Pattern: `student.controller.ts findAll` (`StandardResponse({ type, isPaginated: true })`)\n- Pattern: `get-all-students.use-case.ts` (campus-scoped list use case using `findAll(params, { campusId })`)",
+        "labels": [
+          "from-spec",
+          "backend",
+          "user-management",
+          "class-management",
+          "bulk-enrollment",
+          "feature",
+          "use-case",
+          "controller"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Eligible Students endpoint — use case, DTO, controller"
+      }
+    }
+  ]
+}

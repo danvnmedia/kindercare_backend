@@ -1,200 +1,191 @@
 ---
 title: Mapper Pattern
+description: Prisma ↔ Domain conversion. Includes the critical UncheckedUpdateInput escape hatch for FK fields.
 createdAt: '2026-01-03T19:52:08.384Z'
-updatedAt: '2026-01-03T20:04:26.333Z'
-description: Prisma to Domain conversion pattern
+updatedAt: '2026-05-05T17:35:07.330Z'
 tags:
   - patterns
   - prisma
   - mapper
+  - persistence
 ---
+
 # Mapper Pattern
 
-## Overview
+> Prisma ↔ Domain conversion. Located at `src/infra/persistence/prisma/mapper/prisma-{entity}.mapper.ts`.
 
-Mappers are responsible for converting data between Prisma database models and Domain entities. They provide a clean separation between the persistence layer and domain layer, ensuring the domain remains independent of database implementation details.
-
-## Location
-
-```
-src/infra/persistence/prisma/mapper/prisma-{entity}.mapper.ts
-```
+Mappers are the only place where Prisma types touch the domain. Repositories use them; nothing else should. Keep them as static-method classes with no DI — they have no dependencies and are easy to test in isolation.
 
 ## Required Methods
 
-### 1. toDomain(prismaEntity: PrismaEntityWithRelations): DomainEntity
+### 1. `toDomain(prismaEntityWithRelations) → Entity`
 
-Converts a Prisma model with full relations to a Domain entity. Use this when you need the complete entity with all nested relations.
+Used by queries that include relations.
 
 ```typescript
-static toDomain(prismaStaff: PrismaStaffWithRelations): Staff {
-  const staffProps = {
-    fullName: prismaStaff.fullName,
-    email: prismaStaff.email,
-    phoneNumber: prismaStaff.phoneNumber,
-    staffType: prismaStaff.staffType as StaffType,
-    address: prismaStaff.address,
-    dateOfBirth: prismaStaff.dateOfBirth,
-    gender: prismaStaff.gender as Gender | null,
-    startDate: prismaStaff.startDate,
-    userId: prismaStaff.userId,
-    isArchived: prismaStaff.isArchived,
-    createdAt: prismaStaff.createdAt,
-    updatedAt: prismaStaff.updatedAt,
-  };
+type PrismaStudentWithRelations = PrismaStudent & {
+  guardians?: Array<PrismaGuardianStudent & {
+    guardian: PrismaGuardian;
+    guardianRelationship: PrismaGuardianRelationship;
+  }>;
+};
 
-  return Staff.create(staffProps, prismaStaff.id);
+static toDomain(prismaStudent: PrismaStudentWithRelations): Student {
+  return Student.create({
+    campusId: prismaStudent.campusId,
+    studentCode: prismaStudent.studentCode,
+    fullName: prismaStudent.fullName,
+    email: prismaStudent.email,
+    // … cast enums, preserve nulls
+    gender: prismaStudent.gender as Gender | null,
+    status: prismaStudent.status as StudentStatus,
+    isArchived: prismaStudent.isArchived,
+    createdAt: prismaStudent.createdAt,
+    updatedAt: prismaStudent.updatedAt,
+  }, prismaStudent.id);
 }
 ```
 
-### 2. toDomainSimple(prismaEntity: PrismaEntity): DomainEntity
+### 2. `toDomainSimple(prismaEntity) → Entity`
 
-Converts a Prisma model WITHOUT nested relations. Use this to prevent circular references when mapping nested entities.
+Identical mapping but typed against the bare Prisma model — no relations. Use this when looping over collections inside other mappers to prevent infinite types and circular references.
 
-```typescript
-static toDomainSimple(prismaStaff: PrismaStaff): Staff {
-  const staffProps = {
-    fullName: prismaStaff.fullName,
-    email: prismaStaff.email,
-    phoneNumber: prismaStaff.phoneNumber,
-    staffType: prismaStaff.staffType as StaffType,
-    address: prismaStaff.address,
-    dateOfBirth: prismaStaff.dateOfBirth,
-    gender: prismaStaff.gender as Gender | null,
-    startDate: prismaStaff.startDate,
-    userId: prismaStaff.userId,
-    isArchived: prismaStaff.isArchived,
-    createdAt: prismaStaff.createdAt,
-    updatedAt: prismaStaff.updatedAt,
-  };
+### 3. `toPrisma(entity) → Prisma.XxxUncheckedCreateInput`
 
-  return Staff.create(staffProps, prismaStaff.id);
-}
-```
-
-### 3. toPrisma(entity: DomainEntity): Prisma.EntityUncheckedCreateInput
-
-Converts a Domain entity to Prisma create input. Used when saving new entities.
+Used by `repository.save(entity)`. Always uses **`UncheckedCreateInput`** so foreign-key columns can be assigned directly (`campusId: student.campusId`) instead of using relation `connect`.
 
 ```typescript
-static toPrisma(staff: Staff): Prisma.StaffUncheckedCreateInput {
+static toPrisma(student: Student): Prisma.StudentUncheckedCreateInput {
   return {
-    id: staff.id,
-    fullName: staff.fullName,
-    email: staff.email,
-    phoneNumber: staff.phoneNumber,
-    staffType: staff.staffType,
-    address: staff.address,
-    dateOfBirth: staff.dateOfBirth,
-    gender: staff.gender,
-    startDate: staff.startDate,
-    userId: staff.userId,
-    isArchived: staff.isArchived,
-    createdAt: staff.createdAt,
-    updatedAt: staff.updatedAt,
+    id: student.id,
+    campusId: student.campusId,
+    studentCode: student.studentCode,
+    // …
   };
 }
 ```
 
-### 4. toPrismaUpdate(entity: DomainEntity): Prisma.EntityUpdateInput
+### 4. `toPrismaUpdate(entity) → Prisma.XxxUpdateInput | Prisma.XxxUncheckedUpdateInput`
 
-Converts a Domain entity to Prisma update input. Excludes immutable fields like `id` and `createdAt`.
+Used by `repository.update(entity)`. **Choosing the right input type here is a known footgun** — see the next section.
 
 ```typescript
-static toPrismaUpdate(staff: Staff): Prisma.StaffUpdateInput {
-  const updateData: Prisma.StaffUpdateInput = {
-    fullName: staff.fullName,
-    email: staff.email,
-    phoneNumber: staff.phoneNumber,
-    staffType: staff.staffType,
-    address: staff.address,
-    dateOfBirth: staff.dateOfBirth,
-    gender: staff.gender,
-    startDate: staff.startDate,
-    isArchived: staff.isArchived,
-    updatedAt: staff.updatedAt,
+static toPrismaUpdate(student: Student): Prisma.StudentUpdateInput {
+  // campusId and studentCode are intentionally omitted — both immutable.
+  return {
+    fullName: student.fullName,
+    email: student.email,
+    // …
+    updatedAt: student.updatedAt,
   };
-
-  // Handle relation updates separately
-  if (staff.userId) {
-    updateData.user = { connect: { id: staff.userId } };
-  } else {
-    updateData.user = { disconnect: true };
-  }
-
-  return updateData;
 }
 ```
 
-### 5. toDomainArray(prismaEntities: PrismaEntityWithRelations[]): DomainEntity[]
+### 5. `toDomainArray(prismaEntities[]) → Entity[]`
 
-Batch conversion of Prisma models to Domain entities.
+Trivial helper, but standardising it makes call sites easier to read.
+
+## ⚠️ `UpdateInput` vs `UncheckedUpdateInput`
+
+> When a `toPrismaUpdate()` mapper needs to update **foreign key fields** (`gradeLevelId`, `campusId`, `staffTypeId`, etc.), the return type **must be `Prisma.XxxUncheckedUpdateInput`**, not `Prisma.XxxUpdateInput`.
+
+The regular `XxxUpdateInput` type uses **relation objects**:
 
 ```typescript
-static toDomainArray(prismaStaffs: PrismaStaffWithRelations[]): Staff[] {
-  return prismaStaffs.map((prismaStaff) =>
-    PrismaStaffMapper.toDomain(prismaStaff),
-  );
+// Wrong — silently does nothing
+static toPrismaUpdate(c: Class): Prisma.ClassUpdateInput {
+  return { gradeLevelId: c.gradeLevelId };  // ⚠️ ignored at runtime
 }
 ```
 
-## Type Definitions
-
-Define types for Prisma models with relations at the top of the mapper file:
+Prisma will quietly ignore raw FK fields on `XxxUpdateInput` and only honour `gradeLevel: { connect: { id } }`. The fix:
 
 ```typescript
-import { Staff as PrismaStaff, User as PrismaUser } from "@prisma/client";
+static toPrismaUpdate(c: Class): Prisma.ClassUncheckedUpdateInput {
+  return {
+    name: c.name,
+    description: c.description,
+    gradeLevelId: c.gradeLevelId,    // ✅ honoured
+    schoolYearId: c.schoolYearId,    // ✅ honoured
+    updatedAt: c.updatedAt,
+  };
+}
+```
 
-type PrismaStaffWithRelations = PrismaStaff & {
-  user?: PrismaUser | null;
+See `prisma-class.mapper.ts` for the canonical example. If your update only touches non-FK columns, `XxxUpdateInput` is fine. The moment you add an FK, switch to `XxxUncheckedUpdateInput`.
+
+## Immutability — Omit, Don't Send `undefined`
+
+For fields that must never change (`id`, `campusId`, `studentCode`, `staffCode`, `createdAt`), **omit them from the return object entirely**. Don't send `undefined` — Prisma treats `undefined` as "skip", but the type system won't catch a typo.
+
+```typescript
+// Good — code field cannot be sent at all
+static toPrismaUpdate(s: Staff): Prisma.StaffUpdateInput {
+  return {
+    fullName: s.fullName,
+    // staffCode is intentionally omitted — immutable after creation
+    updatedAt: s.updatedAt,
+  };
+}
+```
+
+## Enum Casting
+
+Prisma enums are stored as strings. Cast them explicitly:
+
+```typescript
+gender: prismaStudent.gender as Gender | null,
+status: prismaStudent.status as StudentStatus,
+```
+
+Don't do this for fields that are already typed by your Prisma schema (it would be redundant). Do it for `String` columns that the domain treats as enums (`Student.status`, `Post.status`, etc.).
+
+## Nullability
+
+Pass nulls through unchanged. Don't coerce `null` to `undefined` in the mapper — that erases meaning. Prisma's `String?` columns map to `string | null` in TypeScript and the domain entity should expose the same type:
+
+```typescript
+email: prismaStudent.email,             // string | null — preserved
+phoneNumber: prismaStudent.phoneNumber, // string | null — preserved
+```
+
+## Type Aliases at the Top of the File
+
+```typescript
+import {
+  Student as PrismaStudent,
+  Class as PrismaClass,
+  Guardian as PrismaGuardian,
+  GuardianRelationship as PrismaGuardianRelationship,
+  GuardianStudent as PrismaGuardianStudent,
+  Prisma,
+} from "@prisma/client";
+
+type PrismaStudentWithRelations = PrismaStudent & {
+  guardians?: Array<PrismaGuardianStudent & {
+    guardian: PrismaGuardian;
+    guardianRelationship: PrismaGuardianRelationship;
+  }>;
 };
 ```
+
+The `as PrismaXxx` aliasing keeps domain `Student` and Prisma `Student` distinguishable in long files.
 
 ## Best Practices
 
-1. **Always cast enums**: Prisma enums are strings, cast them to domain enum types
-   ```typescript
-   staffType: prismaStaff.staffType as StaffType
-   ```
+1. **`UncheckedUpdateInput` for FK columns.** This is the single biggest source of "the update silently did nothing" bugs.
+2. **Omit immutable fields from the update shape.** Type-level guarantee.
+3. **Static methods only.** Mappers have no DI and no instance state.
+4. **One mapper file per Prisma model.** Don't share mappers across entities.
+5. **Pass `null` through.** Never silently convert to `undefined`.
+6. **Don't put domain logic in the mapper.** If you find yourself running a calculation, the work belongs on the entity.
 
-2. **Handle nullability**: Use null coalescing for optional fields
-   ```typescript
-   content: post.content ?? null
-   ```
+## Reference Mappers
 
-3. **Use toDomainSimple for nested entities**: Prevents infinite loops in circular references
-
-4. **Export mapper class, not instance**: Use static methods for consistency
-   ```typescript
-   export class PrismaStaffMapper {
-     static toDomain(...)
-   }
-   ```
-
-5. **Handle relation updates in toPrismaUpdate**: Use connect/disconnect for relations
-   ```typescript
-   updateData.user = staff.userId 
-     ? { connect: { id: staff.userId } } 
-     : { disconnect: true };
-   ```
-
-## Example: Complete Mapper
-
-```typescript
-import { Staff as PrismaStaff, User as PrismaUser, Prisma } from "@prisma/client";
-import { Staff } from "@/domain/user-management/entities/staff.entity";
-import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StaffType } from "@/domain/user-management/enums/staff-type.enum";
-
-type PrismaStaffWithRelations = PrismaStaff & {
-  user?: PrismaUser | null;
-};
-
-export class PrismaStaffMapper {
-  static toDomain(prismaStaff: PrismaStaffWithRelations): Staff { ... }
-  static toDomainSimple(prismaStaff: PrismaStaff): Staff { ... }
-  static toPrisma(staff: Staff): Prisma.StaffUncheckedCreateInput { ... }
-  static toPrismaUpdate(staff: Staff): Prisma.StaffUpdateInput { ... }
-  static toDomainArray(prismaStaffs: PrismaStaffWithRelations[]): Staff[] { ... }
-}
-```
+| File | Notable handling |
+|------|------------------|
+| `prisma-student.mapper.ts` | Includes guardians via `GuardianStudent` |
+| `prisma-staff.mapper.ts` | Code immutability, optional `staffTypeId`/`userId` |
+| `prisma-class.mapper.ts` | Uses `UncheckedUpdateInput` for FK fields (`gradeLevelId`, `schoolYearId`) |
+| `prisma-post.mapper.ts` | Maps `Json` content directly, joins `audiences`/`attachments`/`categories` |
+| `prisma-user.mapper.ts` | Maps `roleAssignments` (UserRole join with campus context) |

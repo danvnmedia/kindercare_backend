@@ -1,0 +1,56 @@
+{
+  "docPath": "patterns/event-handler-pattern",
+  "currentVersion": 1,
+  "versions": [
+    {
+      "id": "v1",
+      "docPath": "patterns/event-handler-pattern",
+      "version": 1,
+      "timestamp": "2026-05-05T17:33:34.6389601Z",
+      "changes": [
+        {
+          "field": "title",
+          "oldValue": "Event Handler Pattern",
+          "newValue": "Event Handler Pattern (Not Implemented)"
+        },
+        {
+          "field": "description",
+          "oldValue": "Async event processing pattern",
+          "newValue": "Aspirational pattern. There is no in-process event handler infrastructure; async work goes through BullMQ queues, scheduled work through NestJS @Cron."
+        },
+        {
+          "field": "content",
+          "oldValue": "# Event Handler Pattern\n\n\u003e Async event processing. Located in src/application/{module}/event-handlers/\n\n---\n\n## Dispatcher\n\nDomainEventDispatcher provides:\n- handlers: Map of event name to handler functions\n- register\u003cT\u003e(eventName, handler): Registers handler for event\n- dispatch\u003cT\u003e(event): Dispatches to all registered handlers\n\nHandlers run in parallel via Promise.all.\n\n---\n\n## Handler Implementation\n\n1. Inject DomainEventDispatcher and any required services\n2. Call registerHandlers() in constructor\n3. For each event type, register handler with eventName\n4. Handler methods receive event and can perform async operations\n\n---\n\n## Publishing from Repository\n\nAfter persistence operations:\n1. Save/update entity in database\n2. Loop through entity.domainEvents\n3. Dispatch each event via eventDispatcher.dispatch()\n4. Call entity.clearDomainEvents()\n5. Return mapped domain entity\n\n---\n\n## Key Points\n\n1. Events dispatched AFTER successful persistence\n2. Handlers run asynchronously\n3. Multiple handlers can respond to same event\n4. Use .bind(this) when registering instance methods\n5. Clear events after dispatch to prevent re-processing",
+          "newValue": "# Event Handler Pattern (Not Implemented)\n\n\u003e **Status**: There is **no in-process domain event dispatcher** in the codebase. The closest thing to \"event handlers\" is the BullMQ queue and the NestJS scheduled-task system. See [@doc/patterns/domain-events-pattern](patterns/domain-events-pattern) for the rationale.\n\n## What the Codebase Uses for Async Reactions\n\n| Pattern | Use it when | File reference |\n|---------|-------------|----------------|\n| **BullMQ processor** | A job needs to be retried, scheduled, or run out-of-band (email, notifications, batch work) | `src/infra/queue/processors/email.processor.ts` |\n| **NestJS `@Cron`** | A task should run on a schedule | `src/infra/cronjob/tasks/cleanup.task.ts` |\n| **Direct call inside the use case** | The reaction is part of the same transaction (status history, audit row) | `SubmitForReviewUseCase` writes `PostHistoryStatus` inline |\n\n## Adding a Queue Handler\n\n```typescript\n// 1. Define the job payload\nexport interface NotifyGuardianJobData {\n  guardianId: string;\n  reason: string;\n}\n\n// 2. Add a processor (registered via BullModule.registerQueue in QueueModule)\n@Processor(\"notify-guardian\")\nexport class NotifyGuardianProcessor {\n  private readonly logger = new Logger(NotifyGuardianProcessor.name);\n\n  @Process()\n  async handle(job: Job\u003cNotifyGuardianJobData\u003e): Promise\u003cvoid\u003e {\n    this.logger.log(`Notifying guardian ${job.data.guardianId}`);\n    // … call services to send email/push/sms\n  }\n}\n\n// 3. Schedule the work from a use case\nawait this.queueService.addJob(\"notify-guardian\", { guardianId, reason });\n```\n\nSee [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob) for the full queue module wiring.\n\n## Adding a Scheduled Task\n\n```typescript\n@Injectable()\nexport class ReportingTask {\n  @Cron(\"0 6 * * *\", { timeZone: \"Asia/Ho_Chi_Minh\" })\n  async sendDailyReports(): Promise\u003cvoid\u003e { /* … */ }\n}\n```\n\nRegister it under `CronjobModule.providers`. The `ScheduleModule.forRoot()` import in `CronjobModule` enables `@Cron`/`@Interval`/`@Timeout`.\n\n## If You Adopt Domain Events Later\n\nThe shape of an event handler would mirror NestJS's existing patterns:\n\n```typescript\n@Injectable()\nexport class PostStatusChangedHandler {\n  constructor(private readonly queueService: QueueService) {}\n\n  async handle(event: PostStatusChanged): Promise\u003cvoid\u003e {\n    if (event.payload.newStatus === \"PUBLISHED\") {\n      await this.queueService.addJob(\"notify-audience\", { postId: event.payload.postId });\n    }\n  }\n}\n```\n\nDon't introduce until [@doc/patterns/domain-events-pattern](patterns/domain-events-pattern) gives you a reason to.\n"
+        },
+        {
+          "field": "tags",
+          "oldValue": [
+            "patterns",
+            "events",
+            "handler"
+          ],
+          "newValue": [
+            "patterns",
+            "events",
+            "handler",
+            "not-implemented",
+            "aspirational"
+          ]
+        }
+      ],
+      "snapshot": {
+        "content": "# Event Handler Pattern (Not Implemented)\n\n\u003e **Status**: There is **no in-process domain event dispatcher** in the codebase. The closest thing to \"event handlers\" is the BullMQ queue and the NestJS scheduled-task system. See [@doc/patterns/domain-events-pattern](patterns/domain-events-pattern) for the rationale.\n\n## What the Codebase Uses for Async Reactions\n\n| Pattern | Use it when | File reference |\n|---------|-------------|----------------|\n| **BullMQ processor** | A job needs to be retried, scheduled, or run out-of-band (email, notifications, batch work) | `src/infra/queue/processors/email.processor.ts` |\n| **NestJS `@Cron`** | A task should run on a schedule | `src/infra/cronjob/tasks/cleanup.task.ts` |\n| **Direct call inside the use case** | The reaction is part of the same transaction (status history, audit row) | `SubmitForReviewUseCase` writes `PostHistoryStatus` inline |\n\n## Adding a Queue Handler\n\n```typescript\n// 1. Define the job payload\nexport interface NotifyGuardianJobData {\n  guardianId: string;\n  reason: string;\n}\n\n// 2. Add a processor (registered via BullModule.registerQueue in QueueModule)\n@Processor(\"notify-guardian\")\nexport class NotifyGuardianProcessor {\n  private readonly logger = new Logger(NotifyGuardianProcessor.name);\n\n  @Process()\n  async handle(job: Job\u003cNotifyGuardianJobData\u003e): Promise\u003cvoid\u003e {\n    this.logger.log(`Notifying guardian ${job.data.guardianId}`);\n    // … call services to send email/push/sms\n  }\n}\n\n// 3. Schedule the work from a use case\nawait this.queueService.addJob(\"notify-guardian\", { guardianId, reason });\n```\n\nSee [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob) for the full queue module wiring.\n\n## Adding a Scheduled Task\n\n```typescript\n@Injectable()\nexport class ReportingTask {\n  @Cron(\"0 6 * * *\", { timeZone: \"Asia/Ho_Chi_Minh\" })\n  async sendDailyReports(): Promise\u003cvoid\u003e { /* … */ }\n}\n```\n\nRegister it under `CronjobModule.providers`. The `ScheduleModule.forRoot()` import in `CronjobModule` enables `@Cron`/`@Interval`/`@Timeout`.\n\n## If You Adopt Domain Events Later\n\nThe shape of an event handler would mirror NestJS's existing patterns:\n\n```typescript\n@Injectable()\nexport class PostStatusChangedHandler {\n  constructor(private readonly queueService: QueueService) {}\n\n  async handle(event: PostStatusChanged): Promise\u003cvoid\u003e {\n    if (event.payload.newStatus === \"PUBLISHED\") {\n      await this.queueService.addJob(\"notify-audience\", { postId: event.payload.postId });\n    }\n  }\n}\n```\n\nDon't introduce until [@doc/patterns/domain-events-pattern](patterns/domain-events-pattern) gives you a reason to.\n",
+        "description": "Aspirational pattern. There is no in-process event handler infrastructure; async work goes through BullMQ queues, scheduled work through NestJS @Cron.",
+        "tags": [
+          "patterns",
+          "events",
+          "handler",
+          "not-implemented",
+          "aspirational"
+        ],
+        "title": "Event Handler Pattern (Not Implemented)"
+      }
+    }
+  ]
+}

@@ -45,6 +45,7 @@ describe("RestoreStudentUseCase", () => {
       findByCampusId: jest.fn(),
       findByIds: jest.fn(),
       findAll: jest.fn(),
+      findEligibleForClass: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),

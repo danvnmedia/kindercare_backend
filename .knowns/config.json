@@ -36,6 +36,6 @@
       "dimensions": 384,
       "maxTokens": 512
     },
-    "serverPort": 6421
+    "serverPort": 6420
   }
 }

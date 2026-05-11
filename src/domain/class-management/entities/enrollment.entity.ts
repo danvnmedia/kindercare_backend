@@ -3,11 +3,16 @@ import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { Class } from "./class.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
+import { ExitReason } from "../enums/exit-reason.enum";
+import { EnrollmentAlreadyClosedException } from "../exceptions/enrollment-already-closed.exception";
+import { InvalidEndDateException } from "../exceptions/invalid-end-date.exception";
 
 export interface EnrollmentProps {
   classId: string;
   studentId: string;
   enrollmentDate: Date;
+  endDate: Date | null;
+  exitReason: ExitReason | null;
   note: string | null;
   // Optional loaded relations
   class?: Class;
@@ -38,6 +43,14 @@ export class Enrollment extends Entity<EnrollmentProps> {
     return this.props.enrollmentDate;
   }
 
+  get endDate(): Date | null {
+    return this.props.endDate;
+  }
+
+  get exitReason(): ExitReason | null {
+    return this.props.exitReason;
+  }
+
   get note(): string | null {
     return this.props.note;
   }
@@ -59,6 +72,55 @@ export class Enrollment extends Entity<EnrollmentProps> {
   }
 
   // --- Domain Methods ---
+
+  public isActive(): boolean {
+    return this.props.endDate === null;
+  }
+
+  /**
+   * Closes the enrollment period immutably. Returns a new Enrollment instance
+   * with the same id, leaving the receiver untouched.
+   *
+   * Throws EnrollmentAlreadyClosedException if the period is already closed.
+   * Throws InvalidEndDateException if endDate is before enrollmentDate or in
+   * the future (date-only comparison; time-of-day is ignored).
+   */
+  public withdraw(endDate: Date, reason: ExitReason): Enrollment {
+    if (!this.isActive()) {
+      throw new EnrollmentAlreadyClosedException(this.id);
+    }
+
+    const endDay = Enrollment.toDateOnly(endDate);
+    const startDay = Enrollment.toDateOnly(this.props.enrollmentDate);
+    const today = Enrollment.toDateOnly(new Date());
+
+    if (endDay.getTime() < startDay.getTime()) {
+      throw new InvalidEndDateException(
+        `endDate (${endDay.toISOString().slice(0, 10)}) is before enrollmentDate (${startDay.toISOString().slice(0, 10)})`,
+      );
+    }
+    if (endDay.getTime() > today.getTime()) {
+      throw new InvalidEndDateException(
+        `endDate (${endDay.toISOString().slice(0, 10)}) is in the future`,
+      );
+    }
+
+    return Enrollment.create(
+      {
+        classId: this.props.classId,
+        studentId: this.props.studentId,
+        enrollmentDate: this.props.enrollmentDate,
+        endDate: endDay,
+        exitReason: reason,
+        note: this.props.note,
+        class: this.props.class,
+        student: this.props.student,
+        createdAt: this.props.createdAt,
+        updatedAt: new Date(),
+      },
+      this.id,
+    );
+  }
 
   public update(data: UpdateEnrollmentData): void {
     if (data.enrollmentDate !== undefined) {
@@ -82,16 +144,27 @@ export class Enrollment extends Entity<EnrollmentProps> {
     this.props.updatedAt = new Date();
   }
 
+  private static toDateOnly(date: Date): Date {
+    return new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
+  }
+
   // --- Factory Method ---
 
   public static create(
     props: Optional<
       EnrollmentProps,
-      "createdAt" | "updatedAt" | "note" | "class" | "student"
+      | "createdAt"
+      | "updatedAt"
+      | "note"
+      | "endDate"
+      | "exitReason"
+      | "class"
+      | "student"
     >,
     id?: string,
   ): Enrollment {
-    // Validation
     if (!props.classId) {
       throw new Error("Class ID is required");
     }
@@ -102,8 +175,20 @@ export class Enrollment extends Entity<EnrollmentProps> {
       throw new Error("Enrollment date is required");
     }
 
+    const endDate = props.endDate ?? null;
+    const exitReason = props.exitReason ?? null;
+
+    // XOR invariant: endDate and exitReason must both be set or both be null.
+    if ((endDate === null) !== (exitReason === null)) {
+      throw new Error(
+        "Enrollment endDate and exitReason must both be set or both be null",
+      );
+    }
+
     const enrollmentProps: EnrollmentProps = {
       ...props,
+      endDate,
+      exitReason,
       note: props.note?.trim() || null,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

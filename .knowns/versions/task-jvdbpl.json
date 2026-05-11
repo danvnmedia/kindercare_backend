@@ -1,0 +1,324 @@
+{
+  "taskId": "jvdbpl",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "jvdbpl",
+      "version": 1,
+      "timestamp": "2026-05-05T23:33:04.2998303Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "high"
+        }
+      ],
+      "snapshot": {
+        "description": "Update `EnrollmentRepository` port in `src/application/class-management/ports/enrollment.repository.ts`: add `findActiveByStudentId(studentId)`, `findActiveByClassId(classId)` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId(classId)`, `findAllByStudentId(studentId)`. Remove `delete` and `deleteByStudentAndClass`. Update `PrismaEnrollmentRepository` to filter `endDate: null` by default in existing class queries and implement new methods. Update Prisma → domain mapper and `EnrollmentResponse` DTO to include `endDate` and `exitReason` (additive only, no breaking changes).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-16, NFR-8\nBlocked by: Task 2 (domain entity)",
+        "labels": [
+          "from-spec",
+          "infrastructure",
+          "repository"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Repository port + Prisma impl + EnrollmentResponse shape"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "jvdbpl",
+      "version": 2,
+      "timestamp": "2026-05-05T23:33:51.5443503Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "`EnrollmentRepository` port adds `findActiveByStudentId`, `findActiveByClassId` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId`, `findAllByStudentId`"
+            },
+            {
+              "completed": false,
+              "text": "`delete` and `deleteByStudentAndClass` removed from port and implementation (no callers remain)"
+            },
+            {
+              "completed": false,
+              "text": "`PrismaEnrollmentRepository` filters `endDate: null` by default in active-only queries"
+            },
+            {
+              "completed": false,
+              "text": "Prisma → domain mapper hydrates `endDate` and `exitReason` (with null-safe handling)"
+            },
+            {
+              "completed": false,
+              "text": "`EnrollmentResponse` DTO includes `endDate: Date | null` and `exitReason: ExitReason | null` (additive, non-breaking)"
+            },
+            {
+              "completed": false,
+              "text": "Repository unit tests cover the new query methods and active-only filtering"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`EnrollmentRepository` port adds `findActiveByStudentId`, `findActiveByClassId` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId`, `findAllByStudentId`"
+          },
+          {
+            "completed": false,
+            "text": "`delete` and `deleteByStudentAndClass` removed from port and implementation (no callers remain)"
+          },
+          {
+            "completed": false,
+            "text": "`PrismaEnrollmentRepository` filters `endDate: null` by default in active-only queries"
+          },
+          {
+            "completed": false,
+            "text": "Prisma → domain mapper hydrates `endDate` and `exitReason` (with null-safe handling)"
+          },
+          {
+            "completed": false,
+            "text": "`EnrollmentResponse` DTO includes `endDate: Date | null` and `exitReason: ExitReason | null` (additive, non-breaking)"
+          },
+          {
+            "completed": false,
+            "text": "Repository unit tests cover the new query methods and active-only filtering"
+          }
+        ],
+        "description": "Update `EnrollmentRepository` port in `src/application/class-management/ports/enrollment.repository.ts`: add `findActiveByStudentId(studentId)`, `findActiveByClassId(classId)` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId(classId)`, `findAllByStudentId(studentId)`. Remove `delete` and `deleteByStudentAndClass`. Update `PrismaEnrollmentRepository` to filter `endDate: null` by default in existing class queries and implement new methods. Update Prisma → domain mapper and `EnrollmentResponse` DTO to include `endDate` and `exitReason` (additive only, no breaking changes).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-16, NFR-8\nBlocked by: Task 2 (domain entity)",
+        "labels": [
+          "from-spec",
+          "infrastructure",
+          "repository"
+        ],
+        "priority": "high",
+        "status": "todo",
+        "title": "Repository port + Prisma impl + EnrollmentResponse shape"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "jvdbpl",
+      "version": 3,
+      "timestamp": "2026-05-06T02:21:46.8515106Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`EnrollmentRepository` port adds `findActiveByStudentId`, `findActiveByClassId` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId`, `findAllByStudentId`"
+          },
+          {
+            "completed": false,
+            "text": "`delete` and `deleteByStudentAndClass` removed from port and implementation (no callers remain)"
+          },
+          {
+            "completed": false,
+            "text": "`PrismaEnrollmentRepository` filters `endDate: null` by default in active-only queries"
+          },
+          {
+            "completed": false,
+            "text": "Prisma → domain mapper hydrates `endDate` and `exitReason` (with null-safe handling)"
+          },
+          {
+            "completed": false,
+            "text": "`EnrollmentResponse` DTO includes `endDate: Date | null` and `exitReason: ExitReason | null` (additive, non-breaking)"
+          },
+          {
+            "completed": false,
+            "text": "Repository unit tests cover the new query methods and active-only filtering"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollmentRepository` port in `src/application/class-management/ports/enrollment.repository.ts`: add `findActiveByStudentId(studentId)`, `findActiveByClassId(classId)` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId(classId)`, `findAllByStudentId(studentId)`. Remove `delete` and `deleteByStudentAndClass`. Update `PrismaEnrollmentRepository` to filter `endDate: null` by default in existing class queries and implement new methods. Update Prisma → domain mapper and `EnrollmentResponse` DTO to include `endDate` and `exitReason` (additive only, no breaking changes).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-16, NFR-8\nBlocked by: Task 2 (domain entity)",
+        "labels": [
+          "from-spec",
+          "infrastructure",
+          "repository"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Repository port + Prisma impl + EnrollmentResponse shape"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "jvdbpl",
+      "version": 4,
+      "timestamp": "2026-05-06T02:24:49.7401193Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "Plan locked: co-locate removal of delete()/deleteByStudentAndClass() with removal of UnenrollStudentUseCase (its sole consumer) and the DELETE HTTP route. Honors AC #2 verbatim and keeps the build green between merges. q0oqvy then becomes purely additive (WithdrawStudentUseCase + POST .../withdraw).\n\nRefs: @doc/specs/class-enrollment-period-model section \"Repository changes\" and \"HTTP wiring\".\n\nSteps:\n\n1. EnrollmentResponse DTO — additive fields (covers AC #5)\n   File: src/infra/http/dtos/class-management/enrollment.response.ts\n   - Add `endDate: Date | null` and `exitReason: ExitReason | null` with `@Expose()` and `@ApiProperty({ nullable: true })`.\n   - Import `ExitReason` from domain enum index.\n\n2. PrismaEnrollmentMapper — round-trip endDate/exitReason (covers AC #4)\n   File: src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts\n   - Hydrate `endDate` and `exitReason` (cast Prisma string to `ExitReason | null`) in both `toDomain` and `toDomainSimple`.\n   - Add `endDate` and `exitReason` to `toPrisma` (UncheckedCreateInput).\n   - Update `toPrismaUpdate` to include `endDate` and `exitReason`; per project memory and @doc/guides/code-generation-pattern, return type stays as the existing one (no FK relations involved here, so plain `Prisma.EnrollmentUpdateInput` is correct).\n\n3. EnrollmentRepository port — extend + remove (covers AC #1, AC #2)\n   File: src/application/class-management/ports/enrollment.repository.ts\n   - Add abstract methods: `findActiveByStudentId(studentId): Promise\u003cEnrollment | null\u003e`, `findActiveByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findHistoricalByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findAllByStudentId(studentId): Promise\u003cEnrollment[]\u003e`.\n   - Remove `delete(id)` and `deleteByStudentAndClass(studentId, classId)`.\n   - Keep existing `findByClassId`/`findByStudentId`/`findByStudentClassDate` unchanged for now (callers retire in ncjacr/zffh6i).\n\n4. PrismaEnrollmentRepository — implement new methods (covers AC #3)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts\n   - `findActiveByStudentId`: `findFirst({ where: { studentId, endDate: null }, include: { class, student } })`.\n   - `findActiveByClassId`: `findMany({ where: { classId, endDate: null }, include, orderBy enrollmentDate desc })`.\n   - `findHistoricalByClassId`: `findMany({ where: { classId }, include, orderBy enrollmentDate desc })` — all rows, no endDate filter.\n   - `findAllByStudentId`: `findMany({ where: { studentId }, include: { class: { include: { schoolYear, gradeLevel } }, student }, orderBy enrollmentDate desc })` — rich relations needed for AC-25 student history view.\n   - Drop `delete()` and `deleteByStudentAndClass()` implementations.\n\n5. Drop UnenrollStudentUseCase + DELETE route + DI registration (sole consumers of removed port methods)\n   - Delete src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts.\n   - Remove `export * from \"./unenroll-student.use-case\"` from enrollment index.ts.\n   - Remove DELETE :classId/enrollments/:enrollmentId route from class.controller.ts; drop its constructor injection and import.\n   - Remove UnenrollStudentUseCase provider from class-management.module.ts.\n\n6. Update existing mock repositories so the build stays green\n   - enroll-student.use-case.spec.ts and cross-campus-prevention.integration.spec.ts: drop `delete`/`deleteByStudentAndClass` from EnrollmentRepository mocks, add the four new method mocks alongside.\n\n7. Add repository unit tests — new file (covers AC #6)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts\n   - Mock PrismaService + PrismaQueryService.\n   - Verify: findActiveByStudentId issues `where.endDate=null` and uses findFirst; findActiveByClassId issues `where.endDate=null` + `orderBy enrollmentDate desc`; findHistoricalByClassId issues NO endDate filter; findAllByStudentId issues no endDate filter AND includes nested schoolYear/gradeLevel; null vs entity return paths.\n\n8. Verify\n   - `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management/use-cases/enrollment src/domain/class-management` (new + regression).\n   - `npx tsc --noEmit`.\n   - `mcp_knowns_validate({ entity: \"jvdbpl\" })`.\n\nNotes:\n- No backwards-compat shim for the removed DELETE endpoint — the spec explicitly drops it; the new POST .../withdraw lands in q0oqvy.\n- `findByClassId`/`findByStudentId` are retained unchanged here; their callers swap to active-only variants in ncjacr.\n- `findByStudentClassDate` is retained; zffh6i may retire it when EnrollStudentUseCase switches to \"active in any class\" duplicate detection via findActiveByStudentId."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`EnrollmentRepository` port adds `findActiveByStudentId`, `findActiveByClassId` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId`, `findAllByStudentId`"
+          },
+          {
+            "completed": false,
+            "text": "`delete` and `deleteByStudentAndClass` removed from port and implementation (no callers remain)"
+          },
+          {
+            "completed": false,
+            "text": "`PrismaEnrollmentRepository` filters `endDate: null` by default in active-only queries"
+          },
+          {
+            "completed": false,
+            "text": "Prisma → domain mapper hydrates `endDate` and `exitReason` (with null-safe handling)"
+          },
+          {
+            "completed": false,
+            "text": "`EnrollmentResponse` DTO includes `endDate: Date | null` and `exitReason: ExitReason | null` (additive, non-breaking)"
+          },
+          {
+            "completed": false,
+            "text": "Repository unit tests cover the new query methods and active-only filtering"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollmentRepository` port in `src/application/class-management/ports/enrollment.repository.ts`: add `findActiveByStudentId(studentId)`, `findActiveByClassId(classId)` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId(classId)`, `findAllByStudentId(studentId)`. Remove `delete` and `deleteByStudentAndClass`. Update `PrismaEnrollmentRepository` to filter `endDate: null` by default in existing class queries and implement new methods. Update Prisma → domain mapper and `EnrollmentResponse` DTO to include `endDate` and `exitReason` (additive only, no breaking changes).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-16, NFR-8\nBlocked by: Task 2 (domain entity)",
+        "implementationPlan": "Plan locked: co-locate removal of delete()/deleteByStudentAndClass() with removal of UnenrollStudentUseCase (its sole consumer) and the DELETE HTTP route. Honors AC #2 verbatim and keeps the build green between merges. q0oqvy then becomes purely additive (WithdrawStudentUseCase + POST .../withdraw).\n\nRefs: @doc/specs/class-enrollment-period-model section \"Repository changes\" and \"HTTP wiring\".\n\nSteps:\n\n1. EnrollmentResponse DTO — additive fields (covers AC #5)\n   File: src/infra/http/dtos/class-management/enrollment.response.ts\n   - Add `endDate: Date | null` and `exitReason: ExitReason | null` with `@Expose()` and `@ApiProperty({ nullable: true })`.\n   - Import `ExitReason` from domain enum index.\n\n2. PrismaEnrollmentMapper — round-trip endDate/exitReason (covers AC #4)\n   File: src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts\n   - Hydrate `endDate` and `exitReason` (cast Prisma string to `ExitReason | null`) in both `toDomain` and `toDomainSimple`.\n   - Add `endDate` and `exitReason` to `toPrisma` (UncheckedCreateInput).\n   - Update `toPrismaUpdate` to include `endDate` and `exitReason`; per project memory and @doc/guides/code-generation-pattern, return type stays as the existing one (no FK relations involved here, so plain `Prisma.EnrollmentUpdateInput` is correct).\n\n3. EnrollmentRepository port — extend + remove (covers AC #1, AC #2)\n   File: src/application/class-management/ports/enrollment.repository.ts\n   - Add abstract methods: `findActiveByStudentId(studentId): Promise\u003cEnrollment | null\u003e`, `findActiveByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findHistoricalByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findAllByStudentId(studentId): Promise\u003cEnrollment[]\u003e`.\n   - Remove `delete(id)` and `deleteByStudentAndClass(studentId, classId)`.\n   - Keep existing `findByClassId`/`findByStudentId`/`findByStudentClassDate` unchanged for now (callers retire in ncjacr/zffh6i).\n\n4. PrismaEnrollmentRepository — implement new methods (covers AC #3)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts\n   - `findActiveByStudentId`: `findFirst({ where: { studentId, endDate: null }, include: { class, student } })`.\n   - `findActiveByClassId`: `findMany({ where: { classId, endDate: null }, include, orderBy enrollmentDate desc })`.\n   - `findHistoricalByClassId`: `findMany({ where: { classId }, include, orderBy enrollmentDate desc })` — all rows, no endDate filter.\n   - `findAllByStudentId`: `findMany({ where: { studentId }, include: { class: { include: { schoolYear, gradeLevel } }, student }, orderBy enrollmentDate desc })` — rich relations needed for AC-25 student history view.\n   - Drop `delete()` and `deleteByStudentAndClass()` implementations.\n\n5. Drop UnenrollStudentUseCase + DELETE route + DI registration (sole consumers of removed port methods)\n   - Delete src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts.\n   - Remove `export * from \"./unenroll-student.use-case\"` from enrollment index.ts.\n   - Remove DELETE :classId/enrollments/:enrollmentId route from class.controller.ts; drop its constructor injection and import.\n   - Remove UnenrollStudentUseCase provider from class-management.module.ts.\n\n6. Update existing mock repositories so the build stays green\n   - enroll-student.use-case.spec.ts and cross-campus-prevention.integration.spec.ts: drop `delete`/`deleteByStudentAndClass` from EnrollmentRepository mocks, add the four new method mocks alongside.\n\n7. Add repository unit tests — new file (covers AC #6)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts\n   - Mock PrismaService + PrismaQueryService.\n   - Verify: findActiveByStudentId issues `where.endDate=null` and uses findFirst; findActiveByClassId issues `where.endDate=null` + `orderBy enrollmentDate desc`; findHistoricalByClassId issues NO endDate filter; findAllByStudentId issues no endDate filter AND includes nested schoolYear/gradeLevel; null vs entity return paths.\n\n8. Verify\n   - `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management/use-cases/enrollment src/domain/class-management` (new + regression).\n   - `npx tsc --noEmit`.\n   - `mcp_knowns_validate({ entity: \"jvdbpl\" })`.\n\nNotes:\n- No backwards-compat shim for the removed DELETE endpoint — the spec explicitly drops it; the new POST .../withdraw lands in q0oqvy.\n- `findByClassId`/`findByStudentId` are retained unchanged here; their callers swap to active-only variants in ncjacr.\n- `findByStudentClassDate` is retained; zffh6i may retire it when EnrollStudentUseCase switches to \"active in any class\" duplicate detection via findActiveByStudentId.",
+        "labels": [
+          "from-spec",
+          "infrastructure",
+          "repository"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Repository port + Prisma impl + EnrollmentResponse shape"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "jvdbpl",
+      "version": 5,
+      "timestamp": "2026-05-06T02:36:12.3221517Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implementation complete (option A: co-located removal of UnenrollStudentUseCase + DELETE route).\n\nFiles touched:\n- src/infra/http/dtos/class-management/enrollment.response.ts — added `endDate: Date | null` and `exitReason: ExitReason | null` with @ApiProperty(nullable, enum metadata).\n- src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts — `toDomain`/`toDomainSimple` hydrate `endDate`/`exitReason`; `toPrisma` and `toPrismaUpdate` round-trip both fields. Added private `toExitReason()` helper that null-safely coerces unknown DB values to null instead of throwing — validation lives at wire/domain layers.\n- src/application/class-management/ports/enrollment.repository.ts — added `findActiveByStudentId` (returns single or null), `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`. Removed `delete` and `deleteByStudentAndClass`.\n- src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts — implemented the four new methods. Active-only methods filter `endDate: null`. `findHistoricalByClassId` returns all rows. `findAllByStudentId` includes nested `schoolYear`/`gradeLevel` (needed for the AC-25 history view that ships in @task-ncjacr).\n- src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts — DELETED (replaced by WithdrawStudentUseCase in @task-q0oqvy).\n- src/application/class-management/use-cases/enrollment/index.ts — dropped the unenroll re-export.\n- src/infra/http/controllers/class-management/class.controller.ts — removed the DELETE :classId/enrollments/:enrollmentId route, its constructor injection, and the import.\n- src/infra/http/modules/class-management.module.ts — dropped UnenrollStudentUseCase import and provider.\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.spec.ts — mock repo updated (removed delete/deleteByStudentAndClass, added 4 new method mocks).\n- src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts — same mock update applied to both setups.\n- src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts — NEW: 9 tests covering active-only filtering, historical (no filter), all-by-student (with nested includes), null returns, and mapper round-trip of exitReason as enum.\n\nVerification:\n- `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → 9/9 passed (new spec).\n- `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management src/domain/class-management` → 101/101 passed across 11 suites (full regression in touched areas, no failures).\n- `npx tsc --noEmit` → clean (exit 0).\n- Knowns validation → 0/0/0.\n\nSOLID \u0026 Clean Architecture compliance:\n- DIP: port stays in application layer with no Prisma/Nest types; impl in infra layer implements abstract class via Nest @Injectable.\n- ISP: split into four narrowly-named methods (findActive*, findHistorical*, findAllByStudentId) instead of one overloaded method with a flag — callers express intent at the call site.\n- OCP: existing findByClassId/findByStudentId/findByStudentClassDate kept unchanged; their callers retire in @task-ncjacr / @task-zffh6i without breaking other consumers.\n- SRP: mapper's `toExitReason` private helper isolates the string→enum coercion so the toDomain methods stay declarative. DTO additive only — no shape regression.\n- LSP: PrismaEnrollmentRepository fully implements EnrollmentRepository; mock repos updated to match the new contract so jest.Mocked typing stays correct.\n\nBackwards compatibility: the DELETE :classId/enrollments/:enrollmentId HTTP route is removed in this task per the spec (FR-12). Its replacement POST .../withdraw lands in @task-q0oqvy on the same branch — no API gap will reach prod. No clients consume the legacy route in this repo."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "`EnrollmentRepository` port adds `findActiveByStudentId`, `findActiveByClassId` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId`, `findAllByStudentId`"
+          },
+          {
+            "completed": true,
+            "text": "`delete` and `deleteByStudentAndClass` removed from port and implementation (no callers remain)"
+          },
+          {
+            "completed": true,
+            "text": "`PrismaEnrollmentRepository` filters `endDate: null` by default in active-only queries"
+          },
+          {
+            "completed": true,
+            "text": "Prisma → domain mapper hydrates `endDate` and `exitReason` (with null-safe handling)"
+          },
+          {
+            "completed": true,
+            "text": "`EnrollmentResponse` DTO includes `endDate: Date | null` and `exitReason: ExitReason | null` (additive, non-breaking)"
+          },
+          {
+            "completed": true,
+            "text": "Repository unit tests cover the new query methods and active-only filtering"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollmentRepository` port in `src/application/class-management/ports/enrollment.repository.ts`: add `findActiveByStudentId(studentId)`, `findActiveByClassId(classId)` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId(classId)`, `findAllByStudentId(studentId)`. Remove `delete` and `deleteByStudentAndClass`. Update `PrismaEnrollmentRepository` to filter `endDate: null` by default in existing class queries and implement new methods. Update Prisma → domain mapper and `EnrollmentResponse` DTO to include `endDate` and `exitReason` (additive only, no breaking changes).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-16, NFR-8\nBlocked by: Task 2 (domain entity)",
+        "implementationNotes": "Implementation complete (option A: co-located removal of UnenrollStudentUseCase + DELETE route).\n\nFiles touched:\n- src/infra/http/dtos/class-management/enrollment.response.ts — added `endDate: Date | null` and `exitReason: ExitReason | null` with @ApiProperty(nullable, enum metadata).\n- src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts — `toDomain`/`toDomainSimple` hydrate `endDate`/`exitReason`; `toPrisma` and `toPrismaUpdate` round-trip both fields. Added private `toExitReason()` helper that null-safely coerces unknown DB values to null instead of throwing — validation lives at wire/domain layers.\n- src/application/class-management/ports/enrollment.repository.ts — added `findActiveByStudentId` (returns single or null), `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`. Removed `delete` and `deleteByStudentAndClass`.\n- src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts — implemented the four new methods. Active-only methods filter `endDate: null`. `findHistoricalByClassId` returns all rows. `findAllByStudentId` includes nested `schoolYear`/`gradeLevel` (needed for the AC-25 history view that ships in @task-ncjacr).\n- src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts — DELETED (replaced by WithdrawStudentUseCase in @task-q0oqvy).\n- src/application/class-management/use-cases/enrollment/index.ts — dropped the unenroll re-export.\n- src/infra/http/controllers/class-management/class.controller.ts — removed the DELETE :classId/enrollments/:enrollmentId route, its constructor injection, and the import.\n- src/infra/http/modules/class-management.module.ts — dropped UnenrollStudentUseCase import and provider.\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.spec.ts — mock repo updated (removed delete/deleteByStudentAndClass, added 4 new method mocks).\n- src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts — same mock update applied to both setups.\n- src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts — NEW: 9 tests covering active-only filtering, historical (no filter), all-by-student (with nested includes), null returns, and mapper round-trip of exitReason as enum.\n\nVerification:\n- `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → 9/9 passed (new spec).\n- `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management src/domain/class-management` → 101/101 passed across 11 suites (full regression in touched areas, no failures).\n- `npx tsc --noEmit` → clean (exit 0).\n- Knowns validation → 0/0/0.\n\nSOLID \u0026 Clean Architecture compliance:\n- DIP: port stays in application layer with no Prisma/Nest types; impl in infra layer implements abstract class via Nest @Injectable.\n- ISP: split into four narrowly-named methods (findActive*, findHistorical*, findAllByStudentId) instead of one overloaded method with a flag — callers express intent at the call site.\n- OCP: existing findByClassId/findByStudentId/findByStudentClassDate kept unchanged; their callers retire in @task-ncjacr / @task-zffh6i without breaking other consumers.\n- SRP: mapper's `toExitReason` private helper isolates the string→enum coercion so the toDomain methods stay declarative. DTO additive only — no shape regression.\n- LSP: PrismaEnrollmentRepository fully implements EnrollmentRepository; mock repos updated to match the new contract so jest.Mocked typing stays correct.\n\nBackwards compatibility: the DELETE :classId/enrollments/:enrollmentId HTTP route is removed in this task per the spec (FR-12). Its replacement POST .../withdraw lands in @task-q0oqvy on the same branch — no API gap will reach prod. No clients consume the legacy route in this repo.",
+        "implementationPlan": "Plan locked: co-locate removal of delete()/deleteByStudentAndClass() with removal of UnenrollStudentUseCase (its sole consumer) and the DELETE HTTP route. Honors AC #2 verbatim and keeps the build green between merges. q0oqvy then becomes purely additive (WithdrawStudentUseCase + POST .../withdraw).\n\nRefs: @doc/specs/class-enrollment-period-model section \"Repository changes\" and \"HTTP wiring\".\n\nSteps:\n\n1. EnrollmentResponse DTO — additive fields (covers AC #5)\n   File: src/infra/http/dtos/class-management/enrollment.response.ts\n   - Add `endDate: Date | null` and `exitReason: ExitReason | null` with `@Expose()` and `@ApiProperty({ nullable: true })`.\n   - Import `ExitReason` from domain enum index.\n\n2. PrismaEnrollmentMapper — round-trip endDate/exitReason (covers AC #4)\n   File: src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts\n   - Hydrate `endDate` and `exitReason` (cast Prisma string to `ExitReason | null`) in both `toDomain` and `toDomainSimple`.\n   - Add `endDate` and `exitReason` to `toPrisma` (UncheckedCreateInput).\n   - Update `toPrismaUpdate` to include `endDate` and `exitReason`; per project memory and @doc/guides/code-generation-pattern, return type stays as the existing one (no FK relations involved here, so plain `Prisma.EnrollmentUpdateInput` is correct).\n\n3. EnrollmentRepository port — extend + remove (covers AC #1, AC #2)\n   File: src/application/class-management/ports/enrollment.repository.ts\n   - Add abstract methods: `findActiveByStudentId(studentId): Promise\u003cEnrollment | null\u003e`, `findActiveByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findHistoricalByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findAllByStudentId(studentId): Promise\u003cEnrollment[]\u003e`.\n   - Remove `delete(id)` and `deleteByStudentAndClass(studentId, classId)`.\n   - Keep existing `findByClassId`/`findByStudentId`/`findByStudentClassDate` unchanged for now (callers retire in ncjacr/zffh6i).\n\n4. PrismaEnrollmentRepository — implement new methods (covers AC #3)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts\n   - `findActiveByStudentId`: `findFirst({ where: { studentId, endDate: null }, include: { class, student } })`.\n   - `findActiveByClassId`: `findMany({ where: { classId, endDate: null }, include, orderBy enrollmentDate desc })`.\n   - `findHistoricalByClassId`: `findMany({ where: { classId }, include, orderBy enrollmentDate desc })` — all rows, no endDate filter.\n   - `findAllByStudentId`: `findMany({ where: { studentId }, include: { class: { include: { schoolYear, gradeLevel } }, student }, orderBy enrollmentDate desc })` — rich relations needed for AC-25 student history view.\n   - Drop `delete()` and `deleteByStudentAndClass()` implementations.\n\n5. Drop UnenrollStudentUseCase + DELETE route + DI registration (sole consumers of removed port methods)\n   - Delete src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts.\n   - Remove `export * from \"./unenroll-student.use-case\"` from enrollment index.ts.\n   - Remove DELETE :classId/enrollments/:enrollmentId route from class.controller.ts; drop its constructor injection and import.\n   - Remove UnenrollStudentUseCase provider from class-management.module.ts.\n\n6. Update existing mock repositories so the build stays green\n   - enroll-student.use-case.spec.ts and cross-campus-prevention.integration.spec.ts: drop `delete`/`deleteByStudentAndClass` from EnrollmentRepository mocks, add the four new method mocks alongside.\n\n7. Add repository unit tests — new file (covers AC #6)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts\n   - Mock PrismaService + PrismaQueryService.\n   - Verify: findActiveByStudentId issues `where.endDate=null` and uses findFirst; findActiveByClassId issues `where.endDate=null` + `orderBy enrollmentDate desc`; findHistoricalByClassId issues NO endDate filter; findAllByStudentId issues no endDate filter AND includes nested schoolYear/gradeLevel; null vs entity return paths.\n\n8. Verify\n   - `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management/use-cases/enrollment src/domain/class-management` (new + regression).\n   - `npx tsc --noEmit`.\n   - `mcp_knowns_validate({ entity: \"jvdbpl\" })`.\n\nNotes:\n- No backwards-compat shim for the removed DELETE endpoint — the spec explicitly drops it; the new POST .../withdraw lands in q0oqvy.\n- `findByClassId`/`findByStudentId` are retained unchanged here; their callers swap to active-only variants in ncjacr.\n- `findByStudentClassDate` is retained; zffh6i may retire it when EnrollStudentUseCase switches to \"active in any class\" duplicate detection via findActiveByStudentId.",
+        "labels": [
+          "from-spec",
+          "infrastructure",
+          "repository"
+        ],
+        "priority": "high",
+        "status": "in-progress",
+        "title": "Repository port + Prisma impl + EnrollmentResponse shape"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "jvdbpl",
+      "version": 6,
+      "timestamp": "2026-05-06T02:36:17.8399443Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "`EnrollmentRepository` port adds `findActiveByStudentId`, `findActiveByClassId` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId`, `findAllByStudentId`",
+            "completed": true
+          },
+          {
+            "text": "`delete` and `deleteByStudentAndClass` removed from port and implementation (no callers remain)",
+            "completed": true
+          },
+          {
+            "text": "`PrismaEnrollmentRepository` filters `endDate: null` by default in active-only queries",
+            "completed": true
+          },
+          {
+            "text": "Prisma → domain mapper hydrates `endDate` and `exitReason` (with null-safe handling)",
+            "completed": true
+          },
+          {
+            "text": "`EnrollmentResponse` DTO includes `endDate: Date | null` and `exitReason: ExitReason | null` (additive, non-breaking)",
+            "completed": true
+          },
+          {
+            "text": "Repository unit tests cover the new query methods and active-only filtering",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `EnrollmentRepository` port in `src/application/class-management/ports/enrollment.repository.ts`: add `findActiveByStudentId(studentId)`, `findActiveByClassId(classId)` (or `activeOnly` param on `findByClassId`), `findHistoricalByClassId(classId)`, `findAllByStudentId(studentId)`. Remove `delete` and `deleteByStudentAndClass`. Update `PrismaEnrollmentRepository` to filter `endDate: null` by default in existing class queries and implement new methods. Update Prisma → domain mapper and `EnrollmentResponse` DTO to include `endDate` and `exitReason` (additive only, no breaking changes).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-16, NFR-8\nBlocked by: Task 2 (domain entity)",
+        "implementationNotes": "Implementation complete (option A: co-located removal of UnenrollStudentUseCase + DELETE route).\n\nFiles touched:\n- src/infra/http/dtos/class-management/enrollment.response.ts — added `endDate: Date | null` and `exitReason: ExitReason | null` with @ApiProperty(nullable, enum metadata).\n- src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts — `toDomain`/`toDomainSimple` hydrate `endDate`/`exitReason`; `toPrisma` and `toPrismaUpdate` round-trip both fields. Added private `toExitReason()` helper that null-safely coerces unknown DB values to null instead of throwing — validation lives at wire/domain layers.\n- src/application/class-management/ports/enrollment.repository.ts — added `findActiveByStudentId` (returns single or null), `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`. Removed `delete` and `deleteByStudentAndClass`.\n- src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts — implemented the four new methods. Active-only methods filter `endDate: null`. `findHistoricalByClassId` returns all rows. `findAllByStudentId` includes nested `schoolYear`/`gradeLevel` (needed for the AC-25 history view that ships in @task-ncjacr).\n- src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts — DELETED (replaced by WithdrawStudentUseCase in @task-q0oqvy).\n- src/application/class-management/use-cases/enrollment/index.ts — dropped the unenroll re-export.\n- src/infra/http/controllers/class-management/class.controller.ts — removed the DELETE :classId/enrollments/:enrollmentId route, its constructor injection, and the import.\n- src/infra/http/modules/class-management.module.ts — dropped UnenrollStudentUseCase import and provider.\n- src/application/class-management/use-cases/enrollment/enroll-student.use-case.spec.ts — mock repo updated (removed delete/deleteByStudentAndClass, added 4 new method mocks).\n- src/application/class-management/use-cases/cross-campus-prevention.integration.spec.ts — same mock update applied to both setups.\n- src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts — NEW: 9 tests covering active-only filtering, historical (no filter), all-by-student (with nested includes), null returns, and mapper round-trip of exitReason as enum.\n\nVerification:\n- `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts` → 9/9 passed (new spec).\n- `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management src/domain/class-management` → 101/101 passed across 11 suites (full regression in touched areas, no failures).\n- `npx tsc --noEmit` → clean (exit 0).\n- Knowns validation → 0/0/0.\n\nSOLID \u0026 Clean Architecture compliance:\n- DIP: port stays in application layer with no Prisma/Nest types; impl in infra layer implements abstract class via Nest @Injectable.\n- ISP: split into four narrowly-named methods (findActive*, findHistorical*, findAllByStudentId) instead of one overloaded method with a flag — callers express intent at the call site.\n- OCP: existing findByClassId/findByStudentId/findByStudentClassDate kept unchanged; their callers retire in @task-ncjacr / @task-zffh6i without breaking other consumers.\n- SRP: mapper's `toExitReason` private helper isolates the string→enum coercion so the toDomain methods stay declarative. DTO additive only — no shape regression.\n- LSP: PrismaEnrollmentRepository fully implements EnrollmentRepository; mock repos updated to match the new contract so jest.Mocked typing stays correct.\n\nBackwards compatibility: the DELETE :classId/enrollments/:enrollmentId HTTP route is removed in this task per the spec (FR-12). Its replacement POST .../withdraw lands in @task-q0oqvy on the same branch — no API gap will reach prod. No clients consume the legacy route in this repo.",
+        "implementationPlan": "Plan locked: co-locate removal of delete()/deleteByStudentAndClass() with removal of UnenrollStudentUseCase (its sole consumer) and the DELETE HTTP route. Honors AC #2 verbatim and keeps the build green between merges. q0oqvy then becomes purely additive (WithdrawStudentUseCase + POST .../withdraw).\n\nRefs: @doc/specs/class-enrollment-period-model section \"Repository changes\" and \"HTTP wiring\".\n\nSteps:\n\n1. EnrollmentResponse DTO — additive fields (covers AC #5)\n   File: src/infra/http/dtos/class-management/enrollment.response.ts\n   - Add `endDate: Date | null` and `exitReason: ExitReason | null` with `@Expose()` and `@ApiProperty({ nullable: true })`.\n   - Import `ExitReason` from domain enum index.\n\n2. PrismaEnrollmentMapper — round-trip endDate/exitReason (covers AC #4)\n   File: src/infra/persistence/prisma/mapper/prisma-enrollment.mapper.ts\n   - Hydrate `endDate` and `exitReason` (cast Prisma string to `ExitReason | null`) in both `toDomain` and `toDomainSimple`.\n   - Add `endDate` and `exitReason` to `toPrisma` (UncheckedCreateInput).\n   - Update `toPrismaUpdate` to include `endDate` and `exitReason`; per project memory and @doc/guides/code-generation-pattern, return type stays as the existing one (no FK relations involved here, so plain `Prisma.EnrollmentUpdateInput` is correct).\n\n3. EnrollmentRepository port — extend + remove (covers AC #1, AC #2)\n   File: src/application/class-management/ports/enrollment.repository.ts\n   - Add abstract methods: `findActiveByStudentId(studentId): Promise\u003cEnrollment | null\u003e`, `findActiveByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findHistoricalByClassId(classId): Promise\u003cEnrollment[]\u003e`, `findAllByStudentId(studentId): Promise\u003cEnrollment[]\u003e`.\n   - Remove `delete(id)` and `deleteByStudentAndClass(studentId, classId)`.\n   - Keep existing `findByClassId`/`findByStudentId`/`findByStudentClassDate` unchanged for now (callers retire in ncjacr/zffh6i).\n\n4. PrismaEnrollmentRepository — implement new methods (covers AC #3)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.ts\n   - `findActiveByStudentId`: `findFirst({ where: { studentId, endDate: null }, include: { class, student } })`.\n   - `findActiveByClassId`: `findMany({ where: { classId, endDate: null }, include, orderBy enrollmentDate desc })`.\n   - `findHistoricalByClassId`: `findMany({ where: { classId }, include, orderBy enrollmentDate desc })` — all rows, no endDate filter.\n   - `findAllByStudentId`: `findMany({ where: { studentId }, include: { class: { include: { schoolYear, gradeLevel } }, student }, orderBy enrollmentDate desc })` — rich relations needed for AC-25 student history view.\n   - Drop `delete()` and `deleteByStudentAndClass()` implementations.\n\n5. Drop UnenrollStudentUseCase + DELETE route + DI registration (sole consumers of removed port methods)\n   - Delete src/application/class-management/use-cases/enrollment/unenroll-student.use-case.ts.\n   - Remove `export * from \"./unenroll-student.use-case\"` from enrollment index.ts.\n   - Remove DELETE :classId/enrollments/:enrollmentId route from class.controller.ts; drop its constructor injection and import.\n   - Remove UnenrollStudentUseCase provider from class-management.module.ts.\n\n6. Update existing mock repositories so the build stays green\n   - enroll-student.use-case.spec.ts and cross-campus-prevention.integration.spec.ts: drop `delete`/`deleteByStudentAndClass` from EnrollmentRepository mocks, add the four new method mocks alongside.\n\n7. Add repository unit tests — new file (covers AC #6)\n   File: src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts\n   - Mock PrismaService + PrismaQueryService.\n   - Verify: findActiveByStudentId issues `where.endDate=null` and uses findFirst; findActiveByClassId issues `where.endDate=null` + `orderBy enrollmentDate desc`; findHistoricalByClassId issues NO endDate filter; findAllByStudentId issues no endDate filter AND includes nested schoolYear/gradeLevel; null vs entity return paths.\n\n8. Verify\n   - `npx jest src/infra/persistence/prisma/repositories/prisma-enrollment.repository.spec.ts src/application/class-management/use-cases/enrollment src/domain/class-management` (new + regression).\n   - `npx tsc --noEmit`.\n   - `mcp_knowns_validate({ entity: \"jvdbpl\" })`.\n\nNotes:\n- No backwards-compat shim for the removed DELETE endpoint — the spec explicitly drops it; the new POST .../withdraw lands in q0oqvy.\n- `findByClassId`/`findByStudentId` are retained unchanged here; their callers swap to active-only variants in ncjacr.\n- `findByStudentClassDate` is retained; zffh6i may retire it when EnrollStudentUseCase switches to \"active in any class\" duplicate detection via findActiveByStudentId.",
+        "labels": [
+          "from-spec",
+          "infrastructure",
+          "repository"
+        ],
+        "priority": "high",
+        "status": "done",
+        "title": "Repository port + Prisma impl + EnrollmentResponse shape"
+      }
+    }
+  ]
+}

@@ -72,6 +72,62 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
     return PrismaEnrollmentMapper.toDomainArray(prismaEnrollments);
   }
 
+  async findActiveByStudentId(
+    studentId: string,
+  ): Promise<Enrollment | null> {
+    const prismaEnrollment = await this.prisma.enrollment.findFirst({
+      where: { studentId, endDate: null },
+      include: {
+        class: true,
+        student: true,
+      },
+    });
+    return prismaEnrollment
+      ? PrismaEnrollmentMapper.toDomain(prismaEnrollment)
+      : null;
+  }
+
+  async findActiveByClassId(classId: string): Promise<Enrollment[]> {
+    const prismaEnrollments = await this.prisma.enrollment.findMany({
+      where: { classId, endDate: null },
+      include: {
+        class: true,
+        student: true,
+      },
+      orderBy: { enrollmentDate: "desc" },
+    });
+    return PrismaEnrollmentMapper.toDomainArray(prismaEnrollments);
+  }
+
+  async findHistoricalByClassId(classId: string): Promise<Enrollment[]> {
+    const prismaEnrollments = await this.prisma.enrollment.findMany({
+      where: { classId },
+      include: {
+        class: true,
+        student: true,
+      },
+      orderBy: { enrollmentDate: "desc" },
+    });
+    return PrismaEnrollmentMapper.toDomainArray(prismaEnrollments);
+  }
+
+  async findAllByStudentId(studentId: string): Promise<Enrollment[]> {
+    const prismaEnrollments = await this.prisma.enrollment.findMany({
+      where: { studentId },
+      include: {
+        class: {
+          include: {
+            schoolYear: true,
+            gradeLevel: true,
+          },
+        },
+        student: true,
+      },
+      orderBy: { enrollmentDate: "desc" },
+    });
+    return PrismaEnrollmentMapper.toDomainArray(prismaEnrollments);
+  }
+
   async findAll(params: StandardRequest): Promise<PaginatedResult<Enrollment>> {
     params.allowedFilterFields = ["classId", "studentId", "enrollmentDate"];
     params.allowedSortFields = ["createdAt", "updatedAt", "enrollmentDate"];
@@ -102,6 +158,20 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
     return PrismaEnrollmentMapper.toDomain(created);
   }
 
+  async saveMany(enrollments: Enrollment[]): Promise<Enrollment[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const results: Enrollment[] = [];
+      for (const enrollment of enrollments) {
+        const created = await tx.enrollment.create({
+          data: PrismaEnrollmentMapper.toPrisma(enrollment),
+          include: { class: true, student: true },
+        });
+        results.push(PrismaEnrollmentMapper.toDomain(created));
+      }
+      return results;
+    });
+  }
+
   async update(enrollment: Enrollment): Promise<Enrollment> {
     const prismaData = PrismaEnrollmentMapper.toPrismaUpdate(enrollment);
     const updated = await this.prisma.enrollment.update({
@@ -115,21 +185,24 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
     return PrismaEnrollmentMapper.toDomain(updated);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.prisma.enrollment.delete({
-      where: { id },
-    });
-  }
-
-  async deleteByStudentAndClass(
-    studentId: string,
-    classId: string,
-  ): Promise<void> {
-    await this.prisma.enrollment.deleteMany({
-      where: {
-        studentId,
-        classId,
-      },
+  async transferEnrollment(
+    closed: Enrollment,
+    opened: Enrollment,
+  ): Promise<{ closed: Enrollment; opened: Enrollment }> {
+    return this.prisma.$transaction(async (tx) => {
+      const updatedRow = await tx.enrollment.update({
+        where: { id: closed.id },
+        data: PrismaEnrollmentMapper.toPrismaUpdate(closed),
+        include: { class: true, student: true },
+      });
+      const createdRow = await tx.enrollment.create({
+        data: PrismaEnrollmentMapper.toPrisma(opened),
+        include: { class: true, student: true },
+      });
+      return {
+        closed: PrismaEnrollmentMapper.toDomain(updatedRow),
+        opened: PrismaEnrollmentMapper.toDomain(createdRow),
+      };
     });
   }
 }

@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 // Controllers
 import { ClassController } from "../controllers/class-management/class.controller";
 import { ReferenceDataController } from "../controllers/class-management/reference-data.controller";
+import { StudentEnrollmentController } from "../controllers/class-management/student-enrollment.controller";
 
 // Use Cases - Class
 import { CreateClassUseCase } from "@/application/class-management/use-cases/class/create-class.use-case";
@@ -29,8 +30,16 @@ import { ReorderGradeLevelsUseCase } from "@/application/class-management/use-ca
 
 // Use Cases - Enrollment
 import { EnrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/enroll-student.use-case";
+import { WithdrawStudentUseCase } from "@/application/class-management/use-cases/enrollment/withdraw-student.use-case";
+import { TransferStudentUseCase } from "@/application/class-management/use-cases/enrollment/transfer-student.use-case";
+import { BulkEnrollStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-enroll-students.use-case";
+import { BulkTransferStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-transfer-students.use-case";
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
-import { UnenrollStudentUseCase } from "@/application/class-management/use-cases/enrollment/unenroll-student.use-case";
+import { GetStudentEnrollmentHistoryUseCase } from "@/application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case";
+
+// Use Cases - Eligible Students (file lives in user-management; registered here to keep
+// CLASS_REPOSITORY + STUDENT_REPOSITORY co-located without a forwardRef cycle.)
+import { GetEligibleStudentsForClassUseCase } from "@/application/user-management/use-cases/student/get-eligible-students-for-class.use-case";
 
 // Use Cases - Class Staff
 import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
@@ -66,7 +75,11 @@ import { RequestContextModule } from "../context/request-context.module";
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
     RequestContextModule, // Provides RequestContext for CampusGuard
   ],
-  controllers: [ClassController, ReferenceDataController],
+  controllers: [
+    ClassController,
+    ReferenceDataController,
+    StudentEnrollmentController,
+  ],
   providers: [
     // Class Use Cases
     CreateClassUseCase,
@@ -93,8 +106,13 @@ import { RequestContextModule } from "../context/request-context.module";
 
     // Enrollment Use Cases
     EnrollStudentUseCase,
+    WithdrawStudentUseCase,
+    TransferStudentUseCase,
+    BulkEnrollStudentsUseCase,
+    BulkTransferStudentsUseCase,
     GetClassEnrollmentsUseCase,
-    UnenrollStudentUseCase,
+    GetStudentEnrollmentHistoryUseCase,
+    GetEligibleStudentsForClassUseCase,
 
     // Class Staff Use Cases
     AssignStaffToClassUseCase,

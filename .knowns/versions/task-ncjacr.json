@@ -1,0 +1,438 @@
+{
+  "taskId": "ncjacr",
+  "currentVersion": 8,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "ncjacr",
+      "version": 1,
+      "timestamp": "2026-05-05T23:33:28.8989852Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "ncjacr",
+      "version": 2,
+      "timestamp": "2026-05-05T23:34:10.5743831Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+            },
+            {
+              "completed": false,
+              "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+            },
+            {
+              "completed": false,
+              "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+            },
+            {
+              "completed": false,
+              "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+            },
+            {
+              "completed": false,
+              "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+            },
+            {
+              "completed": false,
+              "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+          },
+          {
+            "completed": false,
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+          },
+          {
+            "completed": false,
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+          },
+          {
+            "completed": false,
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+          }
+        ],
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "ncjacr",
+      "version": 3,
+      "timestamp": "2026-05-06T14:41:00.3830091Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+          },
+          {
+            "completed": false,
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+          },
+          {
+            "completed": false,
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+          },
+          {
+            "completed": false,
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "ncjacr",
+      "version": 4,
+      "timestamp": "2026-05-06T14:43:54.0454711Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "## Implementation Plan\n\n**Goal:** AC-23/24/25 — class roster filters active by default with `?includeHistorical=true` opt-in, and a new student-history endpoint surfaces full enrollment history with nested `class.schoolYear.name` + `class.gradeLevel.name`.\n\n### Foundation — repository already in place (task jvdbpl)\n- Port `EnrollmentRepository` already has `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`.\n- `findAllByStudentId` already runs `class: { include: { schoolYear, gradeLevel } }`.\n- Caveat discovered: `PrismaEnrollmentMapper.toDomain` uses `PrismaClassMapper.toDomainSimple` which **strips** nested `gradeLevel`/`schoolYear`. Step 3 fixes this so the rich query result reaches the domain layer (required for AC-25).\n\n### Steps\n\n1. **Update `GetClassEnrollmentsUseCase`** (covers AC-23, AC-24)\n   - Change signature: `execute(classId, campusId?, includeHistorical = false)`.\n   - Route to `findActiveByClassId` (default) or `findHistoricalByClassId` (when `true`).\n   - Keep existing class-resolve + cross-campus 404 (AC-13 pattern).\n   - Add `get-class-enrollments.use-case.spec.ts`: default-active path; `includeHistorical=true` path; cross-campus 404; not-found.\n\n2. **Add `GetStudentEnrollmentHistoryUseCase`** (covers AC-25)\n   - New file `application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case.ts`.\n   - Input: `studentId`, `campusId`. Validates student exists (via `StudentRepository.findById`) and matches campus → 404 hide-existence on cross-campus.\n   - Returns `enrollmentRepository.findAllByStudentId(studentId)` (already ordered `enrollmentDate DESC` and includes nested class relations).\n   - Add `.spec.ts`: populated nested `class.name`/`schoolYear.name`/`gradeLevel.name`, ordering, empty history, cross-campus 404, not-found student.\n   - Export from `enrollment/index.ts`.\n\n3. **Fix `PrismaEnrollmentMapper.toDomain`** (unblocks AC-25 nested fields reaching the domain)\n   - Switch `PrismaClassMapper.toDomainSimple(class)` → `PrismaClassMapper.toDomain(class)`. The latter conditionally maps nested `schoolYear`/`gradeLevel` if present, otherwise no-ops — backward-compatible for `findById`, `findActiveByClassId`, etc. (those queries don't include the nested relations, so the fields stay `undefined` like today).\n   - Verify `prisma-enrollment.repository.spec.ts` still passes (mock rows in tests don't carry the nested relations either).\n\n4. **DTOs** (covers AC-25 wire shape, AC-26 consistency)\n   - `dtos/class-management/get-class-enrollments.query.ts`: `includeHistorical?: boolean` with `@IsOptional() @IsBoolean() @Transform(({ value }) =\u003e value === \"true\")`.\n   - `dtos/class-management/student-enrollment-history.response.ts`: dedicated response with `EnrollmentHistoryClassInfo` exposing `id`, `name`, plus nested `schoolYear: { id, name }` and `gradeLevel: { id, name }`. Item carries `endDate` and `exitReason` (AC-26 consistency). Avoids bloating the existing `EnrollmentResponse` used by withdraw/transfer.\n   - Re-export both from `dtos/class-management/index.ts`.\n\n5. **Wire HTTP** (covers AC-23, AC-24, AC-25)\n   - `class.controller.ts` `getEnrollments`: add `@Query() query: GetClassEnrollmentsQuery`; pass `query.includeHistorical ?? false` through. Add `@ApiQuery({ name: \"includeHistorical\", required: false, type: Boolean })`.\n   - `student-enrollment.controller.ts`: add `@Get(\":studentId/enrollments\")` returning `StudentEnrollmentHistoryResponse[]` via `@StandardResponse({ type: ..., isArray: true })`. Inject `GetStudentEnrollmentHistoryUseCase`.\n\n6. **DI wiring + structural-mock backfill**\n   - `class-management.module.ts`: add `GetStudentEnrollmentHistoryUseCase` to providers.\n   - Sweep existing `jest.Mocked\u003cEnrollmentRepository\u003e` literals to verify the new use case's spec mock surface — none new since port surface is unchanged from q9rt9n.\n\n7. **Verify**\n   - `npx tsc --noEmit`.\n   - `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` (new specs).\n   - `npx jest prisma-enrollment.repository.spec.ts` (regression check after mapper change).\n   - `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` — full sweep, expect zero regressions.\n   - `mcp_knowns_validate` for ref integrity.\n\n### Files touched (estimate)\n- **Modified (5):** `get-class-enrollments.use-case.ts`, `prisma-enrollment.mapper.ts`, `class.controller.ts`, `student-enrollment.controller.ts`, `class-management.module.ts`, `enrollment/index.ts`, `dtos/class-management/index.ts`.\n- **New (5):** `get-student-enrollment-history.use-case.ts`, `get-class-enrollments.use-case.spec.ts`, `get-student-enrollment-history.use-case.spec.ts`, `get-class-enrollments.query.ts`, `student-enrollment-history.response.ts`.\n\n### Open questions for approval\n- **Q1 — Student-history response shape:** Strict spec wording is `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`. Recommendation: include `id` alongside `name` for both nested objects (`{ id, name }`), so clients can navigate without a second call. Confirm: **A** include both id+name, or **B** name only (strict).\n- **Q2 — Mapper fix scope:** Step 3 changes `PrismaEnrollmentMapper.toDomain` to use `PrismaClassMapper.toDomain` — this is required for AC-25 since the existing `findAllByStudentId` query already requests nested relations the current mapper drops. Confirm scope is acceptable as part of this task (it's a one-line fix isolated to the enrollment mapper, with backward-compatible behavior for queries that don't include nested relations)."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+          },
+          {
+            "completed": false,
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+          },
+          {
+            "completed": false,
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+          },
+          {
+            "completed": false,
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "implementationPlan": "## Implementation Plan\n\n**Goal:** AC-23/24/25 — class roster filters active by default with `?includeHistorical=true` opt-in, and a new student-history endpoint surfaces full enrollment history with nested `class.schoolYear.name` + `class.gradeLevel.name`.\n\n### Foundation — repository already in place (task jvdbpl)\n- Port `EnrollmentRepository` already has `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`.\n- `findAllByStudentId` already runs `class: { include: { schoolYear, gradeLevel } }`.\n- Caveat discovered: `PrismaEnrollmentMapper.toDomain` uses `PrismaClassMapper.toDomainSimple` which **strips** nested `gradeLevel`/`schoolYear`. Step 3 fixes this so the rich query result reaches the domain layer (required for AC-25).\n\n### Steps\n\n1. **Update `GetClassEnrollmentsUseCase`** (covers AC-23, AC-24)\n   - Change signature: `execute(classId, campusId?, includeHistorical = false)`.\n   - Route to `findActiveByClassId` (default) or `findHistoricalByClassId` (when `true`).\n   - Keep existing class-resolve + cross-campus 404 (AC-13 pattern).\n   - Add `get-class-enrollments.use-case.spec.ts`: default-active path; `includeHistorical=true` path; cross-campus 404; not-found.\n\n2. **Add `GetStudentEnrollmentHistoryUseCase`** (covers AC-25)\n   - New file `application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case.ts`.\n   - Input: `studentId`, `campusId`. Validates student exists (via `StudentRepository.findById`) and matches campus → 404 hide-existence on cross-campus.\n   - Returns `enrollmentRepository.findAllByStudentId(studentId)` (already ordered `enrollmentDate DESC` and includes nested class relations).\n   - Add `.spec.ts`: populated nested `class.name`/`schoolYear.name`/`gradeLevel.name`, ordering, empty history, cross-campus 404, not-found student.\n   - Export from `enrollment/index.ts`.\n\n3. **Fix `PrismaEnrollmentMapper.toDomain`** (unblocks AC-25 nested fields reaching the domain)\n   - Switch `PrismaClassMapper.toDomainSimple(class)` → `PrismaClassMapper.toDomain(class)`. The latter conditionally maps nested `schoolYear`/`gradeLevel` if present, otherwise no-ops — backward-compatible for `findById`, `findActiveByClassId`, etc. (those queries don't include the nested relations, so the fields stay `undefined` like today).\n   - Verify `prisma-enrollment.repository.spec.ts` still passes (mock rows in tests don't carry the nested relations either).\n\n4. **DTOs** (covers AC-25 wire shape, AC-26 consistency)\n   - `dtos/class-management/get-class-enrollments.query.ts`: `includeHistorical?: boolean` with `@IsOptional() @IsBoolean() @Transform(({ value }) =\u003e value === \"true\")`.\n   - `dtos/class-management/student-enrollment-history.response.ts`: dedicated response with `EnrollmentHistoryClassInfo` exposing `id`, `name`, plus nested `schoolYear: { id, name }` and `gradeLevel: { id, name }`. Item carries `endDate` and `exitReason` (AC-26 consistency). Avoids bloating the existing `EnrollmentResponse` used by withdraw/transfer.\n   - Re-export both from `dtos/class-management/index.ts`.\n\n5. **Wire HTTP** (covers AC-23, AC-24, AC-25)\n   - `class.controller.ts` `getEnrollments`: add `@Query() query: GetClassEnrollmentsQuery`; pass `query.includeHistorical ?? false` through. Add `@ApiQuery({ name: \"includeHistorical\", required: false, type: Boolean })`.\n   - `student-enrollment.controller.ts`: add `@Get(\":studentId/enrollments\")` returning `StudentEnrollmentHistoryResponse[]` via `@StandardResponse({ type: ..., isArray: true })`. Inject `GetStudentEnrollmentHistoryUseCase`.\n\n6. **DI wiring + structural-mock backfill**\n   - `class-management.module.ts`: add `GetStudentEnrollmentHistoryUseCase` to providers.\n   - Sweep existing `jest.Mocked\u003cEnrollmentRepository\u003e` literals to verify the new use case's spec mock surface — none new since port surface is unchanged from q9rt9n.\n\n7. **Verify**\n   - `npx tsc --noEmit`.\n   - `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` (new specs).\n   - `npx jest prisma-enrollment.repository.spec.ts` (regression check after mapper change).\n   - `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` — full sweep, expect zero regressions.\n   - `mcp_knowns_validate` for ref integrity.\n\n### Files touched (estimate)\n- **Modified (5):** `get-class-enrollments.use-case.ts`, `prisma-enrollment.mapper.ts`, `class.controller.ts`, `student-enrollment.controller.ts`, `class-management.module.ts`, `enrollment/index.ts`, `dtos/class-management/index.ts`.\n- **New (5):** `get-student-enrollment-history.use-case.ts`, `get-class-enrollments.use-case.spec.ts`, `get-student-enrollment-history.use-case.spec.ts`, `get-class-enrollments.query.ts`, `student-enrollment-history.response.ts`.\n\n### Open questions for approval\n- **Q1 — Student-history response shape:** Strict spec wording is `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`. Recommendation: include `id` alongside `name` for both nested objects (`{ id, name }`), so clients can navigate without a second call. Confirm: **A** include both id+name, or **B** name only (strict).\n- **Q2 — Mapper fix scope:** Step 3 changes `PrismaEnrollmentMapper.toDomain` to use `PrismaClassMapper.toDomain` — this is required for AC-25 since the existing `findAllByStudentId` query already requests nested relations the current mapper drops. Confirm scope is acceptable as part of this task (it's a one-line fix isolated to the enrollment mapper, with backward-compatible behavior for queries that don't include nested relations).",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "ncjacr",
+      "version": 5,
+      "timestamp": "2026-05-06T14:46:43.3623724Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer)."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+          },
+          {
+            "completed": false,
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+          },
+          {
+            "completed": false,
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+          },
+          {
+            "completed": false,
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "implementationNotes": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).",
+        "implementationPlan": "## Implementation Plan\n\n**Goal:** AC-23/24/25 — class roster filters active by default with `?includeHistorical=true` opt-in, and a new student-history endpoint surfaces full enrollment history with nested `class.schoolYear.name` + `class.gradeLevel.name`.\n\n### Foundation — repository already in place (task jvdbpl)\n- Port `EnrollmentRepository` already has `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`.\n- `findAllByStudentId` already runs `class: { include: { schoolYear, gradeLevel } }`.\n- Caveat discovered: `PrismaEnrollmentMapper.toDomain` uses `PrismaClassMapper.toDomainSimple` which **strips** nested `gradeLevel`/`schoolYear`. Step 3 fixes this so the rich query result reaches the domain layer (required for AC-25).\n\n### Steps\n\n1. **Update `GetClassEnrollmentsUseCase`** (covers AC-23, AC-24)\n   - Change signature: `execute(classId, campusId?, includeHistorical = false)`.\n   - Route to `findActiveByClassId` (default) or `findHistoricalByClassId` (when `true`).\n   - Keep existing class-resolve + cross-campus 404 (AC-13 pattern).\n   - Add `get-class-enrollments.use-case.spec.ts`: default-active path; `includeHistorical=true` path; cross-campus 404; not-found.\n\n2. **Add `GetStudentEnrollmentHistoryUseCase`** (covers AC-25)\n   - New file `application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case.ts`.\n   - Input: `studentId`, `campusId`. Validates student exists (via `StudentRepository.findById`) and matches campus → 404 hide-existence on cross-campus.\n   - Returns `enrollmentRepository.findAllByStudentId(studentId)` (already ordered `enrollmentDate DESC` and includes nested class relations).\n   - Add `.spec.ts`: populated nested `class.name`/`schoolYear.name`/`gradeLevel.name`, ordering, empty history, cross-campus 404, not-found student.\n   - Export from `enrollment/index.ts`.\n\n3. **Fix `PrismaEnrollmentMapper.toDomain`** (unblocks AC-25 nested fields reaching the domain)\n   - Switch `PrismaClassMapper.toDomainSimple(class)` → `PrismaClassMapper.toDomain(class)`. The latter conditionally maps nested `schoolYear`/`gradeLevel` if present, otherwise no-ops — backward-compatible for `findById`, `findActiveByClassId`, etc. (those queries don't include the nested relations, so the fields stay `undefined` like today).\n   - Verify `prisma-enrollment.repository.spec.ts` still passes (mock rows in tests don't carry the nested relations either).\n\n4. **DTOs** (covers AC-25 wire shape, AC-26 consistency)\n   - `dtos/class-management/get-class-enrollments.query.ts`: `includeHistorical?: boolean` with `@IsOptional() @IsBoolean() @Transform(({ value }) =\u003e value === \"true\")`.\n   - `dtos/class-management/student-enrollment-history.response.ts`: dedicated response with `EnrollmentHistoryClassInfo` exposing `id`, `name`, plus nested `schoolYear: { id, name }` and `gradeLevel: { id, name }`. Item carries `endDate` and `exitReason` (AC-26 consistency). Avoids bloating the existing `EnrollmentResponse` used by withdraw/transfer.\n   - Re-export both from `dtos/class-management/index.ts`.\n\n5. **Wire HTTP** (covers AC-23, AC-24, AC-25)\n   - `class.controller.ts` `getEnrollments`: add `@Query() query: GetClassEnrollmentsQuery`; pass `query.includeHistorical ?? false` through. Add `@ApiQuery({ name: \"includeHistorical\", required: false, type: Boolean })`.\n   - `student-enrollment.controller.ts`: add `@Get(\":studentId/enrollments\")` returning `StudentEnrollmentHistoryResponse[]` via `@StandardResponse({ type: ..., isArray: true })`. Inject `GetStudentEnrollmentHistoryUseCase`.\n\n6. **DI wiring + structural-mock backfill**\n   - `class-management.module.ts`: add `GetStudentEnrollmentHistoryUseCase` to providers.\n   - Sweep existing `jest.Mocked\u003cEnrollmentRepository\u003e` literals to verify the new use case's spec mock surface — none new since port surface is unchanged from q9rt9n.\n\n7. **Verify**\n   - `npx tsc --noEmit`.\n   - `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` (new specs).\n   - `npx jest prisma-enrollment.repository.spec.ts` (regression check after mapper change).\n   - `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` — full sweep, expect zero regressions.\n   - `mcp_knowns_validate` for ref integrity.\n\n### Files touched (estimate)\n- **Modified (5):** `get-class-enrollments.use-case.ts`, `prisma-enrollment.mapper.ts`, `class.controller.ts`, `student-enrollment.controller.ts`, `class-management.module.ts`, `enrollment/index.ts`, `dtos/class-management/index.ts`.\n- **New (5):** `get-student-enrollment-history.use-case.ts`, `get-class-enrollments.use-case.spec.ts`, `get-student-enrollment-history.use-case.spec.ts`, `get-class-enrollments.query.ts`, `student-enrollment-history.response.ts`.\n\n### Open questions for approval\n- **Q1 — Student-history response shape:** Strict spec wording is `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`. Recommendation: include `id` alongside `name` for both nested objects (`{ id, name }`), so clients can navigate without a second call. Confirm: **A** include both id+name, or **B** name only (strict).\n- **Q2 — Mapper fix scope:** Step 3 changes `PrismaEnrollmentMapper.toDomain` to use `PrismaClassMapper.toDomain` — this is required for AC-25 since the existing `findAllByStudentId` query already requests nested relations the current mapper drops. Confirm scope is acceptable as part of this task (it's a one-line fix isolated to the enrollment mapper, with backward-compatible behavior for queries that don't include nested relations).",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "ncjacr",
+      "version": 6,
+      "timestamp": "2026-05-06T14:53:33.2157704Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).",
+          "newValue": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).\nImplementation complete (Steps 1-6). Files: 5 new (get-student-enrollment-history.use-case.ts + spec, get-class-enrollments.use-case.spec.ts, get-class-enrollments.query.ts, student-enrollment-history.response.ts) + 6 modified (get-class-enrollments.use-case.ts, prisma-enrollment.mapper.ts, class.controller.ts, student-enrollment.controller.ts, class-management.module.ts, dtos/index.ts, use-cases/enrollment/index.ts). Step 7 verification next."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+          },
+          {
+            "completed": false,
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+          },
+          {
+            "completed": false,
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+          },
+          {
+            "completed": false,
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+          },
+          {
+            "completed": false,
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "implementationNotes": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).\nImplementation complete (Steps 1-6). Files: 5 new (get-student-enrollment-history.use-case.ts + spec, get-class-enrollments.use-case.spec.ts, get-class-enrollments.query.ts, student-enrollment-history.response.ts) + 6 modified (get-class-enrollments.use-case.ts, prisma-enrollment.mapper.ts, class.controller.ts, student-enrollment.controller.ts, class-management.module.ts, dtos/index.ts, use-cases/enrollment/index.ts). Step 7 verification next.",
+        "implementationPlan": "## Implementation Plan\n\n**Goal:** AC-23/24/25 — class roster filters active by default with `?includeHistorical=true` opt-in, and a new student-history endpoint surfaces full enrollment history with nested `class.schoolYear.name` + `class.gradeLevel.name`.\n\n### Foundation — repository already in place (task jvdbpl)\n- Port `EnrollmentRepository` already has `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`.\n- `findAllByStudentId` already runs `class: { include: { schoolYear, gradeLevel } }`.\n- Caveat discovered: `PrismaEnrollmentMapper.toDomain` uses `PrismaClassMapper.toDomainSimple` which **strips** nested `gradeLevel`/`schoolYear`. Step 3 fixes this so the rich query result reaches the domain layer (required for AC-25).\n\n### Steps\n\n1. **Update `GetClassEnrollmentsUseCase`** (covers AC-23, AC-24)\n   - Change signature: `execute(classId, campusId?, includeHistorical = false)`.\n   - Route to `findActiveByClassId` (default) or `findHistoricalByClassId` (when `true`).\n   - Keep existing class-resolve + cross-campus 404 (AC-13 pattern).\n   - Add `get-class-enrollments.use-case.spec.ts`: default-active path; `includeHistorical=true` path; cross-campus 404; not-found.\n\n2. **Add `GetStudentEnrollmentHistoryUseCase`** (covers AC-25)\n   - New file `application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case.ts`.\n   - Input: `studentId`, `campusId`. Validates student exists (via `StudentRepository.findById`) and matches campus → 404 hide-existence on cross-campus.\n   - Returns `enrollmentRepository.findAllByStudentId(studentId)` (already ordered `enrollmentDate DESC` and includes nested class relations).\n   - Add `.spec.ts`: populated nested `class.name`/`schoolYear.name`/`gradeLevel.name`, ordering, empty history, cross-campus 404, not-found student.\n   - Export from `enrollment/index.ts`.\n\n3. **Fix `PrismaEnrollmentMapper.toDomain`** (unblocks AC-25 nested fields reaching the domain)\n   - Switch `PrismaClassMapper.toDomainSimple(class)` → `PrismaClassMapper.toDomain(class)`. The latter conditionally maps nested `schoolYear`/`gradeLevel` if present, otherwise no-ops — backward-compatible for `findById`, `findActiveByClassId`, etc. (those queries don't include the nested relations, so the fields stay `undefined` like today).\n   - Verify `prisma-enrollment.repository.spec.ts` still passes (mock rows in tests don't carry the nested relations either).\n\n4. **DTOs** (covers AC-25 wire shape, AC-26 consistency)\n   - `dtos/class-management/get-class-enrollments.query.ts`: `includeHistorical?: boolean` with `@IsOptional() @IsBoolean() @Transform(({ value }) =\u003e value === \"true\")`.\n   - `dtos/class-management/student-enrollment-history.response.ts`: dedicated response with `EnrollmentHistoryClassInfo` exposing `id`, `name`, plus nested `schoolYear: { id, name }` and `gradeLevel: { id, name }`. Item carries `endDate` and `exitReason` (AC-26 consistency). Avoids bloating the existing `EnrollmentResponse` used by withdraw/transfer.\n   - Re-export both from `dtos/class-management/index.ts`.\n\n5. **Wire HTTP** (covers AC-23, AC-24, AC-25)\n   - `class.controller.ts` `getEnrollments`: add `@Query() query: GetClassEnrollmentsQuery`; pass `query.includeHistorical ?? false` through. Add `@ApiQuery({ name: \"includeHistorical\", required: false, type: Boolean })`.\n   - `student-enrollment.controller.ts`: add `@Get(\":studentId/enrollments\")` returning `StudentEnrollmentHistoryResponse[]` via `@StandardResponse({ type: ..., isArray: true })`. Inject `GetStudentEnrollmentHistoryUseCase`.\n\n6. **DI wiring + structural-mock backfill**\n   - `class-management.module.ts`: add `GetStudentEnrollmentHistoryUseCase` to providers.\n   - Sweep existing `jest.Mocked\u003cEnrollmentRepository\u003e` literals to verify the new use case's spec mock surface — none new since port surface is unchanged from q9rt9n.\n\n7. **Verify**\n   - `npx tsc --noEmit`.\n   - `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` (new specs).\n   - `npx jest prisma-enrollment.repository.spec.ts` (regression check after mapper change).\n   - `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` — full sweep, expect zero regressions.\n   - `mcp_knowns_validate` for ref integrity.\n\n### Files touched (estimate)\n- **Modified (5):** `get-class-enrollments.use-case.ts`, `prisma-enrollment.mapper.ts`, `class.controller.ts`, `student-enrollment.controller.ts`, `class-management.module.ts`, `enrollment/index.ts`, `dtos/class-management/index.ts`.\n- **New (5):** `get-student-enrollment-history.use-case.ts`, `get-class-enrollments.use-case.spec.ts`, `get-student-enrollment-history.use-case.spec.ts`, `get-class-enrollments.query.ts`, `student-enrollment-history.response.ts`.\n\n### Open questions for approval\n- **Q1 — Student-history response shape:** Strict spec wording is `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`. Recommendation: include `id` alongside `name` for both nested objects (`{ id, name }`), so clients can navigate without a second call. Confirm: **A** include both id+name, or **B** name only (strict).\n- **Q2 — Mapper fix scope:** Step 3 changes `PrismaEnrollmentMapper.toDomain` to use `PrismaClassMapper.toDomain` — this is required for AC-25 since the existing `findAllByStudentId` query already requests nested relations the current mapper drops. Confirm scope is acceptable as part of this task (it's a one-line fix isolated to the enrollment mapper, with backward-compatible behavior for queries that don't include nested relations).",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v7",
+      "taskId": "ncjacr",
+      "version": 7,
+      "timestamp": "2026-05-06T14:56:18.6344295Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).\nImplementation complete (Steps 1-6). Files: 5 new (get-student-enrollment-history.use-case.ts + spec, get-class-enrollments.use-case.spec.ts, get-class-enrollments.query.ts, student-enrollment-history.response.ts) + 6 modified (get-class-enrollments.use-case.ts, prisma-enrollment.mapper.ts, class.controller.ts, student-enrollment.controller.ts, class-management.module.ts, dtos/index.ts, use-cases/enrollment/index.ts). Step 7 verification next.",
+          "newValue": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).\nImplementation complete (Steps 1-6). Files: 5 new (get-student-enrollment-history.use-case.ts + spec, get-class-enrollments.use-case.spec.ts, get-class-enrollments.query.ts, student-enrollment-history.response.ts) + 6 modified (get-class-enrollments.use-case.ts, prisma-enrollment.mapper.ts, class.controller.ts, student-enrollment.controller.ts, class-management.module.ts, dtos/index.ts, use-cases/enrollment/index.ts). Step 7 verification next.\nVerification complete:\n- `npx tsc --noEmit` → EXIT=0\n- `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` → 10/10\n- `npx jest prisma-enrollment.repository.spec.ts` → 12/12 (mapper change backward-compatible)\n- `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` → 143/143 across 15 suites (+10 vs q9rt9n's 133/133, zero regressions)\n- `npx jest campus-isolation.integration.spec.ts` → 12/12\n- `mcp_knowns_validate` → 0 errors / 0 warnings / 0 info\n\nSOLID/Clean Architecture compliance:\n- DIP: GetStudentEnrollmentHistoryUseCase depends on `EnrollmentRepository` and `StudentRepository` ports (string-token injection); zero Prisma imports in application layer.\n- SRP: use case orchestrates resolve → fetch; repository owns the eager-load shape; domain entities own the field shape.\n- OCP: extended port-driven query surface (already in place); new use case added without modifying existing ones; new HTTP route added on existing controller without disturbing transfer.\n- LSP: `findHistoricalByClassId` and `findActiveByClassId` return same domain `Enrollment[]` contract.\n- ISP: introduced dedicated `StudentEnrollmentHistoryResponse` (with `EnrollmentHistoryClassInfo` + nested `schoolYear`/`gradeLevel` `{ id, name }` shapes) instead of bloating shared `EnrollmentResponse` used by withdraw/transfer.\n- Clean Architecture: nested `schoolYear`/`gradeLevel` flow domain → DTO via class-transformer; eager-load lives in repo; HTTP layer stays thin (DTO ↔ use-case input).\n\nConventions:\n- Cross-campus 404 hide-existence pattern (matches AC-13 across the module).\n- `@Transform(({ value }) =\u003e value === true || value === \"true\")` + `@IsBoolean()` for boolean query parsing — handles both string (\"true\") and runtime-coerced inputs.\n- `PrismaEnrollmentMapper.toDomain` switched from `PrismaClassMapper.toDomainSimple` → `PrismaClassMapper.toDomain` so existing rich `findAllByStudentId` query (already including `schoolYear`/`gradeLevel`) actually surfaces nested entities at the domain layer. No-op for queries that don't include those relations."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default"
+          },
+          {
+            "completed": true,
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`"
+          },
+          {
+            "completed": true,
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`"
+          },
+          {
+            "completed": true,
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope"
+          },
+          {
+            "completed": true,
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)"
+          },
+          {
+            "completed": true,
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "implementationNotes": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).\nImplementation complete (Steps 1-6). Files: 5 new (get-student-enrollment-history.use-case.ts + spec, get-class-enrollments.use-case.spec.ts, get-class-enrollments.query.ts, student-enrollment-history.response.ts) + 6 modified (get-class-enrollments.use-case.ts, prisma-enrollment.mapper.ts, class.controller.ts, student-enrollment.controller.ts, class-management.module.ts, dtos/index.ts, use-cases/enrollment/index.ts). Step 7 verification next.\nVerification complete:\n- `npx tsc --noEmit` → EXIT=0\n- `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` → 10/10\n- `npx jest prisma-enrollment.repository.spec.ts` → 12/12 (mapper change backward-compatible)\n- `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` → 143/143 across 15 suites (+10 vs q9rt9n's 133/133, zero regressions)\n- `npx jest campus-isolation.integration.spec.ts` → 12/12\n- `mcp_knowns_validate` → 0 errors / 0 warnings / 0 info\n\nSOLID/Clean Architecture compliance:\n- DIP: GetStudentEnrollmentHistoryUseCase depends on `EnrollmentRepository` and `StudentRepository` ports (string-token injection); zero Prisma imports in application layer.\n- SRP: use case orchestrates resolve → fetch; repository owns the eager-load shape; domain entities own the field shape.\n- OCP: extended port-driven query surface (already in place); new use case added without modifying existing ones; new HTTP route added on existing controller without disturbing transfer.\n- LSP: `findHistoricalByClassId` and `findActiveByClassId` return same domain `Enrollment[]` contract.\n- ISP: introduced dedicated `StudentEnrollmentHistoryResponse` (with `EnrollmentHistoryClassInfo` + nested `schoolYear`/`gradeLevel` `{ id, name }` shapes) instead of bloating shared `EnrollmentResponse` used by withdraw/transfer.\n- Clean Architecture: nested `schoolYear`/`gradeLevel` flow domain → DTO via class-transformer; eager-load lives in repo; HTTP layer stays thin (DTO ↔ use-case input).\n\nConventions:\n- Cross-campus 404 hide-existence pattern (matches AC-13 across the module).\n- `@Transform(({ value }) =\u003e value === true || value === \"true\")` + `@IsBoolean()` for boolean query parsing — handles both string (\"true\") and runtime-coerced inputs.\n- `PrismaEnrollmentMapper.toDomain` switched from `PrismaClassMapper.toDomainSimple` → `PrismaClassMapper.toDomain` so existing rich `findAllByStudentId` query (already including `schoolYear`/`gradeLevel`) actually surfaces nested entities at the domain layer. No-op for queries that don't include those relations.",
+        "implementationPlan": "## Implementation Plan\n\n**Goal:** AC-23/24/25 — class roster filters active by default with `?includeHistorical=true` opt-in, and a new student-history endpoint surfaces full enrollment history with nested `class.schoolYear.name` + `class.gradeLevel.name`.\n\n### Foundation — repository already in place (task jvdbpl)\n- Port `EnrollmentRepository` already has `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`.\n- `findAllByStudentId` already runs `class: { include: { schoolYear, gradeLevel } }`.\n- Caveat discovered: `PrismaEnrollmentMapper.toDomain` uses `PrismaClassMapper.toDomainSimple` which **strips** nested `gradeLevel`/`schoolYear`. Step 3 fixes this so the rich query result reaches the domain layer (required for AC-25).\n\n### Steps\n\n1. **Update `GetClassEnrollmentsUseCase`** (covers AC-23, AC-24)\n   - Change signature: `execute(classId, campusId?, includeHistorical = false)`.\n   - Route to `findActiveByClassId` (default) or `findHistoricalByClassId` (when `true`).\n   - Keep existing class-resolve + cross-campus 404 (AC-13 pattern).\n   - Add `get-class-enrollments.use-case.spec.ts`: default-active path; `includeHistorical=true` path; cross-campus 404; not-found.\n\n2. **Add `GetStudentEnrollmentHistoryUseCase`** (covers AC-25)\n   - New file `application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case.ts`.\n   - Input: `studentId`, `campusId`. Validates student exists (via `StudentRepository.findById`) and matches campus → 404 hide-existence on cross-campus.\n   - Returns `enrollmentRepository.findAllByStudentId(studentId)` (already ordered `enrollmentDate DESC` and includes nested class relations).\n   - Add `.spec.ts`: populated nested `class.name`/`schoolYear.name`/`gradeLevel.name`, ordering, empty history, cross-campus 404, not-found student.\n   - Export from `enrollment/index.ts`.\n\n3. **Fix `PrismaEnrollmentMapper.toDomain`** (unblocks AC-25 nested fields reaching the domain)\n   - Switch `PrismaClassMapper.toDomainSimple(class)` → `PrismaClassMapper.toDomain(class)`. The latter conditionally maps nested `schoolYear`/`gradeLevel` if present, otherwise no-ops — backward-compatible for `findById`, `findActiveByClassId`, etc. (those queries don't include the nested relations, so the fields stay `undefined` like today).\n   - Verify `prisma-enrollment.repository.spec.ts` still passes (mock rows in tests don't carry the nested relations either).\n\n4. **DTOs** (covers AC-25 wire shape, AC-26 consistency)\n   - `dtos/class-management/get-class-enrollments.query.ts`: `includeHistorical?: boolean` with `@IsOptional() @IsBoolean() @Transform(({ value }) =\u003e value === \"true\")`.\n   - `dtos/class-management/student-enrollment-history.response.ts`: dedicated response with `EnrollmentHistoryClassInfo` exposing `id`, `name`, plus nested `schoolYear: { id, name }` and `gradeLevel: { id, name }`. Item carries `endDate` and `exitReason` (AC-26 consistency). Avoids bloating the existing `EnrollmentResponse` used by withdraw/transfer.\n   - Re-export both from `dtos/class-management/index.ts`.\n\n5. **Wire HTTP** (covers AC-23, AC-24, AC-25)\n   - `class.controller.ts` `getEnrollments`: add `@Query() query: GetClassEnrollmentsQuery`; pass `query.includeHistorical ?? false` through. Add `@ApiQuery({ name: \"includeHistorical\", required: false, type: Boolean })`.\n   - `student-enrollment.controller.ts`: add `@Get(\":studentId/enrollments\")` returning `StudentEnrollmentHistoryResponse[]` via `@StandardResponse({ type: ..., isArray: true })`. Inject `GetStudentEnrollmentHistoryUseCase`.\n\n6. **DI wiring + structural-mock backfill**\n   - `class-management.module.ts`: add `GetStudentEnrollmentHistoryUseCase` to providers.\n   - Sweep existing `jest.Mocked\u003cEnrollmentRepository\u003e` literals to verify the new use case's spec mock surface — none new since port surface is unchanged from q9rt9n.\n\n7. **Verify**\n   - `npx tsc --noEmit`.\n   - `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` (new specs).\n   - `npx jest prisma-enrollment.repository.spec.ts` (regression check after mapper change).\n   - `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` — full sweep, expect zero regressions.\n   - `mcp_knowns_validate` for ref integrity.\n\n### Files touched (estimate)\n- **Modified (5):** `get-class-enrollments.use-case.ts`, `prisma-enrollment.mapper.ts`, `class.controller.ts`, `student-enrollment.controller.ts`, `class-management.module.ts`, `enrollment/index.ts`, `dtos/class-management/index.ts`.\n- **New (5):** `get-student-enrollment-history.use-case.ts`, `get-class-enrollments.use-case.spec.ts`, `get-student-enrollment-history.use-case.spec.ts`, `get-class-enrollments.query.ts`, `student-enrollment-history.response.ts`.\n\n### Open questions for approval\n- **Q1 — Student-history response shape:** Strict spec wording is `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`. Recommendation: include `id` alongside `name` for both nested objects (`{ id, name }`), so clients can navigate without a second call. Confirm: **A** include both id+name, or **B** name only (strict).\n- **Q2 — Mapper fix scope:** Step 3 changes `PrismaEnrollmentMapper.toDomain` to use `PrismaClassMapper.toDomain` — this is required for AC-25 since the existing `findAllByStudentId` query already requests nested relations the current mapper drops. Confirm scope is acceptable as part of this task (it's a one-line fix isolated to the enrollment mapper, with backward-compatible behavior for queries that don't include nested relations).",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    },
+    {
+      "id": "v8",
+      "taskId": "ncjacr",
+      "version": 8,
+      "timestamp": "2026-05-06T14:56:25.0661559Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "`GetClassEnrollmentsUseCase` returns only `endDate IS NULL` rows by default",
+            "completed": true
+          },
+          {
+            "text": "`includeHistorical=true` returns all rows for the class ordered by `enrollmentDate DESC`",
+            "completed": true
+          },
+          {
+            "text": "`GetStudentEnrollmentHistoryUseCase` returns student's full history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason` populated, ordered `enrollmentDate DESC`",
+            "completed": true
+          },
+          {
+            "text": "`GET /classes/:id/enrollments?includeHistorical=` query param added (default false), respects existing campus-scope",
+            "completed": true
+          },
+          {
+            "text": "`GET /students/:studentId/enrollments` route added (new `student-enrollment.controller.ts` or extension)",
+            "completed": true
+          },
+          {
+            "text": "Use-case + controller tests cover default-active, includeHistorical, and student history shape",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "Update `GetClassEnrollmentsUseCase` to filter `endDate IS NULL` by default; accept `includeHistorical: boolean = false` (when true, return all rows ordered by `enrollmentDate DESC`). Add `GetStudentEnrollmentHistoryUseCase` returning a student's full enrollment history with `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`, `endDate`, `exitReason`. Wire `GET /classes/:id/enrollments?includeHistorical=` (existing route, new query param) and `GET /students/:studentId/enrollments` (new route in `student-enrollment.controller.ts`).\n\nSpec: @doc/specs/class-enrollment-period-model\nCovers: FR-9, FR-11, FR-13, FR-15\nBlocked by: Task 3 (repository)",
+        "implementationNotes": "Plan approved 2026-05-06. Decisions: Q1=A (nested objects expose `{ id, name }` for `schoolYear` and `gradeLevel`); Q2=A (mapper fix `PrismaEnrollmentMapper.toDomain` → `PrismaClassMapper.toDomain` is in-scope for this task — required for AC-25 nested fields to reach the domain layer).\nImplementation complete (Steps 1-6). Files: 5 new (get-student-enrollment-history.use-case.ts + spec, get-class-enrollments.use-case.spec.ts, get-class-enrollments.query.ts, student-enrollment-history.response.ts) + 6 modified (get-class-enrollments.use-case.ts, prisma-enrollment.mapper.ts, class.controller.ts, student-enrollment.controller.ts, class-management.module.ts, dtos/index.ts, use-cases/enrollment/index.ts). Step 7 verification next.\nVerification complete:\n- `npx tsc --noEmit` → EXIT=0\n- `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` → 10/10\n- `npx jest prisma-enrollment.repository.spec.ts` → 12/12 (mapper change backward-compatible)\n- `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` → 143/143 across 15 suites (+10 vs q9rt9n's 133/133, zero regressions)\n- `npx jest campus-isolation.integration.spec.ts` → 12/12\n- `mcp_knowns_validate` → 0 errors / 0 warnings / 0 info\n\nSOLID/Clean Architecture compliance:\n- DIP: GetStudentEnrollmentHistoryUseCase depends on `EnrollmentRepository` and `StudentRepository` ports (string-token injection); zero Prisma imports in application layer.\n- SRP: use case orchestrates resolve → fetch; repository owns the eager-load shape; domain entities own the field shape.\n- OCP: extended port-driven query surface (already in place); new use case added without modifying existing ones; new HTTP route added on existing controller without disturbing transfer.\n- LSP: `findHistoricalByClassId` and `findActiveByClassId` return same domain `Enrollment[]` contract.\n- ISP: introduced dedicated `StudentEnrollmentHistoryResponse` (with `EnrollmentHistoryClassInfo` + nested `schoolYear`/`gradeLevel` `{ id, name }` shapes) instead of bloating shared `EnrollmentResponse` used by withdraw/transfer.\n- Clean Architecture: nested `schoolYear`/`gradeLevel` flow domain → DTO via class-transformer; eager-load lives in repo; HTTP layer stays thin (DTO ↔ use-case input).\n\nConventions:\n- Cross-campus 404 hide-existence pattern (matches AC-13 across the module).\n- `@Transform(({ value }) =\u003e value === true || value === \"true\")` + `@IsBoolean()` for boolean query parsing — handles both string (\"true\") and runtime-coerced inputs.\n- `PrismaEnrollmentMapper.toDomain` switched from `PrismaClassMapper.toDomainSimple` → `PrismaClassMapper.toDomain` so existing rich `findAllByStudentId` query (already including `schoolYear`/`gradeLevel`) actually surfaces nested entities at the domain layer. No-op for queries that don't include those relations.",
+        "implementationPlan": "## Implementation Plan\n\n**Goal:** AC-23/24/25 — class roster filters active by default with `?includeHistorical=true` opt-in, and a new student-history endpoint surfaces full enrollment history with nested `class.schoolYear.name` + `class.gradeLevel.name`.\n\n### Foundation — repository already in place (task jvdbpl)\n- Port `EnrollmentRepository` already has `findActiveByClassId`, `findHistoricalByClassId`, `findAllByStudentId`.\n- `findAllByStudentId` already runs `class: { include: { schoolYear, gradeLevel } }`.\n- Caveat discovered: `PrismaEnrollmentMapper.toDomain` uses `PrismaClassMapper.toDomainSimple` which **strips** nested `gradeLevel`/`schoolYear`. Step 3 fixes this so the rich query result reaches the domain layer (required for AC-25).\n\n### Steps\n\n1. **Update `GetClassEnrollmentsUseCase`** (covers AC-23, AC-24)\n   - Change signature: `execute(classId, campusId?, includeHistorical = false)`.\n   - Route to `findActiveByClassId` (default) or `findHistoricalByClassId` (when `true`).\n   - Keep existing class-resolve + cross-campus 404 (AC-13 pattern).\n   - Add `get-class-enrollments.use-case.spec.ts`: default-active path; `includeHistorical=true` path; cross-campus 404; not-found.\n\n2. **Add `GetStudentEnrollmentHistoryUseCase`** (covers AC-25)\n   - New file `application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case.ts`.\n   - Input: `studentId`, `campusId`. Validates student exists (via `StudentRepository.findById`) and matches campus → 404 hide-existence on cross-campus.\n   - Returns `enrollmentRepository.findAllByStudentId(studentId)` (already ordered `enrollmentDate DESC` and includes nested class relations).\n   - Add `.spec.ts`: populated nested `class.name`/`schoolYear.name`/`gradeLevel.name`, ordering, empty history, cross-campus 404, not-found student.\n   - Export from `enrollment/index.ts`.\n\n3. **Fix `PrismaEnrollmentMapper.toDomain`** (unblocks AC-25 nested fields reaching the domain)\n   - Switch `PrismaClassMapper.toDomainSimple(class)` → `PrismaClassMapper.toDomain(class)`. The latter conditionally maps nested `schoolYear`/`gradeLevel` if present, otherwise no-ops — backward-compatible for `findById`, `findActiveByClassId`, etc. (those queries don't include the nested relations, so the fields stay `undefined` like today).\n   - Verify `prisma-enrollment.repository.spec.ts` still passes (mock rows in tests don't carry the nested relations either).\n\n4. **DTOs** (covers AC-25 wire shape, AC-26 consistency)\n   - `dtos/class-management/get-class-enrollments.query.ts`: `includeHistorical?: boolean` with `@IsOptional() @IsBoolean() @Transform(({ value }) =\u003e value === \"true\")`.\n   - `dtos/class-management/student-enrollment-history.response.ts`: dedicated response with `EnrollmentHistoryClassInfo` exposing `id`, `name`, plus nested `schoolYear: { id, name }` and `gradeLevel: { id, name }`. Item carries `endDate` and `exitReason` (AC-26 consistency). Avoids bloating the existing `EnrollmentResponse` used by withdraw/transfer.\n   - Re-export both from `dtos/class-management/index.ts`.\n\n5. **Wire HTTP** (covers AC-23, AC-24, AC-25)\n   - `class.controller.ts` `getEnrollments`: add `@Query() query: GetClassEnrollmentsQuery`; pass `query.includeHistorical ?? false` through. Add `@ApiQuery({ name: \"includeHistorical\", required: false, type: Boolean })`.\n   - `student-enrollment.controller.ts`: add `@Get(\":studentId/enrollments\")` returning `StudentEnrollmentHistoryResponse[]` via `@StandardResponse({ type: ..., isArray: true })`. Inject `GetStudentEnrollmentHistoryUseCase`.\n\n6. **DI wiring + structural-mock backfill**\n   - `class-management.module.ts`: add `GetStudentEnrollmentHistoryUseCase` to providers.\n   - Sweep existing `jest.Mocked\u003cEnrollmentRepository\u003e` literals to verify the new use case's spec mock surface — none new since port surface is unchanged from q9rt9n.\n\n7. **Verify**\n   - `npx tsc --noEmit`.\n   - `npx jest get-class-enrollments.use-case.spec.ts get-student-enrollment-history.use-case.spec.ts` (new specs).\n   - `npx jest prisma-enrollment.repository.spec.ts` (regression check after mapper change).\n   - `npx jest src/application/class-management src/domain/class-management prisma-enrollment.repository.spec.ts` — full sweep, expect zero regressions.\n   - `mcp_knowns_validate` for ref integrity.\n\n### Files touched (estimate)\n- **Modified (5):** `get-class-enrollments.use-case.ts`, `prisma-enrollment.mapper.ts`, `class.controller.ts`, `student-enrollment.controller.ts`, `class-management.module.ts`, `enrollment/index.ts`, `dtos/class-management/index.ts`.\n- **New (5):** `get-student-enrollment-history.use-case.ts`, `get-class-enrollments.use-case.spec.ts`, `get-student-enrollment-history.use-case.spec.ts`, `get-class-enrollments.query.ts`, `student-enrollment-history.response.ts`.\n\n### Open questions for approval\n- **Q1 — Student-history response shape:** Strict spec wording is `class.name`, `class.schoolYear.name`, `class.gradeLevel.name`. Recommendation: include `id` alongside `name` for both nested objects (`{ id, name }`), so clients can navigate without a second call. Confirm: **A** include both id+name, or **B** name only (strict).\n- **Q2 — Mapper fix scope:** Step 3 changes `PrismaEnrollmentMapper.toDomain` to use `PrismaClassMapper.toDomain` — this is required for AC-25 since the existing `findAllByStudentId` query already requests nested relations the current mapper drops. Confirm scope is acceptable as part of this task (it's a one-line fix isolated to the enrollment mapper, with backward-compatible behavior for queries that don't include nested relations).",
+        "labels": [
+          "from-spec",
+          "use-case",
+          "http",
+          "read"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "Read endpoints — class active/historical filter + student history"
+      }
+    }
+  ]
+}

@@ -1,0 +1,264 @@
+{
+  "taskId": "h8t9p8",
+  "currentVersion": 6,
+  "versions": [
+    {
+      "id": "v1",
+      "taskId": "h8t9p8",
+      "version": 1,
+      "timestamp": "2026-05-10T19:41:55.9825638Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": null,
+          "newValue": "todo"
+        },
+        {
+          "field": "priority",
+          "oldValue": null,
+          "newValue": "medium"
+        }
+      ],
+      "snapshot": {
+        "description": "Create `src/application/class-management/enrollment-error-codes.ts` exporting the 6 new bulk-only codes per D4 of the spec: BATCH_TOO_LARGE, BATCH_EMPTY, DUPLICATE_STUDENT_IN_BATCH, STUDENT_NOT_FOUND, STUDENT_NOT_IN_CAMPUS, ENROLLMENT_ALREADY_EXISTS_ON_DATE. Existing single-row error codes (STUDENT_ALREADY_ENROLLED, NO_ACTIVE_ENROLLMENT, TRANSFER_SAME_CLASS, TRANSFER_SOURCE_MISMATCH, ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR) stay inline per D4. Bulk use cases (Bulk Enroll, Bulk Transfer) will import from this module. Foundation task — no dependencies.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "class-management",
+          "bulk-enrollment",
+          "foundation"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Add bulk-enrollment error-code constants module"
+      }
+    },
+    {
+      "id": "v2",
+      "taskId": "h8t9p8",
+      "version": 2,
+      "timestamp": "2026-05-10T19:42:29.6183993Z",
+      "changes": [
+        {
+          "field": "acceptanceCriteria",
+          "oldValue": null,
+          "newValue": [
+            {
+              "completed": false,
+              "text": "EnrollmentErrorCode const map at src/application/class-management/enrollment-error-codes.ts with the 6 keys"
+            },
+            {
+              "completed": false,
+              "text": "EnrollmentErrorCode type via `keyof typeof`"
+            },
+            {
+              "completed": false,
+              "text": "Build passes; module exports cleanly"
+            }
+          ]
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "EnrollmentErrorCode const map at src/application/class-management/enrollment-error-codes.ts with the 6 keys"
+          },
+          {
+            "completed": false,
+            "text": "EnrollmentErrorCode type via `keyof typeof`"
+          },
+          {
+            "completed": false,
+            "text": "Build passes; module exports cleanly"
+          }
+        ],
+        "description": "Create `src/application/class-management/enrollment-error-codes.ts` exporting the 6 new bulk-only codes per D4 of the spec: BATCH_TOO_LARGE, BATCH_EMPTY, DUPLICATE_STUDENT_IN_BATCH, STUDENT_NOT_FOUND, STUDENT_NOT_IN_CAMPUS, ENROLLMENT_ALREADY_EXISTS_ON_DATE. Existing single-row error codes (STUDENT_ALREADY_ENROLLED, NO_ACTIVE_ENROLLMENT, TRANSFER_SAME_CLASS, TRANSFER_SOURCE_MISMATCH, ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR) stay inline per D4. Bulk use cases (Bulk Enroll, Bulk Transfer) will import from this module. Foundation task — no dependencies.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "class-management",
+          "bulk-enrollment",
+          "foundation"
+        ],
+        "priority": "medium",
+        "status": "todo",
+        "title": "Add bulk-enrollment error-code constants module"
+      }
+    },
+    {
+      "id": "v3",
+      "taskId": "h8t9p8",
+      "version": 3,
+      "timestamp": "2026-05-10T19:52:44.7110138Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "todo",
+          "newValue": "in-progress"
+        },
+        {
+          "field": "assignee",
+          "oldValue": null,
+          "newValue": "@me"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "EnrollmentErrorCode const map at src/application/class-management/enrollment-error-codes.ts with the 6 keys"
+          },
+          {
+            "completed": false,
+            "text": "EnrollmentErrorCode type via `keyof typeof`"
+          },
+          {
+            "completed": false,
+            "text": "Build passes; module exports cleanly"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Create `src/application/class-management/enrollment-error-codes.ts` exporting the 6 new bulk-only codes per D4 of the spec: BATCH_TOO_LARGE, BATCH_EMPTY, DUPLICATE_STUDENT_IN_BATCH, STUDENT_NOT_FOUND, STUDENT_NOT_IN_CAMPUS, ENROLLMENT_ALREADY_EXISTS_ON_DATE. Existing single-row error codes (STUDENT_ALREADY_ENROLLED, NO_ACTIVE_ENROLLMENT, TRANSFER_SAME_CLASS, TRANSFER_SOURCE_MISMATCH, ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR) stay inline per D4. Bulk use cases (Bulk Enroll, Bulk Transfer) will import from this module. Foundation task — no dependencies.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "class-management",
+          "bulk-enrollment",
+          "foundation"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Add bulk-enrollment error-code constants module"
+      }
+    },
+    {
+      "id": "v4",
+      "taskId": "h8t9p8",
+      "version": 4,
+      "timestamp": "2026-05-10T19:54:05.4998912Z",
+      "changes": [
+        {
+          "field": "implementationPlan",
+          "oldValue": null,
+          "newValue": "## Implementation Plan\n\n### Step 1 — Create the constants module\nFile: `src/application/class-management/enrollment-error-codes.ts`\n\nShape (mirrors D4 of @doc/specs/bulk-enrollment):\n```ts\nexport const EnrollmentErrorCode = {\n  BATCH_TOO_LARGE: \"BATCH_TOO_LARGE\",\n  BATCH_EMPTY: \"BATCH_EMPTY\",\n  DUPLICATE_STUDENT_IN_BATCH: \"DUPLICATE_STUDENT_IN_BATCH\",\n  STUDENT_NOT_FOUND: \"STUDENT_NOT_FOUND\",\n  STUDENT_NOT_IN_CAMPUS: \"STUDENT_NOT_IN_CAMPUS\",\n  ENROLLMENT_ALREADY_EXISTS_ON_DATE: \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\",\n} as const;\n\nexport type EnrollmentErrorCode =\n  (typeof EnrollmentErrorCode)[keyof typeof EnrollmentErrorCode];\n```\n\nNotes:\n- Const + type share the identifier `EnrollmentErrorCode` (different TS namespaces) so consumers can write `EnrollmentErrorCode.BATCH_TOO_LARGE` for values and `EnrollmentErrorCode` for the typed union.\n- Type derives via `keyof typeof` indexing per AC-2 — produces the literal union `\"BATCH_TOO_LARGE\" | ... | \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\"`.\n- One short header comment naming the source decision (D4) — no inline per-key docstrings (codes are self-describing).\n- No barrel/index re-export — the module is path-imported directly by future T4 (Bulk Enroll) and T6 (Bulk Transfer). Existing `src/application/class-management/` root has no `index.ts`; not introducing one for a single foundation file.\n\n### Step 2 — Verify build\nRun `npm run build` (or equivalent `tsc --noEmit`) — must complete with zero errors. This validates AC-3 (clean export, no type errors).\n\n### Step 3 — No consumer wiring in this task\nPer spec D4, existing single-row codes (`STUDENT_ALREADY_ENROLLED`, `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR`) stay inline as string literals in `enroll-student.use-case.ts` and `transfer-student.use-case.ts` — do **not** migrate them. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import from the new module. T5 (Eligible Students) does not need it.\n\n### AC mapping\n- AC-1 (const map with 6 keys) ← Step 1\n- AC-2 (`keyof typeof` type) ← Step 1\n- AC-3 (build passes) ← Step 2\n\n### Risk\nNone — pure constants module, no IO, no runtime dependencies, no consumers updated this task."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": false,
+            "text": "EnrollmentErrorCode const map at src/application/class-management/enrollment-error-codes.ts with the 6 keys"
+          },
+          {
+            "completed": false,
+            "text": "EnrollmentErrorCode type via `keyof typeof`"
+          },
+          {
+            "completed": false,
+            "text": "Build passes; module exports cleanly"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Create `src/application/class-management/enrollment-error-codes.ts` exporting the 6 new bulk-only codes per D4 of the spec: BATCH_TOO_LARGE, BATCH_EMPTY, DUPLICATE_STUDENT_IN_BATCH, STUDENT_NOT_FOUND, STUDENT_NOT_IN_CAMPUS, ENROLLMENT_ALREADY_EXISTS_ON_DATE. Existing single-row error codes (STUDENT_ALREADY_ENROLLED, NO_ACTIVE_ENROLLMENT, TRANSFER_SAME_CLASS, TRANSFER_SOURCE_MISMATCH, ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR) stay inline per D4. Bulk use cases (Bulk Enroll, Bulk Transfer) will import from this module. Foundation task — no dependencies.",
+        "implementationPlan": "## Implementation Plan\n\n### Step 1 — Create the constants module\nFile: `src/application/class-management/enrollment-error-codes.ts`\n\nShape (mirrors D4 of @doc/specs/bulk-enrollment):\n```ts\nexport const EnrollmentErrorCode = {\n  BATCH_TOO_LARGE: \"BATCH_TOO_LARGE\",\n  BATCH_EMPTY: \"BATCH_EMPTY\",\n  DUPLICATE_STUDENT_IN_BATCH: \"DUPLICATE_STUDENT_IN_BATCH\",\n  STUDENT_NOT_FOUND: \"STUDENT_NOT_FOUND\",\n  STUDENT_NOT_IN_CAMPUS: \"STUDENT_NOT_IN_CAMPUS\",\n  ENROLLMENT_ALREADY_EXISTS_ON_DATE: \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\",\n} as const;\n\nexport type EnrollmentErrorCode =\n  (typeof EnrollmentErrorCode)[keyof typeof EnrollmentErrorCode];\n```\n\nNotes:\n- Const + type share the identifier `EnrollmentErrorCode` (different TS namespaces) so consumers can write `EnrollmentErrorCode.BATCH_TOO_LARGE` for values and `EnrollmentErrorCode` for the typed union.\n- Type derives via `keyof typeof` indexing per AC-2 — produces the literal union `\"BATCH_TOO_LARGE\" | ... | \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\"`.\n- One short header comment naming the source decision (D4) — no inline per-key docstrings (codes are self-describing).\n- No barrel/index re-export — the module is path-imported directly by future T4 (Bulk Enroll) and T6 (Bulk Transfer). Existing `src/application/class-management/` root has no `index.ts`; not introducing one for a single foundation file.\n\n### Step 2 — Verify build\nRun `npm run build` (or equivalent `tsc --noEmit`) — must complete with zero errors. This validates AC-3 (clean export, no type errors).\n\n### Step 3 — No consumer wiring in this task\nPer spec D4, existing single-row codes (`STUDENT_ALREADY_ENROLLED`, `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR`) stay inline as string literals in `enroll-student.use-case.ts` and `transfer-student.use-case.ts` — do **not** migrate them. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import from the new module. T5 (Eligible Students) does not need it.\n\n### AC mapping\n- AC-1 (const map with 6 keys) ← Step 1\n- AC-2 (`keyof typeof` type) ← Step 1\n- AC-3 (build passes) ← Step 2\n\n### Risk\nNone — pure constants module, no IO, no runtime dependencies, no consumers updated this task.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "class-management",
+          "bulk-enrollment",
+          "foundation"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Add bulk-enrollment error-code constants module"
+      }
+    },
+    {
+      "id": "v5",
+      "taskId": "h8t9p8",
+      "version": 5,
+      "timestamp": "2026-05-10T19:57:57.0751927Z",
+      "changes": [
+        {
+          "field": "implementationNotes",
+          "oldValue": null,
+          "newValue": "Implemented `src/application/class-management/enrollment-error-codes.ts` with the 6 bulk-only codes per D4. Const + type share identifier `EnrollmentErrorCode` using `(typeof X)[keyof typeof X]` (canonical when keys === values). Single short header JSDoc references spec D4 and explicitly notes which codes intentionally stay inline.\n\nVerification:\n- `npx tsc --noEmit -p tsconfig.json` → 0 errors\n- `npm run build` (nest build) → 0 errors\n- Emitted `dist/src/application/class-management/enrollment-error-codes.{js,d.ts,js.map}` with `readonly` literal-typed keys and the union-typed export\n\nArchitecture placement (Clean Architecture):\n- Application layer (correct — codes are protocol-agnostic, reused by both use cases and HTTP DTOs)\n- Not in domain (no business invariants)\n- Not in infra/HTTP (no transport coupling)\n- Flat at `src/application/class-management/` root, alongside `use-cases/` and `ports/` — no `index.ts` introduced (none existed at that level).\n\nNo consumer wiring per spec D4. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import."
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "completed": true,
+            "text": "EnrollmentErrorCode const map at src/application/class-management/enrollment-error-codes.ts with the 6 keys"
+          },
+          {
+            "completed": true,
+            "text": "EnrollmentErrorCode type via `keyof typeof`"
+          },
+          {
+            "completed": true,
+            "text": "Build passes; module exports cleanly"
+          }
+        ],
+        "assignee": "@me",
+        "description": "Create `src/application/class-management/enrollment-error-codes.ts` exporting the 6 new bulk-only codes per D4 of the spec: BATCH_TOO_LARGE, BATCH_EMPTY, DUPLICATE_STUDENT_IN_BATCH, STUDENT_NOT_FOUND, STUDENT_NOT_IN_CAMPUS, ENROLLMENT_ALREADY_EXISTS_ON_DATE. Existing single-row error codes (STUDENT_ALREADY_ENROLLED, NO_ACTIVE_ENROLLMENT, TRANSFER_SAME_CLASS, TRANSFER_SOURCE_MISMATCH, ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR) stay inline per D4. Bulk use cases (Bulk Enroll, Bulk Transfer) will import from this module. Foundation task — no dependencies.",
+        "implementationNotes": "Implemented `src/application/class-management/enrollment-error-codes.ts` with the 6 bulk-only codes per D4. Const + type share identifier `EnrollmentErrorCode` using `(typeof X)[keyof typeof X]` (canonical when keys === values). Single short header JSDoc references spec D4 and explicitly notes which codes intentionally stay inline.\n\nVerification:\n- `npx tsc --noEmit -p tsconfig.json` → 0 errors\n- `npm run build` (nest build) → 0 errors\n- Emitted `dist/src/application/class-management/enrollment-error-codes.{js,d.ts,js.map}` with `readonly` literal-typed keys and the union-typed export\n\nArchitecture placement (Clean Architecture):\n- Application layer (correct — codes are protocol-agnostic, reused by both use cases and HTTP DTOs)\n- Not in domain (no business invariants)\n- Not in infra/HTTP (no transport coupling)\n- Flat at `src/application/class-management/` root, alongside `use-cases/` and `ports/` — no `index.ts` introduced (none existed at that level).\n\nNo consumer wiring per spec D4. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import.",
+        "implementationPlan": "## Implementation Plan\n\n### Step 1 — Create the constants module\nFile: `src/application/class-management/enrollment-error-codes.ts`\n\nShape (mirrors D4 of @doc/specs/bulk-enrollment):\n```ts\nexport const EnrollmentErrorCode = {\n  BATCH_TOO_LARGE: \"BATCH_TOO_LARGE\",\n  BATCH_EMPTY: \"BATCH_EMPTY\",\n  DUPLICATE_STUDENT_IN_BATCH: \"DUPLICATE_STUDENT_IN_BATCH\",\n  STUDENT_NOT_FOUND: \"STUDENT_NOT_FOUND\",\n  STUDENT_NOT_IN_CAMPUS: \"STUDENT_NOT_IN_CAMPUS\",\n  ENROLLMENT_ALREADY_EXISTS_ON_DATE: \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\",\n} as const;\n\nexport type EnrollmentErrorCode =\n  (typeof EnrollmentErrorCode)[keyof typeof EnrollmentErrorCode];\n```\n\nNotes:\n- Const + type share the identifier `EnrollmentErrorCode` (different TS namespaces) so consumers can write `EnrollmentErrorCode.BATCH_TOO_LARGE` for values and `EnrollmentErrorCode` for the typed union.\n- Type derives via `keyof typeof` indexing per AC-2 — produces the literal union `\"BATCH_TOO_LARGE\" | ... | \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\"`.\n- One short header comment naming the source decision (D4) — no inline per-key docstrings (codes are self-describing).\n- No barrel/index re-export — the module is path-imported directly by future T4 (Bulk Enroll) and T6 (Bulk Transfer). Existing `src/application/class-management/` root has no `index.ts`; not introducing one for a single foundation file.\n\n### Step 2 — Verify build\nRun `npm run build` (or equivalent `tsc --noEmit`) — must complete with zero errors. This validates AC-3 (clean export, no type errors).\n\n### Step 3 — No consumer wiring in this task\nPer spec D4, existing single-row codes (`STUDENT_ALREADY_ENROLLED`, `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR`) stay inline as string literals in `enroll-student.use-case.ts` and `transfer-student.use-case.ts` — do **not** migrate them. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import from the new module. T5 (Eligible Students) does not need it.\n\n### AC mapping\n- AC-1 (const map with 6 keys) ← Step 1\n- AC-2 (`keyof typeof` type) ← Step 1\n- AC-3 (build passes) ← Step 2\n\n### Risk\nNone — pure constants module, no IO, no runtime dependencies, no consumers updated this task.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "class-management",
+          "bulk-enrollment",
+          "foundation"
+        ],
+        "priority": "medium",
+        "status": "in-progress",
+        "title": "Add bulk-enrollment error-code constants module"
+      }
+    },
+    {
+      "id": "v6",
+      "taskId": "h8t9p8",
+      "version": 6,
+      "timestamp": "2026-05-10T19:58:03.5799438Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "in-progress",
+          "newValue": "done"
+        }
+      ],
+      "snapshot": {
+        "acceptanceCriteria": [
+          {
+            "text": "EnrollmentErrorCode const map at src/application/class-management/enrollment-error-codes.ts with the 6 keys",
+            "completed": true
+          },
+          {
+            "text": "EnrollmentErrorCode type via `keyof typeof`",
+            "completed": true
+          },
+          {
+            "text": "Build passes; module exports cleanly",
+            "completed": true
+          }
+        ],
+        "assignee": "@me",
+        "description": "Create `src/application/class-management/enrollment-error-codes.ts` exporting the 6 new bulk-only codes per D4 of the spec: BATCH_TOO_LARGE, BATCH_EMPTY, DUPLICATE_STUDENT_IN_BATCH, STUDENT_NOT_FOUND, STUDENT_NOT_IN_CAMPUS, ENROLLMENT_ALREADY_EXISTS_ON_DATE. Existing single-row error codes (STUDENT_ALREADY_ENROLLED, NO_ACTIVE_ENROLLMENT, TRANSFER_SAME_CLASS, TRANSFER_SOURCE_MISMATCH, ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR) stay inline per D4. Bulk use cases (Bulk Enroll, Bulk Transfer) will import from this module. Foundation task — no dependencies.",
+        "implementationNotes": "Implemented `src/application/class-management/enrollment-error-codes.ts` with the 6 bulk-only codes per D4. Const + type share identifier `EnrollmentErrorCode` using `(typeof X)[keyof typeof X]` (canonical when keys === values). Single short header JSDoc references spec D4 and explicitly notes which codes intentionally stay inline.\n\nVerification:\n- `npx tsc --noEmit -p tsconfig.json` → 0 errors\n- `npm run build` (nest build) → 0 errors\n- Emitted `dist/src/application/class-management/enrollment-error-codes.{js,d.ts,js.map}` with `readonly` literal-typed keys and the union-typed export\n\nArchitecture placement (Clean Architecture):\n- Application layer (correct — codes are protocol-agnostic, reused by both use cases and HTTP DTOs)\n- Not in domain (no business invariants)\n- Not in infra/HTTP (no transport coupling)\n- Flat at `src/application/class-management/` root, alongside `use-cases/` and `ports/` — no `index.ts` introduced (none existed at that level).\n\nNo consumer wiring per spec D4. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import.",
+        "implementationPlan": "## Implementation Plan\n\n### Step 1 — Create the constants module\nFile: `src/application/class-management/enrollment-error-codes.ts`\n\nShape (mirrors D4 of @doc/specs/bulk-enrollment):\n```ts\nexport const EnrollmentErrorCode = {\n  BATCH_TOO_LARGE: \"BATCH_TOO_LARGE\",\n  BATCH_EMPTY: \"BATCH_EMPTY\",\n  DUPLICATE_STUDENT_IN_BATCH: \"DUPLICATE_STUDENT_IN_BATCH\",\n  STUDENT_NOT_FOUND: \"STUDENT_NOT_FOUND\",\n  STUDENT_NOT_IN_CAMPUS: \"STUDENT_NOT_IN_CAMPUS\",\n  ENROLLMENT_ALREADY_EXISTS_ON_DATE: \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\",\n} as const;\n\nexport type EnrollmentErrorCode =\n  (typeof EnrollmentErrorCode)[keyof typeof EnrollmentErrorCode];\n```\n\nNotes:\n- Const + type share the identifier `EnrollmentErrorCode` (different TS namespaces) so consumers can write `EnrollmentErrorCode.BATCH_TOO_LARGE` for values and `EnrollmentErrorCode` for the typed union.\n- Type derives via `keyof typeof` indexing per AC-2 — produces the literal union `\"BATCH_TOO_LARGE\" | ... | \"ENROLLMENT_ALREADY_EXISTS_ON_DATE\"`.\n- One short header comment naming the source decision (D4) — no inline per-key docstrings (codes are self-describing).\n- No barrel/index re-export — the module is path-imported directly by future T4 (Bulk Enroll) and T6 (Bulk Transfer). Existing `src/application/class-management/` root has no `index.ts`; not introducing one for a single foundation file.\n\n### Step 2 — Verify build\nRun `npm run build` (or equivalent `tsc --noEmit`) — must complete with zero errors. This validates AC-3 (clean export, no type errors).\n\n### Step 3 — No consumer wiring in this task\nPer spec D4, existing single-row codes (`STUDENT_ALREADY_ENROLLED`, `NO_ACTIVE_ENROLLMENT`, `TRANSFER_SAME_CLASS`, `TRANSFER_SOURCE_MISMATCH`, `ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR`) stay inline as string literals in `enroll-student.use-case.ts` and `transfer-student.use-case.ts` — do **not** migrate them. T4 (Bulk Enroll) and T6 (Bulk Transfer) will import from the new module. T5 (Eligible Students) does not need it.\n\n### AC mapping\n- AC-1 (const map with 6 keys) ← Step 1\n- AC-2 (`keyof typeof` type) ← Step 1\n- AC-3 (build passes) ← Step 2\n\n### Risk\nNone — pure constants module, no IO, no runtime dependencies, no consumers updated this task.",
+        "labels": [
+          "from-spec",
+          "backend",
+          "class-management",
+          "bulk-enrollment",
+          "foundation"
+        ],
+        "priority": "medium",
+        "status": "done",
+        "title": "Add bulk-enrollment error-code constants module"
+      }
+    }
+  ]
+}
