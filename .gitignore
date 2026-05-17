@@ -158,4 +158,9 @@ generated/
 .agents
 .claude
 
+# Knowns workspace — only docs/ is repo-shared.
+# Config, tasks, versions, memory, runtime, archive, and time tracking stay local.
+.knowns/*
+!.knowns/docs/
+
 
