@@ -2,7 +2,6 @@ import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { RestoreStudentUseCase } from "./restore-student.use-case";
 import { StudentRepository } from "../../ports/student.repository";
 import { Student } from "@/domain/user-management/entities/student.entity";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 
 describe("RestoreStudentUseCase", () => {
   let useCase: RestoreStudentUseCase;
@@ -13,7 +12,6 @@ describe("RestoreStudentUseCase", () => {
       id: string;
       campusId: string;
       isArchived: boolean;
-      status: StudentStatus;
     }> = {},
   ) => {
     return Student.create(
@@ -27,7 +25,6 @@ describe("RestoreStudentUseCase", () => {
         dateOfBirth: null,
         nickname: null,
         gender: null,
-        status: overrides.status ?? StudentStatus.ACTIVE,
         isArchived: overrides.isArchived ?? false,
       },
       overrides.id ?? "student-123",
@@ -62,7 +59,6 @@ describe("RestoreStudentUseCase", () => {
     it("should restore an archived student successfully", async () => {
       const student = createMockStudent({
         isArchived: true,
-        status: StudentStatus.DROPPED,
       });
       mockStudentRepository.findById.mockResolvedValue(student);
       mockStudentRepository.update.mockImplementation(async (s) => s);
@@ -70,7 +66,6 @@ describe("RestoreStudentUseCase", () => {
       const result = await useCase.execute("student-123");
 
       expect(result.isArchived).toBe(false);
-      expect(result.status).toBe(StudentStatus.ACTIVE);
       expect(mockStudentRepository.findById).toHaveBeenCalledWith(
         "student-123",
       );
@@ -81,7 +76,6 @@ describe("RestoreStudentUseCase", () => {
       const student = createMockStudent({
         campusId: "campus-123",
         isArchived: true,
-        status: StudentStatus.DROPPED,
       });
       mockStudentRepository.findById.mockResolvedValue(student);
       mockStudentRepository.update.mockImplementation(async (s) => s);
@@ -89,7 +83,6 @@ describe("RestoreStudentUseCase", () => {
       const result = await useCase.execute("student-123", "campus-123");
 
       expect(result.isArchived).toBe(false);
-      expect(result.status).toBe(StudentStatus.ACTIVE);
       expect(mockStudentRepository.update).toHaveBeenCalled();
     });
   });
@@ -111,7 +104,6 @@ describe("RestoreStudentUseCase", () => {
     it("should throw BadRequestException if student is not archived", async () => {
       const student = createMockStudent({
         isArchived: false,
-        status: StudentStatus.ACTIVE,
       });
       mockStudentRepository.findById.mockResolvedValue(student);
 
@@ -129,7 +121,6 @@ describe("RestoreStudentUseCase", () => {
       const student = createMockStudent({
         campusId: "campus-A",
         isArchived: true,
-        status: StudentStatus.DROPPED,
       });
       mockStudentRepository.findById.mockResolvedValue(student);
 
@@ -145,7 +136,6 @@ describe("RestoreStudentUseCase", () => {
       const student = createMockStudent({
         campusId: "campus-123",
         isArchived: true,
-        status: StudentStatus.DROPPED,
       });
       mockStudentRepository.findById.mockResolvedValue(student);
       mockStudentRepository.update.mockImplementation(async (s) => s);

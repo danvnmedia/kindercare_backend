@@ -6,23 +6,30 @@ import {
 import { EnrollStudentUseCase } from "./enroll-student.use-case";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
+import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 
 describe("EnrollStudentUseCase", () => {
   let useCase: EnrollStudentUseCase;
   let mockEnrollmentRepository: jest.Mocked<EnrollmentRepository>;
   let mockClassRepository: jest.Mocked<ClassRepository>;
   let mockStudentRepository: jest.Mocked<StudentRepository>;
+  let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
 
   const campusId = "campus-1";
   const differentCampusId = "campus-2";
   const classId = "class-1";
   const studentId = "student-1";
   const enrollmentDate = new Date("2024-01-15");
+  const schoolYearId = "school-year-1";
+  const gradeLevelId = "grade-level-1";
+  const parentId = "sye-parent-1";
 
   // Helper to create a mock Class entity. Default SchoolYear range is wide
   // (2020-01-01 → 2030-12-31) so existing tests using `2024-01-15` enrollmentDate
@@ -80,6 +87,25 @@ describe("EnrollStudentUseCase", () => {
     );
   };
 
+  // Helper to create a mock parent SchoolYearEnrollment matching the class's
+  // schoolYearId by default. Override `gradeLevelId` for mismatch tests.
+  const createMockParent = (
+    overrides: { gradeLevelId?: string } = {},
+  ): SchoolYearEnrollment =>
+    SchoolYearEnrollment.create(
+      {
+        studentId,
+        campusId,
+        schoolYearId,
+        gradeLevelId: overrides.gradeLevelId ?? gradeLevelId,
+        enrollmentDate: new Date("2023-09-01T00:00:00.000Z"),
+        exitDate: null,
+        exitReason: null,
+        note: null,
+      },
+      parentId,
+    );
+
   beforeEach(() => {
     mockEnrollmentRepository = {
       findById: jest.fn(),
@@ -130,14 +156,30 @@ describe("EnrollStudentUseCase", () => {
       getStudentGuardians: jest.fn(),
     } as jest.Mocked<StudentRepository>;
 
+    mockSyeRepository = {
+      findById: jest.fn(),
+      findOpenByStudentAndSchoolYear: jest.fn(),
+      findAllByStudentId: jest.fn(),
+      findAllByStudentIdWithChildCount: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      withdrawWithChildren: jest.fn(),
+    } as jest.Mocked<SchoolYearEnrollmentRepository>;
+
     useCase = new EnrollStudentUseCase(
       mockEnrollmentRepository,
       mockClassRepository,
       mockStudentRepository,
+      mockSyeRepository,
     );
 
     // Default: no active enrollment. Individual tests override for AC-21.
     mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null);
+    // Default: open parent exists with matching grade level. Individual tests
+    // override for the parent-gate paths (AC-16 / AC-17).
+    mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(
+      createMockParent(),
+    );
   });
 
   it("should enroll a student successfully", async () => {
@@ -164,12 +206,17 @@ describe("EnrollStudentUseCase", () => {
     expect(result.studentId).toBe(studentId);
     expect(result.enrollmentDate).toEqual(enrollmentDate);
     expect(result.note).toBe("Test enrollment note");
+    // AC-5: parent FK threaded onto the persisted child row.
+    expect(result.schoolYearEnrollmentId).toBe(parentId);
 
     expect(mockClassRepository.findById).toHaveBeenCalledWith(classId);
     expect(mockStudentRepository.findById).toHaveBeenCalledWith(studentId);
     expect(
       mockEnrollmentRepository.findByStudentClassDate,
     ).toHaveBeenCalledWith(studentId, classId, enrollmentDate);
+    expect(
+      mockSyeRepository.findOpenByStudentAndSchoolYear,
+    ).toHaveBeenCalledWith(studentId, schoolYearId);
     expect(mockEnrollmentRepository.save).toHaveBeenCalled();
   });
 
@@ -315,6 +362,7 @@ describe("EnrollStudentUseCase", () => {
     const existingEnrollment = Enrollment.create({
       classId,
       studentId,
+      schoolYearEnrollmentId: "sye-test",
       enrollmentDate,
       note: null,
     });
@@ -376,6 +424,7 @@ describe("EnrollStudentUseCase", () => {
       const activeElsewhere = Enrollment.create({
         classId: "other-class",
         studentId,
+        schoolYearEnrollmentId: "sye-other",
         enrollmentDate: new Date("2024-01-01"),
         endDate: null,
         exitReason: null,
@@ -525,6 +574,77 @@ describe("EnrollStudentUseCase", () => {
     });
   });
 
+  describe("AC-16 / Scenario 2: parent-enrollment gate (NO_SCHOOL_YEAR_ENROLLMENT)", () => {
+    it("throws ConflictException NO_SCHOOL_YEAR_ENROLLMENT when no open parent exists for the class's school year", async () => {
+      const mockClass = createMockClass();
+      const mockStudent = createMockStudent();
+
+      mockClassRepository.findById.mockResolvedValue(mockClass);
+      mockStudentRepository.findById.mockResolvedValue(mockStudent);
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(null);
+
+      await expect(
+        useCase.execute({
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        useCase.execute({
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        }),
+      ).rejects.toThrow(
+        SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+      );
+
+      expect(
+        mockSyeRepository.findOpenByStudentAndSchoolYear,
+      ).toHaveBeenCalledWith(studentId, schoolYearId);
+      expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("AC-17 / Scenario 3: parent-enrollment gate (GRADE_LEVEL_MISMATCH)", () => {
+    it("throws ConflictException GRADE_LEVEL_MISMATCH when open parent's grade differs from class's grade", async () => {
+      const mockClass = createMockClass();
+      const mockStudent = createMockStudent();
+
+      mockClassRepository.findById.mockResolvedValue(mockClass);
+      mockStudentRepository.findById.mockResolvedValue(mockStudent);
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(
+        createMockParent({ gradeLevelId: "grade-level-OTHER" }),
+      );
+
+      await expect(
+        useCase.execute({
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        useCase.execute({
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        }),
+      ).rejects.toThrow(SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH);
+
+      expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe("validation order", () => {
     it("checks school-year bounds before active-anywhere when both would fail", async () => {
       const mockClass = createMockClass({
@@ -537,6 +657,7 @@ describe("EnrollStudentUseCase", () => {
       const activeElsewhere = Enrollment.create({
         classId: "other-class",
         studentId,
+        schoolYearEnrollmentId: "sye-other",
         enrollmentDate: new Date("2024-10-01"),
         endDate: null,
         exitReason: null,

@@ -11,7 +11,6 @@ import {
 } from "@/domain/user-management/entities/student.entity";
 import { StudentRepository } from "../../ports/student.repository";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 
 export interface UpdateStudentInput {
   fullName?: string;
@@ -21,7 +20,6 @@ export interface UpdateStudentInput {
   phoneNumber?: string;
   email?: string;
   address?: string;
-  status?: StudentStatus;
 }
 
 @Injectable()
@@ -64,7 +62,6 @@ export class UpdateStudentUseCase {
       phoneNumber: input.phoneNumber,
       email: input.email,
       address: input.address,
-      status: input.status,
     };
 
     student.updateProfile(updateData);

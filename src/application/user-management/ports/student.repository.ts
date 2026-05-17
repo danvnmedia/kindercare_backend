@@ -73,12 +73,14 @@ export abstract class StudentRepository {
    *
    * A student is "eligible" iff:
    *   - student.isArchived = false
-   *   - student.status ∈ caller-supplied includeStatuses (default ACTIVE,
-   *     surfaced via `params.filter.status.in` by the caller)
    *   - student is at `scope.campusId` (system-enforced; cannot be overridden)
    *   - NOT EXISTS any enrollment row for this student with endDate IS NULL
    *     (the student is not currently active in ANY class — including the
    *     target class itself, per specs/bulk-enrollment AC-13)
+   *
+   * Phase narrowing (ACTIVE/WAITING/DEFERRED/GRADUATED/WITHDRAWN) is a
+   * client-side concern — the eligibility predicate intentionally does not
+   * filter by `phase` (see @doc/specs/student-status-simplification D9 / FR-11).
    *
    * Pagination, sort, and search go through the standard PrismaQueryService
    * path so list-endpoint semantics stay consistent with `findAll`.

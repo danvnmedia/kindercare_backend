@@ -26,6 +26,7 @@ export class PrismaEnrollmentMapper {
     const props: any = {
       classId: prismaEnrollment.classId,
       studentId: prismaEnrollment.studentId,
+      schoolYearEnrollmentId: prismaEnrollment.schoolYearEnrollmentId,
       enrollmentDate: prismaEnrollment.enrollmentDate,
       endDate: prismaEnrollment.endDate ?? null,
       exitReason: PrismaEnrollmentMapper.toExitReason(
@@ -55,6 +56,7 @@ export class PrismaEnrollmentMapper {
       {
         classId: prismaEnrollment.classId,
         studentId: prismaEnrollment.studentId,
+        schoolYearEnrollmentId: prismaEnrollment.schoolYearEnrollmentId,
         enrollmentDate: prismaEnrollment.enrollmentDate,
         endDate: prismaEnrollment.endDate ?? null,
         exitReason: PrismaEnrollmentMapper.toExitReason(
@@ -75,6 +77,7 @@ export class PrismaEnrollmentMapper {
       id: enrollment.id,
       classId: enrollment.classId,
       studentId: enrollment.studentId,
+      schoolYearEnrollmentId: enrollment.schoolYearEnrollmentId,
       enrollmentDate: enrollment.enrollmentDate,
       endDate: enrollment.endDate,
       exitReason: enrollment.exitReason,

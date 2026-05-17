@@ -8,7 +8,6 @@ import {
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import {
   IsE164Phone,
   IsDateOfBirth,
@@ -83,16 +82,4 @@ export class UpdateStudentRequest {
   @IsString()
   @MaxLength(500)
   address?: string;
-
-  @ApiPropertyOptional({
-    description: "Student status",
-    enum: StudentStatus,
-    example: StudentStatus.ACTIVE,
-  })
-  @IsOptional()
-  @IsEnum(StudentStatus, {
-    message:
-      "Status must be DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, or DEFERRED",
-  })
-  status?: StudentStatus;
 }

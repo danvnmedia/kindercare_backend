@@ -7,6 +7,7 @@ describe("Enrollment Entity", () => {
   const baseProps = {
     classId: "class-1",
     studentId: "student-1",
+    schoolYearEnrollmentId: "sye-1",
     enrollmentDate: new Date("2026-01-15T00:00:00.000Z"),
     note: null,
   };
@@ -69,6 +70,12 @@ describe("Enrollment Entity", () => {
       expect(() => Enrollment.create({ ...baseProps, studentId: "" })).toThrow(
         "Student ID is required",
       );
+    });
+
+    it("throws when schoolYearEnrollmentId is empty", () => {
+      expect(() =>
+        Enrollment.create({ ...baseProps, schoolYearEnrollmentId: "" }),
+      ).toThrow("School year enrollment ID is required");
     });
   });
 

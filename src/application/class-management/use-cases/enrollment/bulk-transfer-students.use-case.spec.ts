@@ -1,21 +1,29 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Logger, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { BulkTransferStudentsUseCase } from "./bulk-transfer-students.use-case";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 
 describe("BulkTransferStudentsUseCase", () => {
   let useCase: BulkTransferStudentsUseCase;
   let mockEnrollmentRepository: jest.Mocked<EnrollmentRepository>;
   let mockClassRepository: jest.Mocked<ClassRepository>;
+  let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
 
   const campusId = "campus-1";
   const otherCampusId = "campus-2";
   const targetClassId = "class-target";
   const sourceClassId = "class-source";
+  // Matches `createMockClass({ schoolYearId: "school-year-1", gradeLevelId: "grade-1" })`.
+  const targetSchoolYearId = "school-year-1";
+  const targetGradeLevelId = "grade-1";
   // Must be after the active enrollment's enrollmentDate (2025-09-01) AND
   // not in the future — `Enrollment.withdraw` enforces both invariants.
   const transferDate = new Date("2026-03-15T00:00:00.000Z");
@@ -65,9 +73,36 @@ describe("BulkTransferStudentsUseCase", () => {
       {
         classId,
         studentId,
+        // Per-student parent id so AC-14 can verify each opened row carries
+        // the *resolved* parent.id (not a static placeholder).
+        schoolYearEnrollmentId: `sye-${studentId}`,
         enrollmentDate: new Date("2025-09-01T00:00:00.000Z"),
       },
       `active-${studentId}`,
+    );
+
+  /**
+   * Build an open parent SchoolYearEnrollment for `studentId` that matches
+   * the target class (school year, grade level) by default. Per-student
+   * `parent.id = sye-<studentId>` so AC-14 happy-path can assert each opened
+   * row threads the right parent.
+   */
+  const createMockParent = (
+    studentId: string,
+    overrides: { gradeLevelId?: string } = {},
+  ): SchoolYearEnrollment =>
+    SchoolYearEnrollment.create(
+      {
+        studentId,
+        campusId,
+        schoolYearId: targetSchoolYearId,
+        gradeLevelId: overrides.gradeLevelId ?? targetGradeLevelId,
+        enrollmentDate: new Date("2025-08-15T00:00:00.000Z"),
+        exitDate: null,
+        exitReason: null,
+        note: null,
+      },
+      `sye-${studentId}`,
     );
 
   beforeEach(() => {
@@ -100,14 +135,32 @@ describe("BulkTransferStudentsUseCase", () => {
       delete: jest.fn(),
     } as jest.Mocked<ClassRepository>;
 
+    mockSyeRepository = {
+      findById: jest.fn(),
+      findOpenByStudentAndSchoolYear: jest.fn(),
+      findAllByStudentId: jest.fn(),
+      findAllByStudentIdWithChildCount: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      withdrawWithChildren: jest.fn(),
+    } as jest.Mocked<SchoolYearEnrollmentRepository>;
+
     useCase = new BulkTransferStudentsUseCase(
       mockEnrollmentRepository,
       mockClassRepository,
+      mockSyeRepository,
     );
 
     // Default: transferEnrollment echoes back the pair as if persisted.
     mockEnrollmentRepository.transferEnrollment.mockImplementation(
       async (closed, opened) => ({ closed, opened }),
+    );
+
+    // Default per-student parent matches the target class's grade level so
+    // existing tests stay green. Tests that exercise AC-19 override the
+    // implementation for a specific studentId.
+    mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
+      async (studentId) => createMockParent(studentId),
     );
   });
 
@@ -351,7 +404,9 @@ describe("BulkTransferStudentsUseCase", () => {
       ).toHaveBeenCalledTimes(4);
 
       // Every closed row carries the transfer date + TRANSFERRED reason.
-      // Every opened row lands in the target class with endDate=null.
+      // Every opened row lands in the target class with endDate=null AND
+      // threads the per-student resolved parent.id (AC-19 / AC-4).
+      const openedParentIds: string[] = [];
       for (const call of mockEnrollmentRepository.transferEnrollment.mock
         .calls) {
         const [closed, opened] = call as [Enrollment, Enrollment];
@@ -360,7 +415,9 @@ describe("BulkTransferStudentsUseCase", () => {
         expect(opened.classId).toBe(targetClassId);
         expect(opened.endDate).toBeNull();
         expect(opened.enrollmentDate.getTime()).toBe(transferDate.getTime());
+        openedParentIds.push(opened.schoolYearEnrollmentId);
       }
+      expect(openedParentIds).toEqual(studentIds.map((id) => `sye-${id}`));
     });
 
     it("AC-15 mixed batch: 2 active elsewhere + 1 no-active + 1 already in target → transferred=2, skipped reasons surfaced", async () => {
@@ -457,6 +514,217 @@ describe("BulkTransferStudentsUseCase", () => {
 
       expect(openedInherits.note).toBe("Batch note");
       expect(openedOverrides.note).toBe("Per-row note");
+    });
+  });
+
+  // -------- Preflight + per-row error mapping (AC-6..AC-8) ----------
+
+  describe("preflight + per-row error mapping", () => {
+    let warnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockEnrollmentRepository.findActiveByStudentId.mockImplementation(
+        async (id) => createActiveEnrollment(id),
+      );
+      // Default: no existing row on the (studentId, classId, date) tuple.
+      // Individual tests override.
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
+      warnSpy = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it("AC-6 preflight hit: skips with ENROLLMENT_ALREADY_EXISTS_ON_DATE and does NOT call transferEnrollment", async () => {
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(
+        Enrollment.create(
+          {
+            classId: targetClassId,
+            studentId: "s-pre",
+            schoolYearEnrollmentId: "sye-test",
+            enrollmentDate: transferDate,
+          },
+          "existing-row",
+        ),
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId: targetClassId,
+        transferDate,
+        students: [{ studentId: "s-pre" }],
+      });
+
+      expect(result.transferred).toHaveLength(0);
+      expect(result.skipped).toEqual([
+        { studentId: "s-pre", reason: "ENROLLMENT_ALREADY_EXISTS_ON_DATE" },
+      ]);
+      expect(
+        mockEnrollmentRepository.findByStudentClassDate,
+      ).toHaveBeenCalledWith("s-pre", targetClassId, transferDate);
+      expect(
+        mockEnrollmentRepository.transferEnrollment,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("AC-7 P2002 race: maps Prisma unique-constraint error to ENROLLMENT_ALREADY_EXISTS_ON_DATE and logs a warning", async () => {
+      mockEnrollmentRepository.transferEnrollment.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError(
+          "Unique constraint failed",
+          { code: "P2002", clientVersion: "test" },
+        ),
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId: targetClassId,
+        transferDate,
+        students: [{ studentId: "s-race" }],
+      });
+
+      expect(result.transferred).toHaveLength(0);
+      expect(result.skipped).toEqual([
+        { studentId: "s-race", reason: "ENROLLMENT_ALREADY_EXISTS_ON_DATE" },
+      ]);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const message = warnSpy.mock.calls[0][0] as string;
+      expect(message).toContain(targetClassId);
+      expect(message).toContain("s-race");
+      expect(message).toContain("P2002");
+    });
+
+    it("AC-8 generic failure: maps non-P2002 error to TRANSFER_FAILED with message and logs a warning", async () => {
+      mockEnrollmentRepository.transferEnrollment.mockRejectedValue(
+        new Error("boom"),
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId: targetClassId,
+        transferDate,
+        students: [{ studentId: "s-fail" }],
+      });
+
+      expect(result.transferred).toHaveLength(0);
+      expect(result.skipped).toEqual([
+        {
+          studentId: "s-fail",
+          reason: "TRANSFER_FAILED",
+          message: "boom",
+        },
+      ]);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const message = warnSpy.mock.calls[0][0] as string;
+      expect(message).toContain(targetClassId);
+      expect(message).toContain("s-fail");
+      expect(message).toContain("boom");
+    });
+  });
+
+  // -------- AC-19: per-row parent grade-match gate (Scenario 9) ----------
+
+  describe("AC-19 / Scenario 9: per-row parent grade-match gate", () => {
+    let warnSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockEnrollmentRepository.findActiveByStudentId.mockImplementation(
+        async (id) => createActiveEnrollment(id),
+      );
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
+      warnSpy = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    });
+
+    afterEach(() => {
+      warnSpy.mockRestore();
+    });
+
+    it("pushes GRADE_LEVEL_MISMATCH to skipped[] for the offending row only — survivors transfer", async () => {
+      // Only `s-wrong-grade` has a parent in a different grade. The other
+      // two students fall through to the default parent (matching grade).
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
+        async (id) => {
+          if (id === "s-wrong-grade") {
+            return createMockParent(id, { gradeLevelId: "grade-OTHER" });
+          }
+          return createMockParent(id);
+        },
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId: targetClassId,
+        transferDate,
+        students: [
+          { studentId: "s-ok-1" },
+          { studentId: "s-wrong-grade" },
+          { studentId: "s-ok-2" },
+        ],
+      });
+
+      expect(result.transferred).toHaveLength(2);
+      expect(result.skipped).toEqual([
+        {
+          studentId: "s-wrong-grade",
+          reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+        },
+      ]);
+      // transferEnrollment fired exactly twice — once per survivor.
+      expect(
+        mockEnrollmentRepository.transferEnrollment,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it("pushes NO_SCHOOL_YEAR_ENROLLMENT to skipped[] when parent is missing (data-integrity degrade) — survivors transfer", async () => {
+      // Only `s-no-parent` returns null — bulk degrades to per-row skip
+      // rather than aborting the whole batch (FR-11).
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
+        async (id) => {
+          if (id === "s-no-parent") return null;
+          return createMockParent(id);
+        },
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId: targetClassId,
+        transferDate,
+        students: [
+          { studentId: "s-ok-1" },
+          { studentId: "s-no-parent" },
+          { studentId: "s-ok-2" },
+        ],
+      });
+
+      expect(result.transferred).toHaveLength(2);
+      expect(result.skipped).toEqual([
+        {
+          studentId: "s-no-parent",
+          reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+        },
+      ]);
+      // Warning logged for the data-integrity row.
+      expect(warnSpy).toHaveBeenCalled();
+      expect(
+        mockEnrollmentRepository.transferEnrollment,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it("resolves each row's parent against the *target* class's schoolYearId (D3)", async () => {
+      await useCase.execute({
+        campusId,
+        classId: targetClassId,
+        transferDate,
+        students: [{ studentId: "s-1" }, { studentId: "s-2" }],
+      });
+
+      const calls =
+        mockSyeRepository.findOpenByStudentAndSchoolYear.mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0]).toEqual(["s-1", targetSchoolYearId]);
+      expect(calls[1]).toEqual(["s-2", targetSchoolYearId]);
     });
   });
 });

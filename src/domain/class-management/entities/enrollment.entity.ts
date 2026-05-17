@@ -2,6 +2,7 @@ import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { Class } from "./class.entity";
+import { SchoolYearEnrollment } from "./school-year-enrollment.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { ExitReason } from "../enums/exit-reason.enum";
 import { EnrollmentAlreadyClosedException } from "../exceptions/enrollment-already-closed.exception";
@@ -10,6 +11,7 @@ import { InvalidEndDateException } from "../exceptions/invalid-end-date.exceptio
 export interface EnrollmentProps {
   classId: string;
   studentId: string;
+  schoolYearEnrollmentId: string;
   enrollmentDate: Date;
   endDate: Date | null;
   exitReason: ExitReason | null;
@@ -17,13 +19,14 @@ export interface EnrollmentProps {
   // Optional loaded relations
   class?: Class;
   student?: Student;
+  schoolYearEnrollment?: SchoolYearEnrollment;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type CreateEnrollmentData = Omit<
   EnrollmentProps,
-  "createdAt" | "updatedAt" | "class" | "student"
+  "createdAt" | "updatedAt" | "class" | "student" | "schoolYearEnrollment"
 >;
 export type UpdateEnrollmentData = Partial<
   Pick<EnrollmentProps, "enrollmentDate" | "note">
@@ -37,6 +40,10 @@ export class Enrollment extends Entity<EnrollmentProps> {
 
   get studentId(): string {
     return this.props.studentId;
+  }
+
+  get schoolYearEnrollmentId(): string {
+    return this.props.schoolYearEnrollmentId;
   }
 
   get enrollmentDate(): Date {
@@ -61,6 +68,10 @@ export class Enrollment extends Entity<EnrollmentProps> {
 
   get student(): Student | undefined {
     return this.props.student;
+  }
+
+  get schoolYearEnrollment(): SchoolYearEnrollment | undefined {
+    return this.props.schoolYearEnrollment;
   }
 
   get createdAt(): Date {
@@ -109,12 +120,14 @@ export class Enrollment extends Entity<EnrollmentProps> {
       {
         classId: this.props.classId,
         studentId: this.props.studentId,
+        schoolYearEnrollmentId: this.props.schoolYearEnrollmentId,
         enrollmentDate: this.props.enrollmentDate,
         endDate: endDay,
         exitReason: reason,
         note: this.props.note,
         class: this.props.class,
         student: this.props.student,
+        schoolYearEnrollment: this.props.schoolYearEnrollment,
         createdAt: this.props.createdAt,
         updatedAt: new Date(),
       },
@@ -162,6 +175,7 @@ export class Enrollment extends Entity<EnrollmentProps> {
       | "exitReason"
       | "class"
       | "student"
+      | "schoolYearEnrollment"
     >,
     id?: string,
   ): Enrollment {
@@ -170,6 +184,9 @@ export class Enrollment extends Entity<EnrollmentProps> {
     }
     if (!props.studentId) {
       throw new Error("Student ID is required");
+    }
+    if (!props.schoolYearEnrollmentId) {
+      throw new Error("School year enrollment ID is required");
     }
     if (!props.enrollmentDate) {
       throw new Error("Enrollment date is required");

@@ -429,7 +429,7 @@ export class ClassController {
   @ApiOperation({
     summary: "Get students eligible to be enrolled into this class",
     description:
-      "Returns paginated students at the same campus as the class, not archived, with no currently active enrollment in any class. Defaults to status=ACTIVE; caller may opt in to WAITING, TRIAL, DEFERRED via includeStatuses. DROPPED and GRADUATED are rejected at validation. Cross-campus class lookups return 404.",
+      "Returns paginated students at the same campus as the class who are not archived and have no currently open enrollment in any class. Phase narrowing is a client-side concern. Cross-campus class lookups return 404.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -448,14 +448,6 @@ export class ClassController {
     type: String,
     description: "Case-insensitive substring match on fullName",
   })
-  @ApiQuery({
-    name: "includeStatuses",
-    required: false,
-    type: String,
-    description:
-      "Comma-separated student statuses (ACTIVE, WAITING, TRIAL, DEFERRED). Defaults to ACTIVE.",
-    example: "ACTIVE,WAITING",
-  })
   async getEligibleStudents(
     @CampusContext() campusId: string,
     @Param("classId") classId: string,
@@ -467,7 +459,6 @@ export class ClassController {
       campusId,
       params,
       search: query.search,
-      includeStatuses: query.includeStatuses,
     });
   }
 

@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  previewFeatures = ["postgresqlExtensions", "views"]
 }
 
 datasource db {
@@ -28,17 +28,18 @@ model Campus {
   staffCodeSequences   StaffCodeSequence[]
 
   // Relations - Profiles
-  staff                  Staff[]
-  guardians              Guardian[]
-  students               Student[]
-  guardianRelationships  GuardianRelationship[]
+  staff                 Staff[]
+  guardians             Guardian[]
+  students              Student[]
+  guardianRelationships GuardianRelationship[]
 
   // Relations - Academic
-  gradeLevels         GradeLevel[]
-  subjects            Subject[]
-  schoolYears         SchoolYear[]
-  classes             Class[]
-  attendanceSummaries StudentAttendanceSummary[]
+  gradeLevels           GradeLevel[]
+  subjects              Subject[]
+  schoolYears           SchoolYear[]
+  classes               Class[]
+  schoolYearEnrollments SchoolYearEnrollment[]
+  attendanceSummaries   StudentAttendanceSummary[]
 
   // Relations - Content
   posts          Post[]
@@ -95,7 +96,7 @@ model GuardianRelationship {
   isArchived  Boolean @default(false) @map("is_archived")
   order       Int
 
-  campus           Campus           @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  campus           Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
   guardianStudents GuardianStudent[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -267,7 +268,6 @@ model Student {
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   nickname    String?
   gender      String?
-  status      String    @default("WAITING") // DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED
   isArchived  Boolean   @default(false) @map("is_archived")
 
   // Campus scoping
@@ -278,9 +278,10 @@ model Student {
   guardians GuardianStudent[]
 
   // Class & Enrollment
-  enrollments         Enrollment[]
-  attendanceSummaries StudentAttendanceSummary[]
-  postAudiences       PostAudience[]
+  enrollments           Enrollment[]
+  schoolYearEnrollments SchoolYearEnrollment[]
+  attendanceSummaries   StudentAttendanceSummary[]
+  postAudiences         PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -291,9 +292,32 @@ model Student {
   @@index([campusId])
   @@index([email])
   @@index([phoneNumber])
-  @@index([status])
   @@index([isArchived])
   @@map("student")
+}
+
+/// Derived projection of `Student` that adds a computed `phase` column based
+/// on open Enrollment / open SchoolYearEnrollment / latest closed
+/// SchoolYearEnrollment.exitReason. Backed by Postgres view `student_with_phase`.
+/// Read-only; writes target `Student`. See @doc/specs/student-status-simplification D6/D7.
+view StudentWithPhase {
+  id          String    @unique @db.Uuid
+  studentCode String    @map("student_code")
+  fullName    String    @map("full_name")
+  email       String?   @db.Citext
+  phoneNumber String?   @map("phone_number")
+  address     String?
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  nickname    String?
+  gender      String?
+  isArchived  Boolean   @map("is_archived")
+  campusId    String    @map("campus_id") @db.Uuid
+  phase       String
+
+  createdAt DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@map("student_with_phase")
 }
 
 model Staff {
@@ -411,8 +435,9 @@ model GradeLevel {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  classes       Class[]
-  postAudiences PostAudience[]
+  classes               Class[]
+  postAudiences         PostAudience[]
+  schoolYearEnrollments SchoolYearEnrollment[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -457,7 +482,8 @@ model SchoolYear {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  classes Class[]
+  classes               Class[]
+  schoolYearEnrollments SchoolYearEnrollment[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -523,16 +549,18 @@ model ClassStaff {
 // ==========================================
 
 model Enrollment {
-  id             String    @id @default(uuid()) @db.Uuid
-  classId        String    @map("class_id") @db.Uuid
-  studentId      String    @map("student_id") @db.Uuid
-  enrollmentDate DateTime  @map("enrollment_date") @db.Date
-  endDate        DateTime? @map("end_date") @db.Date
-  exitReason     String?   @map("exit_reason")
-  note           String?
+  id                     String    @id @default(uuid()) @db.Uuid
+  classId                String    @map("class_id") @db.Uuid
+  studentId              String    @map("student_id") @db.Uuid
+  schoolYearEnrollmentId String    @map("school_year_enrollment_id") @db.Uuid
+  enrollmentDate         DateTime  @map("enrollment_date") @db.Date
+  endDate                DateTime? @map("end_date") @db.Date
+  exitReason             String?   @map("exit_reason")
+  note                   String?
 
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class                Class                @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student              Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolYearEnrollment SchoolYearEnrollment @relation(fields: [schoolYearEnrollmentId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -541,11 +569,49 @@ model Enrollment {
   @@index([classId])
   @@index([studentId])
   @@index([enrollmentDate])
+  @@index([schoolYearEnrollmentId])
   // Partial unique index applied via raw SQL in migration 20260505_add_enrollment_period_columns
   // (Prisma cannot natively express partial unique indexes):
   //   CREATE UNIQUE INDEX idx_enrollment_one_active_per_student
   //     ON enrollment (student_id) WHERE end_date IS NULL;
   @@map("enrollment")
+}
+
+// ==========================================
+// SCHOOL YEAR ENROLLMENT (PARENT OF Enrollment)
+// ==========================================
+// Parent record above class-level Enrollment. Captures the student-school
+// relationship for a given school year, owns grade level placement, and anchors
+// derived student status. See @doc/specs/school-year-enrollment-model.
+model SchoolYearEnrollment {
+  id             String    @id @default(uuid()) @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  campusId       String    @map("campus_id") @db.Uuid
+  schoolYearId   String    @map("school_year_id") @db.Uuid
+  gradeLevelId   String    @map("grade_level_id") @db.Uuid
+  enrollmentDate DateTime  @map("enrollment_date") @db.Date
+  exitDate       DateTime? @map("exit_date") @db.Date
+  exitReason     String?   @map("exit_reason")
+  note           String?
+
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  campus      Campus       @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  schoolYear  SchoolYear   @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
+  gradeLevel  GradeLevel   @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([studentId])
+  @@index([schoolYearId])
+  @@index([gradeLevelId])
+  @@index([campusId])
+  // Partial unique index applied via raw SQL in migration 20260515120000_add_school_year_enrollment
+  // (Prisma cannot natively express partial unique indexes):
+  //   CREATE UNIQUE INDEX idx_sye_one_open_per_year
+  //     ON school_year_enrollment (student_id, school_year_id) WHERE exit_date IS NULL;
+  @@map("school_year_enrollment")
 }
 
 // ==========================================
@@ -748,11 +814,11 @@ model PostAudience {
 }
 
 model PostCategory {
-  id       String  @id @default(uuid()) @db.Uuid
-  campusId String  @map("campus_id") @db.Uuid
-  name     String
-  color    String
-  icon     String?
+  id         String  @id @default(uuid()) @db.Uuid
+  campusId   String  @map("campus_id") @db.Uuid
+  name       String
+  color      String
+  icon       String?
   order      Int     @default(0)
   isArchived Boolean @default(false) @map("is_archived")
 

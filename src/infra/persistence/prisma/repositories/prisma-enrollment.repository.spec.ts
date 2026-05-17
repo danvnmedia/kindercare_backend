@@ -28,6 +28,7 @@ describe("PrismaEnrollmentRepository", () => {
     id: "enrollment-1",
     classId: "class-1",
     studentId: "student-1",
+    schoolYearEnrollmentId: "sye-1",
     enrollmentDate: new Date("2026-01-15T00:00:00.000Z"),
     endDate: null,
     exitReason: null,
@@ -226,6 +227,7 @@ describe("PrismaEnrollmentRepository", () => {
         {
           classId: "class-source",
           studentId: "student-1",
+          schoolYearEnrollmentId: "sye-test",
           enrollmentDate: new Date("2024-09-01T00:00:00.000Z"),
           endDate: new Date("2026-01-15T00:00:00.000Z"),
           exitReason: ExitReason.TRANSFERRED,
@@ -240,6 +242,7 @@ describe("PrismaEnrollmentRepository", () => {
         {
           classId: "class-target",
           studentId: "student-1",
+          schoolYearEnrollmentId: "sye-test",
           enrollmentDate: new Date("2026-01-15T00:00:00.000Z"),
           note: null,
         },
@@ -402,6 +405,7 @@ describe("PrismaEnrollmentRepository", () => {
         {
           classId: "class-1",
           studentId,
+          schoolYearEnrollmentId: "sye-test",
           enrollmentDate: new Date("2026-01-15T00:00:00.000Z"),
           note: null,
         },

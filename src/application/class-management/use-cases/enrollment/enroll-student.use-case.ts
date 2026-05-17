@@ -9,7 +9,9 @@ import {
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 
 export interface EnrollStudentInput {
   campusId: string;
@@ -30,6 +32,8 @@ export class EnrollStudentUseCase {
     private readonly classRepository: ClassRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
+    private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
   ) {}
 
   async execute(input: EnrollStudentInput): Promise<Enrollment> {
@@ -93,10 +97,32 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 6: Create and save enrollment
+      // Step 6: Parent-enrollment gate (specs/school-year-enrollment-model D1/D3).
+      // Class enrollment requires an open parent SchoolYearEnrollment for the
+      // student in the class's school year, and the parent's grade level must
+      // match the class's grade level. Year-end grade changes go through the
+      // (v2) promotion flow, not via direct class enrollment.
+      const parent =
+        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+          input.studentId,
+          classEntity.schoolYearId,
+        );
+      if (!parent) {
+        throw new ConflictException(
+          SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+        );
+      }
+      if (parent.gradeLevelId !== classEntity.gradeLevelId) {
+        throw new ConflictException(
+          SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+        );
+      }
+
+      // Step 7: Create and save enrollment with parent FK threaded through.
       const enrollment = Enrollment.create({
         classId: input.classId,
         studentId: input.studentId,
+        schoolYearEnrollmentId: parent.id,
         enrollmentDate: input.enrollmentDate,
         note: input.note || null,
       });

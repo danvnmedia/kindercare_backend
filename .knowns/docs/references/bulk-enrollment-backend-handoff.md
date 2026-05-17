@@ -115,19 +115,28 @@ GET /classes/:classId/eligible-students
   ?search=<name fragment>     // optional, ilike on fullName
   &page=<n>&limit=<n>          // standard pagination
   &sort=<field:dir>            // standard sort
-  &includeStatuses=ACTIVE,WAITING,TRIAL,DEFERRED   // optional — defaults to ACTIVE
 ```
 
 **Response:** Standard paginated `Student[]` (reuse `StudentResponse`).
+
+Per `specs/student-status-simplification` (D8), `StudentResponse` now exposes:
+
+- `phase: "WAITING" | "ACTIVE" | "DEFERRED" | "GRADUATED" | "WITHDRAWN" | null` — derived server-side from `Enrollment` + `SchoolYearEnrollment` via the `student_with_phase` Postgres view (read-only). `null` only on write-path read-back (POST/PATCH return raw `student` rows).
+- `isArchived: boolean` — orthogonal overlay; an archived student still carries the underlying derived phase.
+
+The wizard can render lifecycle indicators per-row without a follow-up fetch.
 
 **Eligibility rules (server-enforced):**
 
 - `Student.campusId === classCampusId`
 - `Student.isArchived === false`
-- `Student.status` ∈ `includeStatuses` (default: ACTIVE; UI may opt to include WAITING/TRIAL/DEFERRED for pre-enrollment workflows)
 - No row in `Enrollment` with `studentId = s.id AND endDate IS NULL`
 
+No status / phase filter is applied at the endpoint — by construction, every eligible row has no open `Enrollment`, so its derived `phase` is `WAITING | DEFERRED | GRADUATED | WITHDRAWN` (never `ACTIVE`). Narrowing further is a client concern.
+
 The class is needed in the URL (vs. just campus) so future rules can layer in (e.g., grade-level compatibility, capacity). For now the only class-derived rule is "same campus as class," but the URL shape future-proofs.
+
+> **Removed in D9 (hard cutover):** the previous `&includeStatuses=ACTIVE,WAITING,TRIAL,DEFERRED` query param. The global `ValidationPipe` runs with `whitelist: true, forbidNonWhitelisted: true`, so any client that still sends `includeStatuses` gets a `400` (covered by `EligibleStudentsQuery` spec, Spec FR-9).
 
 **Alternative if you'd rather not add a dedicated endpoint:** extend `GET /students` to support a synthetic filter `filter[hasActiveEnrollment][eq]=false` via a custom filter handler in the student repository's `findAll`. Less explicit but reuses existing pagination/sort.
 

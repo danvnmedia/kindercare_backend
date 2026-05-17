@@ -10,7 +10,6 @@ import { IdentityPort } from "@/application/ports/identity.port";
 import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import { User } from "@/domain/user-management/user.entity";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
@@ -27,7 +26,6 @@ export interface CreateStudentInput {
   phoneNumber?: string;
   email?: string;
   address?: string;
-  status?: StudentStatus;
   createUserAccount?: boolean;
   guardianIds?: string[];
 }
@@ -168,7 +166,6 @@ export class CreateStudentUseCase {
       dateOfBirth: input.dateOfBirth || null,
       nickname: input.nickname || null,
       gender: input.gender || null,
-      status: input.status || StudentStatus.WAITING,
     });
 
     return await this.studentRepository.save(studentEntity);

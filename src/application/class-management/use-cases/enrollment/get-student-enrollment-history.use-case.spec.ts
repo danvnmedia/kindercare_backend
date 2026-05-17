@@ -84,6 +84,7 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
       {
         classId,
         studentId,
+        schoolYearEnrollmentId: "sye-test",
         enrollmentDate,
         endDate: closed?.endDate ?? null,
         exitReason: closed?.exitReason ?? null,

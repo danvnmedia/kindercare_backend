@@ -13,9 +13,25 @@ import { AssignStaffToClassUseCase } from "./class-staff/assign-staff-to-class.u
 import { EnrollmentRepository } from "../ports/enrollment.repository";
 import { ClassStaffRepository } from "../ports/class-staff.repository";
 import { ClassRepository } from "../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../ports/school-year-enrollment.repository";
+import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { SubjectRepository } from "../ports/subject.repository";
 import { StaffRepository } from "@/application/user-management/ports/staff.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
+
+// Cross-campus paths short-circuit at step 1b/2b, before the parent gate.
+// All methods declared so `jest.Mocked<...>` is type-safe; no default returns
+// needed because none of these tests reach the gate.
+const createMockSyeRepository = (): jest.Mocked<SchoolYearEnrollmentRepository> =>
+  ({
+    findById: jest.fn(),
+    findOpenByStudentAndSchoolYear: jest.fn(),
+    findAllByStudentId: jest.fn(),
+    findAllByStudentIdWithChildCount: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    withdrawWithChildren: jest.fn(),
+  }) as jest.Mocked<SchoolYearEnrollmentRepository>;
 import {
   createClass,
   createStaff,
@@ -34,6 +50,7 @@ describe("Cross-Campus Prevention Integration Tests", () => {
     let mockEnrollmentRepository: jest.Mocked<EnrollmentRepository>;
     let mockClassRepository: jest.Mocked<ClassRepository>;
     let mockStudentRepository: jest.Mocked<StudentRepository>;
+    let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
 
     beforeEach(() => {
       mockEnrollmentRepository = {
@@ -85,10 +102,13 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         getStudentGuardians: jest.fn(),
       } as jest.Mocked<StudentRepository>;
 
+      mockSyeRepository = createMockSyeRepository();
+
       useCase = new EnrollStudentUseCase(
         mockEnrollmentRepository,
         mockClassRepository,
         mockStudentRepository,
+        mockSyeRepository,
       );
     });
 
@@ -178,6 +198,23 @@ describe("Cross-Campus Prevention Integration Tests", () => {
       mockStudentRepository.findById.mockResolvedValue(studentInCampusA);
       mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
       mockEnrollmentRepository.save.mockImplementation(async (e) => e);
+      // Past the cross-campus checks, the parent-enrollment gate runs (D1/D3).
+      // Stub an open parent with the matching grade so the happy path reaches save().
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(
+        SchoolYearEnrollment.create(
+          {
+            studentId: "student-1",
+            campusId: campusA,
+            schoolYearId: "school-year-1",
+            gradeLevelId: "grade-level-1",
+            enrollmentDate: new Date("2020-09-01T00:00:00.000Z"),
+            exitDate: null,
+            exitReason: null,
+            note: null,
+          },
+          "sye-cross-campus-happy",
+        ),
+      );
 
       const result = await useCase.execute({
         campusId: campusA,
@@ -466,6 +503,7 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         mockEnrollmentRepository,
         mockClassRepository,
         mockStudentRepository,
+        createMockSyeRepository(),
       );
 
       // Class in campus B

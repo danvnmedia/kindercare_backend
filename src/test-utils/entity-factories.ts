@@ -19,6 +19,7 @@ import {
   PermissionEntity,
 } from "@/domain/rbac/entities/permission.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { StudentPhase } from "@/domain/user-management/enums/student-phase.enum";
 import { v4 as uuidv4 } from "uuid";
 
 // Default IDs for testing (valid UUID v4 format)
@@ -110,6 +111,7 @@ export function createStudent(
     nickname: string | null;
     gender: Gender | null;
     isArchived: boolean;
+    phase: StudentPhase;
   }> = {},
 ): Student {
   const uniqueSuffix = uuidv4().slice(0, 8);
@@ -125,6 +127,7 @@ export function createStudent(
       nickname: overrides.nickname ?? null,
       gender: overrides.gender ?? null,
       isArchived: overrides.isArchived ?? false,
+      phase: overrides.phase,
     },
     overrides.id ?? uuidv4(),
   );

@@ -63,7 +63,6 @@ model Student {
 | Use case | A `DELETE` HTTP endpoint maps to `archive()`; a `PATCH /:id/restore` maps to `restore()` |
 | Hard delete | Lives in `DangerXxxController` for admin use |
 | Clerk identity | `archive` calls `lockIdentity` (best-effort) so the user can't sign in; `restore` calls `unlockIdentity` |
-| Status reset | Some entities (Student) also reset their lifecycle status — `archive()` sets `status = DROPPED`, `restore()` sets `status = ACTIVE` |
 
 Used by: `Student`, `Staff`, `Guardian`, `Class`, `GradeLevel`, `SchoolYear`, `StaffType`, `GuardianRelationship`, `PostCategory`, `Campus`, `File` (alongside `isDeleted`), `Subject` (no archive flag — true delete), `Role` (no flag).
 
@@ -188,7 +187,7 @@ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 | Mistake | Symptom |
 |---------|---------|
 | Using `isArchived` for `Post` | Hides the soft-delete timestamp; can't tell when a post was removed |
-| Using `isDeleted` for `Student` | Restoring becomes ceremonial; lifecycle status (`DROPPED`/`ACTIVE`) is the real signal |
+| Using `isDeleted` for `Student` | Restoring becomes ceremonial; `isArchived` already toggles the recoverable lifecycle, and the derived `phase` view (`student_with_phase`) exposes `WAITING`/`ACTIVE`/`DEFERRED`/`GRADUATED`/`WITHDRAWN` without a stored status column |
 | Forgetting `softDelete` side effects (e.g. unpin a deleted post) | Pinned-but-deleted posts confuse the feed |
 | Not filtering soft-deleted rows in default lists | Frontend gets phantom items |
 | Cascade-deleting audit history | Audit becomes useless |

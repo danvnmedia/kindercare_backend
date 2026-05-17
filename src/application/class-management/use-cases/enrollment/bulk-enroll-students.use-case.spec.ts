@@ -2,22 +2,48 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { BulkEnrollStudentsUseCase } from "./bulk-enroll-students.use-case";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
+import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 
 describe("BulkEnrollStudentsUseCase", () => {
   let useCase: BulkEnrollStudentsUseCase;
   let mockEnrollmentRepository: jest.Mocked<EnrollmentRepository>;
   let mockClassRepository: jest.Mocked<ClassRepository>;
   let mockStudentRepository: jest.Mocked<StudentRepository>;
+  let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
 
   const campusId = "campus-1";
   const otherCampusId = "campus-2";
   const classId = "class-1";
+  const schoolYearId = "school-year-1";
+  const classGradeLevelId = "grade-1";
   const enrollmentDate = new Date("2025-09-01T00:00:00.000Z");
+
+  // Helper: per-row parent matching the class's schoolYearId. Caller picks the
+  // grade (default matches the class — override for mismatch tests).
+  const createMockParent = (
+    studentId: string,
+    overrides: { gradeLevelId?: string } = {},
+  ): SchoolYearEnrollment =>
+    SchoolYearEnrollment.create(
+      {
+        studentId,
+        campusId,
+        schoolYearId,
+        gradeLevelId: overrides.gradeLevelId ?? classGradeLevelId,
+        enrollmentDate: new Date("2025-08-01T00:00:00.000Z"),
+        exitDate: null,
+        exitReason: null,
+        note: null,
+      },
+      `sye-${studentId}`,
+    );
 
   // Default school year range is wide so happy-path tests pass. Date-bounds
   // tests pass an explicit narrow range.
@@ -123,10 +149,21 @@ describe("BulkEnrollStudentsUseCase", () => {
       getStudentGuardians: jest.fn(),
     } as jest.Mocked<StudentRepository>;
 
+    mockSyeRepository = {
+      findById: jest.fn(),
+      findOpenByStudentAndSchoolYear: jest.fn(),
+      findAllByStudentId: jest.fn(),
+      findAllByStudentIdWithChildCount: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      withdrawWithChildren: jest.fn(),
+    } as jest.Mocked<SchoolYearEnrollmentRepository>;
+
     useCase = new BulkEnrollStudentsUseCase(
       mockEnrollmentRepository,
       mockClassRepository,
       mockStudentRepository,
+      mockSyeRepository,
     );
 
     // Default: no active enrollment, no composite-key collision.
@@ -135,6 +172,11 @@ describe("BulkEnrollStudentsUseCase", () => {
     // Default: saveMany echoes input as if persisted (preserving order).
     mockEnrollmentRepository.saveMany.mockImplementation(
       async (entities) => entities,
+    );
+    // Default: every student has a matching-grade open parent. Per-row tests
+    // override for AC-18 (NO_SCHOOL_YEAR_ENROLLMENT / GRADE_LEVEL_MISMATCH).
+    mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
+      async (sId) => createMockParent(sId),
     );
   });
 
@@ -280,6 +322,10 @@ describe("BulkEnrollStudentsUseCase", () => {
             e.endDate === null,
         ),
       ).toBe(true);
+      // AC-5: parent FK is threaded onto every persisted child row.
+      expect(passedToSaveMany.map((e) => e.schoolYearEnrollmentId)).toEqual(
+        students.map((sId) => `sye-${sId}`),
+      );
     });
 
     it("mixed batch: 3 valid + 1 already-enrolled + 1 cross-campus → enrolled=3, skipped=2 (AC-2)", async () => {
@@ -298,6 +344,7 @@ describe("BulkEnrollStudentsUseCase", () => {
                 {
                   classId: "another-class",
                   studentId: id,
+                  schoolYearEnrollmentId: "sye-other",
                   enrollmentDate: new Date("2025-08-01T00:00:00.000Z"),
                   note: null,
                 },
@@ -344,6 +391,7 @@ describe("BulkEnrollStudentsUseCase", () => {
             {
               classId: "another-class",
               studentId: id,
+              schoolYearEnrollmentId: "sye-other",
               enrollmentDate: new Date("2025-08-01T00:00:00.000Z"),
               note: null,
             },
@@ -395,6 +443,7 @@ describe("BulkEnrollStudentsUseCase", () => {
                 {
                   classId,
                   studentId: sId,
+                  schoolYearEnrollmentId: "sye-test",
                   enrollmentDate,
                   note: null,
                 },
@@ -461,6 +510,89 @@ describe("BulkEnrollStudentsUseCase", () => {
       const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
         .calls[0][0] as Enrollment[];
       expect(passedToSaveMany[0].note).toBeNull();
+    });
+  });
+
+  // -------- AC-18: parent-enrollment gate per row (tolerant) --------
+
+  describe("parent-enrollment gate per row (AC-18 / Scenarios 2-3)", () => {
+    it("skips with NO_SCHOOL_YEAR_ENROLLMENT when the open parent is missing; other rows still enroll", async () => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockStudentRepository.findById.mockImplementation(async (id) =>
+        createMockStudent(id),
+      );
+      // s-no-parent has no open parent in the class's school year.
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
+        async (sId) => (sId === "s-no-parent" ? null : createMockParent(sId)),
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId,
+        enrollmentDate,
+        students: [
+          { studentId: "s-ok-1" },
+          { studentId: "s-no-parent" },
+          { studentId: "s-ok-2" },
+        ],
+      });
+
+      expect(result.enrolled).toHaveLength(2);
+      expect(result.skipped).toEqual([
+        {
+          studentId: "s-no-parent",
+          reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+        },
+      ]);
+      const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
+        .calls[0][0] as Enrollment[];
+      expect(passedToSaveMany.map((e) => e.studentId)).toEqual([
+        "s-ok-1",
+        "s-ok-2",
+      ]);
+      expect(passedToSaveMany.map((e) => e.schoolYearEnrollmentId)).toEqual([
+        "sye-s-ok-1",
+        "sye-s-ok-2",
+      ]);
+    });
+
+    it("skips with GRADE_LEVEL_MISMATCH when the open parent's grade differs; other rows still enroll", async () => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockStudentRepository.findById.mockImplementation(async (id) =>
+        createMockStudent(id),
+      );
+      // s-wrong-grade has an open parent but for a different grade level.
+      mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
+        async (sId) =>
+          sId === "s-wrong-grade"
+            ? createMockParent(sId, { gradeLevelId: "grade-OTHER" })
+            : createMockParent(sId),
+      );
+
+      const result = await useCase.execute({
+        campusId,
+        classId,
+        enrollmentDate,
+        students: [
+          { studentId: "s-ok-1" },
+          { studentId: "s-wrong-grade" },
+          { studentId: "s-ok-2" },
+        ],
+      });
+
+      expect(result.enrolled).toHaveLength(2);
+      expect(result.skipped).toEqual([
+        {
+          studentId: "s-wrong-grade",
+          reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+        },
+      ]);
+      const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
+        .calls[0][0] as Enrollment[];
+      expect(passedToSaveMany.map((e) => e.studentId)).toEqual([
+        "s-ok-1",
+        "s-ok-2",
+      ]);
     });
   });
 

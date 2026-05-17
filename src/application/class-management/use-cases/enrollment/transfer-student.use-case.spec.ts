@@ -1,26 +1,39 @@
 import {
   BadRequestException,
   ConflictException,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { TransferStudentUseCase } from "./transfer-student.use-case";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 
 describe("TransferStudentUseCase", () => {
   let useCase: TransferStudentUseCase;
   let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let classRepo: jest.Mocked<ClassRepository>;
+  let syeRepo: jest.Mocked<SchoolYearEnrollmentRepository>;
 
   const campusId = "campus-1";
   const otherCampusId = "campus-2";
   const studentId = "student-1";
   const sourceClassId = "class-source";
   const targetClassId = "class-target";
+  const parentId = "sye-target";
+  // `buildClass(targetClassId)` produces a class whose `schoolYearId` follows
+  // the `school-year-<classId>` template; the parent must resolve under the
+  // *target* class's school year (D3).
+  const targetSchoolYearId = `school-year-${targetClassId}`;
+  // Matches `Class.create({ gradeLevelId: "grade-level-1", ... })` in
+  // `buildClass`; mismatch tests pass a different value.
+  const targetGradeLevelId = "grade-level-1";
   // Stable past start date so default-today is always > active.enrollmentDate
   // and AC-19 future-date tests stay well-defined.
   const activeEnrollmentDate = new Date("2024-09-01T00:00:00.000Z");
@@ -68,12 +81,35 @@ describe("TransferStudentUseCase", () => {
       {
         classId: overrides.classId ?? sourceClassId,
         studentId,
+        schoolYearEnrollmentId: parentId,
         enrollmentDate: overrides.enrollmentDate ?? activeEnrollmentDate,
         endDate: null,
         exitReason: null,
         note: null,
       },
       "active-1",
+    );
+
+  /**
+   * Build an open parent SchoolYearEnrollment that matches the target class
+   * (campus, school year, grade level) by default. Tests override
+   * `gradeLevelId` to drive the grade-mismatch path (AC-19 / Scenario 9).
+   */
+  const createMockParent = (
+    overrides: { gradeLevelId?: string } = {},
+  ): SchoolYearEnrollment =>
+    SchoolYearEnrollment.create(
+      {
+        studentId,
+        campusId,
+        schoolYearId: targetSchoolYearId,
+        gradeLevelId: overrides.gradeLevelId ?? targetGradeLevelId,
+        enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
+        exitDate: null,
+        exitReason: null,
+        note: null,
+      },
+      parentId,
     );
 
   beforeEach(() => {
@@ -106,7 +142,24 @@ describe("TransferStudentUseCase", () => {
       delete: jest.fn(),
     } as jest.Mocked<ClassRepository>;
 
-    useCase = new TransferStudentUseCase(enrollmentRepo, classRepo);
+    syeRepo = {
+      findById: jest.fn(),
+      findOpenByStudentAndSchoolYear: jest.fn(),
+      findAllByStudentId: jest.fn(),
+      findAllByStudentIdWithChildCount: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      withdrawWithChildren: jest.fn(),
+    } as jest.Mocked<SchoolYearEnrollmentRepository>;
+
+    // Default: parent exists and matches the target class's grade level so
+    // existing happy-path / unrelated-failure-mode tests stay green. Tests
+    // that want to exercise AC-19 override `findOpenByStudentAndSchoolYear`.
+    syeRepo.findOpenByStudentAndSchoolYear.mockResolvedValue(
+      createMockParent(),
+    );
+
+    useCase = new TransferStudentUseCase(enrollmentRepo, classRepo, syeRepo);
   });
 
   describe("AC-14 / AC-15: happy path returns { closed, opened }", () => {
@@ -131,6 +184,12 @@ describe("TransferStudentUseCase", () => {
       expect(result.opened.classId).toBe(targetClassId);
       expect(result.opened.endDate).toBeNull();
       expect(result.opened.exitReason).toBeNull();
+      // AC-19 / AC-4: opened row carries the resolved parent.id verbatim.
+      expect(result.opened.schoolYearEnrollmentId).toBe(parentId);
+      expect(syeRepo.findOpenByStudentAndSchoolYear).toHaveBeenCalledWith(
+        studentId,
+        targetSchoolYearId,
+      );
       expect(enrollmentRepo.transferEnrollment).toHaveBeenCalledTimes(1);
     });
 
@@ -456,6 +515,86 @@ describe("TransferStudentUseCase", () => {
       ).rejects.toThrow(ConflictException);
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("AC-19 / Scenario 9: parent grade-match gate", () => {
+    it("throws ConflictException GRADE_LEVEL_MISMATCH when parent.gradeLevelId !== targetClass.gradeLevelId", async () => {
+      classRepo.findById.mockResolvedValue(buildClass(targetClassId));
+      enrollmentRepo.findActiveByStudentId.mockResolvedValue(
+        buildActiveEnrollment(),
+      );
+      // Override default: parent registered in a different grade.
+      syeRepo.findOpenByStudentAndSchoolYear.mockResolvedValue(
+        createMockParent({ gradeLevelId: "grade-level-OTHER" }),
+      );
+
+      await expect(
+        useCase.execute({
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      await expect(
+        useCase.execute({
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+        }),
+      ).rejects.toThrow(SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH);
+
+      // No child rows are written or closed (Scenario 9 invariant).
+      expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
+    });
+
+    it("throws (data-integrity sanity assertion) when active enrollment exists but no open parent — does NOT call transferEnrollment", async () => {
+      classRepo.findById.mockResolvedValue(buildClass(targetClassId));
+      enrollmentRepo.findActiveByStudentId.mockResolvedValue(
+        buildActiveEnrollment(),
+      );
+      // Active enrollment + missing parent breaks D6 — internal invariant
+      // violation, not a user-facing 4xx. We assert against the bare Error
+      // shape and the diagnostic message.
+      syeRepo.findOpenByStudentAndSchoolYear.mockResolvedValue(null);
+      const errorSpy = jest
+        .spyOn(Logger.prototype, "error")
+        .mockImplementation();
+
+      await expect(
+        useCase.execute({
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+        }),
+      ).rejects.toThrow(/data integrity broken/i);
+
+      expect(errorSpy).toHaveBeenCalled();
+      expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
+
+      errorSpy.mockRestore();
+    });
+
+    it("resolves parent against the *target* class's schoolYearId (D3)", async () => {
+      classRepo.findById.mockResolvedValue(buildClass(targetClassId));
+      enrollmentRepo.findActiveByStudentId.mockResolvedValue(
+        buildActiveEnrollment(),
+      );
+      enrollmentRepo.transferEnrollment.mockImplementation(
+        async (closed, opened) => ({ closed, opened }),
+      );
+
+      await useCase.execute({
+        studentId,
+        toClassId: targetClassId,
+        campusId,
+      });
+
+      expect(syeRepo.findOpenByStudentAndSchoolYear).toHaveBeenCalledWith(
+        studentId,
+        targetSchoolYearId,
+      );
     });
   });
 });

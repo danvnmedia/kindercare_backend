@@ -41,6 +41,7 @@ import { ReorderGradeLevelsRequest } from "../../dtos/class-management/reorder-g
 // Use Cases - Read
 import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-grade-levels.use-case";
 import { GetAllSchoolYearsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-school-years.use-case";
+import { GetSchoolYearByIdUseCase } from "@/application/class-management/use-cases/reference-data/get-school-year-by-id.use-case";
 import { GetAllSubjectsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-subjects.use-case";
 
 // Use Cases - School Year CUD
@@ -62,6 +63,7 @@ export class ReferenceDataController {
     // Read Use Cases
     private readonly getAllGradeLevelsUseCase: GetAllGradeLevelsUseCase,
     private readonly getAllSchoolYearsUseCase: GetAllSchoolYearsUseCase,
+    private readonly getSchoolYearByIdUseCase: GetSchoolYearByIdUseCase,
     private readonly getAllSubjectsUseCase: GetAllSubjectsUseCase,
     // School Year CUD Use Cases
     private readonly createSchoolYearUseCase: CreateSchoolYearUseCase,
@@ -239,6 +241,35 @@ export class ReferenceDataController {
     @StandardRequestParam() query: StandardRequestDto,
   ) {
     return await this.getAllSchoolYearsUseCase.execute(campusId, query);
+  }
+
+  @Get("school-years/:id")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "School year retrieved successfully",
+    type: SchoolYearResponse,
+  })
+  @ApiOperation({
+    summary: "Get a school year by ID",
+    description:
+      "Retrieve a single school year by its ID, scoped to the caller's campus. Returns 404 if the school year does not exist or belongs to a different campus.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the school year retrieval",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "School Year UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getSchoolYearById(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+  ) {
+    return await this.getSchoolYearByIdUseCase.execute(id, campusId);
   }
 
   @Post("school-years")

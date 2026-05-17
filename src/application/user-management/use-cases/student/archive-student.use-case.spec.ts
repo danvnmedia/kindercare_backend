@@ -2,7 +2,6 @@ import { NotFoundException } from "@nestjs/common";
 import { ArchiveStudentUseCase } from "./archive-student.use-case";
 import { StudentRepository } from "../../ports/student.repository";
 import { Student } from "@/domain/user-management/entities/student.entity";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 
 describe("ArchiveStudentUseCase", () => {
   let useCase: ArchiveStudentUseCase;
@@ -13,7 +12,6 @@ describe("ArchiveStudentUseCase", () => {
       id: string;
       campusId: string;
       isArchived: boolean;
-      status: StudentStatus;
     }> = {},
   ) => {
     return Student.create(
@@ -27,7 +25,6 @@ describe("ArchiveStudentUseCase", () => {
         dateOfBirth: null,
         nickname: null,
         gender: null,
-        status: overrides.status ?? StudentStatus.ACTIVE,
         isArchived: overrides.isArchived ?? false,
       },
       overrides.id ?? "student-123",
@@ -67,7 +64,6 @@ describe("ArchiveStudentUseCase", () => {
       const result = await useCase.execute("student-123");
 
       expect(result.isArchived).toBe(true);
-      expect(result.status).toBe(StudentStatus.DROPPED);
       expect(mockStudentRepository.findById).toHaveBeenCalledWith(
         "student-123",
       );
@@ -82,7 +78,6 @@ describe("ArchiveStudentUseCase", () => {
       const result = await useCase.execute("student-123", "campus-123");
 
       expect(result.isArchived).toBe(true);
-      expect(result.status).toBe(StudentStatus.DROPPED);
       expect(mockStudentRepository.update).toHaveBeenCalled();
     });
   });

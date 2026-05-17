@@ -4,6 +4,8 @@ import { Module } from "@nestjs/common";
 import { ClassController } from "../controllers/class-management/class.controller";
 import { ReferenceDataController } from "../controllers/class-management/reference-data.controller";
 import { StudentEnrollmentController } from "../controllers/class-management/student-enrollment.controller";
+import { SchoolYearEnrollmentController } from "../controllers/class-management/school-year-enrollment.controller";
+import { SchoolYearEnrollmentLifecycleController } from "../controllers/class-management/school-year-enrollment-lifecycle.controller";
 
 // Use Cases - Class
 import { CreateClassUseCase } from "@/application/class-management/use-cases/class/create-class.use-case";
@@ -15,6 +17,7 @@ import { DeleteClassUseCase } from "@/application/class-management/use-cases/cla
 // Use Cases - Reference Data
 import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-grade-levels.use-case";
 import { GetAllSchoolYearsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-school-years.use-case";
+import { GetSchoolYearByIdUseCase } from "@/application/class-management/use-cases/reference-data/get-school-year-by-id.use-case";
 import { GetAllSubjectsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-subjects.use-case";
 
 // Use Cases - School Year CUD
@@ -37,6 +40,11 @@ import { BulkTransferStudentsUseCase } from "@/application/class-management/use-
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
 import { GetStudentEnrollmentHistoryUseCase } from "@/application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case";
 
+// Use Cases - School Year Enrollment
+import { RegisterForSchoolYearUseCase } from "@/application/class-management/use-cases/school-year-enrollment/register-for-school-year.use-case";
+import { WithdrawFromSchoolUseCase } from "@/application/class-management/use-cases/school-year-enrollment/withdraw-from-school.use-case";
+import { GetStudentSchoolYearHistoryUseCase } from "@/application/class-management/use-cases/school-year-enrollment/get-student-school-year-history.use-case";
+
 // Use Cases - Eligible Students (file lives in user-management; registered here to keep
 // CLASS_REPOSITORY + STUDENT_REPOSITORY co-located without a forwardRef cycle.)
 import { GetEligibleStudentsForClassUseCase } from "@/application/user-management/use-cases/student/get-eligible-students-for-class.use-case";
@@ -52,6 +60,7 @@ import { PrismaGradeLevelRepository } from "@/infra/persistence/prisma/repositor
 import { PrismaSchoolYearRepository } from "@/infra/persistence/prisma/repositories/prisma-school-year.repository";
 import { PrismaSubjectRepository } from "@/infra/persistence/prisma/repositories/prisma-subject.repository";
 import { PrismaEnrollmentRepository } from "@/infra/persistence/prisma/repositories/prisma-enrollment.repository";
+import { PrismaSchoolYearEnrollmentRepository } from "@/infra/persistence/prisma/repositories/prisma-school-year-enrollment.repository";
 import { PrismaClassStaffRepository } from "@/infra/persistence/prisma/repositories/prisma-class-staff.repository";
 
 // Modules
@@ -79,6 +88,8 @@ import { RequestContextModule } from "../context/request-context.module";
     ClassController,
     ReferenceDataController,
     StudentEnrollmentController,
+    SchoolYearEnrollmentController,
+    SchoolYearEnrollmentLifecycleController,
   ],
   providers: [
     // Class Use Cases
@@ -91,6 +102,7 @@ import { RequestContextModule } from "../context/request-context.module";
     // Reference Data Use Cases
     GetAllGradeLevelsUseCase,
     GetAllSchoolYearsUseCase,
+    GetSchoolYearByIdUseCase,
     GetAllSubjectsUseCase,
 
     // School Year CUD Use Cases
@@ -119,6 +131,11 @@ import { RequestContextModule } from "../context/request-context.module";
     GetClassStaffUseCase,
     RemoveStaffFromClassUseCase,
 
+    // School Year Enrollment Use Cases
+    RegisterForSchoolYearUseCase,
+    WithdrawFromSchoolUseCase,
+    GetStudentSchoolYearHistoryUseCase,
+
     // Repositories
     {
       provide: "CLASS_REPOSITORY",
@@ -141,6 +158,10 @@ import { RequestContextModule } from "../context/request-context.module";
       useClass: PrismaEnrollmentRepository,
     },
     {
+      provide: "SCHOOL_YEAR_ENROLLMENT_REPOSITORY",
+      useClass: PrismaSchoolYearEnrollmentRepository,
+    },
+    {
       provide: "CLASS_STAFF_REPOSITORY",
       useClass: PrismaClassStaffRepository,
     },
@@ -151,6 +172,7 @@ import { RequestContextModule } from "../context/request-context.module";
     "SCHOOL_YEAR_REPOSITORY",
     "SUBJECT_REPOSITORY",
     "ENROLLMENT_REPOSITORY",
+    "SCHOOL_YEAR_ENROLLMENT_REPOSITORY",
     "CLASS_STAFF_REPOSITORY",
   ],
 })

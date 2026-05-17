@@ -9,7 +9,9 @@ import { Enrollment } from "@/domain/class-management/entities/enrollment.entity
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { ClassRepository } from "../../ports/class.repository";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { EnrollmentErrorCode } from "../../enrollment-error-codes";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 
 const MAX_BATCH_SIZE = 100;
 
@@ -58,6 +60,8 @@ export class BulkEnrollStudentsUseCase {
     private readonly classRepository: ClassRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
+    private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
   ) {}
 
   async execute(
@@ -140,6 +144,29 @@ export class BulkEnrollStudentsUseCase {
         continue;
       }
 
+      // Parent-enrollment gate per row (specs/school-year-enrollment-model
+      // D1/D3 + bulk-enrollment FR-4 per-row tolerant pattern). Missing parent
+      // or grade mismatch is a per-row skip, NOT a whole-call abort.
+      const parent =
+        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+          row.studentId,
+          classEntity.schoolYearId,
+        );
+      if (!parent) {
+        skipped.push({
+          studentId: row.studentId,
+          reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+        });
+        continue;
+      }
+      if (parent.gradeLevelId !== classEntity.gradeLevelId) {
+        skipped.push({
+          studentId: row.studentId,
+          reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+        });
+        continue;
+      }
+
       // Per-row note overrides batch note when set; an undefined per-row
       // note inherits the batch-level note. `!== undefined` lets an explicit
       // empty string per-row still override the batch.
@@ -150,6 +177,7 @@ export class BulkEnrollStudentsUseCase {
         Enrollment.create({
           classId: input.classId,
           studentId: row.studentId,
+          schoolYearEnrollmentId: parent.id,
           enrollmentDate: input.enrollmentDate,
           note,
         }),

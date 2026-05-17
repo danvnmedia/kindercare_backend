@@ -5,7 +5,6 @@ import { StudentRepository } from "../../ports/student.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import {
   createMockClassRepository,
@@ -97,7 +96,7 @@ describe("GetEligibleStudentsForClassUseCase", () => {
       mockClassRepository.findById.mockResolvedValue(buildClass());
     });
 
-    it("defaults includeStatuses to [ACTIVE] when omitted", async () => {
+    it("omits filterInfo.filters.status entirely (D9 cutover)", async () => {
       const params: StandardRequest = {};
 
       await useCase.execute({ classId, campusId, params });
@@ -109,39 +108,16 @@ describe("GetEligibleStudentsForClassUseCase", () => {
         mockStudentRepository.findEligibleForClass.mock.calls[0];
       expect(calledClassId).toBe(classId);
       expect(scope).toEqual({ campusId });
-      expect(calledParams.filterInfo?.filters).toEqual({
-        status: { in: [StudentStatus.ACTIVE] },
-      });
+      expect(calledParams.filterInfo?.filters).toBeDefined();
+      expect(calledParams.filterInfo?.filters).not.toHaveProperty("status");
     });
 
-    it("forwards explicit includeStatuses verbatim", async () => {
-      await useCase.execute({
-        classId,
-        campusId,
-        params: {},
-        includeStatuses: [StudentStatus.ACTIVE, StudentStatus.WAITING],
-      });
+    it("produces an empty filter set when neither search nor status narrow the query", async () => {
+      await useCase.execute({ classId, campusId, params: {} });
 
       const [, calledParams] =
         mockStudentRepository.findEligibleForClass.mock.calls[0];
-      expect(calledParams.filterInfo?.filters).toEqual({
-        status: { in: [StudentStatus.ACTIVE, StudentStatus.WAITING] },
-      });
-    });
-
-    it("ignores empty includeStatuses arrays and falls back to ACTIVE", async () => {
-      await useCase.execute({
-        classId,
-        campusId,
-        params: {},
-        includeStatuses: [],
-      });
-
-      const [, calledParams] =
-        mockStudentRepository.findEligibleForClass.mock.calls[0];
-      expect(calledParams.filterInfo?.filters).toEqual({
-        status: { in: [StudentStatus.ACTIVE] },
-      });
+      expect(calledParams.filterInfo?.filters).toEqual({});
     });
 
     it("adds fullName ilike filter when search is provided", async () => {
@@ -155,9 +131,9 @@ describe("GetEligibleStudentsForClassUseCase", () => {
       const [, calledParams] =
         mockStudentRepository.findEligibleForClass.mock.calls[0];
       expect(calledParams.filterInfo?.filters).toEqual({
-        status: { in: [StudentStatus.ACTIVE] },
         fullName: { ilike: "Anh" },
       });
+      expect(calledParams.filterInfo?.filters).not.toHaveProperty("status");
     });
 
     it("trims search input and ignores empty/whitespace strings", async () => {
@@ -171,6 +147,7 @@ describe("GetEligibleStudentsForClassUseCase", () => {
       const [, calledParams] =
         mockStudentRepository.findEligibleForClass.mock.calls[0];
       expect(calledParams.filterInfo?.filters).not.toHaveProperty("fullName");
+      expect(calledParams.filterInfo?.filters).not.toHaveProperty("status");
     });
   });
 

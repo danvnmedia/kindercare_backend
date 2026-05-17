@@ -5,12 +5,15 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { InvalidEndDateException } from "@/domain/class-management/exceptions/invalid-end-date.exception";
 import { ClassRepository } from "../../ports/class.repository";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { EnrollmentErrorCode } from "../../enrollment-error-codes";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 
 const MAX_BATCH_SIZE = 100;
 
@@ -67,6 +70,8 @@ export class BulkTransferStudentsUseCase {
     private readonly enrollmentRepository: EnrollmentRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
+    @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
+    private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
   ) {}
 
   async execute(
@@ -137,6 +142,58 @@ export class BulkTransferStudentsUseCase {
         continue;
       }
 
+      // Preflight composite-key collision (mirrors bulk-enroll D4): catches
+      // the common case where the student already has a row in the target
+      // class on this date (active OR historical/closed) before doing the
+      // wasted withdraw() + INSERT work. The P2002 branch in the catch below
+      // is the race-condition safety net for the case where another
+      // transaction inserts in the window between this lookup and the write.
+      const existingOnDate = await this.enrollmentRepository.findByStudentClassDate(
+        row.studentId,
+        input.classId,
+        input.transferDate,
+      );
+      if (existingOnDate) {
+        skipped.push({
+          studentId: row.studentId,
+          reason: EnrollmentErrorCode.ENROLLMENT_ALREADY_EXISTS_ON_DATE,
+        });
+        continue;
+      }
+
+      // Parent-enrollment grade-match gate per row
+      // (specs/school-year-enrollment-model D3, AC-19, Scenario 9 +
+      // bulk-enrollment FR-11 per-row tolerant pattern).
+      //
+      // Resolved against the *target* class's school year. Missing parent
+      // here is theoretically a data-integrity violation (active enrollment
+      // without a parent breaks D6), but for bulk we degrade to a per-row
+      // skip rather than aborting the whole batch — one broken-data row
+      // should not block the survivors. Grade mismatch is the user-facing
+      // path and follows the same tolerant skip pattern.
+      const parent =
+        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+          row.studentId,
+          targetClass.schoolYearId,
+        );
+      if (!parent) {
+        this.logger.warn(
+          `Bulk transfer row skipped: student ${row.studentId} has active enrollment ${active.id} but no open SchoolYearEnrollment for schoolYearId=${targetClass.schoolYearId} (data integrity)`,
+        );
+        skipped.push({
+          studentId: row.studentId,
+          reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+        });
+        continue;
+      }
+      if (parent.gradeLevelId !== targetClass.gradeLevelId) {
+        skipped.push({
+          studentId: row.studentId,
+          reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+        });
+        continue;
+      }
+
       // Per-row note overrides batch note when set; an undefined per-row
       // note inherits the batch-level note. `!== undefined` lets an explicit
       // empty string per-row still override the batch.
@@ -160,9 +217,14 @@ export class BulkTransferStudentsUseCase {
         throw error;
       }
 
+      // Thread the resolved parent.id explicitly into the opened row.
+      // Equivalent to `active.schoolYearEnrollmentId` by D2/D3, but gives
+      // the gate above a single source of truth and a clean drop-in point
+      // for v2 cross-year transfers.
       const opened = Enrollment.create({
         classId: input.classId,
         studentId: row.studentId,
+        schoolYearEnrollmentId: parent.id,
         enrollmentDate: input.transferDate,
         note,
       });
@@ -177,10 +239,33 @@ export class BulkTransferStudentsUseCase {
         );
         transferred.push(persisted);
       } catch (error) {
+        // P2002 = UNIQUE constraint violation on (studentId, classId,
+        // enrollmentDate). The preflight above catches this on the common
+        // path; reaching here means another transaction raced us between
+        // the preflight and the write — map to the same skip reason so the
+        // caller sees consistent semantics.
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          this.logger.warn(
+            `Bulk transfer row race: classId=${input.classId} studentId=${row.studentId} — P2002 after preflight passed`,
+          );
+          skipped.push({
+            studentId: row.studentId,
+            reason: EnrollmentErrorCode.ENROLLMENT_ALREADY_EXISTS_ON_DATE,
+          });
+          continue;
+        }
+        const message =
+          error instanceof Error ? error.message : String(error);
+        this.logger.warn(
+          `Bulk transfer row failed: classId=${input.classId} studentId=${row.studentId} — ${message}`,
+        );
         skipped.push({
           studentId: row.studentId,
           reason: "TRANSFER_FAILED",
-          message: error instanceof Error ? error.message : String(error),
+          message,
         });
       }
     }

@@ -41,6 +41,7 @@ describe("WithdrawStudentUseCase", () => {
       {
         classId,
         studentId,
+        schoolYearEnrollmentId: "sye-test",
         enrollmentDate,
         endDate: null,
         exitReason: null,
@@ -55,6 +56,7 @@ describe("WithdrawStudentUseCase", () => {
       {
         classId,
         studentId,
+        schoolYearEnrollmentId: "sye-test",
         enrollmentDate,
         endDate: new Date("2020-03-01T00:00:00.000Z"),
         exitReason: ExitReason.WITHDRAWN,

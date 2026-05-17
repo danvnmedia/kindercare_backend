@@ -11,6 +11,8 @@ import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { InvalidEndDateException } from "@/domain/class-management/exceptions/invalid-end-date.exception";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 
 export interface TransferStudentInput {
   studentId: string;
@@ -35,6 +37,8 @@ export class TransferStudentUseCase {
     private readonly enrollmentRepository: EnrollmentRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
+    @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
+    private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
   ) {}
 
   async execute(input: TransferStudentInput): Promise<TransferStudentResult> {
@@ -77,7 +81,39 @@ export class TransferStudentUseCase {
       throw new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
     }
 
-    // Step 6: Build the closed entity. Reuses domain invariants (AC-8):
+    // Step 6: Parent-enrollment grade-match gate
+    // (specs/school-year-enrollment-model D3, AC-19, Scenario 9).
+    //
+    // Resolve against the *target* class's school year. Class transfers never
+    // change the parent (D2/D3), so the parent under the source and the target
+    // are the same row when they share a school year — but resolving via the
+    // target makes the data flow explicit and lets future cross-year transfers
+    // (v2) drop in without restructuring.
+    //
+    // A missing parent here is NOT a user-facing 4xx: the student has an open
+    // class enrollment (Step 2 verified `active`), so the partial unique index
+    // `idx_sye_one_open_per_year` (D6) guarantees an open parent must exist.
+    // Missing parent = data integrity violation → log + throw.
+    const parent =
+      await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+        input.studentId,
+        targetClass.schoolYearId,
+      );
+    if (!parent) {
+      this.logger.error(
+        `Data integrity violation: student ${input.studentId} has active enrollment ${active.id} but no open SchoolYearEnrollment for schoolYearId=${targetClass.schoolYearId}`,
+      );
+      throw new Error(
+        "SchoolYearEnrollment missing for active enrollment — data integrity broken",
+      );
+    }
+    if (parent.gradeLevelId !== targetClass.gradeLevelId) {
+      throw new ConflictException(
+        SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+      );
+    }
+
+    // Step 7: Build the closed entity. Reuses domain invariants (AC-8):
     // endDate >= enrollmentDate AND endDate <= today.
     let closed: Enrollment;
     try {
@@ -91,15 +127,19 @@ export class TransferStudentUseCase {
       throw error;
     }
 
-    // Step 7: Build the opened entity in the target class.
+    // Step 8: Build the opened entity in the target class. Thread the resolved
+    // parent.id explicitly — equivalent to `active.schoolYearEnrollmentId` by
+    // D2/D3 but with single-source-of-truth provenance and a clean drop-in
+    // point for v2 cross-year transfers.
     const opened = Enrollment.create({
       classId: input.toClassId,
       studentId: input.studentId,
+      schoolYearEnrollmentId: parent.id,
       enrollmentDate: transferDate,
       note: input.note ?? null,
     });
 
-    // Step 8: Persist atomically — close + open inside a single DB transaction.
+    // Step 9: Persist atomically — close + open inside a single DB transaction.
     // Either both succeed or both roll back (spec AC-20).
     const persisted = await this.enrollmentRepository.transferEnrollment(
       closed,
