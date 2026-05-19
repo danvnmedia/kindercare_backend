@@ -129,7 +129,10 @@ export class PostCategoryController {
     @Param("id") id: string,
     @Body() dto: UpdatePostCategoryRequest,
   ) {
-    return await this.updatePostCategoryUseCase.execute(id, dto);
+    return await this.updatePostCategoryUseCase.execute(id, {
+      ...dto,
+      campusId,
+    });
   }
 
   @Delete(":id")

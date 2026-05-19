@@ -157,6 +157,8 @@ export class PrismaPostRepository implements PostRepository {
     query: StandardRequestDto,
     scope?: Record<string, any>,
   ): Promise<PaginatedResult<Post>> {
+    const categoryIdFilter = query.filterInfo?.filters?.categoryId;
+
     query.allowedFilterFields = [
       "title",
       "content",
@@ -174,11 +176,22 @@ export class PrismaPostRepository implements PostRepository {
       "isPinned",
     ];
 
+    const where = categoryIdFilter
+      ? {
+          categories: {
+            some: {
+              categoryId: this.buildCategoryIdWhere(categoryIdFilter),
+            },
+          },
+        }
+      : undefined;
+
     return await this.queryService.executeQuery<Post>(
       this.prisma,
       "post",
       query,
       {
+        where,
         include: {
           author: {
             include: {
@@ -187,12 +200,12 @@ export class PrismaPostRepository implements PostRepository {
             },
           },
           audiences: {
-          include: {
-            class: { select: { id: true, name: true } },
-            student: { select: { id: true, fullName: true } },
-            gradeLevel: { select: { id: true, name: true } },
+            include: {
+              class: { select: { id: true, name: true } },
+              student: { select: { id: true, fullName: true } },
+              gradeLevel: { select: { id: true, name: true } },
+            },
           },
-        },
           attachments: {
             include: {
               file: true,
@@ -208,6 +221,26 @@ export class PrismaPostRepository implements PostRepository {
       },
       PrismaPostMapper,
     );
+  }
+
+  private buildCategoryIdWhere(filter: unknown): string | { in: string[] } {
+    if (typeof filter === "string") return filter;
+
+    if (typeof filter === "object" && filter !== null && "eq" in filter) {
+      const value = (filter as { eq?: unknown }).eq;
+      if (typeof value === "string") return value;
+    }
+
+    if (typeof filter === "object" && filter !== null && "in" in filter) {
+      const value = (filter as { in?: unknown }).in;
+      if (Array.isArray(value)) {
+        return {
+          in: value.filter((item): item is string => typeof item === "string"),
+        };
+      }
+    }
+
+    return "";
   }
 
   async countPinnedByCampus(campusId: string): Promise<number> {

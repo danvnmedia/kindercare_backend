@@ -5,6 +5,7 @@ import {
   ConflictException,
   BadRequestException,
   Logger,
+  ForbiddenException,
 } from "@nestjs/common";
 import {
   PostCategory,
@@ -13,6 +14,7 @@ import {
 import { PostCategoryRepository } from "../../ports/post-category.repository";
 
 export interface UpdatePostCategoryInput {
+  campusId: string;
   name?: string;
   color?: string;
   icon?: string | null;
@@ -41,7 +43,14 @@ export class UpdatePostCategoryUseCase {
         throw new NotFoundException(`Post category with ID ${id} not found`);
       }
 
-      // Step 2: Validate uniqueness only if name changed
+      // Step 2: Validate campus scope
+      if (category.campusId !== input.campusId) {
+        throw new ForbiddenException(
+          "You do not have access to this category in the specified campus",
+        );
+      }
+
+      // Step 3: Validate uniqueness only if name changed
       if (input.name && input.name !== category.name) {
         const existingByName =
           await this.postCategoryRepository.findByNameInCampus(
@@ -55,7 +64,7 @@ export class UpdatePostCategoryUseCase {
         }
       }
 
-      // Step 3: Update via domain method
+      // Step 4: Update via domain method
       const updateData: UpdatePostCategoryData = {};
       if (input.name !== undefined) updateData.name = input.name;
       if (input.color !== undefined) updateData.color = input.color;
@@ -64,7 +73,7 @@ export class UpdatePostCategoryUseCase {
 
       category.updateInfo(updateData);
 
-      // Step 4: Save to repository
+      // Step 5: Save to repository
       const updatedCategory =
         await this.postCategoryRepository.update(category);
       this.logger.log(`Post category updated successfully: ${id}`);
@@ -77,7 +86,8 @@ export class UpdatePostCategoryUseCase {
       );
       if (
         error instanceof NotFoundException ||
-        error instanceof ConflictException
+        error instanceof ConflictException ||
+        error instanceof ForbiddenException
       ) {
         throw error;
       }

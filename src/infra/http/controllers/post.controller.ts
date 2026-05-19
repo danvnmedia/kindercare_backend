@@ -149,6 +149,8 @@ export class PostController {
       "status",
       "publishAt",
       "audiences",
+      "authorId",
+      "categoryId",
       "isPinned",
     ],
   })

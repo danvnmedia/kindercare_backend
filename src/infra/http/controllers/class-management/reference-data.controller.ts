@@ -115,7 +115,8 @@ export class ReferenceDataController {
   })
   @ApiOperation({
     summary: "Get a grade level by ID",
-    description: "Retrieve a single grade level by its ID within the specified campus.",
+    description:
+      "Retrieve a single grade level by its ID within the specified campus.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -283,7 +284,8 @@ export class ReferenceDataController {
   })
   @ApiOperation({
     summary: "Get a school year by ID",
-    description: "Retrieve a single school year by its ID within the specified campus.",
+    description:
+      "Retrieve a single school year by its ID within the specified campus.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
