@@ -108,7 +108,7 @@ export class StudentController {
   @ApiOperation({
     summary: "Get all students in a campus",
     description:
-      "Retrieve all students within a specific campus with advanced filtering, sorting, and pagination. Supports filtering by fullName, nickname, classId, gender, enrollmentDate. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
+      "Retrieve all students within a specific campus with advanced filtering, sorting, and pagination. Supports filtering by studentCode, fullName, email, phoneNumber, gender, nickname, isArchived, dateOfBirth, phase. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
   @ApiHeader({
     name: "x-campus-id",

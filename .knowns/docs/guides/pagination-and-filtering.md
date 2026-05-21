@@ -2,7 +2,7 @@
 title: Pagination and Filtering
 description: Backend API reference for pagination, sorting, and filtering
 createdAt: '2026-01-03T19:51:53.795Z'
-updatedAt: '2026-04-22T03:16:01.609Z'
+updatedAt: '2026-05-21T17:08:49.313Z'
 tags:
   - guides
   - api
@@ -128,8 +128,10 @@ Standard paginated response structure:
 ## Allowed Fields by Endpoint
 
 ### GET /students
-- **Filterable**: studentCode, fullName, email, phoneNumber, gender, nickname, isArchived, dateOfBirth
+- **Filterable**: studentCode, fullName, email, phoneNumber, gender, nickname, isArchived, dateOfBirth, phase
 - **Sortable**: createdAt, updatedAt, nickname, studentCode, fullName, dateOfBirth
+
+> **Note on `phase`** — Derived lifecycle phase projected from the `studentWithPhase` view. Valid values: `WAITING | ACTIVE | DEFERRED | GRADUATED | WITHDRAWN`. The field is briefly `null` during the write-path read-back window (post-create / post-update returns from the raw `student` table, not the view); exclude that window by filtering with `in`, e.g. `filter={"phase":{"in":["ACTIVE","WAITING"]}}`. `phase` is filterable but not sortable — the taxonomy is an enum, not ranked.
 
 ### GET /staff
 - **Filterable**: staffCode, fullName, email, phoneNumber, campusId, staffTypeId, gender, isArchived

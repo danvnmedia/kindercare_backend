@@ -98,6 +98,7 @@ export class PrismaStudentRepository implements StudentRepository {
       "nickname",
       "isArchived",
       "dateOfBirth",
+      "phase",
     ];
     params.allowedSortFields = [
       "createdAt",

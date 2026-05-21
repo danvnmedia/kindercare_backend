@@ -134,6 +134,75 @@ describe("PrismaStudentRepository", () => {
     });
   });
 
+  describe("findAll", () => {
+    // Same shape as `findEligibleForClass` above: executeQuery is mocked, so
+    // each test inspects the args the repo handed to it. The wire-format
+    // operator validation itself lives in PrismaQueryService — its own
+    // suite covers that — so here we only verify the repo's contract:
+    // allow-list + pass-through behavior.
+    const callArgs = () => {
+      expect(queryService.executeQuery).toHaveBeenCalledTimes(1);
+      const [prismaArg, modelName, params, options, mapper] =
+        queryService.executeQuery.mock.calls[0];
+      return {
+        prismaArg,
+        modelName,
+        params: params as StandardRequest,
+        options: options as Record<string, any>,
+        mapper,
+      };
+    };
+
+    it("allows `phase` in the user-controllable filter surface", async () => {
+      const params: StandardRequest = {};
+
+      await repository.findAll(params);
+
+      const { params: passedParams } = callArgs();
+      // Phase is projected onto the studentWithPhase view (Spec D7), so it
+      // can be narrowed server-side without a relation filter. The
+      // eligible-students surface remains narrower by design (Spec D9).
+      expect(passedParams.allowedFilterFields).toContain("phase");
+    });
+
+    it("preserves the `phase` filter (in[] form) through to executeQuery", async () => {
+      const params: StandardRequest = {
+        filter: '{"phase":{"in":["ACTIVE","WAITING"]}}',
+      };
+
+      await repository.findAll(params);
+
+      const { params: passedParams } = callArgs();
+      // The repo is a pass-through for the JSON filter string — operator
+      // validation belongs to PrismaQueryService, not the repository.
+      expect(passedParams.filter).toBe(
+        '{"phase":{"in":["ACTIVE","WAITING"]}}',
+      );
+    });
+
+    it("preserves the `phase` filter (eq shorthand) through to executeQuery", async () => {
+      const params: StandardRequest = {
+        filter: '{"phase":"ACTIVE"}',
+      };
+
+      await repository.findAll(params);
+
+      const { params: passedParams } = callArgs();
+      expect(passedParams.filter).toBe('{"phase":"ACTIVE"}');
+    });
+
+    it("routes through PrismaQueryService.executeQuery against the studentWithPhase view with PrismaStudentMapper", async () => {
+      const params: StandardRequest = {};
+
+      await repository.findAll(params);
+
+      const { prismaArg, modelName, mapper } = callArgs();
+      expect(prismaArg).toBe(prisma);
+      expect(modelName).toBe("studentWithPhase");
+      expect(mapper).toBe(PrismaStudentMapper);
+    });
+  });
+
   describe("PrismaStudentMapper.toDomain (phase projection — AC-14, AC-15, AC-18..AC-23)", () => {
     // Co-located with the repository spec because the mapper is the seam
     // that converts view rows -> domain entity, and AC-14/AC-15/AC-18..AC-23
