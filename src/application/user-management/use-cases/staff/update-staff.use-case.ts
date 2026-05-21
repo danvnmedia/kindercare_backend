@@ -1,9 +1,11 @@
 import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { computeDiff } from "@/application/audit";
 import {
   Staff,
   UpdateStaffData,
 } from "@/domain/user-management/entities/staff.entity";
+import { User } from "@/domain/user-management/user.entity";
 import {
   BadRequestException,
   ConflictException,
@@ -52,7 +54,11 @@ export class UpdateStaffUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, input: UpdateStaffInput): Promise<Staff> {
+  async execute(
+    id: string,
+    input: UpdateStaffInput,
+    currentUser: User,
+  ): Promise<Staff> {
     this.logger.log(`Updating staff: ${id} in campus ${input.campusId}`);
 
     // Step 1: Find existing staff
@@ -118,11 +124,12 @@ export class UpdateStaffUseCase {
         input,
         clerkChanges,
         newDefaultRoleId,
+        currentUser,
       );
     }
 
     // Step 7: Otherwise, just update DB with transaction
-    return await this.updateDbOnly(staff, input, newDefaultRoleId);
+    return await this.updateDbOnly(staff, input, newDefaultRoleId, currentUser);
   }
 
   /**
@@ -162,6 +169,7 @@ export class UpdateStaffUseCase {
     input: UpdateStaffInput,
     clerkChanges: ClerkChanges,
     newDefaultRoleId: string | null,
+    currentUser: User,
   ): Promise<Staff> {
     // Get User to find clerkUid
     const user = await this.userRepository.findById(staff.userId!);
@@ -169,7 +177,12 @@ export class UpdateStaffUseCase {
       this.logger.warn(
         `User not found for staff ${staff.id}, falling back to DB-only update`,
       );
-      return await this.updateDbOnly(staff, input, newDefaultRoleId);
+      return await this.updateDbOnly(
+        staff,
+        input,
+        newDefaultRoleId,
+        currentUser,
+      );
     }
 
     // Store original values for potential rollback
@@ -204,7 +217,8 @@ export class UpdateStaffUseCase {
     }
 
     try {
-      // Update DB in transaction using UnitOfWork
+      // Snapshot before/after for the EDIT_STAFF_PROFILE audit diff.
+      const beforeAudit = pickStaffAuditFields(staff);
       staff.updateProfile(input);
 
       // Handle staffTypeId change
@@ -214,6 +228,9 @@ export class UpdateStaffUseCase {
       ) {
         staff.changeStaffType(input.staffTypeId);
       }
+
+      const afterAudit = pickStaffAuditFields(staff);
+      const diff = computeDiff(beforeAudit, afterAudit);
 
       const updatedStaff = await this.unitOfWork.run(async (tx) => {
         // Update staff in transaction
@@ -237,6 +254,19 @@ export class UpdateStaffUseCase {
           newDefaultRoleId
         ) {
           await this.assignDefaultRole(tx, staff, newDefaultRoleId);
+        }
+
+        if (Object.keys(diff.after).length > 0) {
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "EDIT_STAFF_PROFILE",
+            targetType: "staff",
+            targetId: staff.id,
+            campusId: staff.campusId,
+            context: { actorName: currentUser.profile?.fullName ?? null },
+            beforeValue: diff.before,
+            afterValue: diff.after,
+          });
         }
 
         this.logger.log(`Staff updated in DB: ${staff.id}`);
@@ -273,10 +303,13 @@ export class UpdateStaffUseCase {
     staff: Staff,
     input: UpdateStaffInput,
     newDefaultRoleId: string | null,
+    currentUser: User,
   ): Promise<Staff> {
     const oldStaffTypeId = staff.staffTypeId;
 
     try {
+      // Snapshot before/after for the EDIT_STAFF_PROFILE audit diff.
+      const beforeAudit = pickStaffAuditFields(staff);
       staff.updateProfile(input);
 
       // Handle staffTypeId change
@@ -286,6 +319,9 @@ export class UpdateStaffUseCase {
       ) {
         staff.changeStaffType(input.staffTypeId);
       }
+
+      const afterAudit = pickStaffAuditFields(staff);
+      const diff = computeDiff(beforeAudit, afterAudit);
 
       const updatedStaff = await this.unitOfWork.run(async (tx) => {
         // Update staff in transaction
@@ -309,6 +345,19 @@ export class UpdateStaffUseCase {
           newDefaultRoleId
         ) {
           await this.assignDefaultRole(tx, staff, newDefaultRoleId);
+        }
+
+        if (Object.keys(diff.after).length > 0) {
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "EDIT_STAFF_PROFILE",
+            targetType: "staff",
+            targetId: staff.id,
+            campusId: staff.campusId,
+            context: { actorName: currentUser.profile?.fullName ?? null },
+            beforeValue: diff.before,
+            afterValue: diff.after,
+          });
         }
 
         this.logger.log(`Staff updated (DB only): ${staff.id}`);
@@ -428,4 +477,17 @@ export class UpdateStaffUseCase {
       );
     }
   }
+}
+
+function pickStaffAuditFields(s: Staff) {
+  return {
+    fullName: s.fullName,
+    email: s.email,
+    phoneNumber: s.phoneNumber,
+    staffTypeId: s.staffTypeId,
+    address: s.address,
+    dateOfBirth: s.dateOfBirth,
+    gender: s.gender,
+    startDate: s.startDate,
+  };
 }

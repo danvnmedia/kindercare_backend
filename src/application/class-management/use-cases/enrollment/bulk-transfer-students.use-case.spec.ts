@@ -10,6 +10,9 @@ import { SchoolYear } from "@/domain/class-management/entities/school-year.entit
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { User } from "@/domain/user-management/user.entity";
+
+const stubActor = User.create({ clerkUid: "user_audit12345" });
 
 describe("BulkTransferStudentsUseCase", () => {
   let useCase: BulkTransferStudentsUseCase;
@@ -169,12 +172,15 @@ describe("BulkTransferStudentsUseCase", () => {
   describe("whole-call validation", () => {
     it("throws BATCH_EMPTY when students is empty (AC-18)", async () => {
       await expect(
-        useCase.execute({
-          campusId,
-          classId: targetClassId,
-          transferDate,
-          students: [],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId: targetClassId,
+            transferDate,
+            students: [],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(new BadRequestException("BATCH_EMPTY"));
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -189,12 +195,15 @@ describe("BulkTransferStudentsUseCase", () => {
       }));
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId: targetClassId,
-          transferDate,
-          students,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId: targetClassId,
+            transferDate,
+            students,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(new BadRequestException("BATCH_TOO_LARGE"));
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -205,16 +214,19 @@ describe("BulkTransferStudentsUseCase", () => {
 
     it("throws DUPLICATE_STUDENT_IN_BATCH when payload contains the same studentId twice (AC-18)", async () => {
       await expect(
-        useCase.execute({
-          campusId,
-          classId: targetClassId,
-          transferDate,
-          students: [
-            { studentId: "s-1" },
-            { studentId: "s-2" },
-            { studentId: "s-1" },
-          ],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId: targetClassId,
+            transferDate,
+            students: [
+              { studentId: "s-1" },
+              { studentId: "s-2" },
+              { studentId: "s-1" },
+            ],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(new BadRequestException("DUPLICATE_STUDENT_IN_BATCH"));
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -227,12 +239,15 @@ describe("BulkTransferStudentsUseCase", () => {
       mockClassRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId: targetClassId,
-          transferDate,
-          students: [{ studentId: "s-1" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId: targetClassId,
+            transferDate,
+            students: [{ studentId: "s-1" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         new NotFoundException(`Class with ID ${targetClassId} not found`),
       );
@@ -248,12 +263,15 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId: targetClassId,
-          transferDate,
-          students: [{ studentId: "s-1" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId: targetClassId,
+            transferDate,
+            students: [{ studentId: "s-1" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         new NotFoundException(`Class with ID ${targetClassId} not found`),
       );
@@ -278,12 +296,15 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId: targetClassId,
-          transferDate: new Date("2026-07-15T00:00:00.000Z"),
-          students: [{ studentId: "s-1" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId: targetClassId,
+            transferDate: new Date("2026-07-15T00:00:00.000Z"),
+            students: [{ studentId: "s-1" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR"),
       );
@@ -304,12 +325,15 @@ describe("BulkTransferStudentsUseCase", () => {
     it("pushes NO_ACTIVE_ENROLLMENT to skipped when student has no active enrollment", async () => {
       mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null);
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-1" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-1" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(0);
       expect(result.skipped).toEqual([
@@ -326,12 +350,15 @@ describe("BulkTransferStudentsUseCase", () => {
         createActiveEnrollment("s-mismatch", "class-Y1-B"),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-mismatch", fromClassId: "class-Y1-A" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-mismatch", fromClassId: "class-Y1-A" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(0);
       expect(result.skipped).toEqual([
@@ -344,12 +371,15 @@ describe("BulkTransferStudentsUseCase", () => {
         createActiveEnrollment("s-ok", "class-any-source"),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-ok" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-ok" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(1);
       expect(result.skipped).toHaveLength(0);
@@ -360,12 +390,15 @@ describe("BulkTransferStudentsUseCase", () => {
         createActiveEnrollment("s-same", targetClassId),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-same" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-same" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(0);
       expect(result.skipped).toEqual([
@@ -390,18 +423,21 @@ describe("BulkTransferStudentsUseCase", () => {
         async (id) => createActiveEnrollment(id),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: studentIds.map((studentId) => ({ studentId })),
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: studentIds.map((studentId) => ({ studentId })),
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(4);
       expect(result.skipped).toHaveLength(0);
-      expect(
-        mockEnrollmentRepository.transferEnrollment,
-      ).toHaveBeenCalledTimes(4);
+      expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(
+        4,
+      );
 
       // Every closed row carries the transfer date + TRANSFERRED reason.
       // Every opened row lands in the target class with endDate=null AND
@@ -430,26 +466,29 @@ describe("BulkTransferStudentsUseCase", () => {
         },
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [
-          { studentId: "s-ok-1" },
-          { studentId: "s-no-active" },
-          { studentId: "s-ok-2" },
-          { studentId: "s-already-target" },
-        ],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [
+            { studentId: "s-ok-1" },
+            { studentId: "s-no-active" },
+            { studentId: "s-ok-2" },
+            { studentId: "s-already-target" },
+          ],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(2);
       expect(result.skipped).toEqual([
         { studentId: "s-no-active", reason: "NO_ACTIVE_ENROLLMENT" },
         { studentId: "s-already-target", reason: "TRANSFER_SAME_CLASS" },
       ]);
-      expect(
-        mockEnrollmentRepository.transferEnrollment,
-      ).toHaveBeenCalledTimes(2);
+      expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(
+        2,
+      );
     });
 
     it("AC-16 per-row independence: row 5 DB error leaves rows 1-4 persisted and the loop continues", async () => {
@@ -470,12 +509,15 @@ describe("BulkTransferStudentsUseCase", () => {
         },
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: studentIds.map((studentId) => ({ studentId })),
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: studentIds.map((studentId) => ({ studentId })),
+        },
+        stubActor,
+      );
 
       // Rows 1-4 + row 6 persisted; row 5 in skipped[] with TRANSFER_FAILED.
       expect(result.transferred).toHaveLength(5);
@@ -486,9 +528,9 @@ describe("BulkTransferStudentsUseCase", () => {
         message: "Simulated DB rollback on row 5",
       });
       // Critically — the loop continued past the failure (called all 6 times).
-      expect(
-        mockEnrollmentRepository.transferEnrollment,
-      ).toHaveBeenCalledTimes(6);
+      expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(
+        6,
+      );
     });
 
     it("per-row note overrides batch note; omitted per-row note inherits batch note", async () => {
@@ -496,19 +538,21 @@ describe("BulkTransferStudentsUseCase", () => {
         async (id) => createActiveEnrollment(id),
       );
 
-      await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        note: "Batch note",
-        students: [
-          { studentId: "s-inherits" },
-          { studentId: "s-overrides", note: "Per-row note" },
-        ],
-      });
+      await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          note: "Batch note",
+          students: [
+            { studentId: "s-inherits" },
+            { studentId: "s-overrides", note: "Per-row note" },
+          ],
+        },
+        stubActor,
+      );
 
-      const calls =
-        mockEnrollmentRepository.transferEnrollment.mock.calls;
+      const calls = mockEnrollmentRepository.transferEnrollment.mock.calls;
       const [, openedInherits] = calls[0] as [Enrollment, Enrollment];
       const [, openedOverrides] = calls[1] as [Enrollment, Enrollment];
 
@@ -550,12 +594,15 @@ describe("BulkTransferStudentsUseCase", () => {
         ),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-pre" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-pre" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(0);
       expect(result.skipped).toEqual([
@@ -571,18 +618,21 @@ describe("BulkTransferStudentsUseCase", () => {
 
     it("AC-7 P2002 race: maps Prisma unique-constraint error to ENROLLMENT_ALREADY_EXISTS_ON_DATE and logs a warning", async () => {
       mockEnrollmentRepository.transferEnrollment.mockRejectedValue(
-        new Prisma.PrismaClientKnownRequestError(
-          "Unique constraint failed",
-          { code: "P2002", clientVersion: "test" },
-        ),
+        new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+          code: "P2002",
+          clientVersion: "test",
+        }),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-race" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-race" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(0);
       expect(result.skipped).toEqual([
@@ -600,12 +650,15 @@ describe("BulkTransferStudentsUseCase", () => {
         new Error("boom"),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-fail" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-fail" }],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(0);
       expect(result.skipped).toEqual([
@@ -653,16 +706,19 @@ describe("BulkTransferStudentsUseCase", () => {
         },
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [
-          { studentId: "s-ok-1" },
-          { studentId: "s-wrong-grade" },
-          { studentId: "s-ok-2" },
-        ],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [
+            { studentId: "s-ok-1" },
+            { studentId: "s-wrong-grade" },
+            { studentId: "s-ok-2" },
+          ],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(2);
       expect(result.skipped).toEqual([
@@ -672,9 +728,9 @@ describe("BulkTransferStudentsUseCase", () => {
         },
       ]);
       // transferEnrollment fired exactly twice — once per survivor.
-      expect(
-        mockEnrollmentRepository.transferEnrollment,
-      ).toHaveBeenCalledTimes(2);
+      expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(
+        2,
+      );
     });
 
     it("pushes NO_SCHOOL_YEAR_ENROLLMENT to skipped[] when parent is missing (data-integrity degrade) — survivors transfer", async () => {
@@ -687,16 +743,19 @@ describe("BulkTransferStudentsUseCase", () => {
         },
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [
-          { studentId: "s-ok-1" },
-          { studentId: "s-no-parent" },
-          { studentId: "s-ok-2" },
-        ],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [
+            { studentId: "s-ok-1" },
+            { studentId: "s-no-parent" },
+            { studentId: "s-ok-2" },
+          ],
+        },
+        stubActor,
+      );
 
       expect(result.transferred).toHaveLength(2);
       expect(result.skipped).toEqual([
@@ -707,21 +766,23 @@ describe("BulkTransferStudentsUseCase", () => {
       ]);
       // Warning logged for the data-integrity row.
       expect(warnSpy).toHaveBeenCalled();
-      expect(
-        mockEnrollmentRepository.transferEnrollment,
-      ).toHaveBeenCalledTimes(2);
+      expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(
+        2,
+      );
     });
 
     it("resolves each row's parent against the *target* class's schoolYearId (D3)", async () => {
-      await useCase.execute({
-        campusId,
-        classId: targetClassId,
-        transferDate,
-        students: [{ studentId: "s-1" }, { studentId: "s-2" }],
-      });
+      await useCase.execute(
+        {
+          campusId,
+          classId: targetClassId,
+          transferDate,
+          students: [{ studentId: "s-1" }, { studentId: "s-2" }],
+        },
+        stubActor,
+      );
 
-      const calls =
-        mockSyeRepository.findOpenByStudentAndSchoolYear.mock.calls;
+      const calls = mockSyeRepository.findOpenByStudentAndSchoolYear.mock.calls;
       expect(calls).toHaveLength(2);
       expect(calls[0]).toEqual(["s-1", targetSchoolYearId]);
       expect(calls[1]).toEqual(["s-2", targetSchoolYearId]);

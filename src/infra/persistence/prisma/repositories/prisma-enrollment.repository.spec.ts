@@ -325,13 +325,13 @@ describe("PrismaEnrollmentRepository", () => {
       const closed = buildClosed();
       const opened = buildOpened();
 
-      txDelegate.update.mockResolvedValue(
-        prismaRowFactory({ id: closed.id }),
-      );
+      txDelegate.update.mockResolvedValue(prismaRowFactory({ id: closed.id }));
       // Force the second op to fail — this is what triggers the rollback in
       // real Prisma. The test asserts the error propagates out unchanged AND
       // that no writes leaked outside the $transaction wrapper.
-      txDelegate.create.mockRejectedValue(new Error("FK violation: gradeLevel"));
+      txDelegate.create.mockRejectedValue(
+        new Error("FK violation: gradeLevel"),
+      );
 
       prisma.$transaction.mockImplementation(async (work) =>
         work({ enrollment: txDelegate }),

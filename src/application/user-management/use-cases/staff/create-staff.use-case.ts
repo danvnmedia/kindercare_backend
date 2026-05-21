@@ -2,6 +2,7 @@ import { IdentityPort } from "@/application/ports/identity.port";
 import { StaffCodeGeneratorPort } from "@/application/ports/staff-code-generator.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   BadRequestException,
@@ -46,7 +47,7 @@ export class CreateStaffUseCase {
     private readonly staffCodeGenerator: StaffCodeGeneratorPort,
   ) {}
 
-  async execute(input: CreateStaffInput): Promise<Staff> {
+  async execute(input: CreateStaffInput, currentUser: User): Promise<Staff> {
     this.logger.log(
       `Creating staff: ${input.fullName} in campus ${input.campusId}`,
     );
@@ -146,6 +147,19 @@ export class CreateStaffUseCase {
             `Auto-assigned default role ${defaultRoleId} to user ${user.id} in campus ${input.campusId}`,
           );
         }
+
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "CREATE_STAFF",
+          targetType: "staff",
+          targetId: staffEntity.id,
+          campusId: staffEntity.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            name: staffEntity.fullName,
+            code: staffEntity.staffCode,
+          },
+        });
 
         return staffEntity;
       });

@@ -9,10 +9,13 @@ import {
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { InvalidEndDateException } from "@/domain/class-management/exceptions/invalid-end-date.exception";
+import { User } from "@/domain/user-management/user.entity";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
 
 export interface TransferStudentInput {
   studentId: string;
@@ -39,9 +42,14 @@ export class TransferStudentUseCase {
     private readonly classRepository: ClassRepository,
     @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
     private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
+    private readonly transactionRunner: TransactionRunnerPort,
+    private readonly recorder: AuditEventRecorderPort,
   ) {}
 
-  async execute(input: TransferStudentInput): Promise<TransferStudentResult> {
+  async execute(
+    input: TransferStudentInput,
+    currentUser: User,
+  ): Promise<TransferStudentResult> {
     const transferDate = input.transferDate ?? new Date();
     this.logger.log(
       `Transferring student ${input.studentId} to class ${input.toClassId} on ${transferDate.toISOString()}`,
@@ -51,9 +59,7 @@ export class TransferStudentUseCase {
     // to hide existence, matching the withdraw convention (spec AC-13).
     const targetClass = await this.classRepository.findById(input.toClassId);
     if (!targetClass || targetClass.campusId !== input.campusId) {
-      throw new NotFoundException(
-        `Class with ID ${input.toClassId} not found`,
-      );
+      throw new NotFoundException(`Class with ID ${input.toClassId} not found`);
     }
 
     // Step 2: Resolve student's active enrollment.
@@ -139,12 +145,35 @@ export class TransferStudentUseCase {
       note: input.note ?? null,
     });
 
-    // Step 9: Persist atomically — close + open inside a single DB transaction.
-    // Either both succeed or both roll back (spec AC-20).
-    const persisted = await this.enrollmentRepository.transferEnrollment(
-      closed,
-      opened,
-    );
+    // Step 9: Persist + emit audit atomically. close + open + audit row land
+    // inside one DB transaction. Either all succeed or all roll back
+    // (spec AC-20 + @doc/specs/admin-audit-log D4 + Scenario 1).
+    const persisted = await this.transactionRunner.run(async (tx) => {
+      const result = await this.enrollmentRepository.transferEnrollment(
+        closed,
+        opened,
+        tx,
+      );
+      await this.recorder.record(
+        {
+          actorId: currentUser.id,
+          action: "TRANSFER_STUDENT",
+          targetType: "student",
+          targetId: input.studentId,
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            fromClassId: active.classId,
+            fromClassName: active.class?.name ?? null,
+            toClassId: input.toClassId,
+            toClassName: targetClass.name,
+            transferDate: transferDate.toISOString(),
+          },
+        },
+        tx,
+      );
+      return result;
+    });
     this.logger.log(
       `Transfer complete: closed=${persisted.closed.id} opened=${persisted.opened.id}`,
     );

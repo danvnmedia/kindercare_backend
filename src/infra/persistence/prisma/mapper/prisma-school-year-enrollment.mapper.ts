@@ -47,9 +47,7 @@ export class PrismaSchoolYearEnrollmentMapper {
     return SchoolYearEnrollment.create(props, row.id);
   }
 
-  static toDomainSimple(
-    row: PrismaSchoolYearEnrollment,
-  ): SchoolYearEnrollment {
+  static toDomainSimple(row: PrismaSchoolYearEnrollment): SchoolYearEnrollment {
     return SchoolYearEnrollment.create(
       {
         studentId: row.studentId,

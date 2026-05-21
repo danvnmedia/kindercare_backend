@@ -44,6 +44,65 @@ These fields use `onDelete: SetNull` for optional ones and `onDelete: Restrict` 
 
 > Use case methods take the actor as `currentUser: User` and pass `currentUser.id` into the audit field. Don't read the actor from `RequestContext` inside the use case — the controller is the boundary that injects it explicitly.
 
+## Actor Plumbing for Admin Audit Log
+
+The repository ships a single audit-log substrate driven by @doc/specs/admin-audit-log. Every mutation use case in the 19-action vocabulary (FR-1 of the spec) accepts `currentUser: User` as the last positional argument on `execute()`. The use case body does not consume it directly today — the audit-recorder service wired in subsequent tasks (`9cpd5c`, `nrm0az`, `e5v0wm`, `2c5xq3`, `7ah3pb`) reads `currentUser.id` and emits one `audit_event` row per action inside the same DB transaction.
+
+**Established by:** @task-qyz3jv (actor-context-plumbing).
+
+**Pattern at the boundary:**
+
+```typescript
+// controller — extracts the actor and threads it
+async create(
+  @CampusContext() campusId: string,
+  @Body() dto: CreateStudentRequest,
+  @CurrentUser() currentUser: User,
+) {
+  return this.createStudentUseCase.execute({ ...dto, campusId }, currentUser);
+}
+
+// use case — accepts the actor but does not consume yet
+async execute(
+  input: CreateStudentInput,
+  currentUser: User,
+): Promise<Student> {
+  void currentUser; // audit recorder wiring lands in the audit-log task
+  // ... existing logic
+}
+```
+
+**Why `@CurrentUser()` works:** the decorator returns `request.user`, populated lazily by `RequestContext.getUser()`. Every in-scope route is decorated with `@RequireCampusAccess()` (which triggers `CampusGuard.canActivate()` → `requestContext.getUser()`), so by the time the param decorator fires, `request.user` already holds the full `User` domain entity. For controller methods *without* a downstream guard that triggers `RequestContext.getUser()`, call `this.requestContext.getUserOrFail()` directly.
+
+**In-scope use cases (per `specs/admin-audit-log` FR-1):**
+
+| Group | Use case | Action |
+|---|---|---|
+| Enrollment lifecycle | `enroll-student.use-case` | `ENROLL_STUDENT_TO_CLASS` |
+| | `transfer-student.use-case` | `TRANSFER_STUDENT` |
+| | `withdraw-student.use-case` | `WITHDRAW_FROM_CLASS` |
+| | `register-for-school-year.use-case` | `REGISTER_FOR_SCHOOL_YEAR` |
+| | `withdraw-from-school.use-case` | `WITHDRAW_FROM_SCHOOL_YEAR` |
+| | `bulk-enroll-students.use-case` | per-row `ENROLL_STUDENT_TO_CLASS` |
+| | `bulk-transfer-students.use-case` | per-row `TRANSFER_STUDENT` |
+| Profile edits | `update-student.use-case` | `EDIT_STUDENT_PROFILE` |
+| | `update-guardian.use-case` | `EDIT_GUARDIAN_PROFILE` |
+| | `update-staff.use-case` | `EDIT_STAFF_PROFILE` |
+| Archive / restore | `archive-student.use-case` | `ARCHIVE_STUDENT` |
+| | `restore-student.use-case` | `RESTORE_STUDENT` |
+| | `archive-guardian.use-case` | `ARCHIVE_GUARDIAN` |
+| | `restore-guardian.use-case` | `RESTORE_GUARDIAN` |
+| | `archive-staff.use-case` | `ARCHIVE_STAFF` |
+| | `restore-staff.use-case` | `RESTORE_STAFF` |
+| Creation | `create-student.use-case` | `CREATE_STUDENT` |
+| | `create-guardian.use-case` | `CREATE_GUARDIAN` |
+| | `create-staff.use-case` | `CREATE_STAFF` |
+| Guardian ↔ Student | `link-student-with-guardian.use-case` (student-keyed) | `LINK_GUARDIAN_TO_STUDENT` |
+| | `link-student-to-guardian.use-case` (guardian-keyed) | `LINK_GUARDIAN_TO_STUDENT` |
+| | `unlink-student-from-guardian.use-case` (both controllers) | `UNLINK_GUARDIAN_FROM_STUDENT` |
+
+**Out of scope:** attendance, role/permission management, grade-level / school-year / class CRUD, category reorder. Adding these would expand the action vocabulary in @doc/specs/admin-audit-log and is tracked as a separate work item.
+
 ## Soft Delete: `isArchived` (Recoverable)
 
 The default for **operational entities** that may be re-activated.

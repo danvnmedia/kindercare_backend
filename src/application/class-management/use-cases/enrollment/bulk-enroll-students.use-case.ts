@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { ClassRepository } from "../../ports/class.repository";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
@@ -66,7 +67,13 @@ export class BulkEnrollStudentsUseCase {
 
   async execute(
     input: BulkEnrollStudentsInput,
+    currentUser: User,
   ): Promise<BulkEnrollStudentsResult> {
+    // currentUser is the acting admin, plumbed by `student-enrollment.controller`
+    // for audit-log emission (@task-qyz3jv, @doc/specs/admin-audit-log FR-3).
+    // Each persisted row in this batch will emit one ENROLL_STUDENT_TO_CLASS
+    // audit event when @task-nrm0az wires the recorder.
+    void currentUser;
     this.logger.log(
       `Bulk enroll: classId=${input.classId} campusId=${input.campusId} count=${input.students.length}`,
     );
@@ -170,8 +177,7 @@ export class BulkEnrollStudentsUseCase {
       // Per-row note overrides batch note when set; an undefined per-row
       // note inherits the batch-level note. `!== undefined` lets an explicit
       // empty string per-row still override the batch.
-      const note =
-        row.note !== undefined ? row.note : (input.note ?? null);
+      const note = row.note !== undefined ? row.note : (input.note ?? null);
 
       toEnroll.push(
         Enrollment.create({

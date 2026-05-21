@@ -1,6 +1,6 @@
 ---
 title: School Year Enrollment Frontend Handoff
-description: 'Backend-authored handoff for the frontend team covering the SchoolYearEnrollment parent-row model shipped in @doc/specs/school-year-enrollment-model. Documents new endpoints, behavioral changes to existing endpoints, error codes, and UX flow implications. Reserved section at the bottom for the upcoming student-status-simplification append.'
+description: 'Backend-authored handoff for the frontend team covering the SchoolYearEnrollment parent-row model shipped in @doc/specs/school-year-enrollment-model and the Student Status Simplification cutover shipped in @doc/specs/student-status-simplification. Documents new endpoints, behavioral changes to existing endpoints, error codes, UX flow implications, and the phase-derivation contract.'
 createdAt: '2026-05-16T01:38:09.440Z'
 updatedAt: '2026-05-16T01:38:09.440Z'
 tags:
@@ -17,8 +17,6 @@ This doc is for the **frontend team**. It summarizes what shipped in the backend
 
 Source of truth: @doc/specs/school-year-enrollment-model. This doc is a digested, action-oriented view of that spec — when in doubt, follow the spec.
 
-The "Student Status Simplification" section at the bottom is intentionally a placeholder; it will be filled in once @doc/specs/student-status-simplification ships.
-
 ## TL;DR
 
 1. **New parent row**: `SchoolYearEnrollment` (SYE) anchors a student to a `(schoolYear, gradeLevel)` pair. Class enrollments (`Enrollment`) are now its children.
@@ -26,6 +24,7 @@ The "Student Status Simplification" section at the bottom is intentionally a pla
 3. **Three new endpoints**: register for school year, withdraw from school (atomic cascade), get student's SY history.
 4. **Existing enroll / transfer endpoints now reject** when the SYE parent is missing or its `gradeLevelId` doesn't match the target class.
 5. **New error codes** (see table below) — frontend must translate them in form errors and toasts.
+6. **`Student.status` is gone** (D8 hard cutover, shipped 2026-05-16). `StudentResponse` now exposes derived `phase` + orthogonal `isArchived`. `includeStatuses` query param dropped from `/eligible-students` (D9). See the **Student Status Simplification** section at the bottom — the frontend must ship in lockstep with the backend deploy.
 
 ## Mental Model
 
@@ -196,14 +195,69 @@ Every new and changed endpoint:
 - **Q2** — Should the academic-history endpoint include closed *child* enrollments inline (currently only `childEnrollmentCount` is returned)? If yes, file a backend follow-up to expand the response shape.
 - **Q3** — Confirm the frontend's existing toast/form-error infrastructure can render arbitrary `code` strings, not just status codes. If not, we can pre-translate at a gateway layer.
 
-## Student Status Simplification (Pending)
+## Student Status Simplification
 
-> **Reserved for append.** Once @doc/specs/student-status-simplification ships, this section will document:
-> - Removal of `Student.status` field from request/response shapes
-> - New `phase` derived field on `StudentResponse`
-> - `isArchived` orthogonal overlay
-> - `includeStatuses` query param dropped from eligible-students endpoint
-> - Phase taxonomy (ACTIVE / WAITING / DEFERRED / GRADUATED / WITHDRAWN) and how to render each
-> - Migration timing for the frontend cutover
+Shipped 2026-05-16 (commit `ef9dd52`, spec @doc/specs/student-status-simplification). **D8 hard cutover** — `Student.status` is gone from the database, the DTO surface, and the codebase entirely. There is no backward-compat shim. The frontend must update before pulling these backend changes, or every student request will fail validation.
 
-Section placeholder — do not delete; it gets filled in as part of the student-status-simplification work.
+### What changed
+
+1. **`Student.status` is removed.** Drop every reference: form fields, filter pickers, badges, role-based visibility checks, mocks, fixtures.
+2. **`StudentResponse` exposes two new fields:**
+   - `phase: "WAITING" | "ACTIVE" | "DEFERRED" | "GRADUATED" | "WITHDRAWN" | null` — derived server-side from `Enrollment` + `SchoolYearEnrollment` + `isArchived` via the `student_with_phase` Postgres view. Read-only; there is no setter. `null` only appears on write-path read-back (POST/PATCH return raw `student` rows that don't carry phase) — re-fetch via GET to populate.
+   - `isArchived: boolean` — orthogonal overlay. An archived student still carries the underlying derived phase; render both, don't replace one with the other.
+3. **`CreateStudentRequest` / `UpdateStudentRequest`: `status` field removed.** Sending it now gets a `400` (global `whitelist + forbidNonWhitelisted` validation pipe).
+4. **`GET /classes/:classId/eligible-students`: `includeStatuses` query param removed (D9).** Sending it now gets a `400`. Server-side eligibility is `campusId match AND isArchived=false AND no open Enrollment`. Phase narrowing is purely a client concern.
+
+### Wire shape diff
+
+```diff
+ {
+   "id": "uuid",
+   "campusId": "uuid",
+   "studentCode": "2025-000001",
+   "fullName": "Nguyễn Văn A",
+-  "status": "ACTIVE",
++  "phase": "ACTIVE",
+   "isArchived": false,
+   ...
+ }
+```
+
+### Phase taxonomy
+
+| Phase | Means | Suggested badge |
+|---|---|---|
+| `ACTIVE` | Student has an open `Enrollment` (currently in a class) | green |
+| `WAITING` | Registered, no open `Enrollment` and no open `SchoolYearEnrollment` | gray |
+| `DEFERRED` | Open `SchoolYearEnrollment` in a future school year (pre-registered, school year hasn't started yet) | blue |
+| `GRADUATED` | Latest closed `SchoolYearEnrollment.exitReason = GRADUATED`, no current open enrollment | gold |
+| `WITHDRAWN` | Latest closed `SchoolYearEnrollment.exitReason = WITHDRAWN`, no current open enrollment | red |
+| `null` | Write-path read-back (immediately after POST/PATCH). Fall back to "Pending" or re-fetch via GET to resolve. | neutral |
+
+`isArchived=true` is independent — render it as a separate badge ("Archived") that sits alongside whichever phase the student carries. An archived student with an open Enrollment still carries `phase=ACTIVE`.
+
+### Eligible-students contract (post-D9)
+
+```
+GET /classes/:classId/eligible-students
+  ?search=<name fragment>
+  &page=<n>&limit=<n>
+  &sort=<field:dir>
+```
+
+Response is still paginated `StudentResponse[]` — now carrying `phase` + `isArchived` per row, so the bulk-enrollment wizard can render lifecycle indicators per row without a second fetch. Every returned row has no open `Enrollment` (by definition of eligibility), so its phase will always be one of `WAITING`, `DEFERRED`, `GRADUATED`, or `WITHDRAWN` (never `ACTIVE`). If a client wants to narrow further (e.g. show only `WAITING` + `DEFERRED`), filter client-side.
+
+### Frontend migration checklist
+
+1. Remove `status` from every `Student`-related TypeScript type, Zod schema, form field, filter picker, and badge.
+2. Add `phase` (typed as the literal-string union above) and `isArchived` to the same types.
+3. Drop the `includeStatuses` argument from the eligible-students hook / service.
+4. Replace any status-derived UI (badges, filters, lifecycle states) with phase-derived UI per the taxonomy table above. The archive overlay is independent.
+5. Audit any place the FE was *setting* `status` on a create/update request — those calls now `400`. The new model is read-only; lifecycle changes happen implicitly through enrollment + SYE actions (register, enroll, transfer, withdraw, archive).
+6. Once the backend deploy lands, ship the FE in lockstep — there is no compatibility window.
+
+### Migration timing
+
+- **Backend deploy**: per the cutover PR merging into main. No feature flag — migration `20260515130000_drop_student_status_add_phase_view` drops the column and creates the `student_with_phase` view in a single transaction.
+- **Frontend deploy**: must land within the same rollout window. Before backend deploy, FE should be code-complete and ready to ship.
+- **Fallback**: if the FE cannot ship in lockstep, back out the backend cutover by reverting the merge commit (the down migration restores the column). Do not try to patch the FE on top of a broken `/students` response — every list call will fail.

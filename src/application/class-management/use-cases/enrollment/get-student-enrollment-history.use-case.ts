@@ -19,7 +19,9 @@ export class GetStudentEnrollmentHistoryUseCase {
     private readonly studentRepository: StudentRepository,
   ) {}
 
-  async execute(input: GetStudentEnrollmentHistoryInput): Promise<Enrollment[]> {
+  async execute(
+    input: GetStudentEnrollmentHistoryInput,
+  ): Promise<Enrollment[]> {
     this.logger.log(
       `Fetching enrollment history for student ${input.studentId}`,
     );

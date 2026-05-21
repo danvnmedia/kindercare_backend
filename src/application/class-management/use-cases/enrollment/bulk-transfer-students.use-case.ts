@@ -9,6 +9,7 @@ import { Prisma } from "@prisma/client";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { InvalidEndDateException } from "@/domain/class-management/exceptions/invalid-end-date.exception";
+import { User } from "@/domain/user-management/user.entity";
 import { ClassRepository } from "../../ports/class.repository";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
@@ -76,7 +77,13 @@ export class BulkTransferStudentsUseCase {
 
   async execute(
     input: BulkTransferStudentsInput,
+    currentUser: User,
   ): Promise<BulkTransferStudentsResult> {
+    // currentUser is the acting admin, plumbed by `student-enrollment.controller`
+    // for audit-log emission (@task-qyz3jv, @doc/specs/admin-audit-log FR-3).
+    // Each persisted pair in this batch will emit one TRANSFER_STUDENT audit
+    // event when @task-nrm0az wires the recorder.
+    void currentUser;
     this.logger.log(
       `Bulk transfer: classId=${input.classId} campusId=${input.campusId} count=${input.students.length}`,
     );
@@ -148,11 +155,12 @@ export class BulkTransferStudentsUseCase {
       // wasted withdraw() + INSERT work. The P2002 branch in the catch below
       // is the race-condition safety net for the case where another
       // transaction inserts in the window between this lookup and the write.
-      const existingOnDate = await this.enrollmentRepository.findByStudentClassDate(
-        row.studentId,
-        input.classId,
-        input.transferDate,
-      );
+      const existingOnDate =
+        await this.enrollmentRepository.findByStudentClassDate(
+          row.studentId,
+          input.classId,
+          input.transferDate,
+        );
       if (existingOnDate) {
         skipped.push({
           studentId: row.studentId,
@@ -197,8 +205,7 @@ export class BulkTransferStudentsUseCase {
       // Per-row note overrides batch note when set; an undefined per-row
       // note inherits the batch-level note. `!== undefined` lets an explicit
       // empty string per-row still override the batch.
-      const note =
-        row.note !== undefined ? row.note : (input.note ?? null);
+      const note = row.note !== undefined ? row.note : (input.note ?? null);
 
       // Build the closed enrollment. Reuses domain invariants:
       // endDate >= enrollmentDate AND endDate <= today.
@@ -257,8 +264,7 @@ export class BulkTransferStudentsUseCase {
           });
           continue;
         }
-        const message =
-          error instanceof Error ? error.message : String(error);
+        const message = error instanceof Error ? error.message : String(error);
         this.logger.warn(
           `Bulk transfer row failed: classId=${input.classId} studentId=${row.studentId} — ${message}`,
         );

@@ -21,12 +21,14 @@ import {
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../../decorators";
 
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { User } from "@/domain/user-management/user.entity";
 import {
   CreateGuardianRequest,
   GuardianResponse,
@@ -87,18 +89,22 @@ export class GuardianController {
   async create(
     @CampusContext() campusId: string,
     @Body() dto: CreateGuardianRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.createGuardianUseCase.execute({
-      campusId,
-      fullName: dto.fullName,
-      dateOfBirth: dto.dateOfBirth,
-      email: dto.email,
-      phoneNumber: dto.phoneNumber,
-      occupation: dto.occupation,
-      workAddress: dto.workAddress,
-      address: dto.address,
-      gender: dto.gender as Gender,
-    });
+    return await this.createGuardianUseCase.execute(
+      {
+        campusId,
+        fullName: dto.fullName,
+        dateOfBirth: dto.dateOfBirth,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        occupation: dto.occupation,
+        workAddress: dto.workAddress,
+        address: dto.address,
+        gender: dto.gender as Gender,
+      },
+      currentUser,
+    );
   }
 
   @Get()
@@ -170,11 +176,16 @@ export class GuardianController {
     @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() dto: UpdateGuardianRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.updateGuardianUseCase.execute(id, {
-      ...dto,
-      gender: dto.gender as Gender,
-    });
+    return await this.updateGuardianUseCase.execute(
+      id,
+      {
+        ...dto,
+        gender: dto.gender as Gender,
+      },
+      currentUser,
+    );
   }
 
   @Delete(":id")
@@ -194,8 +205,12 @@ export class GuardianController {
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async archive(@CampusContext() campusId: string, @Param("id") id: string) {
-    return await this.archiveGuardianUseCase.execute(id, campusId);
+  async archive(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.archiveGuardianUseCase.execute(id, campusId, currentUser);
   }
 
   @Patch(":id/restore")
@@ -215,8 +230,12 @@ export class GuardianController {
     required: true,
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async restore(@CampusContext() campusId: string, @Param("id") id: string) {
-    return await this.restoreGuardianUseCase.execute(id, campusId);
+  async restore(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.restoreGuardianUseCase.execute(id, campusId, currentUser);
   }
 
   // ========== Guardian-Student Relationship Endpoints ==========
@@ -248,12 +267,16 @@ export class GuardianController {
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) guardianId: string,
     @Body() dto: LinkGuardianStudentRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.linkStudentToGuardianUseCase.execute({
-      guardianId,
-      studentId: dto.studentId,
-      relationshipId: dto.relationshipId,
-    });
+    return await this.linkStudentToGuardianUseCase.execute(
+      {
+        guardianId,
+        studentId: dto.studentId,
+        relationshipId: dto.relationshipId,
+      },
+      currentUser,
+    );
   }
 
   @Delete(":id/students/:studentId")
@@ -288,11 +311,15 @@ export class GuardianController {
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) guardianId: string,
     @Param("studentId", ParseUUIDPipe) studentId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    await this.unlinkStudentFromGuardianUseCase.execute({
-      guardianId,
-      studentId,
-    });
+    await this.unlinkStudentFromGuardianUseCase.execute(
+      {
+        guardianId,
+        studentId,
+      },
+      currentUser,
+    );
     return null;
   }
 

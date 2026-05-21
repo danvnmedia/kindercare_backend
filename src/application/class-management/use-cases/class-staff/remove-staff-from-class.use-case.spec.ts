@@ -100,7 +100,9 @@ describe("RemoveStaffFromClassUseCase", () => {
         useCase.execute({ campusId, classId, staffId, subjectId }),
       ).rejects.toThrow(`Class with ID ${classId} not found`);
 
-      expect(mockClassStaffRepository.findByCompositeKey).not.toHaveBeenCalled();
+      expect(
+        mockClassStaffRepository.findByCompositeKey,
+      ).not.toHaveBeenCalled();
       expect(mockClassStaffRepository.delete).not.toHaveBeenCalled();
     });
 
@@ -117,7 +119,9 @@ describe("RemoveStaffFromClassUseCase", () => {
         useCase.execute({ campusId, classId, staffId, subjectId }),
       ).rejects.toThrow("Class does not belong to this campus");
 
-      expect(mockClassStaffRepository.findByCompositeKey).not.toHaveBeenCalled();
+      expect(
+        mockClassStaffRepository.findByCompositeKey,
+      ).not.toHaveBeenCalled();
       expect(mockClassStaffRepository.delete).not.toHaveBeenCalled();
     });
   });
@@ -135,7 +139,9 @@ describe("RemoveStaffFromClassUseCase", () => {
 
       await expect(
         useCase.execute({ campusId, classId, staffId, subjectId }),
-      ).rejects.toThrow("Staff assignment not found for this class and subject");
+      ).rejects.toThrow(
+        "Staff assignment not found for this class and subject",
+      );
 
       expect(mockClassStaffRepository.delete).not.toHaveBeenCalled();
     });

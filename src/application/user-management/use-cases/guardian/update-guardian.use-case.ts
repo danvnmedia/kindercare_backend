@@ -1,9 +1,11 @@
 import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { computeDiff } from "@/application/audit";
 import {
   Guardian,
   UpdateGuardianData,
 } from "@/domain/user-management/entities/guardian.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   BadRequestException,
@@ -53,7 +55,11 @@ export class UpdateGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, input: UpdateGuardianInput): Promise<Guardian> {
+  async execute(
+    id: string,
+    input: UpdateGuardianInput,
+    currentUser: User,
+  ): Promise<Guardian> {
     this.logger.log(`Updating guardian: ${id}`);
 
     // Step 1: Find existing guardian
@@ -75,11 +81,16 @@ export class UpdateGuardianUseCase {
 
     // Step 4: If has User account AND has Clerk changes → Saga pattern
     if (guardian.userId && clerkChanges.hasChanges) {
-      return await this.updateWithClerkSync(guardian, input, clerkChanges);
+      return await this.updateWithClerkSync(
+        guardian,
+        input,
+        clerkChanges,
+        currentUser,
+      );
     }
 
     // Step 5: Otherwise, just update DB
-    return await this.updateDbOnly(guardian, input);
+    return await this.updateDbOnly(guardian, input, currentUser);
   }
 
   /**
@@ -118,6 +129,7 @@ export class UpdateGuardianUseCase {
     guardian: Guardian,
     input: UpdateGuardianInput,
     clerkChanges: ClerkChanges,
+    currentUser: User,
   ): Promise<Guardian> {
     // Get User to find clerkUid
     const user = await this.userRepository.findById(guardian.userId!);
@@ -125,7 +137,7 @@ export class UpdateGuardianUseCase {
       this.logger.warn(
         `User not found for guardian ${guardian.id}, falling back to DB-only update`,
       );
-      return await this.updateDbOnly(guardian, input);
+      return await this.updateDbOnly(guardian, input, currentUser);
     }
 
     // Store original values for potential rollback
@@ -158,9 +170,13 @@ export class UpdateGuardianUseCase {
     }
 
     try {
-      // Update DB in transaction using UnitOfWork
+      // Snapshot before/after for the EDIT_GUARDIAN_PROFILE audit diff
+      // (Scenario 3 — only changed fields land in before/after_value).
+      const beforeAudit = pickGuardianAuditFields(guardian);
       const updateData = this.prepareUpdateData(input);
       guardian.updateProfile(updateData);
+      const afterAudit = pickGuardianAuditFields(guardian);
+      const diff = computeDiff(beforeAudit, afterAudit);
 
       const updatedGuardian = await this.unitOfWork.run(async (tx) => {
         await tx.updateGuardian(guardian.id, {
@@ -175,6 +191,19 @@ export class UpdateGuardianUseCase {
           isArchived: guardian.isArchived,
           updatedAt: guardian.updatedAt,
         });
+
+        if (Object.keys(diff.after).length > 0) {
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "EDIT_GUARDIAN_PROFILE",
+            targetType: "guardian",
+            targetId: guardian.id,
+            campusId: guardian.campusId,
+            context: { actorName: currentUser.profile?.fullName ?? null },
+            beforeValue: diff.before,
+            afterValue: diff.after,
+          });
+        }
 
         this.logger.log(`Guardian updated in DB: ${guardian.id}`);
         return guardian;
@@ -204,19 +233,56 @@ export class UpdateGuardianUseCase {
   }
 
   /**
-   * Update DB only (no Clerk sync needed)
+   * Update DB only (no Clerk sync needed).
+   *
+   * Persists through `unitOfWork.run` to align with the unified UoW convention
+   * (@doc/patterns/unit-of-work-pattern). This sets up the world @task-e5v0wm
+   * assumes: every profile-edit mutation participates in a transaction so the
+   * audit `tx.recordAudit` emit can join the same boundary (D4 same-tx).
    */
   private async updateDbOnly(
     guardian: Guardian,
     input: UpdateGuardianInput,
+    currentUser: User,
   ): Promise<Guardian> {
     try {
+      // Snapshot before/after for the EDIT_GUARDIAN_PROFILE audit diff.
+      const beforeAudit = pickGuardianAuditFields(guardian);
       const updateData = this.prepareUpdateData(input);
       guardian.updateProfile(updateData);
+      const afterAudit = pickGuardianAuditFields(guardian);
+      const diff = computeDiff(beforeAudit, afterAudit);
 
-      const updatedGuardian = await this.guardianRepository.update(guardian);
+      await this.unitOfWork.run(async (tx) => {
+        await tx.updateGuardian(guardian.id, {
+          fullName: guardian.fullName,
+          email: guardian.email,
+          phoneNumber: guardian.phoneNumber,
+          address: guardian.address,
+          dateOfBirth: guardian.dateOfBirth,
+          gender: guardian.gender,
+          occupation: guardian.occupation,
+          workAddress: guardian.workAddress,
+          isArchived: guardian.isArchived,
+          updatedAt: guardian.updatedAt,
+        });
+
+        if (Object.keys(diff.after).length > 0) {
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "EDIT_GUARDIAN_PROFILE",
+            targetType: "guardian",
+            targetId: guardian.id,
+            campusId: guardian.campusId,
+            context: { actorName: currentUser.profile?.fullName ?? null },
+            beforeValue: diff.before,
+            afterValue: diff.after,
+          });
+        }
+      });
+
       this.logger.log(`Guardian updated (DB only): ${guardian.id}`);
-      return updatedGuardian;
+      return guardian;
     } catch (error) {
       this.logger.error(
         `Failed to update guardian: ${error.message}`,
@@ -319,4 +385,17 @@ export class UpdateGuardianUseCase {
       );
     }
   }
+}
+
+function pickGuardianAuditFields(g: Guardian) {
+  return {
+    fullName: g.fullName,
+    email: g.email,
+    phoneNumber: g.phoneNumber,
+    address: g.address,
+    dateOfBirth: g.dateOfBirth,
+    gender: g.gender,
+    occupation: g.occupation,
+    workAddress: g.workAddress,
+  };
 }

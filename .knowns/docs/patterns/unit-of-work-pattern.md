@@ -2,7 +2,7 @@
 title: Unit of Work Pattern
 description: Transaction management via UnitOfWorkPort + TransactionContext, with modular per-domain TransactionOps classes
 createdAt: '2026-01-03T19:52:40.012Z'
-updatedAt: '2026-05-05T17:36:34.253Z'
+updatedAt: '2026-05-20T00:54:31.570Z'
 tags:
   - patterns
   - transaction
@@ -41,9 +41,11 @@ export interface TransactionContext {
   // Staff
   createStaff(data: { /* … */ }): Promise<{ id: string }>;
   updateStaff(id: string, data: { /* … */ }): Promise<{ id: string }>;
+
+  // Student
+  updateStudent(id: string, data: { /* … */ }): Promise<{ id: string }>;
 }
 ```
-
 ## Implementation: Modular Transaction Ops
 
 The Prisma implementation composes the `TransactionContext` from per-domain operation classes, each of which receives the active Prisma transaction client.
@@ -56,6 +58,7 @@ src/infra/persistence/prisma/unit-of-work/
 │   ├── user.transaction-ops.ts       # createUser, updateUser, assignRoles
 │   ├── guardian.transaction-ops.ts   # createGuardian, updateGuardian
 │   ├── staff.transaction-ops.ts      # createStaff, updateStaff
+│   ├── student.transaction-ops.ts    # updateStudent
 │   └── index.ts
 ```
 
@@ -75,11 +78,13 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const userOps = new UserTransactionOps(tx);
     const guardianOps = new GuardianTransactionOps(tx);
     const staffOps = new StaffTransactionOps(tx);
+    const studentOps = new StudentTransactionOps(tx);
 
     return {
       createUser: userOps.createUser.bind(userOps),
       assignRoles: userOps.assignRoles.bind(userOps),
       // …
+      updateStudent: studentOps.updateStudent.bind(studentOps),
     };
   }
 }
@@ -104,7 +109,6 @@ export class UserTransactionOps {
   }
 }
 ```
-
 ## Use in a Use Case
 
 ```typescript
@@ -139,12 +143,21 @@ The Clerk call sits **outside** the transaction because Prisma can't roll it bac
 
 | Scenario | UoW? |
 |----------|------|
-| Single-row create/update | No — use the repository directly |
+| Any mutation that emits audit / domain events | **Yes** — `tx` must wrap the mutation + the audit/event write |
 | Multi-row writes that must be atomic (User + Staff + UserRole) | Yes |
-| Read-only operations | No |
+| Read-only operations | No — use the repository directly |
 | External call + DB write | Saga pattern: external call outside, UoW inside, compensation on failure |
-| Read + write inside a single business action without atomicity needs | Repository directly |
+| Bulk operations with their own internal `$transaction` (e.g. `repo.saveMany`) | No — the repo owns its own atomicity boundary |
 
+### Rationale
+
+With `@doc/specs/admin-audit-log` D4 (same-tx audit emission), single-row mutations no longer exist in practice — every business mutation is at least a 2-row write (mutation + `audit_event`). Making both atomic requires the mutation to participate in the caller's transaction, which means going through `unitOfWork.run((tx) => …)`. The previous "single-row → repo directly" rule pre-dated the audit layer and is no longer the recommended default.
+
+This aligns with the industry-standard pattern: Spring's `@Transactional` everywhere, EF Core's `DbContext`-as-UoW, Rails' `transaction` blocks. New mutations and refactored use cases follow the new rule by default.
+
+### Migration note
+
+Existing repo-direct callers — e.g. `archive-student`, `restore-student`, `update-student-guardian-relationship`, and single-row updates in `class-management/`, `campus/`, `grade-level/`, `school-year/` — **still use `repo.update()` directly** and continue to be valid. They migrate to UoW as their own audit-wiring tasks land (e.g. `@task-2c5xq3`, `@task-7ah3pb`). The decision table above is the **forward-looking convention**, not a hard cutover; do not bulk-rewrite legacy callers without an accompanying audit-wiring scope.
 ## Adding a New Domain
 
 To extend the `TransactionContext` with another domain:

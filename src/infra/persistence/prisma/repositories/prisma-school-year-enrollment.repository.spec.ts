@@ -197,7 +197,11 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
       );
 
       expect(syeDelegate.findFirst).toHaveBeenCalledWith({
-        where: { studentId: "student-1", schoolYearId: "year-1", exitDate: null },
+        where: {
+          studentId: "student-1",
+          schoolYearId: "year-1",
+          exitDate: null,
+        },
         include: { student: true, schoolYear: true, gradeLevel: true },
       });
       expect(result).not.toBeNull();
@@ -537,9 +541,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
       const parent = buildClosedParent();
       const child = buildClosedChild();
 
-      txSye.update.mockRejectedValue(
-        new Error("Record to update not found"),
-      );
+      txSye.update.mockRejectedValue(new Error("Record to update not found"));
 
       prisma.$transaction.mockImplementation(async (work) =>
         work({ schoolYearEnrollment: txSye, enrollment: txEnrollment }),

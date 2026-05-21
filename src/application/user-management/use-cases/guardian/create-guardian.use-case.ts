@@ -1,6 +1,7 @@
 import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import {
   BadRequestException,
@@ -40,7 +41,10 @@ export class CreateGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(input: CreateGuardianInput): Promise<Guardian> {
+  async execute(
+    input: CreateGuardianInput,
+    currentUser: User,
+  ): Promise<Guardian> {
     this.logger.log(
       `Creating guardian: ${input.fullName} in campus: ${input.campusId}`,
     );
@@ -101,6 +105,20 @@ export class CreateGuardianUseCase {
         this.logger.log(
           `Guardian created in transaction: ${createdGuardian.id} for campus: ${guardianEntity.campusId}`,
         );
+
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "CREATE_GUARDIAN",
+          targetType: "guardian",
+          targetId: guardianEntity.id,
+          campusId: guardianEntity.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            name: guardianEntity.fullName,
+            email: guardianEntity.email,
+            phoneNumber: guardianEntity.phoneNumber,
+          },
+        });
 
         return guardianEntity;
       });

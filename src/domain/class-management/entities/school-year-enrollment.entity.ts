@@ -103,10 +103,7 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
    * ignored). Rejects TRANSFERRED — internal class moves do not close the
    * parent (see specs/school-year-enrollment-model D2).
    */
-  public withdraw(
-    exitDate: Date,
-    reason: ExitReason,
-  ): SchoolYearEnrollment {
+  public withdraw(exitDate: Date, reason: ExitReason): SchoolYearEnrollment {
     if (!this.isActive()) {
       throw new SchoolYearEnrollmentAlreadyClosedException(this.id);
     }

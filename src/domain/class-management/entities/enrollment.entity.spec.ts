@@ -167,9 +167,9 @@ describe("Enrollment Entity", () => {
       const future = new Date();
       future.setUTCDate(future.getUTCDate() + 5);
 
-      expect(() =>
-        enrollment.withdraw(future, ExitReason.WITHDRAWN),
-      ).toThrow(InvalidEndDateException);
+      expect(() => enrollment.withdraw(future, ExitReason.WITHDRAWN)).toThrow(
+        InvalidEndDateException,
+      );
     });
 
     it("accepts endDate equal to today (boundary)", () => {

@@ -19,9 +19,11 @@ import {
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../../decorators";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { StandardRequestParam } from "@/core/modules/standard-response/decorators/standard-request-param.decorator";
@@ -246,14 +248,18 @@ export class ClassController {
     @CampusContext() campusId: string,
     @Param("id") classId: string,
     @Body() dto: EnrollStudentRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.enrollStudentUseCase.execute({
-      campusId,
-      classId,
-      studentId: dto.studentId,
-      enrollmentDate: new Date(dto.enrollmentDate),
-      note: dto.note,
-    });
+    return await this.enrollStudentUseCase.execute(
+      {
+        campusId,
+        classId,
+        studentId: dto.studentId,
+        enrollmentDate: new Date(dto.enrollmentDate),
+        note: dto.note,
+      },
+      currentUser,
+    );
   }
 
   @Post(":id/enrollments/bulk")
@@ -282,17 +288,21 @@ export class ClassController {
     @CampusContext() campusId: string,
     @Param("id") classId: string,
     @Body() dto: BulkEnrollStudentsRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.bulkEnrollStudentsUseCase.execute({
-      campusId,
-      classId,
-      enrollmentDate: new Date(dto.enrollmentDate),
-      note: dto.note,
-      students: dto.students.map((row) => ({
-        studentId: row.studentId,
-        note: row.note,
-      })),
-    });
+    return await this.bulkEnrollStudentsUseCase.execute(
+      {
+        campusId,
+        classId,
+        enrollmentDate: new Date(dto.enrollmentDate),
+        note: dto.note,
+        students: dto.students.map((row) => ({
+          studentId: row.studentId,
+          note: row.note,
+        })),
+      },
+      currentUser,
+    );
   }
 
   @Post(":id/transfers/bulk")
@@ -314,25 +324,30 @@ export class ClassController {
   })
   @ApiParam({
     name: "id",
-    description: "Target class UUID (the class students are being transferred into)",
+    description:
+      "Target class UUID (the class students are being transferred into)",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   async bulkTransferStudents(
     @CampusContext() campusId: string,
     @Param("id") classId: string,
     @Body() dto: BulkTransferStudentsRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.bulkTransferStudentsUseCase.execute({
-      campusId,
-      classId,
-      transferDate: new Date(dto.transferDate),
-      note: dto.note,
-      students: dto.students.map((row) => ({
-        studentId: row.studentId,
-        fromClassId: row.fromClassId,
-        note: row.note,
-      })),
-    });
+    return await this.bulkTransferStudentsUseCase.execute(
+      {
+        campusId,
+        classId,
+        transferDate: new Date(dto.transferDate),
+        note: dto.note,
+        students: dto.students.map((row) => ({
+          studentId: row.studentId,
+          fromClassId: row.fromClassId,
+          note: row.note,
+        })),
+      },
+      currentUser,
+    );
   }
 
   @Post(":id/enrollments/:enrollmentId/withdraw")
@@ -367,14 +382,18 @@ export class ClassController {
     @Param("id") _classId: string,
     @Param("enrollmentId") enrollmentId: string,
     @Body() dto: WithdrawStudentRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.withdrawStudentUseCase.execute({
-      enrollmentId,
-      campusId,
-      reason: dto.reason,
-      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
-      note: dto.note,
-    });
+    return await this.withdrawStudentUseCase.execute(
+      {
+        enrollmentId,
+        campusId,
+        reason: dto.reason,
+        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        note: dto.note,
+      },
+      currentUser,
+    );
   }
 
   @Get(":id/enrollments")

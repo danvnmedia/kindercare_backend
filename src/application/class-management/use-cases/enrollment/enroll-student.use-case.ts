@@ -7,11 +7,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
 
 export interface EnrollStudentInput {
   campusId: string;
@@ -34,9 +37,14 @@ export class EnrollStudentUseCase {
     private readonly studentRepository: StudentRepository,
     @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
     private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
+    private readonly transactionRunner: TransactionRunnerPort,
+    private readonly recorder: AuditEventRecorderPort,
   ) {}
 
-  async execute(input: EnrollStudentInput): Promise<Enrollment> {
+  async execute(
+    input: EnrollStudentInput,
+    currentUser: User,
+  ): Promise<Enrollment> {
     try {
       this.logger.log(
         `Enrolling student ${input.studentId} in class ${input.classId}`,
@@ -118,7 +126,7 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 7: Create and save enrollment with parent FK threaded through.
+      // Step 7: Create enrollment with parent FK threaded through.
       const enrollment = Enrollment.create({
         classId: input.classId,
         studentId: input.studentId,
@@ -127,7 +135,28 @@ export class EnrollStudentUseCase {
         note: input.note || null,
       });
 
-      const savedEnrollment = await this.enrollmentRepository.save(enrollment);
+      // Step 8: Persist + emit audit inside one tx (D4 atomicity —
+      // @doc/specs/admin-audit-log). Recorder throw rolls back the enrollment.
+      const savedEnrollment = await this.transactionRunner.run(async (tx) => {
+        const saved = await this.enrollmentRepository.save(enrollment, tx);
+        await this.recorder.record(
+          {
+            actorId: currentUser.id,
+            action: "ENROLL_STUDENT_TO_CLASS",
+            targetType: "student",
+            targetId: input.studentId,
+            campusId: input.campusId,
+            context: {
+              actorName: currentUser.profile?.fullName ?? null,
+              classId: input.classId,
+              className: classEntity.name,
+              enrollmentDate: input.enrollmentDate.toISOString(),
+            },
+          },
+          tx,
+        );
+        return saved;
+      });
       this.logger.log(`Enrollment created: ${savedEnrollment.id}`);
 
       return savedEnrollment;

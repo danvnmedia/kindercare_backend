@@ -8,10 +8,39 @@ import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  AppTransactionClient,
+  TransactionRunnerPort,
+} from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+
+const stubActor = User.reconstitute(
+  {
+    clerkUid: "user_audit12345",
+    isActive: true,
+    profile: {
+      type: "staff",
+      id: "actor-1",
+      fullName: "Alice Nguyen",
+      email: null,
+      phoneNumber: null,
+      dateOfBirth: null,
+      gender: null,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  "actor-1",
+);
+
+const stubTx = {} as unknown as AppTransactionClient;
 
 describe("WithdrawStudentUseCase", () => {
   let useCase: WithdrawStudentUseCase;
   let repo: jest.Mocked<EnrollmentRepository>;
+  let runner: jest.Mocked<TransactionRunnerPort>;
+  let recorder: jest.Mocked<AuditEventRecorderPort>;
 
   const campusId = "campus-1";
   const otherCampusId = "campus-2";
@@ -89,7 +118,13 @@ describe("WithdrawStudentUseCase", () => {
       transferEnrollment: jest.fn(),
       saveMany: jest.fn(),
     } as jest.Mocked<EnrollmentRepository>;
-    useCase = new WithdrawStudentUseCase(repo);
+    runner = {
+      run: jest.fn((task) => task(stubTx)),
+    } as unknown as jest.Mocked<TransactionRunnerPort>;
+    recorder = {
+      record: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<AuditEventRecorderPort>;
+    useCase = new WithdrawStudentUseCase(repo, runner, recorder);
   });
 
   describe("AC-9: default-today happy path", () => {
@@ -97,11 +132,14 @@ describe("WithdrawStudentUseCase", () => {
       repo.findById.mockResolvedValue(buildActiveEnrollment());
       repo.update.mockImplementation(async (e) => e);
 
-      const result = await useCase.execute({
-        enrollmentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-      });
+      const result = await useCase.execute(
+        {
+          enrollmentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+        },
+        stubActor,
+      );
 
       expect(result.endDate).toEqual(todayUtcDateOnly());
       expect(result.exitReason).toBe(ExitReason.WITHDRAWN);
@@ -119,19 +157,25 @@ describe("WithdrawStudentUseCase", () => {
       repo.findById.mockResolvedValue(buildClosedEnrollment());
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_ALREADY_CLOSED");
 
       expect(repo.update).not.toHaveBeenCalled();
@@ -144,12 +188,15 @@ describe("WithdrawStudentUseCase", () => {
       repo.update.mockImplementation(async (e) => e);
       const explicit = new Date("2020-06-01T00:00:00.000Z");
 
-      const result = await useCase.execute({
-        enrollmentId,
-        campusId,
-        reason: ExitReason.TRANSFERRED,
-        endDate: explicit,
-      });
+      const result = await useCase.execute(
+        {
+          enrollmentId,
+          campusId,
+          reason: ExitReason.TRANSFERRED,
+          endDate: explicit,
+        },
+        stubActor,
+      );
 
       expect(result.endDate).toEqual(explicit);
       expect(result.exitReason).toBe(ExitReason.TRANSFERRED);
@@ -162,21 +209,27 @@ describe("WithdrawStudentUseCase", () => {
       const tooEarly = new Date("2019-12-31T00:00:00.000Z");
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-          endDate: tooEarly,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+            endDate: tooEarly,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-          endDate: tooEarly,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+            endDate: tooEarly,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(/INVALID_END_DATE/);
 
       expect(repo.update).not.toHaveBeenCalled();
@@ -187,21 +240,27 @@ describe("WithdrawStudentUseCase", () => {
       const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-          endDate: oneWeekFromNow,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+            endDate: oneWeekFromNow,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-          endDate: oneWeekFromNow,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+            endDate: oneWeekFromNow,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(/INVALID_END_DATE/);
 
       expect(repo.update).not.toHaveBeenCalled();
@@ -215,11 +274,14 @@ describe("WithdrawStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       expect(repo.update).not.toHaveBeenCalled();
@@ -231,11 +293,14 @@ describe("WithdrawStudentUseCase", () => {
       repo.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({
-          enrollmentId,
-          campusId,
-          reason: ExitReason.WITHDRAWN,
-        }),
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       expect(repo.update).not.toHaveBeenCalled();
@@ -247,12 +312,15 @@ describe("WithdrawStudentUseCase", () => {
       repo.findById.mockResolvedValue(buildActiveEnrollment());
       repo.update.mockImplementation(async (e) => e);
 
-      const result = await useCase.execute({
-        enrollmentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-        note: "Family relocated overseas",
-      });
+      const result = await useCase.execute(
+        {
+          enrollmentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+          note: "Family relocated overseas",
+        },
+        stubActor,
+      );
 
       expect(result.note).toBe("Family relocated overseas");
       const persisted = repo.update.mock.calls[0][0];
@@ -265,13 +333,81 @@ describe("WithdrawStudentUseCase", () => {
       repo.findById.mockResolvedValue(active);
       repo.update.mockImplementation(async (e) => e);
 
-      const result = await useCase.execute({
-        enrollmentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-      });
+      const result = await useCase.execute(
+        {
+          enrollmentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+        },
+        stubActor,
+      );
 
       expect(result.note).toBe(originalNote);
+    });
+  });
+
+  describe("audit-log emission (admin-audit-log AC-3 / AC-7)", () => {
+    it("emits WITHDRAW_FROM_CLASS audit row inside the same tx", async () => {
+      repo.findById.mockResolvedValue(buildActiveEnrollment());
+      repo.update.mockImplementation(async (e) => e);
+      const exitDate = new Date("2020-04-01T00:00:00.000Z");
+
+      await useCase.execute(
+        {
+          enrollmentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+          endDate: exitDate,
+          note: "Family move",
+        },
+        stubActor,
+      );
+
+      expect(recorder.record).toHaveBeenCalledTimes(1);
+      const [auditInput, txArg] = recorder.record.mock.calls[0];
+      expect(auditInput).toMatchObject({
+        actorId: stubActor.id,
+        action: "WITHDRAW_FROM_CLASS",
+        targetType: "student",
+        targetId: studentId,
+        campusId,
+      });
+      expect(auditInput.context).toMatchObject({
+        actorName: "Alice Nguyen",
+        classId,
+        className: "Lớp A1",
+        exitReason: ExitReason.WITHDRAWN,
+        exitDate: exitDate.toISOString(),
+        note: "Family move",
+      });
+      // Same tx instance the runner handed to the use case — proves both
+      // writes (the update + the audit emit) participate in one logical UoW.
+      expect(txArg).toBe(stubTx);
+    });
+  });
+
+  describe("rollback on recorder failure (admin-audit-log AC-4 / Scenario 2)", () => {
+    it("propagates the recorder error so the outer tx rolls back", async () => {
+      repo.findById.mockResolvedValue(buildActiveEnrollment());
+      repo.update.mockImplementation(async (e) => e);
+      const auditFailure = new Error("audit failure");
+      recorder.record.mockRejectedValue(auditFailure);
+
+      await expect(
+        useCase.execute(
+          {
+            enrollmentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+          },
+          stubActor,
+        ),
+      ).rejects.toBe(auditFailure);
+
+      // repo.update was called inside the tx — a real DB would roll it back
+      // when the recorder throw bubbles out of `runner.run`. We assert the
+      // call happened (proving the emit truly co-runs in one tx).
+      expect(repo.update).toHaveBeenCalledTimes(1);
     });
   });
 });

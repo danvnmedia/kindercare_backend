@@ -18,9 +18,11 @@ import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CAMPUS_ID_HEADER,
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
 } from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
+import { User } from "@/domain/user-management/user.entity";
 
 import {
   RegisterForSchoolYearRequest,
@@ -76,15 +78,19 @@ export class SchoolYearEnrollmentController {
     @CampusContext() campusId: string,
     @Param("studentId", ParseUUIDPipe) studentId: string,
     @Body() dto: RegisterForSchoolYearRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.registerForSchoolYearUseCase.execute({
-      campusId,
-      studentId,
-      schoolYearId: dto.schoolYearId,
-      gradeLevelId: dto.gradeLevelId,
-      enrollmentDate: new Date(dto.enrollmentDate),
-      note: dto.note,
-    });
+    return await this.registerForSchoolYearUseCase.execute(
+      {
+        campusId,
+        studentId,
+        schoolYearId: dto.schoolYearId,
+        gradeLevelId: dto.gradeLevelId,
+        enrollmentDate: new Date(dto.enrollmentDate),
+        note: dto.note,
+      },
+      currentUser,
+    );
   }
 
   @Get(":studentId/school-year-enrollments")

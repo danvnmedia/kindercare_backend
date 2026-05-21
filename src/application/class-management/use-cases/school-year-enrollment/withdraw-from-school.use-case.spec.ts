@@ -10,11 +10,40 @@ import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  AppTransactionClient,
+  TransactionRunnerPort,
+} from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+
+const stubActor = User.reconstitute(
+  {
+    clerkUid: "user_audit12345",
+    isActive: true,
+    profile: {
+      type: "staff",
+      id: "actor-1",
+      fullName: "Alice Nguyen",
+      email: null,
+      phoneNumber: null,
+      dateOfBirth: null,
+      gender: null,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  "actor-1",
+);
+
+const stubTx = {} as unknown as AppTransactionClient;
 
 describe("WithdrawFromSchoolUseCase", () => {
   let useCase: WithdrawFromSchoolUseCase;
   let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
   let mockEnrollmentRepository: jest.Mocked<EnrollmentRepository>;
+  let runner: jest.Mocked<TransactionRunnerPort>;
+  let recorder: jest.Mocked<AuditEventRecorderPort>;
 
   const campusId = "campus-1";
   const differentCampusId = "campus-2";
@@ -91,9 +120,18 @@ describe("WithdrawFromSchoolUseCase", () => {
       transferEnrollment: jest.fn(),
     } as jest.Mocked<EnrollmentRepository>;
 
+    runner = {
+      run: jest.fn((task) => task(stubTx)),
+    } as unknown as jest.Mocked<TransactionRunnerPort>;
+    recorder = {
+      record: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<AuditEventRecorderPort>;
+
     useCase = new WithdrawFromSchoolUseCase(
       mockSyeRepository,
       mockEnrollmentRepository,
+      runner,
+      recorder,
     );
   });
 
@@ -128,12 +166,15 @@ describe("WithdrawFromSchoolUseCase", () => {
     const exitDate = new Date("2026-03-15T00:00:00.000Z");
     const expectedDateOnly = new Date(Date.UTC(2026, 2, 15));
 
-    const result = await useCase.execute({
-      id: parentId,
-      campusId,
-      reason: ExitReason.WITHDRAWN,
-      exitDate,
-    });
+    const result = await useCase.execute(
+      {
+        id: parentId,
+        campusId,
+        reason: ExitReason.WITHDRAWN,
+        exitDate,
+      },
+      stubActor,
+    );
 
     expect(result.closedParent.id).toBe(parentId);
     expect(result.closedParent.exitDate).toEqual(expectedDateOnly);
@@ -157,30 +198,37 @@ describe("WithdrawFromSchoolUseCase", () => {
   it("happy path WITHDRAWN — no open child, closes parent only (Scenario 5)", async () => {
     arrangeWithoutChild();
 
-    const result = await useCase.execute({
-      id: parentId,
-      campusId,
-      reason: ExitReason.WITHDRAWN,
-      exitDate: new Date("2026-03-15T00:00:00.000Z"),
-    });
+    const result = await useCase.execute(
+      {
+        id: parentId,
+        campusId,
+        reason: ExitReason.WITHDRAWN,
+        exitDate: new Date("2026-03-15T00:00:00.000Z"),
+      },
+      stubActor,
+    );
 
     expect(result.closedParent.id).toBe(parentId);
     expect(result.closedChild).toBeNull();
     expect(mockSyeRepository.withdrawWithChildren).toHaveBeenCalledWith(
       expect.any(SchoolYearEnrollment),
       null,
+      stubTx,
     );
   });
 
   it("happy path GRADUATED — child closes with GRADUATED reason", async () => {
     arrangeWithChild();
 
-    const result = await useCase.execute({
-      id: parentId,
-      campusId,
-      reason: ExitReason.GRADUATED,
-      exitDate: new Date("2026-03-15T00:00:00.000Z"),
-    });
+    const result = await useCase.execute(
+      {
+        id: parentId,
+        campusId,
+        reason: ExitReason.GRADUATED,
+        exitDate: new Date("2026-03-15T00:00:00.000Z"),
+      },
+      stubActor,
+    );
 
     expect(result.closedParent.exitReason).toBe(ExitReason.GRADUATED);
     expect(result.closedChild!.exitReason).toBe(ExitReason.GRADUATED);
@@ -189,12 +237,15 @@ describe("WithdrawFromSchoolUseCase", () => {
   it("happy path COMPLETED — child closes with COMPLETED reason", async () => {
     arrangeWithChild();
 
-    const result = await useCase.execute({
-      id: parentId,
-      campusId,
-      reason: ExitReason.COMPLETED,
-      exitDate: new Date("2026-03-15T00:00:00.000Z"),
-    });
+    const result = await useCase.execute(
+      {
+        id: parentId,
+        campusId,
+        reason: ExitReason.COMPLETED,
+        exitDate: new Date("2026-03-15T00:00:00.000Z"),
+      },
+      stubActor,
+    );
 
     expect(result.closedParent.exitReason).toBe(ExitReason.COMPLETED);
     expect(result.closedChild!.exitReason).toBe(ExitReason.COMPLETED);
@@ -204,11 +255,14 @@ describe("WithdrawFromSchoolUseCase", () => {
     mockSyeRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({
-        id: parentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-      }),
+      useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     expect(
@@ -223,11 +277,14 @@ describe("WithdrawFromSchoolUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        id: parentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-      }),
+      useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     expect(
@@ -245,11 +302,14 @@ describe("WithdrawFromSchoolUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        id: parentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-      }),
+      useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new ConflictException(
         SchoolYearEnrollmentErrorCode.PARENT_ALREADY_CLOSED,
@@ -266,13 +326,16 @@ describe("WithdrawFromSchoolUseCase", () => {
     arrangeWithoutChild();
 
     await expect(
-      useCase.execute({
-        id: parentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-        // parent enrollmentDate = 2025-09-01; exitDate intentionally earlier
-        exitDate: new Date("2025-08-30T00:00:00.000Z"),
-      }),
+      useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+          // parent enrollmentDate = 2025-09-01; exitDate intentionally earlier
+          exitDate: new Date("2025-08-30T00:00:00.000Z"),
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(BadRequestException);
 
     expect(mockSyeRepository.withdrawWithChildren).not.toHaveBeenCalled();
@@ -282,12 +345,15 @@ describe("WithdrawFromSchoolUseCase", () => {
     arrangeWithoutChild();
 
     await expect(
-      useCase.execute({
-        id: parentId,
-        campusId,
-        reason: ExitReason.WITHDRAWN,
-        exitDate: new Date("2099-01-01T00:00:00.000Z"),
-      }),
+      useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+          exitDate: new Date("2099-01-01T00:00:00.000Z"),
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(BadRequestException);
 
     expect(mockSyeRepository.withdrawWithChildren).not.toHaveBeenCalled();
@@ -300,11 +366,14 @@ describe("WithdrawFromSchoolUseCase", () => {
       Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
     );
 
-    const result = await useCase.execute({
-      id: parentId,
-      campusId,
-      reason: ExitReason.WITHDRAWN,
-    });
+    const result = await useCase.execute(
+      {
+        id: parentId,
+        campusId,
+        reason: ExitReason.WITHDRAWN,
+      },
+      stubActor,
+    );
 
     expect(result.closedParent.exitDate).toEqual(todayDateOnly);
   });
@@ -312,14 +381,106 @@ describe("WithdrawFromSchoolUseCase", () => {
   it("persists the optional note onto the closed parent", async () => {
     arrangeWithoutChild();
 
-    const result = await useCase.execute({
-      id: parentId,
-      campusId,
-      reason: ExitReason.WITHDRAWN,
-      exitDate: new Date("2026-03-15T00:00:00.000Z"),
-      note: "Family relocated overseas",
-    });
+    const result = await useCase.execute(
+      {
+        id: parentId,
+        campusId,
+        reason: ExitReason.WITHDRAWN,
+        exitDate: new Date("2026-03-15T00:00:00.000Z"),
+        note: "Family relocated overseas",
+      },
+      stubActor,
+    );
 
     expect(result.closedParent.note).toBe("Family relocated overseas");
+  });
+
+  describe("audit-log emission (admin-audit-log AC-3 / AC-7)", () => {
+    it("emits WITHDRAW_FROM_SCHOOL_YEAR audit row with child id when child closed", async () => {
+      arrangeWithChild();
+      const exitDate = new Date("2026-03-15T00:00:00.000Z");
+
+      await useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.GRADUATED,
+          exitDate,
+        },
+        stubActor,
+      );
+
+      expect(recorder.record).toHaveBeenCalledTimes(1);
+      const [auditInput, txArg] = recorder.record.mock.calls[0];
+      expect(auditInput).toMatchObject({
+        actorId: stubActor.id,
+        action: "WITHDRAW_FROM_SCHOOL_YEAR",
+        targetType: "student",
+        targetId: studentId,
+        campusId,
+      });
+      expect(auditInput.context).toMatchObject({
+        actorName: "Alice Nguyen",
+        schoolYearId,
+        // SchoolYear is not eager-loaded on the parent fixture, so the
+        // optional-chained `parent.schoolYear?.name` returns null. Recorder
+        // (the snapshot resolver in Prisma adapter) fills `targetName` from
+        // its own student lookup; schoolYearName stays null here.
+        schoolYearName: null,
+        exitDate: exitDate.toISOString(),
+        exitReason: ExitReason.GRADUATED,
+        alsoClosedChildClassEnrollmentId: childId,
+      });
+      expect(txArg).toBe(stubTx);
+      expect(mockSyeRepository.withdrawWithChildren).toHaveBeenCalledWith(
+        expect.any(SchoolYearEnrollment),
+        expect.any(Enrollment),
+        stubTx,
+      );
+    });
+
+    it("emits with alsoClosedChildClassEnrollmentId=null when no child existed", async () => {
+      arrangeWithoutChild();
+
+      await useCase.execute(
+        {
+          id: parentId,
+          campusId,
+          reason: ExitReason.WITHDRAWN,
+          exitDate: new Date("2026-03-15T00:00:00.000Z"),
+        },
+        stubActor,
+      );
+
+      const [auditInput] = recorder.record.mock.calls[0];
+      expect(auditInput.context).toMatchObject({
+        alsoClosedChildClassEnrollmentId: null,
+      });
+    });
+  });
+
+  describe("rollback on recorder failure (admin-audit-log AC-4 / Scenario 2)", () => {
+    it("propagates the recorder error so the outer tx rolls back parent + child", async () => {
+      arrangeWithChild();
+      const auditFailure = new Error("audit failure");
+      recorder.record.mockRejectedValue(auditFailure);
+
+      await expect(
+        useCase.execute(
+          {
+            id: parentId,
+            campusId,
+            reason: ExitReason.WITHDRAWN,
+            exitDate: new Date("2026-03-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
+      ).rejects.toBe(auditFailure);
+
+      // withdrawWithChildren WAS called — inside the tx that ultimately threw.
+      // A real Prisma tx rolls back both the parent close and the child close
+      // when the audit error bubbles out of `runner.run`.
+      expect(mockSyeRepository.withdrawWithChildren).toHaveBeenCalledTimes(1);
+    });
   });
 });

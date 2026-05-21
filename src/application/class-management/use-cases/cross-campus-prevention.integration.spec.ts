@@ -3,11 +3,7 @@
  * Tests that operations involving multiple entities properly reject cross-campus scenarios
  */
 
-import {
-  BadRequestException,
-  ConflictException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException } from "@nestjs/common";
 import { EnrollStudentUseCase } from "./enrollment/enroll-student.use-case";
 import { AssignStaffToClassUseCase } from "./class-staff/assign-staff-to-class.use-case";
 import { EnrollmentRepository } from "../ports/enrollment.repository";
@@ -18,20 +14,34 @@ import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-
 import { SubjectRepository } from "../ports/subject.repository";
 import { StaffRepository } from "@/application/user-management/ports/staff.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+
+// Most cross-campus cases short-circuit before the persist + audit-emit tx,
+// but the same-campus happy-path test does reach it. Make the runner invoke
+// its callback (with a stub tx) so the use case's await resolves, and the
+// recorder no-op so the same-tx contract is satisfied without side effects.
+const stubRunner = {
+  run: jest.fn((task: (tx: unknown) => Promise<unknown>) => task({})),
+} as unknown as TransactionRunnerPort;
+const stubRecorder = {
+  record: jest.fn().mockResolvedValue(undefined),
+} as unknown as AuditEventRecorderPort;
 
 // Cross-campus paths short-circuit at step 1b/2b, before the parent gate.
 // All methods declared so `jest.Mocked<...>` is type-safe; no default returns
 // needed because none of these tests reach the gate.
-const createMockSyeRepository = (): jest.Mocked<SchoolYearEnrollmentRepository> =>
-  ({
-    findById: jest.fn(),
-    findOpenByStudentAndSchoolYear: jest.fn(),
-    findAllByStudentId: jest.fn(),
-    findAllByStudentIdWithChildCount: jest.fn(),
-    save: jest.fn(),
-    update: jest.fn(),
-    withdrawWithChildren: jest.fn(),
-  }) as jest.Mocked<SchoolYearEnrollmentRepository>;
+const createMockSyeRepository =
+  (): jest.Mocked<SchoolYearEnrollmentRepository> =>
+    ({
+      findById: jest.fn(),
+      findOpenByStudentAndSchoolYear: jest.fn(),
+      findAllByStudentId: jest.fn(),
+      findAllByStudentIdWithChildCount: jest.fn(),
+      save: jest.fn(),
+      update: jest.fn(),
+      withdrawWithChildren: jest.fn(),
+    }) as jest.Mocked<SchoolYearEnrollmentRepository>;
 import {
   createClass,
   createStaff,
@@ -40,6 +50,9 @@ import {
   DEFAULT_CAMPUS_ID_A,
   DEFAULT_CAMPUS_ID_B,
 } from "@/test-utils";
+import { User } from "@/domain/user-management/user.entity";
+
+const stubActor = User.create({ clerkUid: "user_audit12345" });
 
 describe("Cross-Campus Prevention Integration Tests", () => {
   const campusA = DEFAULT_CAMPUS_ID_A;
@@ -109,6 +122,8 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         mockClassRepository,
         mockStudentRepository,
         mockSyeRepository,
+        stubRunner,
+        stubRecorder,
       );
     });
 
@@ -130,21 +145,27 @@ describe("Cross-Campus Prevention Integration Tests", () => {
 
       // Request with campus B context (class's campus)
       await expect(
-        useCase.execute({
-          campusId: campusB,
-          classId: "class-1",
-          studentId: "student-1",
-          enrollmentDate: new Date(),
-        }),
+        useCase.execute(
+          {
+            campusId: campusB,
+            classId: "class-1",
+            studentId: "student-1",
+            enrollmentDate: new Date(),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          campusId: campusB,
-          classId: "class-1",
-          studentId: "student-1",
-          enrollmentDate: new Date(),
-        }),
+        useCase.execute(
+          {
+            campusId: campusB,
+            classId: "class-1",
+            studentId: "student-1",
+            enrollmentDate: new Date(),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("Cannot enroll student from a different campus");
 
       // Verify enrollment was not saved
@@ -162,21 +183,27 @@ describe("Cross-Campus Prevention Integration Tests", () => {
 
       // Request with campus A context
       await expect(
-        useCase.execute({
-          campusId: campusA, // Context is campus A
-          classId: "class-1", // But class is in campus B
-          studentId: "student-1",
-          enrollmentDate: new Date(),
-        }),
+        useCase.execute(
+          {
+            campusId: campusA, // Context is campus A
+            classId: "class-1", // But class is in campus B
+            studentId: "student-1",
+            enrollmentDate: new Date(),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          studentId: "student-1",
-          enrollmentDate: new Date(),
-        }),
+        useCase.execute(
+          {
+            campusId: campusA,
+            classId: "class-1",
+            studentId: "student-1",
+            enrollmentDate: new Date(),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("Class does not belong to this campus");
 
       // Student lookup should not even happen
@@ -216,12 +243,15 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         ),
       );
 
-      const result = await useCase.execute({
-        campusId: campusA,
-        classId: "class-1",
-        studentId: "student-1",
-        enrollmentDate: new Date(),
-      });
+      const result = await useCase.execute(
+        {
+          campusId: campusA,
+          classId: "class-1",
+          studentId: "student-1",
+          enrollmentDate: new Date(),
+        },
+        stubActor,
+      );
 
       expect(result).toBeDefined();
       expect(mockEnrollmentRepository.save).toHaveBeenCalled();
@@ -504,6 +534,8 @@ describe("Cross-Campus Prevention Integration Tests", () => {
         mockClassRepository,
         mockStudentRepository,
         createMockSyeRepository(),
+        stubRunner,
+        stubRecorder,
       );
 
       // Class in campus B
@@ -512,12 +544,15 @@ describe("Cross-Campus Prevention Integration Tests", () => {
 
       // Request with campus A context
       await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          studentId: "student-1",
-          enrollmentDate: new Date(),
-        }),
+        useCase.execute(
+          {
+            campusId: campusA,
+            classId: "class-1",
+            studentId: "student-1",
+            enrollmentDate: new Date(),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("Class does not belong to this campus");
 
       // Student should never be looked up since class validation failed first

@@ -14,12 +14,41 @@ import { SchoolYear } from "@/domain/class-management/entities/school-year.entit
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  AppTransactionClient,
+  TransactionRunnerPort,
+} from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+
+const stubActor = User.reconstitute(
+  {
+    clerkUid: "user_audit12345",
+    isActive: true,
+    profile: {
+      type: "staff",
+      id: "actor-1",
+      fullName: "Alice Nguyen",
+      email: null,
+      phoneNumber: null,
+      dateOfBirth: null,
+      gender: null,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  "actor-1",
+);
+
+const stubTx = {} as unknown as AppTransactionClient;
 
 describe("TransferStudentUseCase", () => {
   let useCase: TransferStudentUseCase;
   let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let classRepo: jest.Mocked<ClassRepository>;
   let syeRepo: jest.Mocked<SchoolYearEnrollmentRepository>;
+  let runner: jest.Mocked<TransactionRunnerPort>;
+  let recorder: jest.Mocked<AuditEventRecorderPort>;
 
   const campusId = "campus-1";
   const otherCampusId = "campus-2";
@@ -159,7 +188,20 @@ describe("TransferStudentUseCase", () => {
       createMockParent(),
     );
 
-    useCase = new TransferStudentUseCase(enrollmentRepo, classRepo, syeRepo);
+    runner = {
+      run: jest.fn((task) => task(stubTx)),
+    } as unknown as jest.Mocked<TransactionRunnerPort>;
+    recorder = {
+      record: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<AuditEventRecorderPort>;
+
+    useCase = new TransferStudentUseCase(
+      enrollmentRepo,
+      classRepo,
+      syeRepo,
+      runner,
+      recorder,
+    );
   });
 
   describe("AC-14 / AC-15: happy path returns { closed, opened }", () => {
@@ -172,11 +214,14 @@ describe("TransferStudentUseCase", () => {
         async (closed, opened) => ({ closed, opened }),
       );
 
-      const result = await useCase.execute({
-        studentId,
-        toClassId: targetClassId,
-        campusId,
-      });
+      const result = await useCase.execute(
+        {
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+        },
+        stubActor,
+      );
 
       expect(result.closed.exitReason).toBe(ExitReason.TRANSFERRED);
       expect(result.closed.endDate).not.toBeNull();
@@ -203,13 +248,16 @@ describe("TransferStudentUseCase", () => {
       );
       const explicit = new Date("2025-03-15T00:00:00.000Z");
 
-      const result = await useCase.execute({
-        studentId,
-        toClassId: targetClassId,
-        campusId,
-        transferDate: explicit,
-        note: "moved",
-      });
+      const result = await useCase.execute(
+        {
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+          transferDate: explicit,
+          note: "moved",
+        },
+        stubActor,
+      );
 
       // Domain compares date-only — assert UTC date components.
       const dateOnly = (d: Date) =>
@@ -228,19 +276,25 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: sourceClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: sourceClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: sourceClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: sourceClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("TRANSFER_SAME_CLASS");
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -255,21 +309,27 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          fromClassId: "wrong-source",
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            fromClassId: "wrong-source",
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          fromClassId: "wrong-source",
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            fromClassId: "wrong-source",
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("TRANSFER_SOURCE_MISMATCH");
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -284,12 +344,15 @@ describe("TransferStudentUseCase", () => {
         async (closed, opened) => ({ closed, opened }),
       );
 
-      const result = await useCase.execute({
-        studentId,
-        toClassId: targetClassId,
-        campusId,
-        fromClassId: sourceClassId,
-      });
+      const result = await useCase.execute(
+        {
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+          fromClassId: sourceClassId,
+        },
+        stubActor,
+      );
 
       expect(result.opened.classId).toBe(targetClassId);
       expect(enrollmentRepo.transferEnrollment).toHaveBeenCalledTimes(1);
@@ -302,19 +365,25 @@ describe("TransferStudentUseCase", () => {
       enrollmentRepo.findActiveByStudentId.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("NO_ACTIVE_ENROLLMENT");
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -330,21 +399,27 @@ describe("TransferStudentUseCase", () => {
       const tooEarly = new Date("2024-08-01T00:00:00.000Z");
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          transferDate: tooEarly,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            transferDate: tooEarly,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          transferDate: tooEarly,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            transferDate: tooEarly,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(/INVALID_TRANSFER_DATE/);
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -358,12 +433,15 @@ describe("TransferStudentUseCase", () => {
       const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          transferDate: oneWeekFromNow,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            transferDate: oneWeekFromNow,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(/INVALID_TRANSFER_DATE/);
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -385,23 +463,29 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          // 2025-08-15 is well after the active.enrollmentDate (2024-09-01)
-          // and before today, so it ONLY trips the school-year bound.
-          transferDate: new Date("2025-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            // 2025-08-15 is well after the active.enrollmentDate (2024-09-01)
+            // and before today, so it ONLY trips the school-year bound.
+            transferDate: new Date("2025-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          transferDate: new Date("2025-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            transferDate: new Date("2025-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -425,13 +509,16 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          // After the (past) schoolYear ended, but still before today.
-          transferDate: new Date("2024-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            // After the (past) schoolYear ended, but still before today.
+            transferDate: new Date("2024-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -445,11 +532,14 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       expect(enrollmentRepo.findActiveByStudentId).not.toHaveBeenCalled();
@@ -460,11 +550,14 @@ describe("TransferStudentUseCase", () => {
       classRepo.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(NotFoundException);
 
       expect(enrollmentRepo.findActiveByStudentId).not.toHaveBeenCalled();
@@ -490,12 +583,15 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-          transferDate: new Date("2024-01-01T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            transferDate: new Date("2024-01-01T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
     });
 
@@ -507,11 +603,14 @@ describe("TransferStudentUseCase", () => {
 
       // Same-class case
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: sourceClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: sourceClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
@@ -530,19 +629,25 @@ describe("TransferStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH);
 
       // No child rows are written or closed (Scenario 9 invariant).
@@ -563,11 +668,14 @@ describe("TransferStudentUseCase", () => {
         .mockImplementation();
 
       await expect(
-        useCase.execute({
-          studentId,
-          toClassId: targetClassId,
-          campusId,
-        }),
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(/data integrity broken/i);
 
       expect(errorSpy).toHaveBeenCalled();
@@ -585,16 +693,101 @@ describe("TransferStudentUseCase", () => {
         async (closed, opened) => ({ closed, opened }),
       );
 
-      await useCase.execute({
-        studentId,
-        toClassId: targetClassId,
-        campusId,
-      });
+      await useCase.execute(
+        {
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+        },
+        stubActor,
+      );
 
       expect(syeRepo.findOpenByStudentAndSchoolYear).toHaveBeenCalledWith(
         studentId,
         targetSchoolYearId,
       );
+    });
+  });
+
+  describe("audit-log emission (admin-audit-log Scenario 1 / AC-3 / AC-7)", () => {
+    it("emits TRANSFER_STUDENT audit row with the Scenario 1 context shape inside the same tx", async () => {
+      classRepo.findById.mockResolvedValue(buildClass(targetClassId));
+      enrollmentRepo.findActiveByStudentId.mockResolvedValue(
+        buildActiveEnrollment({ classId: sourceClassId }),
+      );
+      enrollmentRepo.transferEnrollment.mockImplementation(
+        async (closed, opened) => ({ closed, opened }),
+      );
+      const explicit = new Date("2026-05-18T00:00:00.000Z");
+
+      await useCase.execute(
+        {
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+          transferDate: explicit,
+        },
+        stubActor,
+      );
+
+      expect(recorder.record).toHaveBeenCalledTimes(1);
+      const [auditInput, txArg] = recorder.record.mock.calls[0];
+      expect(auditInput).toMatchObject({
+        actorId: stubActor.id,
+        action: "TRANSFER_STUDENT",
+        targetType: "student",
+        targetId: studentId,
+        campusId,
+      });
+      expect(auditInput.context).toMatchObject({
+        actorName: "Alice Nguyen",
+        fromClassId: sourceClassId,
+        // active.class is not eager-loaded by buildActiveEnrollment, so null
+        // is the contract here — recorder fills targetName from the snapshot;
+        // callers without an eager-loaded source class get null here.
+        fromClassName: null,
+        toClassId: targetClassId,
+        toClassName: `Test Class ${targetClassId}`,
+        transferDate: explicit.toISOString(),
+      });
+      // Same tx instance — both writes participate in one UoW.
+      expect(txArg).toBe(stubTx);
+      // transferEnrollment was called with the tx as the third arg.
+      expect(enrollmentRepo.transferEnrollment).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+        stubTx,
+      );
+    });
+  });
+
+  describe("rollback on recorder failure (admin-audit-log AC-4 / Scenario 2)", () => {
+    it("propagates the recorder error so the outer tx rolls back the transfer", async () => {
+      classRepo.findById.mockResolvedValue(buildClass(targetClassId));
+      enrollmentRepo.findActiveByStudentId.mockResolvedValue(
+        buildActiveEnrollment(),
+      );
+      enrollmentRepo.transferEnrollment.mockImplementation(
+        async (closed, opened) => ({ closed, opened }),
+      );
+      const auditFailure = new Error("audit failure");
+      recorder.record.mockRejectedValue(auditFailure);
+
+      await expect(
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+          },
+          stubActor,
+        ),
+      ).rejects.toBe(auditFailure);
+
+      // transferEnrollment WAS called — inside the tx that ultimately threw.
+      // A real Prisma tx would roll back both row writes when the audit error
+      // bubbles out of `runner.run`.
+      expect(enrollmentRepo.transferEnrollment).toHaveBeenCalledTimes(1);
     });
   });
 });

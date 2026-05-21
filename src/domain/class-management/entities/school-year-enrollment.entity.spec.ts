@@ -39,9 +39,7 @@ describe("SchoolYearEnrollment Entity", () => {
         exitReason: ExitReason.WITHDRAWN,
       });
 
-      expect(enrollment.exitDate).toEqual(
-        new Date("2026-03-01T00:00:00.000Z"),
-      );
+      expect(enrollment.exitDate).toEqual(new Date("2026-03-01T00:00:00.000Z"));
       expect(enrollment.exitReason).toBe(ExitReason.WITHDRAWN);
       expect(enrollment.isActive()).toBe(false);
     });
@@ -220,9 +218,9 @@ describe("SchoolYearEnrollment Entity", () => {
       const future = new Date();
       future.setUTCDate(future.getUTCDate() + 5);
 
-      expect(() =>
-        enrollment.withdraw(future, ExitReason.WITHDRAWN),
-      ).toThrow(InvalidExitDateException);
+      expect(() => enrollment.withdraw(future, ExitReason.WITHDRAWN)).toThrow(
+        InvalidExitDateException,
+      );
     });
 
     it("accepts exitDate equal to today (boundary)", () => {

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { SchoolYearEnrollmentRepository } from "@/application/class-management/ports/school-year-enrollment.repository";
+import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { PrismaSchoolYearEnrollmentMapper } from "../mapper/prisma-school-year-enrollment.mapper";
@@ -39,9 +40,7 @@ export class PrismaSchoolYearEnrollmentRepository
     return row ? PrismaSchoolYearEnrollmentMapper.toDomain(row) : null;
   }
 
-  async findAllByStudentId(
-    studentId: string,
-  ): Promise<SchoolYearEnrollment[]> {
+  async findAllByStudentId(studentId: string): Promise<SchoolYearEnrollment[]> {
     const rows = await this.prisma.schoolYearEnrollment.findMany({
       where: { studentId },
       include: {
@@ -77,8 +76,10 @@ export class PrismaSchoolYearEnrollmentRepository
 
   async save(
     entity: SchoolYearEnrollment,
+    tx?: AppTransactionClient,
   ): Promise<SchoolYearEnrollment> {
-    const created = await this.prisma.schoolYearEnrollment.create({
+    const client = tx ?? this.prisma;
+    const created = await client.schoolYearEnrollment.create({
       data: PrismaSchoolYearEnrollmentMapper.toPrisma(entity),
       include: {
         student: true,
@@ -89,9 +90,7 @@ export class PrismaSchoolYearEnrollmentRepository
     return PrismaSchoolYearEnrollmentMapper.toDomain(created);
   }
 
-  async update(
-    entity: SchoolYearEnrollment,
-  ): Promise<SchoolYearEnrollment> {
+  async update(entity: SchoolYearEnrollment): Promise<SchoolYearEnrollment> {
     const updated = await this.prisma.schoolYearEnrollment.update({
       where: { id: entity.id },
       data: PrismaSchoolYearEnrollmentMapper.toPrismaUpdate(entity),
@@ -107,15 +106,25 @@ export class PrismaSchoolYearEnrollmentRepository
   // Single $transaction wrapping the parent close and the optional child
   // close. Prisma rolls back both on any error inside the callback — see
   // specs/school-year-enrollment-model D4 / AC-7 / AC-8.
+  //
+  // When `tx` is supplied (e.g. by the audit wiring per
+  // @doc/specs/admin-audit-log D4), the inner $transaction is skipped so the
+  // caller's transaction owns the atomicity boundary.
   async withdrawWithChildren(
     parent: SchoolYearEnrollment,
     openChild: Enrollment | null,
+    tx?: AppTransactionClient,
   ): Promise<{
     closedParent: SchoolYearEnrollment;
     closedChild: Enrollment | null;
   }> {
-    return this.prisma.$transaction(async (tx) => {
-      const parentRow = await tx.schoolYearEnrollment.update({
+    const exec = async (
+      client: AppTransactionClient,
+    ): Promise<{
+      closedParent: SchoolYearEnrollment;
+      closedChild: Enrollment | null;
+    }> => {
+      const parentRow = await client.schoolYearEnrollment.update({
         where: { id: parent.id },
         data: PrismaSchoolYearEnrollmentMapper.toPrismaUpdate(parent),
         include: {
@@ -124,12 +133,11 @@ export class PrismaSchoolYearEnrollmentRepository
           gradeLevel: true,
         },
       });
-      const closedParent =
-        PrismaSchoolYearEnrollmentMapper.toDomain(parentRow);
+      const closedParent = PrismaSchoolYearEnrollmentMapper.toDomain(parentRow);
 
       let closedChild: Enrollment | null = null;
       if (openChild) {
-        const childRow = await tx.enrollment.update({
+        const childRow = await client.enrollment.update({
           where: { id: openChild.id },
           data: PrismaEnrollmentMapper.toPrismaUpdate(openChild),
           include: { class: true, student: true },
@@ -138,6 +146,7 @@ export class PrismaSchoolYearEnrollmentRepository
       }
 
       return { closedParent, closedChild };
-    });
+    };
+    return tx ? exec(tx) : this.prisma.$transaction(exec);
   }
 }

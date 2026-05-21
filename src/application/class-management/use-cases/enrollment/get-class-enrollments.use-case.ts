@@ -30,9 +30,7 @@ export class GetClassEnrollmentsUseCase {
     // hide existence (matches AC-13 pattern across this module).
     const classEntity = await this.classRepository.findById(input.classId);
     if (!classEntity || classEntity.campusId !== input.campusId) {
-      throw new NotFoundException(
-        `Class with ID ${input.classId} not found`,
-      );
+      throw new NotFoundException(`Class with ID ${input.classId} not found`);
     }
 
     const enrollments = includeHistorical

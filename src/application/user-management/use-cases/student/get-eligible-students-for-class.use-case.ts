@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from "@nestjs/common";
+import { Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";

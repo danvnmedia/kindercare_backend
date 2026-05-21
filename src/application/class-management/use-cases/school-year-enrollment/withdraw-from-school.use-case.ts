@@ -9,6 +9,7 @@ import {
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { User } from "@/domain/user-management/user.entity";
 import { SchoolYearEnrollmentAlreadyClosedException } from "@/domain/class-management/exceptions/school-year-enrollment-already-closed.exception";
 import { InvalidExitDateException } from "@/domain/class-management/exceptions/invalid-exit-date.exception";
 import { EnrollmentAlreadyClosedException } from "@/domain/class-management/exceptions/enrollment-already-closed.exception";
@@ -16,6 +17,8 @@ import { InvalidEndDateException } from "@/domain/class-management/exceptions/in
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
 
 export interface WithdrawFromSchoolInput {
   id: string;
@@ -44,10 +47,13 @@ export class WithdrawFromSchoolUseCase {
     private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
     @Inject("ENROLLMENT_REPOSITORY")
     private readonly enrollmentRepository: EnrollmentRepository,
+    private readonly transactionRunner: TransactionRunnerPort,
+    private readonly recorder: AuditEventRecorderPort,
   ) {}
 
   async execute(
     input: WithdrawFromSchoolInput,
+    currentUser: User,
   ): Promise<WithdrawFromSchoolResult> {
     this.logger.log(
       `Withdrawing school-year enrollment ${input.id} (reason=${input.reason})`,
@@ -121,11 +127,36 @@ export class WithdrawFromSchoolUseCase {
       }
     }
 
-    const result =
-      await this.schoolYearEnrollmentRepository.withdrawWithChildren(
-        closedParent,
-        closedChild,
+    // Persist + emit audit inside one tx (D4 atomicity —
+    // @doc/specs/admin-audit-log). Recorder throw rolls back parent + child
+    // close together with the audit row.
+    const result = await this.transactionRunner.run(async (tx) => {
+      const persisted =
+        await this.schoolYearEnrollmentRepository.withdrawWithChildren(
+          closedParent,
+          closedChild,
+          tx,
+        );
+      await this.recorder.record(
+        {
+          actorId: currentUser.id,
+          action: "WITHDRAW_FROM_SCHOOL_YEAR",
+          targetType: "student",
+          targetId: parent.studentId,
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            schoolYearId: parent.schoolYearId,
+            schoolYearName: parent.schoolYear?.name ?? null,
+            exitDate: exitDate.toISOString(),
+            exitReason: input.reason,
+            alsoClosedChildClassEnrollmentId: openChild?.id ?? null,
+          },
+        },
+        tx,
       );
+      return persisted;
+    });
     this.logger.log(
       `SchoolYearEnrollment ${result.closedParent.id} closed (child=${result.closedChild?.id ?? "none"})`,
     );

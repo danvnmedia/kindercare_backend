@@ -10,6 +10,9 @@ import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { User } from "@/domain/user-management/user.entity";
+
+const stubActor = User.create({ clerkUid: "user_audit12345" });
 
 describe("BulkEnrollStudentsUseCase", () => {
   let useCase: BulkEnrollStudentsUseCase;
@@ -185,12 +188,15 @@ describe("BulkEnrollStudentsUseCase", () => {
   describe("whole-call validation", () => {
     it("throws BATCH_EMPTY when students is empty (AC-6)", async () => {
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          enrollmentDate,
-          students: [],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate,
+            students: [],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(new BadRequestException("BATCH_EMPTY"));
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -203,7 +209,10 @@ describe("BulkEnrollStudentsUseCase", () => {
       }));
 
       await expect(
-        useCase.execute({ campusId, classId, enrollmentDate, students }),
+        useCase.execute(
+          { campusId, classId, enrollmentDate, students },
+          stubActor,
+        ),
       ).rejects.toThrow(new BadRequestException("BATCH_TOO_LARGE"));
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -212,16 +221,19 @@ describe("BulkEnrollStudentsUseCase", () => {
 
     it("throws DUPLICATE_STUDENT_IN_BATCH when payload contains the same studentId twice (AC-6)", async () => {
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          enrollmentDate,
-          students: [
-            { studentId: "s-1" },
-            { studentId: "s-2" },
-            { studentId: "s-1" },
-          ],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate,
+            students: [
+              { studentId: "s-1" },
+              { studentId: "s-2" },
+              { studentId: "s-1" },
+            ],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(new BadRequestException("DUPLICATE_STUDENT_IN_BATCH"));
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -232,12 +244,15 @@ describe("BulkEnrollStudentsUseCase", () => {
       mockClassRepository.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          enrollmentDate,
-          students: [{ studentId: "s-1" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate,
+            students: [{ studentId: "s-1" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         new NotFoundException(`Class with ID ${classId} not found`),
       );
@@ -251,12 +266,15 @@ describe("BulkEnrollStudentsUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          enrollmentDate,
-          students: [{ studentId: "s-1" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate,
+            students: [{ studentId: "s-1" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         new NotFoundException(`Class with ID ${classId} not found`),
       );
@@ -277,12 +295,15 @@ describe("BulkEnrollStudentsUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          enrollmentDate: new Date("2026-07-15T00:00:00.000Z"),
-          students: [{ studentId: "s-1" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate: new Date("2026-07-15T00:00:00.000Z"),
+            students: [{ studentId: "s-1" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR"),
       );
@@ -301,12 +322,15 @@ describe("BulkEnrollStudentsUseCase", () => {
         createMockStudent(id),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: students.map((studentId) => ({ studentId })),
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: students.map((studentId) => ({ studentId })),
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(5);
       expect(result.skipped).toHaveLength(0);
@@ -353,12 +377,15 @@ describe("BulkEnrollStudentsUseCase", () => {
             : null,
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: ids.map((studentId) => ({ studentId })),
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: ids.map((studentId) => ({ studentId })),
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(3);
       expect(result.skipped).toHaveLength(2);
@@ -399,16 +426,21 @@ describe("BulkEnrollStudentsUseCase", () => {
           ),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: ids.map((studentId) => ({ studentId })),
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: ids.map((studentId) => ({ studentId })),
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(0);
       expect(result.skipped).toHaveLength(5);
-      expect(result.skipped.every((s) => s.reason === "STUDENT_ALREADY_ENROLLED")).toBe(true);
+      expect(
+        result.skipped.every((s) => s.reason === "STUDENT_ALREADY_ENROLLED"),
+      ).toBe(true);
       expect(mockEnrollmentRepository.saveMany).not.toHaveBeenCalled();
     });
 
@@ -418,12 +450,15 @@ describe("BulkEnrollStudentsUseCase", () => {
         id === "ghost" ? null : createMockStudent(id),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: [{ studentId: "ghost" }, { studentId: "s-2" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: [{ studentId: "ghost" }, { studentId: "s-2" }],
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(1);
       expect(result.skipped).toEqual([
@@ -452,12 +487,15 @@ describe("BulkEnrollStudentsUseCase", () => {
             : null,
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: [{ studentId: "s-1" }, { studentId: "s-dup" }],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: [{ studentId: "s-1" }, { studentId: "s-dup" }],
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(1);
       expect(result.skipped).toEqual([
@@ -475,16 +513,19 @@ describe("BulkEnrollStudentsUseCase", () => {
         createMockStudent(id),
       );
 
-      await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        note: "Term 2 cohort",
-        students: [
-          { studentId: "s-row-note", note: "Late join" },
-          { studentId: "s-inherits" },
-        ],
-      });
+      await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          note: "Term 2 cohort",
+          students: [
+            { studentId: "s-row-note", note: "Late join" },
+            { studentId: "s-inherits" },
+          ],
+        },
+        stubActor,
+      );
 
       const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
         .calls[0][0] as Enrollment[];
@@ -500,12 +541,15 @@ describe("BulkEnrollStudentsUseCase", () => {
         createMockStudent(id),
       );
 
-      await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: [{ studentId: "s-1" }],
-      });
+      await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: [{ studentId: "s-1" }],
+        },
+        stubActor,
+      );
 
       const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
         .calls[0][0] as Enrollment[];
@@ -526,16 +570,19 @@ describe("BulkEnrollStudentsUseCase", () => {
         async (sId) => (sId === "s-no-parent" ? null : createMockParent(sId)),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: [
-          { studentId: "s-ok-1" },
-          { studentId: "s-no-parent" },
-          { studentId: "s-ok-2" },
-        ],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: [
+            { studentId: "s-ok-1" },
+            { studentId: "s-no-parent" },
+            { studentId: "s-ok-2" },
+          ],
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(2);
       expect(result.skipped).toEqual([
@@ -569,16 +616,19 @@ describe("BulkEnrollStudentsUseCase", () => {
             : createMockParent(sId),
       );
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        enrollmentDate,
-        students: [
-          { studentId: "s-ok-1" },
-          { studentId: "s-wrong-grade" },
-          { studentId: "s-ok-2" },
-        ],
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          enrollmentDate,
+          students: [
+            { studentId: "s-ok-1" },
+            { studentId: "s-wrong-grade" },
+            { studentId: "s-ok-2" },
+          ],
+        },
+        stubActor,
+      );
 
       expect(result.enrolled).toHaveLength(2);
       expect(result.skipped).toEqual([
@@ -609,12 +659,15 @@ describe("BulkEnrollStudentsUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          enrollmentDate,
-          students: [{ studentId: "s-1" }, { studentId: "s-2" }],
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate,
+            students: [{ studentId: "s-1" }, { studentId: "s-2" }],
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("Unique constraint failed");
 
       // Use case must not swallow the error or return a partial result.

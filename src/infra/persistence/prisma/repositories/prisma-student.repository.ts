@@ -127,7 +127,7 @@ export class PrismaStudentRepository implements StudentRepository {
   ): Promise<PaginatedResult<Student>> {
     // Narrow user-controllable surface: caller can filter by fullName (ilike
     // for ?search) and studentCode. `status` is gone (Spec D9). isArchived,
-    // open-enrollment NOT-EXISTS, and scope.campusId are system-enforced via
+    // open-enrollment exclusion, and scope.campusId are system-enforced via
     // `where` + `scope` — phase narrowing is a client-side concern.
     params.allowedFilterFields = ["fullName", "studentCode"];
     params.allowedSortFields = [
@@ -144,8 +144,11 @@ export class PrismaStudentRepository implements StudentRepository {
       {
         where: {
           isArchived: false,
-          // NOT EXISTS active enrollment for this student in ANY class.
-          enrollments: { none: { endDate: null } },
+          // The view's CASE encodes phase='ACTIVE' iff the student has an
+          // open Enrollment (end_date IS NULL). `phase != 'ACTIVE'` is the
+          // view-friendly form of the previous `enrollments: { none: { endDate: null } }`
+          // relation filter, which Prisma rejects on a view model (no FK relations).
+          phase: { not: "ACTIVE" },
         },
         orderBy: { createdAt: "desc" },
         scope,

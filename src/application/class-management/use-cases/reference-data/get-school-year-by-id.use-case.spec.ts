@@ -44,12 +44,12 @@ describe("GetSchoolYearByIdUseCase", () => {
   it("throws NotFoundException when the school year does not exist", async () => {
     mockSchoolYearRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute("non-existent-id", campusA),
-    ).rejects.toThrow(NotFoundException);
-    await expect(
-      useCase.execute("non-existent-id", campusA),
-    ).rejects.toThrow("School year with ID non-existent-id not found");
+    await expect(useCase.execute("non-existent-id", campusA)).rejects.toThrow(
+      NotFoundException,
+    );
+    await expect(useCase.execute("non-existent-id", campusA)).rejects.toThrow(
+      "School year with ID non-existent-id not found",
+    );
   });
 
   it("throws NotFoundException when the school year belongs to a different campus", async () => {

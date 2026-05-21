@@ -224,9 +224,9 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
   it("throws 404 when the student does not exist", async () => {
     mockStudentRepository.findById.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute({ studentId, campusId }),
-    ).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute({ studentId, campusId })).rejects.toThrow(
+      NotFoundException,
+    );
 
     expect(
       mockSyeRepository.findAllByStudentIdWithChildCount,
@@ -238,9 +238,9 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
       createMockStudent({ campusId: differentCampusId }),
     );
 
-    await expect(
-      useCase.execute({ studentId, campusId }),
-    ).rejects.toThrow(NotFoundException);
+    await expect(useCase.execute({ studentId, campusId })).rejects.toThrow(
+      NotFoundException,
+    );
 
     expect(
       mockSyeRepository.findAllByStudentIdWithChildCount,

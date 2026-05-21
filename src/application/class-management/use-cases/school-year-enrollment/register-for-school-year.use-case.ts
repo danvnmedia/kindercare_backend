@@ -7,11 +7,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { SchoolYearRepository } from "../../ports/school-year.repository";
 import { GradeLevelRepository } from "../../ports/grade-level.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
 
 export interface RegisterForSchoolYearInput {
   campusId: string;
@@ -41,10 +44,13 @@ export class RegisterForSchoolYearUseCase {
     private readonly schoolYearRepository: SchoolYearRepository,
     @Inject("GRADE_LEVEL_REPOSITORY")
     private readonly gradeLevelRepository: GradeLevelRepository,
+    private readonly transactionRunner: TransactionRunnerPort,
+    private readonly recorder: AuditEventRecorderPort,
   ) {}
 
   async execute(
     input: RegisterForSchoolYearInput,
+    currentUser: User,
   ): Promise<SchoolYearEnrollment> {
     this.logger.log(
       `Registering student ${input.studentId} for school year ${input.schoolYearId}`,
@@ -111,8 +117,33 @@ export class RegisterForSchoolYearUseCase {
       note: input.note ?? null,
     });
 
-    const saved =
-      await this.schoolYearEnrollmentRepository.save(entity);
+    // Persist + emit audit inside one tx (D4 atomicity —
+    // @doc/specs/admin-audit-log). Recorder throw rolls back the registration.
+    const saved = await this.transactionRunner.run(async (tx) => {
+      const persisted = await this.schoolYearEnrollmentRepository.save(
+        entity,
+        tx,
+      );
+      await this.recorder.record(
+        {
+          actorId: currentUser.id,
+          action: "REGISTER_FOR_SCHOOL_YEAR",
+          targetType: "student",
+          targetId: input.studentId,
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            schoolYearId: input.schoolYearId,
+            schoolYearName: schoolYear.name,
+            gradeLevelId: input.gradeLevelId,
+            gradeLevelName: gradeLevel.name,
+            enrollmentDate: input.enrollmentDate.toISOString(),
+          },
+        },
+        tx,
+      );
+      return persisted;
+    });
     this.logger.log(`SchoolYearEnrollment created: ${saved.id}`);
     return saved;
   }

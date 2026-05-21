@@ -1,149 +1,174 @@
-import { NotFoundException, BadRequestException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
+
 import { RestoreStudentUseCase } from "./restore-student.use-case";
 import { StudentRepository } from "../../ports/student.repository";
+import {
+  TransactionContext,
+  UnitOfWorkPort,
+} from "@/application/ports/unit-of-work.port";
 import { Student } from "@/domain/user-management/entities/student.entity";
+import { User } from "@/domain/user-management/user.entity";
+
+const ACTOR_ID = "actor-1";
+
+function buildActor(): User {
+  return User.reconstitute(
+    {
+      clerkUid: "user_audit12345",
+      isActive: true,
+      profile: {
+        type: "staff",
+        id: ACTOR_ID,
+        fullName: "Alice Nguyen",
+        email: null,
+        phoneNumber: null,
+        dateOfBirth: null,
+        gender: null,
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    ACTOR_ID,
+  );
+}
+
+function createMockStudent(
+  overrides: Partial<{
+    id: string;
+    campusId: string;
+    isArchived: boolean;
+  }> = {},
+): Student {
+  return Student.create(
+    {
+      campusId: overrides.campusId ?? "campus-123",
+      studentCode: "STU-001",
+      fullName: "Test Student",
+      email: "test@example.com",
+      phoneNumber: null,
+      address: null,
+      dateOfBirth: null,
+      nickname: null,
+      gender: null,
+      isArchived: overrides.isArchived ?? false,
+    },
+    overrides.id ?? "student-123",
+  );
+}
 
 describe("RestoreStudentUseCase", () => {
   let useCase: RestoreStudentUseCase;
-  let mockStudentRepository: jest.Mocked<StudentRepository>;
-
-  const createMockStudent = (
-    overrides: Partial<{
-      id: string;
-      campusId: string;
-      isArchived: boolean;
-    }> = {},
-  ) => {
-    return Student.create(
-      {
-        campusId: overrides.campusId ?? "campus-123",
-        studentCode: "STU-001",
-        fullName: "Test Student",
-        email: "test@example.com",
-        phoneNumber: null,
-        address: null,
-        dateOfBirth: null,
-        nickname: null,
-        gender: null,
-        isArchived: overrides.isArchived ?? false,
-      },
-      overrides.id ?? "student-123",
-    );
-  };
+  let studentRepo: jest.Mocked<StudentRepository>;
+  let unitOfWork: jest.Mocked<UnitOfWorkPort>;
+  let mockTx: jest.Mocked<TransactionContext>;
+  let actor: User;
 
   beforeEach(() => {
-    mockStudentRepository = {
+    studentRepo = {
       findById: jest.fn(),
-      findByEmail: jest.fn(),
-      findByEmailInCampus: jest.fn(),
-      findByPhoneNumber: jest.fn(),
-      findByPhoneNumberInCampus: jest.fn(),
-      findByStudentCodeInCampus: jest.fn(),
-      findByCampusId: jest.fn(),
-      findByIds: jest.fn(),
-      findAll: jest.fn(),
-      findEligibleForClass: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      assignGuardians: jest.fn(),
-      removeGuardians: jest.fn(),
-      updateGuardianRelationship: jest.fn(),
-      getStudentGuardians: jest.fn(),
-    } as jest.Mocked<StudentRepository>;
+    } as unknown as jest.Mocked<StudentRepository>;
+    mockTx = {
+      updateStudent: jest.fn().mockResolvedValue({ id: "student-123" }),
+      recordAudit: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<TransactionContext>;
+    unitOfWork = {
+      run: jest.fn((task) => task(mockTx)),
+    } as unknown as jest.Mocked<UnitOfWorkPort>;
+    actor = buildActor();
 
-    useCase = new RestoreStudentUseCase(mockStudentRepository);
+    useCase = new RestoreStudentUseCase(studentRepo, unitOfWork);
   });
 
-  describe("successful restore", () => {
-    it("should restore an archived student successfully", async () => {
-      const student = createMockStudent({
-        isArchived: true,
-      });
-      mockStudentRepository.findById.mockResolvedValue(student);
-      mockStudentRepository.update.mockImplementation(async (s) => s);
-
-      const result = await useCase.execute("student-123");
-
-      expect(result.isArchived).toBe(false);
-      expect(mockStudentRepository.findById).toHaveBeenCalledWith(
-        "student-123",
-      );
-      expect(mockStudentRepository.update).toHaveBeenCalledWith(student);
-    });
-
-    it("should restore a student with campus validation", async () => {
+  describe("AC-3 — happy path emits RESTORE_STUDENT inside UoW", () => {
+    it("flips isArchived and records the audit row on the same tx", async () => {
       const student = createMockStudent({
         campusId: "campus-123",
         isArchived: true,
       });
-      mockStudentRepository.findById.mockResolvedValue(student);
-      mockStudentRepository.update.mockImplementation(async (s) => s);
+      studentRepo.findById.mockResolvedValue(student);
 
-      const result = await useCase.execute("student-123", "campus-123");
+      const result = await useCase.execute("student-123", undefined, actor);
 
       expect(result.isArchived).toBe(false);
-      expect(mockStudentRepository.update).toHaveBeenCalled();
+      expect(unitOfWork.run).toHaveBeenCalledTimes(1);
+      expect(mockTx.updateStudent).toHaveBeenCalledTimes(1);
+      expect(mockTx.updateStudent).toHaveBeenCalledWith(
+        "student-123",
+        expect.objectContaining({ isArchived: false }),
+      );
+
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
+      const payload = mockTx.recordAudit.mock.calls[0]![0];
+      expect(payload.action).toBe("RESTORE_STUDENT");
+      expect(payload.targetType).toBe("student");
+      expect(payload.targetId).toBe("student-123");
+      expect(payload.campusId).toBe("campus-123");
+      expect(payload.actorId).toBe(ACTOR_ID);
+      expect(payload.context).toEqual({ actorName: "Alice Nguyen" });
+      expect(payload.beforeValue).toEqual({ isArchived: true });
+      expect(payload.afterValue).toEqual({ isArchived: false });
     });
   });
 
-  describe("student not found", () => {
-    it("should throw NotFoundException if student not found", async () => {
-      mockStudentRepository.findById.mockResolvedValue(null);
+  describe("AC-4 — rollback when recorder throws", () => {
+    it("propagates the recorder error after running updateStudent inside the UoW", async () => {
+      const student = createMockStudent({ isArchived: true });
+      studentRepo.findById.mockResolvedValue(student);
+      mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
 
-      await expect(useCase.execute("non-existent-id")).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(useCase.execute("non-existent-id")).rejects.toThrow(
-        "Student with ID non-existent-id not found",
-      );
+      await expect(
+        useCase.execute("student-123", undefined, actor),
+      ).rejects.toThrow("audit fail");
+
+      expect(mockTx.updateStudent).toHaveBeenCalledTimes(1);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("student not archived", () => {
-    it("should throw BadRequestException if student is not archived", async () => {
-      const student = createMockStudent({
-        isArchived: false,
-      });
-      mockStudentRepository.findById.mockResolvedValue(student);
+  describe("existing semantics preserved", () => {
+    it("throws NotFoundException when student does not exist", async () => {
+      studentRepo.findById.mockResolvedValue(null);
 
-      await expect(useCase.execute("student-123")).rejects.toThrow(
-        BadRequestException,
-      );
-      await expect(useCase.execute("student-123")).rejects.toThrow(
-        "Student with ID student-123 is not archived",
-      );
+      await expect(
+        useCase.execute("missing", undefined, actor),
+      ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
     });
-  });
 
-  describe("campus validation", () => {
-    it("should throw NotFoundException if student belongs to different campus", async () => {
+    it("throws BadRequestException when student is not archived", async () => {
+      const student = createMockStudent({ isArchived: false });
+      studentRepo.findById.mockResolvedValue(student);
+
+      await expect(
+        useCase.execute("student-123", undefined, actor),
+      ).rejects.toThrow(BadRequestException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException when student belongs to a different campus", async () => {
       const student = createMockStudent({
         campusId: "campus-A",
         isArchived: true,
       });
-      mockStudentRepository.findById.mockResolvedValue(student);
+      studentRepo.findById.mockResolvedValue(student);
 
-      await expect(useCase.execute("student-123", "campus-B")).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(useCase.execute("student-123", "campus-B")).rejects.toThrow(
-        "Student with ID student-123 not found in this campus",
-      );
+      await expect(
+        useCase.execute("student-123", "campus-B", actor),
+      ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
     });
 
-    it("should restore successfully when no campusId is provided (skip validation)", async () => {
+    it("restores when no campusId provided (skip validation)", async () => {
       const student = createMockStudent({
         campusId: "campus-123",
         isArchived: true,
       });
-      mockStudentRepository.findById.mockResolvedValue(student);
-      mockStudentRepository.update.mockImplementation(async (s) => s);
+      studentRepo.findById.mockResolvedValue(student);
 
-      const result = await useCase.execute("student-123");
+      const result = await useCase.execute("student-123", undefined, actor);
 
       expect(result.isArchived).toBe(false);
-      expect(mockStudentRepository.update).toHaveBeenCalled();
+      expect(mockTx.recordAudit).toHaveBeenCalled();
     });
   });
 });

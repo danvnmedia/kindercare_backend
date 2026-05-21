@@ -14,6 +14,33 @@ import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  AppTransactionClient,
+  TransactionRunnerPort,
+} from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+
+const stubActor = User.reconstitute(
+  {
+    clerkUid: "user_audit12345",
+    isActive: true,
+    profile: {
+      type: "staff",
+      id: "actor-1",
+      fullName: "Alice Nguyen",
+      email: null,
+      phoneNumber: null,
+      dateOfBirth: null,
+      gender: null,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  "actor-1",
+);
+
+const stubTx = {} as unknown as AppTransactionClient;
 
 describe("EnrollStudentUseCase", () => {
   let useCase: EnrollStudentUseCase;
@@ -21,6 +48,8 @@ describe("EnrollStudentUseCase", () => {
   let mockClassRepository: jest.Mocked<ClassRepository>;
   let mockStudentRepository: jest.Mocked<StudentRepository>;
   let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
+  let runner: jest.Mocked<TransactionRunnerPort>;
+  let recorder: jest.Mocked<AuditEventRecorderPort>;
 
   const campusId = "campus-1";
   const differentCampusId = "campus-2";
@@ -166,11 +195,20 @@ describe("EnrollStudentUseCase", () => {
       withdrawWithChildren: jest.fn(),
     } as jest.Mocked<SchoolYearEnrollmentRepository>;
 
+    runner = {
+      run: jest.fn((task) => task(stubTx)),
+    } as unknown as jest.Mocked<TransactionRunnerPort>;
+    recorder = {
+      record: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<AuditEventRecorderPort>;
+
     useCase = new EnrollStudentUseCase(
       mockEnrollmentRepository,
       mockClassRepository,
       mockStudentRepository,
       mockSyeRepository,
+      runner,
+      recorder,
     );
 
     // Default: no active enrollment. Individual tests override for AC-21.
@@ -193,13 +231,16 @@ describe("EnrollStudentUseCase", () => {
       async (enrollment) => enrollment,
     );
 
-    const result = await useCase.execute({
-      campusId,
-      classId,
-      studentId,
-      enrollmentDate,
-      note: "Test enrollment note",
-    });
+    const result = await useCase.execute(
+      {
+        campusId,
+        classId,
+        studentId,
+        enrollmentDate,
+        note: "Test enrollment note",
+      },
+      stubActor,
+    );
 
     expect(result).toBeInstanceOf(Enrollment);
     expect(result.classId).toBe(classId);
@@ -231,12 +272,15 @@ describe("EnrollStudentUseCase", () => {
       async (enrollment) => enrollment,
     );
 
-    const result = await useCase.execute({
-      campusId,
-      classId,
-      studentId,
-      enrollmentDate,
-    });
+    const result = await useCase.execute(
+      {
+        campusId,
+        classId,
+        studentId,
+        enrollmentDate,
+      },
+      stubActor,
+    );
 
     expect(result.note).toBeNull();
   });
@@ -245,21 +289,27 @@ describe("EnrollStudentUseCase", () => {
     mockClassRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(`Class with ID ${classId} not found`);
 
     expect(mockStudentRepository.findById).not.toHaveBeenCalled();
@@ -272,21 +322,27 @@ describe("EnrollStudentUseCase", () => {
     mockClassRepository.findById.mockResolvedValue(mockClass);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(BadRequestException);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow("Class does not belong to this campus");
 
     expect(mockStudentRepository.findById).not.toHaveBeenCalled();
@@ -300,21 +356,27 @@ describe("EnrollStudentUseCase", () => {
     mockStudentRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(`Student with ID ${studentId} not found`);
 
     expect(
@@ -331,21 +393,27 @@ describe("EnrollStudentUseCase", () => {
     mockStudentRepository.findById.mockResolvedValue(mockStudent);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(BadRequestException);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       "Cannot enroll student from a different campus into this class",
     );
@@ -374,21 +442,27 @@ describe("EnrollStudentUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(ConflictException);
 
     await expect(
-      useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow("Student is already enrolled in this class on this date");
 
     expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
@@ -406,12 +480,15 @@ describe("EnrollStudentUseCase", () => {
       async (enrollment) => enrollment,
     );
 
-    const result = await useCase.execute({
-      campusId,
-      classId,
-      studentId,
-      enrollmentDate: newEnrollmentDate,
-    });
+    const result = await useCase.execute(
+      {
+        campusId,
+        classId,
+        studentId,
+        enrollmentDate: newEnrollmentDate,
+      },
+      stubActor,
+    );
 
     expect(result.enrollmentDate).toEqual(newEnrollmentDate);
     expect(mockEnrollmentRepository.save).toHaveBeenCalled();
@@ -438,21 +515,27 @@ describe("EnrollStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("STUDENT_ALREADY_ENROLLED");
 
       expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
@@ -470,12 +553,15 @@ describe("EnrollStudentUseCase", () => {
       mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
       mockEnrollmentRepository.save.mockImplementation(async (e) => e);
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate,
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      );
 
       expect(result).toBeInstanceOf(Enrollment);
       expect(
@@ -499,21 +585,27 @@ describe("EnrollStudentUseCase", () => {
       mockStudentRepository.findById.mockResolvedValue(mockStudent);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
 
       expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
@@ -535,12 +627,15 @@ describe("EnrollStudentUseCase", () => {
       mockStudentRepository.findById.mockResolvedValue(mockStudent);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate: new Date("2025-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate: new Date("2025-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
 
       expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
@@ -562,12 +657,15 @@ describe("EnrollStudentUseCase", () => {
       mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
       mockEnrollmentRepository.save.mockImplementation(async (e) => e);
 
-      const result = await useCase.execute({
-        campusId,
-        classId,
-        studentId,
-        enrollmentDate: startDate,
-      });
+      const result = await useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate: startDate,
+        },
+        stubActor,
+      );
 
       expect(result).toBeInstanceOf(Enrollment);
       expect(mockEnrollmentRepository.save).toHaveBeenCalled();
@@ -585,21 +683,27 @@ describe("EnrollStudentUseCase", () => {
       mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(null);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(
         SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
       );
@@ -624,21 +728,27 @@ describe("EnrollStudentUseCase", () => {
       );
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(ConflictException);
 
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate,
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH);
 
       expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
@@ -673,18 +783,91 @@ describe("EnrollStudentUseCase", () => {
       // Both would fail: enrollmentDate is out-of-range AND student has active enrollment.
       // Spec validation order: school-year bounds fires first (400, not 409).
       await expect(
-        useCase.execute({
-          campusId,
-          classId,
-          studentId,
-          enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
-        }),
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate: new Date("2024-08-15T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
 
       // findActiveByStudentId should not have been consulted yet.
       expect(
         mockEnrollmentRepository.findActiveByStudentId,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("audit-log emission (admin-audit-log AC-3 / AC-7)", () => {
+    it("emits ENROLL_STUDENT_TO_CLASS audit row inside the same tx", async () => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockStudentRepository.findById.mockResolvedValue(createMockStudent());
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
+      mockEnrollmentRepository.save.mockImplementation(async (e) => e);
+
+      await useCase.execute(
+        {
+          campusId,
+          classId,
+          studentId,
+          enrollmentDate,
+        },
+        stubActor,
+      );
+
+      expect(recorder.record).toHaveBeenCalledTimes(1);
+      const [auditInput, txArg] = recorder.record.mock.calls[0];
+      expect(auditInput).toMatchObject({
+        actorId: stubActor.id,
+        action: "ENROLL_STUDENT_TO_CLASS",
+        targetType: "student",
+        targetId: studentId,
+        campusId,
+      });
+      expect(auditInput.context).toMatchObject({
+        actorName: "Alice Nguyen",
+        classId,
+        className: "Test Class",
+        enrollmentDate: enrollmentDate.toISOString(),
+      });
+      expect(txArg).toBe(stubTx);
+      // save was called with the tx as the second arg.
+      expect(mockEnrollmentRepository.save).toHaveBeenCalledWith(
+        expect.any(Object),
+        stubTx,
+      );
+    });
+  });
+
+  describe("rollback on recorder failure (admin-audit-log AC-4 / Scenario 2)", () => {
+    it("propagates the recorder error so the outer tx rolls back the enrollment", async () => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockStudentRepository.findById.mockResolvedValue(createMockStudent());
+      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
+      mockEnrollmentRepository.save.mockImplementation(async (e) => e);
+      const auditFailure = new Error("audit failure");
+      recorder.record.mockRejectedValue(auditFailure);
+
+      // The use case wraps its body in a try/catch that re-throws BadRequest
+      // for unknown errors. Assert the underlying message survives.
+      await expect(
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            studentId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
+      ).rejects.toThrow("audit failure");
+
+      // save WAS called — inside the tx that ultimately threw. A real DB
+      // would roll it back when the audit error bubbles out.
+      expect(mockEnrollmentRepository.save).toHaveBeenCalledTimes(1);
     });
   });
 });

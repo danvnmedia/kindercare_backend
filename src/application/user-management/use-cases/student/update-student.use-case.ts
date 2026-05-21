@@ -9,7 +9,10 @@ import {
   Student,
   UpdateStudentData,
 } from "@/domain/user-management/entities/student.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { StudentRepository } from "../../ports/student.repository";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { computeDiff } from "@/application/audit";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 
 export interface UpdateStudentInput {
@@ -29,9 +32,14 @@ export class UpdateStudentUseCase {
   constructor(
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
-  async execute(id: string, input: UpdateStudentInput): Promise<Student> {
+  async execute(
+    id: string,
+    input: UpdateStudentInput,
+    currentUser: User,
+  ): Promise<Student> {
     this.logger.log(`Updating student: ${id}`);
 
     // Step 1: Find existing student
@@ -53,7 +61,12 @@ export class UpdateStudentUseCase {
       await this.checkPhoneUniqueness(student.campusId, input.phoneNumber, id);
     }
 
-    // Step 4: Update student profile using entity method
+    // Step 4: Update student profile using entity method.
+    // Snapshot before/after so the EDIT_STUDENT_PROFILE audit row records
+    // only the fields that actually changed (Scenario 3 of
+    // `@doc/specs/admin-audit-log`).
+    const beforeAudit = pickStudentAuditFields(student);
+
     const updateData: UpdateStudentData = {
       fullName: input.fullName,
       nickname: input.nickname,
@@ -66,11 +79,41 @@ export class UpdateStudentUseCase {
 
     student.updateProfile(updateData);
 
-    // Step 5: Persist changes
-    const updatedStudent = await this.studentRepository.update(student);
+    const afterAudit = pickStudentAuditFields(student);
+    const diff = computeDiff(beforeAudit, afterAudit);
+
+    // Step 5: Persist + emit audit through UnitOfWork — same transaction
+    // boundary (D4 of `@doc/specs/admin-audit-log`). Skip the audit emit
+    // when no auditable field changed, so no-op PATCHes do not pollute the
+    // history.
+    await this.unitOfWork.run(async (tx) => {
+      await tx.updateStudent(student.id, {
+        fullName: student.fullName,
+        email: student.email,
+        phoneNumber: student.phoneNumber,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        nickname: student.nickname,
+        gender: student.gender,
+        updatedAt: student.updatedAt,
+      });
+
+      if (Object.keys(diff.after).length > 0) {
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "EDIT_STUDENT_PROFILE",
+          targetType: "student",
+          targetId: id,
+          campusId: student.campusId,
+          context: { actorName: currentUser.profile?.fullName ?? null },
+          beforeValue: diff.before,
+          afterValue: diff.after,
+        });
+      }
+    });
 
     this.logger.log(`Student updated successfully: ${id}`);
-    return updatedStudent;
+    return student;
   }
 
   private async checkEmailUniqueness(
@@ -109,4 +152,16 @@ export class UpdateStudentUseCase {
       );
     }
   }
+}
+
+function pickStudentAuditFields(s: Student) {
+  return {
+    fullName: s.fullName,
+    email: s.email,
+    phoneNumber: s.phoneNumber,
+    address: s.address,
+    dateOfBirth: s.dateOfBirth,
+    nickname: s.nickname,
+    gender: s.gender,
+  };
 }

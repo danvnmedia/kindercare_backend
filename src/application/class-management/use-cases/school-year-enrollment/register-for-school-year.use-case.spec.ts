@@ -13,6 +13,33 @@ import { GradeLevel } from "@/domain/class-management/entities/grade-level.entit
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  AppTransactionClient,
+  TransactionRunnerPort,
+} from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+
+const stubActor = User.reconstitute(
+  {
+    clerkUid: "user_audit12345",
+    isActive: true,
+    profile: {
+      type: "staff",
+      id: "actor-1",
+      fullName: "Alice Nguyen",
+      email: null,
+      phoneNumber: null,
+      dateOfBirth: null,
+      gender: null,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  "actor-1",
+);
+
+const stubTx = {} as unknown as AppTransactionClient;
 
 describe("RegisterForSchoolYearUseCase", () => {
   let useCase: RegisterForSchoolYearUseCase;
@@ -20,6 +47,8 @@ describe("RegisterForSchoolYearUseCase", () => {
   let mockStudentRepository: jest.Mocked<StudentRepository>;
   let mockSchoolYearRepository: jest.Mocked<SchoolYearRepository>;
   let mockGradeLevelRepository: jest.Mocked<GradeLevelRepository>;
+  let runner: jest.Mocked<TransactionRunnerPort>;
+  let recorder: jest.Mocked<AuditEventRecorderPort>;
 
   const campusId = "campus-1";
   const differentCampusId = "campus-2";
@@ -55,8 +84,7 @@ describe("RegisterForSchoolYearUseCase", () => {
       {
         campusId: overrides.campusId ?? campusId,
         name: "SY 2025-2026",
-        startDate:
-          overrides.startDate ?? new Date("2025-08-01T00:00:00.000Z"),
+        startDate: overrides.startDate ?? new Date("2025-08-01T00:00:00.000Z"),
         endDate: overrides.endDate ?? new Date("2026-07-31T00:00:00.000Z"),
       },
       schoolYearId,
@@ -135,11 +163,20 @@ describe("RegisterForSchoolYearUseCase", () => {
       reorder: jest.fn(),
     } as jest.Mocked<GradeLevelRepository>;
 
+    runner = {
+      run: jest.fn((task) => task(stubTx)),
+    } as unknown as jest.Mocked<TransactionRunnerPort>;
+    recorder = {
+      record: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<AuditEventRecorderPort>;
+
     useCase = new RegisterForSchoolYearUseCase(
       mockSyeRepository,
       mockStudentRepository,
       mockSchoolYearRepository,
       mockGradeLevelRepository,
+      runner,
+      recorder,
     );
   });
 
@@ -155,14 +192,17 @@ describe("RegisterForSchoolYearUseCase", () => {
   it("creates the parent enrollment on the happy path", async () => {
     arrangeHappyPath();
 
-    const result = await useCase.execute({
-      campusId,
-      studentId,
-      schoolYearId,
-      gradeLevelId,
-      enrollmentDate,
-      note: "Late registration approved",
-    });
+    const result = await useCase.execute(
+      {
+        campusId,
+        studentId,
+        schoolYearId,
+        gradeLevelId,
+        enrollmentDate,
+        note: "Late registration approved",
+      },
+      stubActor,
+    );
 
     expect(result).toBeInstanceOf(SchoolYearEnrollment);
     expect(result.studentId).toBe(studentId);
@@ -183,13 +223,16 @@ describe("RegisterForSchoolYearUseCase", () => {
   it("creates without a note when none provided", async () => {
     arrangeHappyPath();
 
-    const result = await useCase.execute({
-      campusId,
-      studentId,
-      schoolYearId,
-      gradeLevelId,
-      enrollmentDate,
-    });
+    const result = await useCase.execute(
+      {
+        campusId,
+        studentId,
+        schoolYearId,
+        gradeLevelId,
+        enrollmentDate,
+      },
+      stubActor,
+    );
 
     expect(result.note).toBeNull();
   });
@@ -198,13 +241,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     mockStudentRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     expect(mockSchoolYearRepository.findById).not.toHaveBeenCalled();
@@ -217,13 +263,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(NotFoundException);
 
     expect(mockSchoolYearRepository.findById).not.toHaveBeenCalled();
@@ -234,13 +283,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     mockSchoolYearRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new NotFoundException(
         SchoolYearEnrollmentErrorCode.SCHOOL_YEAR_NOT_FOUND,
@@ -255,13 +307,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new NotFoundException(
         SchoolYearEnrollmentErrorCode.SCHOOL_YEAR_NOT_FOUND,
@@ -275,13 +330,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     mockGradeLevelRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new NotFoundException(
         SchoolYearEnrollmentErrorCode.GRADE_LEVEL_NOT_FOUND,
@@ -297,13 +355,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new NotFoundException(
         SchoolYearEnrollmentErrorCode.GRADE_LEVEL_NOT_FOUND,
@@ -321,13 +382,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate: new Date("2025-07-01T00:00:00.000Z"),
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate: new Date("2025-07-01T00:00:00.000Z"),
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new BadRequestException(
         SchoolYearEnrollmentErrorCode.REGISTRATION_DATE_OUT_OF_SCHOOL_YEAR,
@@ -349,13 +413,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate: new Date("2026-08-15T00:00:00.000Z"),
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate: new Date("2026-08-15T00:00:00.000Z"),
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new BadRequestException(
         SchoolYearEnrollmentErrorCode.REGISTRATION_DATE_OUT_OF_SCHOOL_YEAR,
@@ -383,13 +450,16 @@ describe("RegisterForSchoolYearUseCase", () => {
     );
 
     await expect(
-      useCase.execute({
-        campusId,
-        studentId,
-        schoolYearId,
-        gradeLevelId,
-        enrollmentDate,
-      }),
+      useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      ),
     ).rejects.toThrow(
       new ConflictException(
         SchoolYearEnrollmentErrorCode.SCHOOL_YEAR_ENROLLMENT_ALREADY_EXISTS,
@@ -407,18 +477,86 @@ describe("RegisterForSchoolYearUseCase", () => {
     // No open parent in target SY → success path. The other-year open parent
     // is implicitly out of scope because the repository call filters by
     // schoolYearId; no need to mock anything extra.
-    const result = await useCase.execute({
-      campusId,
-      studentId,
-      schoolYearId,
-      gradeLevelId,
-      enrollmentDate,
-    });
+    const result = await useCase.execute(
+      {
+        campusId,
+        studentId,
+        schoolYearId,
+        gradeLevelId,
+        enrollmentDate,
+      },
+      stubActor,
+    );
 
     expect(result).toBeInstanceOf(SchoolYearEnrollment);
     expect(
       mockSyeRepository.findOpenByStudentAndSchoolYear,
     ).toHaveBeenCalledWith(studentId, schoolYearId);
     expect(mockSyeRepository.save).toHaveBeenCalledTimes(1);
+  });
+
+  describe("audit-log emission (admin-audit-log AC-3 / AC-7)", () => {
+    it("emits REGISTER_FOR_SCHOOL_YEAR audit row inside the same tx", async () => {
+      arrangeHappyPath();
+
+      await useCase.execute(
+        {
+          campusId,
+          studentId,
+          schoolYearId,
+          gradeLevelId,
+          enrollmentDate,
+        },
+        stubActor,
+      );
+
+      expect(recorder.record).toHaveBeenCalledTimes(1);
+      const [auditInput, txArg] = recorder.record.mock.calls[0];
+      expect(auditInput).toMatchObject({
+        actorId: stubActor.id,
+        action: "REGISTER_FOR_SCHOOL_YEAR",
+        targetType: "student",
+        targetId: studentId,
+        campusId,
+      });
+      expect(auditInput.context).toMatchObject({
+        actorName: "Alice Nguyen",
+        schoolYearId,
+        schoolYearName: "SY 2025-2026",
+        gradeLevelId,
+        gradeLevelName: "Lớp Mầm",
+        enrollmentDate: enrollmentDate.toISOString(),
+      });
+      expect(txArg).toBe(stubTx);
+      expect(mockSyeRepository.save).toHaveBeenCalledWith(
+        expect.any(Object),
+        stubTx,
+      );
+    });
+  });
+
+  describe("rollback on recorder failure (admin-audit-log AC-4 / Scenario 2)", () => {
+    it("propagates the recorder error so the outer tx rolls back the registration", async () => {
+      arrangeHappyPath();
+      const auditFailure = new Error("audit failure");
+      recorder.record.mockRejectedValue(auditFailure);
+
+      await expect(
+        useCase.execute(
+          {
+            campusId,
+            studentId,
+            schoolYearId,
+            gradeLevelId,
+            enrollmentDate,
+          },
+          stubActor,
+        ),
+      ).rejects.toBe(auditFailure);
+
+      // save WAS called — inside the tx that ultimately threw. A real DB
+      // would roll it back when the audit error bubbles out of `runner.run`.
+      expect(mockSyeRepository.save).toHaveBeenCalledTimes(1);
+    });
   });
 });

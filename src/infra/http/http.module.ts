@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from "@nestjs/common";
 import { UserManagementModule } from "./modules/user-management.module";
 import { AuthModule } from "./modules/auth.module";
+import { AuditModule } from "./modules/audit.module";
 import { FileManagementModule } from "./modules/file-management/file-management.module";
 import { ClassManagementModule } from "./modules/class-management.module";
 import { CampusModule } from "./modules/campus.module";
@@ -36,6 +37,7 @@ import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
     GuardianRelationshipTypeModule, // Guardian relationship type management
     ContentManagementModule, // Post/CMS management
     AttendanceModule, // Student attendance management
+    AuditModule, // Admin audit-log read endpoints (@doc/specs/admin-audit-log)
   ],
   controllers: [],
 })

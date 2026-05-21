@@ -13,6 +13,7 @@
 
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 
 export abstract class SchoolYearEnrollmentRepository {
   /**
@@ -59,9 +60,14 @@ export abstract class SchoolYearEnrollmentRepository {
   /**
    * Persist a brand-new parent enrollment. Callers must have already verified
    * grade-level / school-year integrity at the use-case layer.
+   *
+   * Optional `tx` lets the caller join an outer transaction (used by the
+   * audit-emit wiring per @doc/specs/admin-audit-log D4); when omitted, the
+   * implementation uses its own connection (existing behavior).
    */
   abstract save(
     entity: SchoolYearEnrollment,
+    tx?: AppTransactionClient,
   ): Promise<SchoolYearEnrollment>;
 
   /**
@@ -70,9 +76,7 @@ export abstract class SchoolYearEnrollmentRepository {
    * are deliberately stripped by the mapper — see
    * `@doc/guides/code-generation-pattern#immutability`.
    */
-  abstract update(
-    entity: SchoolYearEnrollment,
-  ): Promise<SchoolYearEnrollment>;
+  abstract update(entity: SchoolYearEnrollment): Promise<SchoolYearEnrollment>;
 
   /**
    * Atomically close the parent row and (optionally) the single open child
@@ -83,10 +87,15 @@ export abstract class SchoolYearEnrollmentRepository {
    * this school year — the parent row alone will be closed.
    *
    * Satisfies specs/school-year-enrollment-model D4 (atomic cascade).
+   *
+   * Optional `tx`: when supplied, both writes run on the caller's transaction
+   * (used by the audit wiring so the recorder emit joins the same tx); when
+   * omitted, the implementation opens its own internal `$transaction`.
    */
   abstract withdrawWithChildren(
     parent: SchoolYearEnrollment,
     openChild: Enrollment | null,
+    tx?: AppTransactionClient,
   ): Promise<{
     closedParent: SchoolYearEnrollment;
     closedChild: Enrollment | null;

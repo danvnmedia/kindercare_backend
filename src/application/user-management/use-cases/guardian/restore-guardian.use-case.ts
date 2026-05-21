@@ -6,6 +6,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
@@ -32,7 +33,11 @@ export class RestoreGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, campusId?: string): Promise<Guardian> {
+  async execute(
+    id: string,
+    campusId: string | undefined,
+    currentUser: User,
+  ): Promise<Guardian> {
     this.logger.log(`Restoring guardian: ${id}`);
 
     // Step 1: Find existing guardian
@@ -58,18 +63,16 @@ export class RestoreGuardianUseCase {
       await this.unlockClerkUser(guardian.userId!);
     }
 
-    // Step 5: Restore guardian and activate user atomically
+    // Step 5: Restore guardian + activate user + emit audit row atomically.
     guardian.restore();
 
     await this.unitOfWork.run(async (tx) => {
-      // Restore the guardian (set isArchived = false)
       await tx.updateGuardian(guardian.id, {
         isArchived: false,
         updatedAt: guardian.updatedAt,
       });
       this.logger.log(`Guardian restored in transaction: ${id}`);
 
-      // Activate linked user account if exists
       if (guardian.hasUserAccount()) {
         await tx.updateUser(guardian.userId!, {
           isActive: true,
@@ -78,6 +81,17 @@ export class RestoreGuardianUseCase {
           `User account activated in transaction for guardian: ${guardian.email ?? guardian.phoneNumber}`,
         );
       }
+
+      await tx.recordAudit({
+        actorId: currentUser.id,
+        action: "RESTORE_GUARDIAN",
+        targetType: "guardian",
+        targetId: guardian.id,
+        campusId: guardian.campusId,
+        context: { actorName: currentUser.profile?.fullName ?? null },
+        beforeValue: { isArchived: true },
+        afterValue: { isArchived: false },
+      });
     });
 
     this.logger.log(`Guardian restored successfully: ${id}`);

@@ -1005,3 +1005,34 @@ model Attachment {
   @@index([fileId])
   @@map("attachment")
 }
+
+// ==========================================
+// AUDIT
+// ==========================================
+
+// Append-only audit log per @doc/specs/admin-audit-log FR-2.
+// actor_id / target_id / campus_id are bare UUIDs (no @relation) so audit
+// rows survive hard delete of referenced entities (Scenario 4). Application
+// layer enforces integrity at write time.
+model AuditEvent {
+  id String @id @default(uuid()) @db.Uuid
+
+  actorId    String @map("actor_id") @db.Uuid
+  targetType String @map("target_type")
+  targetId   String @map("target_id") @db.Uuid
+  action     String
+
+  beforeValue Json? @map("before_value")
+  afterValue  Json? @map("after_value")
+  context     Json
+
+  visibility String @default("ADMIN")
+  campusId   String @map("campus_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([targetType, targetId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([campusId, createdAt(sort: Desc)])
+  @@map("audit_event")
+}

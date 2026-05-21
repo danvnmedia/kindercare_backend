@@ -131,9 +131,9 @@ describe("GetClassEnrollmentsUseCase", () => {
         buildClass({ campusId: otherCampusId }),
       );
 
-      await expect(
-        useCase.execute({ classId, campusId }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute({ classId, campusId })).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(enrollmentRepo.findActiveByClassId).not.toHaveBeenCalled();
       expect(enrollmentRepo.findHistoricalByClassId).not.toHaveBeenCalled();
@@ -144,9 +144,9 @@ describe("GetClassEnrollmentsUseCase", () => {
     it("throws NotFoundException when class does not exist", async () => {
       classRepo.findById.mockResolvedValue(null);
 
-      await expect(
-        useCase.execute({ classId, campusId }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute({ classId, campusId })).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(enrollmentRepo.findActiveByClassId).not.toHaveBeenCalled();
       expect(enrollmentRepo.findHistoricalByClassId).not.toHaveBeenCalled();

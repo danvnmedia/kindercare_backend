@@ -113,7 +113,10 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
     studentRepo = {
       findById: jest.fn(),
     } as unknown as jest.Mocked<StudentRepository>;
-    useCase = new GetStudentEnrollmentHistoryUseCase(enrollmentRepo, studentRepo);
+    useCase = new GetStudentEnrollmentHistoryUseCase(
+      enrollmentRepo,
+      studentRepo,
+    );
   });
 
   describe("AC-25: history with populated nested class metadata", () => {
@@ -237,9 +240,9 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
         buildStudent({ campusId: otherCampusId }),
       );
 
-      await expect(
-        useCase.execute({ studentId, campusId }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute({ studentId, campusId })).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(enrollmentRepo.findAllByStudentId).not.toHaveBeenCalled();
     });
@@ -249,9 +252,9 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
     it("throws NotFoundException when student does not exist", async () => {
       studentRepo.findById.mockResolvedValue(null);
 
-      await expect(
-        useCase.execute({ studentId, campusId }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(useCase.execute({ studentId, campusId })).rejects.toThrow(
+        NotFoundException,
+      );
 
       expect(enrollmentRepo.findAllByStudentId).not.toHaveBeenCalled();
     });

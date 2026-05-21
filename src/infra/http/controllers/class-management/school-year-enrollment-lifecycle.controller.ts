@@ -17,9 +17,11 @@ import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CAMPUS_ID_HEADER,
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
 } from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
+import { User } from "@/domain/user-management/user.entity";
 
 import {
   WithdrawFromSchoolRequest,
@@ -73,13 +75,17 @@ export class SchoolYearEnrollmentLifecycleController {
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: WithdrawFromSchoolRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.withdrawFromSchoolUseCase.execute({
-      id,
-      campusId,
-      reason: dto.reason,
-      exitDate: dto.exitDate ? new Date(dto.exitDate) : undefined,
-      note: dto.note,
-    });
+    return await this.withdrawFromSchoolUseCase.execute(
+      {
+        id,
+        campusId,
+        reason: dto.reason,
+        exitDate: dto.exitDate ? new Date(dto.exitDate) : undefined,
+        note: dto.note,
+      },
+      currentUser,
+    );
   }
 }

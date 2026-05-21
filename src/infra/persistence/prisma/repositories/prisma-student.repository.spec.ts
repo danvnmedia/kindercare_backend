@@ -41,7 +41,7 @@ describe("PrismaStudentRepository", () => {
       };
     };
 
-    it("excludes active-elsewhere students via NOT EXISTS predicate (AC-13)", async () => {
+    it("excludes active-elsewhere students via phase != ACTIVE on the view (AC-13)", async () => {
       const params: StandardRequest = {};
 
       await repository.findEligibleForClass("class-1", params, {
@@ -49,11 +49,14 @@ describe("PrismaStudentRepository", () => {
       });
 
       const { options } = callArgs();
-      // Prisma's `{ none: { endDate: null } }` is the relation-filter form of
-      // NOT EXISTS — students with any open enrollment row are excluded.
+      // The `student_with_phase` view's CASE projects phase='ACTIVE' iff the
+      // student has an open Enrollment, so `phase: { not: 'ACTIVE' }` is the
+      // view-bound equivalent of the original `enrollments: { none: { endDate: null } }`
+      // relation filter. Prisma rejects relation filters on view models, so
+      // this is the only form that works once reads target the view (D7).
       expect(options.where).toEqual(
         expect.objectContaining({
-          enrollments: { none: { endDate: null } },
+          phase: { not: "ACTIVE" },
         }),
       );
     });

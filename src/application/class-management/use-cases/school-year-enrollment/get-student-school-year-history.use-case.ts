@@ -52,9 +52,7 @@ export interface SchoolYearEnrollmentHistoryView {
  */
 @Injectable()
 export class GetStudentSchoolYearHistoryUseCase {
-  private readonly logger = new Logger(
-    GetStudentSchoolYearHistoryUseCase.name,
-  );
+  private readonly logger = new Logger(GetStudentSchoolYearHistoryUseCase.name);
 
   constructor(
     @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")

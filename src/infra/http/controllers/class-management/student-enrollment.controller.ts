@@ -18,9 +18,11 @@ import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CAMPUS_ID_HEADER,
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
 } from "../../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
+import { User } from "@/domain/user-management/user.entity";
 
 import {
   StudentEnrollmentHistoryResponse,
@@ -76,15 +78,19 @@ export class StudentEnrollmentController {
     @CampusContext() campusId: string,
     @Param("studentId", ParseUUIDPipe) studentId: string,
     @Body() dto: TransferStudentRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.transferStudentUseCase.execute({
-      studentId,
-      campusId,
-      toClassId: dto.toClassId,
-      transferDate: dto.transferDate ? new Date(dto.transferDate) : undefined,
-      fromClassId: dto.fromClassId,
-      note: dto.note,
-    });
+    return await this.transferStudentUseCase.execute(
+      {
+        studentId,
+        campusId,
+        toClassId: dto.toClassId,
+        transferDate: dto.transferDate ? new Date(dto.transferDate) : undefined,
+        fromClassId: dto.fromClassId,
+        note: dto.note,
+      },
+      currentUser,
+    );
   }
 
   @Get(":studentId/enrollments")

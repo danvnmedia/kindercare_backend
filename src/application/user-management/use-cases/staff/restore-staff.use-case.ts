@@ -6,6 +6,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { StaffRepository } from "../../ports/staff.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
@@ -32,7 +33,11 @@ export class RestoreStaffUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, campusId: string): Promise<Staff> {
+  async execute(
+    id: string,
+    campusId: string,
+    currentUser: User,
+  ): Promise<Staff> {
     this.logger.log(`Restoring staff: ${id} in campus ${campusId}`);
 
     // Step 1: Find existing staff
@@ -53,23 +58,21 @@ export class RestoreStaffUseCase {
       throw new BadRequestException(`Staff with ID ${id} is not archived`);
     }
 
-    // Step 3: Unlock Clerk user (best effort - don't fail if this fails)
+    // Step 4: Unlock Clerk user (best effort - don't fail if this fails)
     if (staff.hasUserAccount()) {
       await this.unlockClerkUser(staff.userId!);
     }
 
-    // Step 4: Restore staff and activate user atomically
+    // Step 5: Restore staff + activate user + emit audit row atomically.
     staff.restore();
 
     await this.unitOfWork.run(async (tx) => {
-      // Restore the staff (set isArchived = false)
       await tx.updateStaff(staff.id, {
         isArchived: false,
         updatedAt: staff.updatedAt,
       });
       this.logger.log(`Staff restored in transaction: ${id}`);
 
-      // Activate linked user account if exists
       if (staff.hasUserAccount()) {
         await tx.updateUser(staff.userId!, {
           isActive: true,
@@ -78,6 +81,17 @@ export class RestoreStaffUseCase {
           `User account activated in transaction for staff: ${staff.email}`,
         );
       }
+
+      await tx.recordAudit({
+        actorId: currentUser.id,
+        action: "RESTORE_STAFF",
+        targetType: "staff",
+        targetId: staff.id,
+        campusId: staff.campusId,
+        context: { actorName: currentUser.profile?.fullName ?? null },
+        beforeValue: { isArchived: true },
+        afterValue: { isArchived: false },
+      });
     });
 
     this.logger.log(`Staff restored successfully: ${id}`);

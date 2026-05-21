@@ -7,6 +7,7 @@
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 
 export abstract class EnrollmentRepository {
   /**
@@ -38,9 +39,7 @@ export abstract class EnrollmentRepository {
    * Active means `endDate IS NULL`. The partial unique index
    * `idx_enrollment_one_active_per_student` guarantees at most one row.
    */
-  abstract findActiveByStudentId(
-    studentId: string,
-  ): Promise<Enrollment | null>;
+  abstract findActiveByStudentId(studentId: string): Promise<Enrollment | null>;
 
   /**
    * Find currently active enrollments for a class (`endDate IS NULL`),
@@ -68,9 +67,17 @@ export abstract class EnrollmentRepository {
   ): Promise<PaginatedResult<Enrollment>>;
 
   /**
-   * Save a new enrollment
+   * Save a new enrollment.
+   *
+   * Optional `tx` lets the caller join an outer transaction. When omitted, the
+   * implementation uses its own connection (existing behavior). Used by the
+   * enrollment-lifecycle use cases to participate in the audit-emit tx
+   * (@doc/specs/admin-audit-log D4).
    */
-  abstract save(enrollment: Enrollment): Promise<Enrollment>;
+  abstract save(
+    enrollment: Enrollment,
+    tx?: AppTransactionClient,
+  ): Promise<Enrollment>;
 
   /**
    * Atomically persist a batch of new enrollments inside a single
@@ -83,9 +90,14 @@ export abstract class EnrollmentRepository {
   abstract saveMany(enrollments: Enrollment[]): Promise<Enrollment[]>;
 
   /**
-   * Update existing enrollment
+   * Update existing enrollment.
+   *
+   * Optional `tx`: see `save` above.
    */
-  abstract update(enrollment: Enrollment): Promise<Enrollment>;
+  abstract update(
+    enrollment: Enrollment,
+    tx?: AppTransactionClient,
+  ): Promise<Enrollment>;
 
   /**
    * Atomically close an active enrollment and open a new one in a single
@@ -94,9 +106,14 @@ export abstract class EnrollmentRepository {
    * the active row's `endDate=null` untouched.
    *
    * Used by `TransferStudentUseCase` to satisfy spec AC-20 (atomic transfer).
+   *
+   * Optional `tx`: when supplied, both writes run on the caller's transaction
+   * (used by the audit wiring so the recorder emit joins the same tx); when
+   * omitted, the implementation opens its own internal `$transaction`.
    */
   abstract transferEnrollment(
     closed: Enrollment,
     opened: Enrollment,
+    tx?: AppTransactionClient,
   ): Promise<{ closed: Enrollment; opened: Enrollment }>;
 }
