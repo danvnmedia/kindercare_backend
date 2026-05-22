@@ -43,10 +43,10 @@ export class UpdateCampusRequest {
   phoneNumber?: string | null;
 
   @ApiPropertyOptional({
-    description: "Whether the campus is active",
-    example: true,
+    description: "Whether the campus is archived",
+    example: false,
   })
   @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  isArchived?: boolean;
 }

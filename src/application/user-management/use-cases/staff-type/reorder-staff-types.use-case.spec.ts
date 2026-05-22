@@ -38,7 +38,7 @@ describe("ReorderStaffTypesUseCase", () => {
       update: jest.fn(),
       delete: jest.fn(),
       exists: jest.fn(),
-      existsAndActive: jest.fn(),
+      existsAndNotArchived: jest.fn(),
       getMaxOrder: jest.fn(),
       reorder: jest.fn(),
     } as jest.Mocked<StaffTypeRepository>;

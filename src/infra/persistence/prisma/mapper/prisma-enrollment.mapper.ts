@@ -1,15 +1,23 @@
 import {
   Enrollment as PrismaEnrollment,
   Class as PrismaClass,
+  GradeLevel as PrismaGradeLevel,
+  SchoolYear as PrismaSchoolYear,
   Student as PrismaStudent,
 } from "@prisma/client";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { Prisma } from "@prisma/client";
 import { PrismaClassMapper } from "./prisma-class.mapper";
 import { PrismaStudentMapper } from "./prisma-student.mapper";
 
+type PrismaClassWithNested = PrismaClass & {
+  gradeLevel?: PrismaGradeLevel | null;
+  schoolYear?: PrismaSchoolYear | null;
+};
+
 type PrismaEnrollmentWithRelations = PrismaEnrollment & {
-  class?: PrismaClass | null;
+  class?: PrismaClassWithNested | null;
   student?: PrismaStudent | null;
 };
 
@@ -18,15 +26,23 @@ export class PrismaEnrollmentMapper {
     const props: any = {
       classId: prismaEnrollment.classId,
       studentId: prismaEnrollment.studentId,
+      schoolYearEnrollmentId: prismaEnrollment.schoolYearEnrollmentId,
       enrollmentDate: prismaEnrollment.enrollmentDate,
+      endDate: prismaEnrollment.endDate ?? null,
+      exitReason: PrismaEnrollmentMapper.toExitReason(
+        prismaEnrollment.exitReason,
+      ),
       note: prismaEnrollment.note,
       createdAt: prismaEnrollment.createdAt,
       updatedAt: prismaEnrollment.updatedAt,
     };
 
-    // Map relations if they exist
+    // Use the rich `toDomain` so nested `gradeLevel`/`schoolYear` propagate
+    // when the Prisma query includes them (e.g. `findAllByStudentId`).
+    // For queries that only `include: { class: true }`, the nested fields
+    // stay `undefined` — `PrismaClassMapper.toDomain` no-ops them.
     if (prismaEnrollment.class) {
-      props.class = PrismaClassMapper.toDomainSimple(prismaEnrollment.class);
+      props.class = PrismaClassMapper.toDomain(prismaEnrollment.class);
     }
     if (prismaEnrollment.student) {
       props.student = PrismaStudentMapper.toDomain(prismaEnrollment.student);
@@ -40,7 +56,12 @@ export class PrismaEnrollmentMapper {
       {
         classId: prismaEnrollment.classId,
         studentId: prismaEnrollment.studentId,
+        schoolYearEnrollmentId: prismaEnrollment.schoolYearEnrollmentId,
         enrollmentDate: prismaEnrollment.enrollmentDate,
+        endDate: prismaEnrollment.endDate ?? null,
+        exitReason: PrismaEnrollmentMapper.toExitReason(
+          prismaEnrollment.exitReason,
+        ),
         note: prismaEnrollment.note,
         createdAt: prismaEnrollment.createdAt,
         updatedAt: prismaEnrollment.updatedAt,
@@ -56,7 +77,10 @@ export class PrismaEnrollmentMapper {
       id: enrollment.id,
       classId: enrollment.classId,
       studentId: enrollment.studentId,
+      schoolYearEnrollmentId: enrollment.schoolYearEnrollmentId,
       enrollmentDate: enrollment.enrollmentDate,
+      endDate: enrollment.endDate,
+      exitReason: enrollment.exitReason,
       note: enrollment.note,
       createdAt: enrollment.createdAt,
       updatedAt: enrollment.updatedAt,
@@ -66,6 +90,8 @@ export class PrismaEnrollmentMapper {
   static toPrismaUpdate(enrollment: Enrollment): Prisma.EnrollmentUpdateInput {
     return {
       enrollmentDate: enrollment.enrollmentDate,
+      endDate: enrollment.endDate,
+      exitReason: enrollment.exitReason,
       note: enrollment.note,
       updatedAt: enrollment.updatedAt,
     };
@@ -75,5 +101,17 @@ export class PrismaEnrollmentMapper {
     prismaEnrollments: PrismaEnrollmentWithRelations[],
   ): Enrollment[] {
     return prismaEnrollments.map((e) => PrismaEnrollmentMapper.toDomain(e));
+  }
+
+  /**
+   * Coerces a raw Prisma string column into the ExitReason domain enum.
+   * Unknown or null values map to null so we do not invent invariants the DB
+   * never enforced. Validation happens at the wire and at Enrollment.create.
+   */
+  private static toExitReason(value: string | null): ExitReason | null {
+    if (value === null) return null;
+    return (Object.values(ExitReason) as string[]).includes(value)
+      ? (value as ExitReason)
+      : null;
   }
 }

@@ -41,10 +41,10 @@ export class StaffTypeResponse {
 
   @Expose()
   @ApiProperty({
-    description: "Whether the staff type is active",
-    example: true,
+    description: "Whether the staff type is archived",
+    example: false,
   })
-  isActive: boolean;
+  isArchived: boolean;
 
   @Expose()
   @ApiProperty({

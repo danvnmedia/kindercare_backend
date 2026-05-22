@@ -27,7 +27,7 @@ export class PrismaPostCategoryRepository implements PostCategoryRepository {
     campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<PostCategory>> {
-    params.allowedFilterFields = ["name", "isActive", "order"];
+    params.allowedFilterFields = ["name", "isArchived", "order"];
     params.allowedSortFields = ["createdAt", "updatedAt", "order", "name"];
 
     return await this.queryService.executeQuery<PostCategory>(
@@ -59,11 +59,11 @@ export class PrismaPostCategoryRepository implements PostCategoryRepository {
       : null;
   }
 
-  async findActivesByCampusId(campusId: string): Promise<PostCategory[]> {
+  async findNonArchivedByCampusId(campusId: string): Promise<PostCategory[]> {
     const prismaCategories = await this.prisma.postCategory.findMany({
       where: {
         campusId,
-        isActive: true,
+        isArchived: false,
       },
       orderBy: {
         order: "asc",

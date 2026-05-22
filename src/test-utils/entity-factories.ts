@@ -19,6 +19,7 @@ import {
   PermissionEntity,
 } from "@/domain/rbac/entities/permission.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { StudentPhase } from "@/domain/user-management/enums/student-phase.enum";
 import { v4 as uuidv4 } from "uuid";
 
 // Default IDs for testing (valid UUID v4 format)
@@ -34,7 +35,7 @@ export function createCampus(
     name: string;
     address: string | null;
     phoneNumber: string | null;
-    isActive: boolean;
+    isArchived: boolean;
   }> = {},
 ): Campus {
   return Campus.create(
@@ -42,7 +43,7 @@ export function createCampus(
       name: overrides.name ?? "Test Campus",
       address: overrides.address ?? "123 Test Street",
       phoneNumber: overrides.phoneNumber ?? "+84901234567",
-      isActive: overrides.isActive ?? true,
+      isArchived: overrides.isArchived ?? false,
     },
     overrides.id ?? uuidv4(),
   );
@@ -55,6 +56,7 @@ export function createStaff(
   overrides: Partial<{
     id: string;
     campusId: string;
+    staffCode: string;
     fullName: string;
     email: string;
     phoneNumber: string;
@@ -68,9 +70,14 @@ export function createStaff(
   }> = {},
 ): Staff {
   const uniqueSuffix = uuidv4().slice(0, 8);
+  const sequence = Math.floor(1 + Math.random() * 999998);
+  const year = new Date().getFullYear();
   return Staff.create(
     {
       campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
+      staffCode:
+        overrides.staffCode ??
+        `ST-${year}-${String(sequence).padStart(6, "0")}`,
       fullName: overrides.fullName ?? "Test Staff",
       email: overrides.email ?? `staff-${uniqueSuffix}@test.com`,
       phoneNumber:
@@ -104,6 +111,7 @@ export function createStudent(
     nickname: string | null;
     gender: Gender | null;
     isArchived: boolean;
+    phase: StudentPhase;
   }> = {},
 ): Student {
   const uniqueSuffix = uuidv4().slice(0, 8);
@@ -119,6 +127,7 @@ export function createStudent(
       nickname: overrides.nickname ?? null,
       gender: overrides.gender ?? null,
       isArchived: overrides.isArchived ?? false,
+      phase: overrides.phase,
     },
     overrides.id ?? uuidv4(),
   );
@@ -166,6 +175,11 @@ export function createGuardian(
 
 /**
  * Create a Class entity with defaults
+ *
+ * Default-attaches a SchoolYear relation with a wide date range
+ * (2020-01-01 to 2030-12-31) so use cases that validate enrollmentDate
+ * against `class.schoolYear.startDate`/`endDate` can run with realistic
+ * test data without each spec needing to wire one up.
  */
 export function createClass(
   overrides: Partial<{
@@ -175,15 +189,31 @@ export function createClass(
     gradeLevelId: string;
     schoolYearId: string;
     description: string | null;
+    schoolYear: SchoolYear;
   }> = {},
 ): Class {
+  const campusId = overrides.campusId ?? DEFAULT_CAMPUS_ID_A;
+  const schoolYearId =
+    overrides.schoolYearId ?? overrides.schoolYear?.id ?? "school-year-1";
+  const schoolYear =
+    overrides.schoolYear ??
+    SchoolYear.create(
+      {
+        campusId,
+        name: "Test School Year",
+        startDate: new Date("2020-01-01T00:00:00.000Z"),
+        endDate: new Date("2030-12-31T00:00:00.000Z"),
+      },
+      schoolYearId,
+    );
   return Class.create(
     {
-      campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
+      campusId,
       name: overrides.name ?? "Test Class",
       gradeLevelId: overrides.gradeLevelId ?? "grade-level-1",
-      schoolYearId: overrides.schoolYearId ?? "school-year-1",
+      schoolYearId,
       description: overrides.description ?? null,
+      schoolYear,
     },
     overrides.id ?? uuidv4(),
   );

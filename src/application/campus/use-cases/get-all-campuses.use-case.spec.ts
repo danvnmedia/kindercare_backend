@@ -9,7 +9,7 @@ describe("GetAllCampusesUseCase", () => {
 
   // Helper to create mock campuses
   const createMockCampus = (id: string, name: string): Campus => {
-    return Campus.create({ name, isActive: true }, id);
+    return Campus.create({ name, isArchived: true }, id);
   };
 
   // Helper to create paginated result
@@ -187,7 +187,7 @@ describe("GetAllCampusesUseCase", () => {
       );
 
       const existingFilter = JSON.stringify({
-        isActive: { eq: true },
+        isArchived: { eq: true },
         name: { contains: "Active" },
       });
 

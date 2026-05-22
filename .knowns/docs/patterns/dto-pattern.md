@@ -1,174 +1,254 @@
 ---
 title: DTO Pattern
+description: 'Request and response DTOs at the HTTP layer: class-validator on inputs, class-transformer @Expose on outputs, custom validators'
 createdAt: '2026-01-03T19:52:14.788Z'
-updatedAt: '2026-01-03T20:07:56.945Z'
-description: Request/Response validation pattern
+updatedAt: '2026-05-05T17:40:41.598Z'
 tags:
   - patterns
   - dto
   - validation
+  - http
+  - swagger
 ---
+
 # DTO Pattern
 
-## Overview
+> Data transfer objects between the wire and the application layer. Located at `src/infra/http/dtos/{module}/`.
 
-DTOs (Data Transfer Objects) handle data transformation between HTTP layer and application layer. There are two types: Request DTOs for input validation and Response DTOs for output transformation.
+DTOs are the **typed contract** between the frontend and the backend. They live exclusively in the HTTP layer — neither use cases nor domain code import them.
 
-## Locations
+| Direction | Type | Decorators |
+|-----------|------|------------|
+| Inbound (request) | `Xxx Request` | `class-validator` + `@ApiProperty` |
+| Outbound (response) | `Xxx Response` | `class-transformer` (`@Expose`, `@Type`) + `@ApiProperty` |
 
-- Request: src/infra/http/dtos/{module}/{action}-{entity}.request.ts
-- Response: src/infra/http/dtos/{module}/{entity}.response.ts
+Inbound DTOs go through the global `ValidationPipe` (configured in `main.ts` with `whitelist: true, forbidNonWhitelisted: true, transform: true`). Outbound DTOs are produced by `StandardResponseInterceptor` via `plainToInstance(...)` with `excludeExtraneousValues: true`.
 
-## Request DTO
+## Request DTOs
 
-Uses class-validator decorators for validation and class-transformer for transformation.
+### Conventions
 
-### Common Decorators
+- File: `{action}-{entity}.request.ts`. Naming aligns with use case names (e.g. `create-student.request.ts`).
+- Validate strictly. The use case can trust everything in a Request DTO.
+- Use **custom validators** from `@/core/validators` for non-trivial formats (E.164 phone, age limits, UTC dates).
+- Provide a meaningful `@ApiProperty({ description, example })` on every field.
 
-Validation:
-- @IsString(), @IsEmail(), @IsEnum(EnumType)
-- @IsNotEmpty(), @IsOptional()
-- @MinLength(n), @MaxLength(n)
-- @IsUUID(), @IsDate(), @IsArray()
-- @ValidateNested({ each: true })
+### Example
 
-Custom:
-- @IsE164Phone() - Phone number format
-- @IsAdultDateOfBirth() - Age validation
-- @TransformToUTCDate() - Date transformation
-- @IsISO8601Date() - ISO date format
+```typescript
+import { ApiProperty } from "@nestjs/swagger";
+import { Type } from "class-transformer";
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from "class-validator";
+import { Gender, StudentStatus } from "@/domain/user-management";
+import { IsE164Phone, IsChildDateOfBirth, TransformToUTCDate } from "@/core/validators";
 
-Swagger:
-- @ApiProperty({ description, example, required, enum })
+class GuardianLinkInput {
+  @ApiProperty({ format: "uuid" })
+  @IsUUID()
+  guardianId: string;
 
-### Example Request DTO
+  @ApiProperty({ format: "uuid", description: "GuardianRelationship row in the same campus" })
+  @IsUUID()
+  relationshipId: string;
+}
 
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { Gender } from '@/domain/user-management/enums/gender.enum';
-import { StaffType } from '@/domain/user-management/enums/staff-type.enum';
-import { IsE164Phone, IsAdultDateOfBirth, TransformToUTCDate } from '@/core/validators';
-
-export class CreateStaffRequest {
-  @ApiProperty({ description: 'Staff full name', example: 'John Doe', minLength: 2, maxLength: 100 })
+export class CreateStudentRequest {
+  @ApiProperty({ example: "Nguyễn Minh Anh", minLength: 2, maxLength: 100 })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(100)
   fullName: string;
 
-  @ApiProperty({ description: 'Staff email', example: 'staff@example.com' })
-  @IsNotEmpty()
-  @IsEmail({}, { message: 'Invalid email format' })
-  email: string;
+  @ApiProperty({ required: false, example: "Anh" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  nickname?: string;
 
-  @ApiProperty({ description: 'Staff phone number', example: '+84912345678' })
-  @IsNotEmpty()
+  @ApiProperty({ required: false, example: "+84901234567" })
+  @IsOptional()
   @IsString()
   @IsE164Phone()
-  phoneNumber: string;
+  phoneNumber?: string;
 
-  @ApiProperty({ description: 'Staff type', enum: StaffType, example: StaffType.TEACHER })
-  @IsNotEmpty()
-  @IsEnum(StaffType, { message: 'Staff type must be TEACHER, NURSE, PRINCIPAL, or STAFF' })
-  staffType: StaffType;
+  @ApiProperty({ required: false, example: "child@example.com" })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
-  @ApiProperty({ description: 'Date of birth', example: '1990-01-15T00:00:00.000Z', required: false })
+  @ApiProperty({ required: false, example: "2020-05-15T00:00:00.000Z" })
   @IsOptional()
   @TransformToUTCDate()
-  @IsAdultDateOfBirth()
+  @IsChildDateOfBirth({ minAge: 0, maxAge: 18 })
   dateOfBirth?: Date;
-}
 
-### Nested Validation
+  @ApiProperty({ enum: Gender, required: false })
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
 
-For nested objects, use @ValidateNested with @Type:
+  @ApiProperty({ enum: StudentStatus, required: false, default: StudentStatus.WAITING })
+  @IsOptional()
+  @IsEnum(StudentStatus)
+  status?: StudentStatus;
 
-import { ValidateNested, IsArray, IsEnum, IsUUID } from 'class-validator';
-import { Type } from 'class-transformer';
-
-class CreateAudienceDto {
-  @IsEnum(AudienceType)
-  audienceType: AudienceType;
-
-  @IsUUID()
-  audienceId: string;
-}
-
-export class CreatePostRequest {
+  @ApiProperty({ type: [GuardianLinkInput], required: false })
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateAudienceDto)
-  audiences: CreateAudienceDto[];
+  @Type(() => GuardianLinkInput)
+  guardians?: GuardianLinkInput[];
 }
+```
 
-## Response DTO
+### Common decorators
 
-Uses class-transformer decorators for serialization.
+| Decorator | Use |
+|-----------|-----|
+| `@IsOptional()` | Always first when the field is optional (skips other validators when absent) |
+| `@IsString`, `@IsBoolean`, `@IsNumber`, `@IsUUID`, `@IsEnum(E)` | Built-in type checks |
+| `@IsArray`, `@ArrayNotEmpty`, `@ValidateNested({ each: true })`, `@Type(() => X)` | Nested object arrays |
+| `@MinLength`, `@MaxLength`, `@Min`, `@Max` | Bounds |
+| `@IsEmail()`, `@IsUrl()` | Format checks |
+| `@IsE164Phone()` | E.164 phone (custom — see [@doc/patterns/validation-pattern](patterns/validation-pattern)) |
+| `@IsAdultDateOfBirth()`, `@IsChildDateOfBirth(opts)` | Age constraints |
+| `@TransformToUTCDate()` + `@IsISO8601Date()` | Robust date parsing |
 
-### Required Decorators
+> Don't read `campusId` from request body. The campus is enforced at the guard layer via `@RequireCampusAccess()` and surfaced through `@CampusContext()`. Including it in the body lets the user override it. See [@doc/guides/working-with-campuses](guides/working-with-campuses).
 
-- @Expose() - Include property in response (required for all fields)
-- @Type(() => NestedDto) - Transform nested objects
+## Response DTOs
 
-### Example Response DTO
+### Conventions
 
-import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Type } from 'class-transformer';
+- File: `{entity}.response.ts`.
+- Every public field has `@Expose()`. Without it, `excludeExtraneousValues: true` strips the field from the output.
+- Use `@Type(() => NestedResponse)` for nested objects.
+- Provide `@ApiProperty` for OpenAPI metadata.
 
-export class StaffResponse {
+### Example
+
+```typescript
+import { ApiProperty } from "@nestjs/swagger";
+import { Expose, Type } from "class-transformer";
+
+export class StudentResponse {
   @Expose()
-  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @ApiProperty({ format: "uuid" })
   id: string;
 
   @Expose()
-  @ApiProperty({ example: 'John Doe' })
+  @ApiProperty()
+  campusId: string;
+
+  @Expose()
+  @ApiProperty()
+  studentCode: string;
+
+  @Expose()
+  @ApiProperty()
   fullName: string;
 
   @Expose()
-  @ApiProperty({ example: 'staff@example.com' })
-  email: string;
+  @ApiProperty({ nullable: true })
+  email: string | null;
 
   @Expose()
-  @ApiProperty({ example: 'TEACHER', description: 'Staff type' })
-  staffType: string;
+  @ApiProperty({ nullable: true })
+  phoneNumber: string | null;
 
   @Expose()
-  @ApiProperty({ example: '1990-01-15T00:00:00.000Z', nullable: true })
+  @ApiProperty({ nullable: true, type: String, format: "date-time" })
   dateOfBirth: Date | null;
 
   @Expose()
-  @ApiProperty({ example: false })
+  @ApiProperty({ enum: ["MALE", "FEMALE"], nullable: true })
+  gender: string | null;
+
+  @Expose()
+  @ApiProperty({ enum: ["WAITING", "ACTIVE", "TRIAL", "DEFERRED", "GRADUATED", "DROPPED"] })
+  status: string;
+
+  @Expose()
+  @ApiProperty()
   isArchived: boolean;
 
   @Expose()
-  @ApiProperty({ example: '2025-01-01T00:00:00.000Z' })
+  @ApiProperty({ type: [StudentGuardianResponse] })
+  @Type(() => StudentGuardianResponse)
+  guardians?: StudentGuardianResponse[];
+
+  @Expose()
+  @ApiProperty()
   createdAt: Date;
+
+  @Expose()
+  @ApiProperty()
+  updatedAt: Date;
 }
+```
 
-### Nested Response DTO
+### How responses are produced
 
-export class PostResponse {
-  @Expose()
-  id: string;
+The controller returns the **domain entity** (or use case result). `StandardResponseInterceptor`:
 
-  @Expose()
-  @Type(() => UserResponse)
-  author: UserResponse;
+1. Walks the entity tree, calling `toPlain()` on `ValueObject` instances.
+2. For `Entity<Props>` instances, flattens `_id` + `props` into a plain object and recurses.
+3. Calls `plainToInstance(ResponseDto, plain, { excludeExtraneousValues: true, ... })`.
+4. Wraps the result in `{ success, message, data, pagination?, timestamp }`.
 
-  @ApiProperty({ type: [AttachmentResponse] })
-  @Type(() => AttachmentResponse)
-  @Expose()
-  attachments: AttachmentResponse[];
-}
+This means **you never manually construct a Response DTO** — the interceptor does it. Just declare the shape with `@Expose()`.
+
+See [@doc/patterns/standard-response-pattern](patterns/standard-response-pattern) for the full pipeline.
+
+## Date Handling
+
+Wire format: ISO 8601 with `Z` (UTC). Frontend converts to local for display.
+
+| Direction | Decorator | Example |
+|-----------|-----------|---------|
+| Request | `@TransformToUTCDate()` + `@IsDateOfBirth()` / `@IsISO8601Date()` | parses `"2020-05-15"` → `2020-05-15T00:00:00.000Z` |
+| Response | `Date` field with `@Expose()` | interceptor calls `toISOString()` on the Date before serializing |
+
+## Pagination & Filtering on List Endpoints
+
+Use `@StandardRequestParam()` to bind the standard query DTO and `@StandardResponse({ isPaginated: true, allowedSortFields, allowedFilterFields })` to enable validation + Swagger:
+
+```typescript
+@Get()
+@RequireCampusAccess()
+@StandardResponse({
+  type: StudentResponse,
+  isPaginated: true,
+  allowedSortFields: ["createdAt", "studentCode", "fullName"],
+  allowedFilterFields: ["fullName", "email", "phoneNumber", "isArchived"],
+})
+async findAll(
+  @CampusContext() campusId: string,
+  @StandardRequestParam() params: StandardRequestDto,
+) { … }
+```
+
+See [@doc/guides/pagination-and-filtering](guides/pagination-and-filtering) for the full filter/sort grammar.
 
 ## Best Practices
 
-1. Group related fields with comments in Request DTOs
-2. Use @Expose() on EVERY Response DTO property
-3. Provide meaningful @ApiProperty examples for Swagger
-4. Use custom validators for complex rules
-5. Use @Type() for nested objects in both Request and Response
-6. Handle nullable fields: Date | null with nullable: true in ApiProperty
-7. Separate Request and Response DTOs - never reuse
-8. Use enums from domain layer in DTOs
+1. **One Request DTO per use case input.** Don't reuse across endpoints.
+2. **Don't share Request and Response DTOs.** They have different responsibilities.
+3. **Keep `campusId` out of Request bodies.** It's controller context, not user input.
+4. **`@Expose()` on every Response field.** Forgetting it silently drops the field.
+5. **Document with `@ApiProperty`.** The Swagger UI is the API spec.
+6. **Use the typed enum, not a string union.** `enum: Gender` makes Swagger render a dropdown.
+7. **Custom validators for compound rules.** A regex-in-the-DTO works once; a validator in `@/core/validators` is reusable.

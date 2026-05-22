@@ -1,8 +1,0 @@
-export enum StudentStatus {
-  DROPPED = "DROPPED",
-  ACTIVE = "ACTIVE",
-  GRADUATED = "GRADUATED",
-  TRIAL = "TRIAL",
-  WAITING = "WAITING",
-  DEFERRED = "DEFERRED",
-}

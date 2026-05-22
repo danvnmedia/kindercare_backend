@@ -125,10 +125,11 @@ export class PrismaStaffRepository implements StaffRepository {
   ): Promise<PaginatedResult<Staff>> {
     // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
+      "campusId",
+      "staffCode",
       "fullName",
       "email",
       "phoneNumber",
-      "campusId",
       "staffTypeId",
       "gender",
       "isArchived",
@@ -136,6 +137,7 @@ export class PrismaStaffRepository implements StaffRepository {
     params.allowedSortFields = [
       "createdAt",
       "updatedAt",
+      "staffCode",
       "fullName",
       "email",
       "startDate",

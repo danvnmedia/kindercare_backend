@@ -1,60 +1,62 @@
 ---
-title: Domain Events Pattern
+title: Domain Events Pattern (Not Implemented)
+description: Aspirational pattern. The codebase does not currently emit domain events; cross-system reactions are wired with the saga + Unit of Work pattern instead.
 createdAt: '2026-01-03T19:52:33.562Z'
-updatedAt: '2026-01-03T20:28:19.781Z'
-description: Event-driven workflows pattern
+updatedAt: '2026-05-05T17:33:12.274Z'
 tags:
   - patterns
   - events
   - domain
----
-# Domain Events Pattern
-
-> Event-driven workflows. Located in src/domain/{module}/events/
-
+  - not-implemented
+  - aspirational
 ---
 
-## Base Event
+# Domain Events Pattern (Not Implemented)
 
-DomainEvent<T> provides:
-- occurredOn: Date (when event was created)
-- payload: T (event data)
-- abstract eventName: string (e.g., 'order.created')
+> **Status**: This pattern is **not currently implemented** in the codebase. There are no `DomainEvent` base classes, no `EntityWithEvents`, and no event dispatcher. Entities track their own state changes synchronously inside `Entity<Props>` methods (see [@doc/patterns/entity-pattern](patterns/entity-pattern)).
 
----
+## What the Codebase Does Instead
 
-## Creating Events
+When an action needs to trigger work in another part of the system, the codebase uses one of these approaches:
 
-1. Define payload interface with event data
-2. Extend DomainEvent with payload type
-3. Implement eventName getter
-4. Add static create() factory method
+| Need | Mechanism | Example |
+|------|-----------|---------|
+| Atomic multi-table writes | Unit of Work + `TransactionContext` | `CreateStaffUseCase` creating `User` + `Staff` + `UserRole` |
+| Cross-system orchestration with rollback | Saga (Clerk + DB) | `UpdateGuardianUseCase` reverting Clerk on DB failure |
+| Append-only audit log | Direct write inside the same transaction | `PostHistoryStatus` row written when post status changes |
+| Async background work | BullMQ queue | `QueueService.addEmailJob` → `EmailProcessor` |
+| Recurring scheduled work | NestJS `@Cron(...)` | `CleanupTask` |
 
----
+References:
 
-## Entity with Events
+- [@doc/patterns/unit-of-work-pattern](patterns/unit-of-work-pattern)
+- [@doc/patterns/saga-pattern](patterns/saga-pattern)
+- [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob)
 
-EntityWithEvents<T> extends Entity<T> with:
-- Private _domainEvents array
-- addDomainEvent(event): Adds event to queue
-- clearDomainEvents(): Clears queue after dispatch
-- hasDomainEvents(): Checks if events pending
+## When You Might Want True Domain Events
 
----
+Adopt domain events if multiple **independent** modules need to react to the same fact and you want them decoupled. Today the reactions are few and direct, so the cost of an event bus outweighs the benefit. Don't add `DomainEvent` until at least three callers want to react to the same fact and the in-line approach is causing real coupling.
 
-## Usage
+## If You Add Them Later
 
-1. Entity extends EntityWithEvents<Props>
-2. In entity methods, call addDomainEvent() for state changes
-3. Repository dispatches events after persistence
-4. Event handlers process events asynchronously
+A reasonable starter shape (do not introduce until needed):
 
----
+```typescript
+// src/core/events/domain-event.ts
+export abstract class DomainEvent<T = unknown> {
+  readonly occurredOn: Date = new Date();
+  abstract readonly eventName: string;
+  abstract readonly payload: T;
+}
 
-## Example Flow
+// src/core/entities/entity-with-events.ts
+export abstract class EntityWithEvents<Props> extends Entity<Props> {
+  private _events: DomainEvent[] = [];
 
-1. Order.create() adds OrderCreatedEvent
-2. orderRepository.save() persists order
-3. Repository dispatches all domain events
-4. OrderEventHandlers.handleOrderCreated() runs
-5. order.clearDomainEvents() clears queue
+  protected addDomainEvent(event: DomainEvent): void { this._events.push(event); }
+  public domainEvents(): readonly DomainEvent[] { return this._events; }
+  public clearDomainEvents(): void { this._events = []; }
+}
+```
+
+Repositories would then dispatch events after a successful `save`/`update`. Until that need is real, keep this doc as a marker so contributors don't reintroduce the bullet points across the codebase.

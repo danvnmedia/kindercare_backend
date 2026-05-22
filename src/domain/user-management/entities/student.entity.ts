@@ -2,7 +2,7 @@ import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { Gender } from "../enums/gender.enum";
-import { StudentStatus } from "../enums/student-status.enum";
+import { StudentPhase } from "../enums/student-phase.enum";
 
 // Properties of the Student entity
 export interface StudentProps {
@@ -15,8 +15,9 @@ export interface StudentProps {
   dateOfBirth: Date | null;
   nickname: string | null;
   gender: Gender | null;
-  status: StudentStatus;
   isArchived: boolean;
+  /** Derived from the `student_with_phase` view; undefined on raw-table reads. */
+  phase?: StudentPhase;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,7 +26,7 @@ export interface StudentProps {
 export type UpdateStudentData = Partial<
   Omit<
     StudentProps,
-    "id" | "campusId" | "createdAt" | "updatedAt" | "isArchived"
+    "id" | "campusId" | "createdAt" | "updatedAt" | "isArchived" | "phase"
   >
 >;
 
@@ -57,11 +58,11 @@ export class Student extends Entity<StudentProps> {
   get gender(): Gender | null {
     return this.props.gender;
   }
-  get status(): StudentStatus {
-    return this.props.status;
-  }
   get isArchived(): boolean {
     return this.props.isArchived;
+  }
+  get phase(): StudentPhase | undefined {
+    return this.props.phase;
   }
   get createdAt(): Date {
     return this.props.createdAt;
@@ -86,7 +87,6 @@ export class Student extends Entity<StudentProps> {
       this.props.dateOfBirth = updates.dateOfBirth;
     if (updates.nickname !== undefined) this.props.nickname = updates.nickname;
     if (updates.gender !== undefined) this.props.gender = updates.gender;
-    if (updates.status) this.props.status = updates.status;
 
     this.touch();
   }
@@ -96,7 +96,6 @@ export class Student extends Entity<StudentProps> {
    */
   public archive(): void {
     this.props.isArchived = true;
-    this.props.status = StudentStatus.DROPPED;
     this.touch();
   }
 
@@ -105,7 +104,6 @@ export class Student extends Entity<StudentProps> {
    */
   public restore(): void {
     this.props.isArchived = false;
-    this.props.status = StudentStatus.ACTIVE;
     this.touch();
   }
 
@@ -125,10 +123,7 @@ export class Student extends Entity<StudentProps> {
    * @returns A new Student instance.
    */
   public static create(
-    props: Optional<
-      StudentProps,
-      "createdAt" | "updatedAt" | "isArchived" | "status"
-    >,
+    props: Optional<StudentProps, "createdAt" | "updatedAt" | "isArchived">,
     id?: string,
   ): Student {
     // Campus validation
@@ -147,7 +142,6 @@ export class Student extends Entity<StudentProps> {
 
     const studentProps: StudentProps = {
       ...props,
-      status: props.status ?? StudentStatus.ACTIVE,
       isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

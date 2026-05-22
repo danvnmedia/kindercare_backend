@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
+import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 
 export class EnrollmentStudentInfo {
   @Expose()
@@ -45,6 +46,24 @@ export class EnrollmentResponse {
   @Expose()
   @ApiProperty({ example: "2024-09-01T00:00:00.000Z" })
   enrollmentDate: Date;
+
+  @Expose()
+  @ApiProperty({
+    example: "2026-03-12T00:00:00.000Z",
+    nullable: true,
+    description: "Date the enrollment period was closed; null if still active",
+  })
+  endDate: Date | null;
+
+  @Expose()
+  @ApiProperty({
+    enum: ExitReason,
+    example: ExitReason.WITHDRAWN,
+    nullable: true,
+    description:
+      "Reason the enrollment was closed; null if still active. Always set together with endDate.",
+  })
+  exitReason: ExitReason | null;
 
   @Expose()
   @ApiProperty({ example: "Enrolled at start of school year", nullable: true })

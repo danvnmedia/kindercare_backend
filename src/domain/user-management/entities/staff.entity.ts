@@ -3,9 +3,13 @@ import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { Gender } from "../enums/gender.enum";
 
+// Format for staff code: ST-YYYY-XXXXXX (e.g., ST-2025-000001)
+const STAFF_CODE_PATTERN = /^ST-\d{4}-\d{6}$/;
+
 // Properties of the Staff entity
 export interface StaffProps {
   campusId: string;
+  staffCode: string;
   fullName: string;
   email: string;
   phoneNumber: string;
@@ -20,17 +24,11 @@ export interface StaffProps {
   updatedAt: Date;
 }
 
-// Data for updating a staff
+// Data for updating a staff (campusId and staffCode are immutable)
 export type UpdateStaffData = Partial<
   Omit<
     StaffProps,
-    | "id"
-    | "campusId"
-    | "createdAt"
-    | "updatedAt"
-    | "isArchived"
-    | "email"
-    | "phoneNumber"
+    "id" | "campusId" | "staffCode" | "createdAt" | "updatedAt" | "isArchived"
   >
 >;
 
@@ -38,6 +36,9 @@ export class Staff extends Entity<StaffProps> {
   // --- Getters ---
   get campusId(): string {
     return this.props.campusId;
+  }
+  get staffCode(): string {
+    return this.props.staffCode;
   }
   get fullName(): string {
     return this.props.fullName;
@@ -84,6 +85,9 @@ export class Staff extends Entity<StaffProps> {
    */
   public updateProfile(updates: UpdateStaffData): void {
     if (updates.fullName) this.props.fullName = updates.fullName;
+    if (updates.email !== undefined) this.props.email = updates.email;
+    if (updates.phoneNumber !== undefined)
+      this.props.phoneNumber = updates.phoneNumber;
     if (updates.staffTypeId !== undefined)
       this.props.staffTypeId = updates.staffTypeId;
     if (updates.address !== undefined) this.props.address = updates.address;
@@ -177,6 +181,11 @@ export class Staff extends Entity<StaffProps> {
     // Validation
     if (!props.campusId) {
       throw new Error("Campus ID is required for staff.");
+    }
+    if (!props.staffCode || !STAFF_CODE_PATTERN.test(props.staffCode)) {
+      throw new Error(
+        "A valid staff code in format ST-YYYY-XXXXXX is required (e.g., ST-2025-000001).",
+      );
     }
     if (!props.fullName || props.fullName.trim().length < 2) {
       throw new Error(

@@ -15,7 +15,7 @@ describe("StaffType Entity", () => {
       expect(staffType.name).toBe("Teacher");
       expect(staffType.description).toBeNull();
       expect(staffType.defaultRoleId).toBeNull();
-      expect(staffType.isActive).toBe(true);
+      expect(staffType.isArchived).toBe(false);
       expect(staffType.order).toBe(1);
       expect(staffType.id).toBeDefined();
       expect(staffType.createdAt).toBeInstanceOf(Date);
@@ -29,14 +29,14 @@ describe("StaffType Entity", () => {
         name: "Principal",
         description: "School principal role",
         defaultRoleId: roleId,
-        isActive: false,
+        isArchived: true,
         order: 2,
       });
 
       expect(staffType.name).toBe("Principal");
       expect(staffType.description).toBe("School principal role");
       expect(staffType.defaultRoleId).toBe(roleId);
-      expect(staffType.isActive).toBe(false);
+      expect(staffType.isArchived).toBe(true);
       expect(staffType.order).toBe(2);
     });
 
@@ -162,22 +162,22 @@ describe("StaffType Entity", () => {
       expect(staffType.defaultRoleId).toBeNull();
     });
 
-    it("should update isActive", () => {
-      staffType.update({ isActive: false });
+    it("should update isArchived", () => {
+      staffType.update({ isArchived: true });
 
-      expect(staffType.isActive).toBe(false);
+      expect(staffType.isArchived).toBe(true);
     });
 
     it("should update multiple fields at once", () => {
       staffType.update({
         name: "New Name",
         description: "New Description",
-        isActive: false,
+        isArchived: true,
       });
 
       expect(staffType.name).toBe("New Name");
       expect(staffType.description).toBe("New Description");
-      expect(staffType.isActive).toBe(false);
+      expect(staffType.isArchived).toBe(true);
     });
 
     it("should update updatedAt timestamp", () => {
@@ -276,62 +276,62 @@ describe("StaffType Entity", () => {
     });
   });
 
-  describe("activate", () => {
-    it("should set isActive to true", () => {
+  describe("archive", () => {
+    it("should set isArchived to true", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
-        isActive: false,
+        isArchived: false,
         order: 1,
       });
 
-      staffType.activate();
+      staffType.archive();
 
-      expect(staffType.isActive).toBe(true);
+      expect(staffType.isArchived).toBe(true);
     });
 
-    it("should not change if already active", () => {
+    it("should not change if already archived", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
-        isActive: true,
+        isArchived: true,
         order: 1,
       });
       const originalUpdatedAt = staffType.updatedAt;
 
-      staffType.activate();
+      staffType.archive();
 
-      expect(staffType.isActive).toBe(true);
+      expect(staffType.isArchived).toBe(true);
       expect(staffType.updatedAt).toEqual(originalUpdatedAt);
     });
   });
 
-  describe("deactivate", () => {
-    it("should set isActive to false", () => {
+  describe("unarchive", () => {
+    it("should set isArchived to false", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
-        isActive: true,
+        isArchived: true,
         order: 1,
       });
 
-      staffType.deactivate();
+      staffType.unarchive();
 
-      expect(staffType.isActive).toBe(false);
+      expect(staffType.isArchived).toBe(false);
     });
 
-    it("should not change if already inactive", () => {
+    it("should not change if already not archived", () => {
       const staffType = StaffType.create({
         campusId: validCampusId,
         name: "Test",
-        isActive: false,
+        isArchived: false,
         order: 1,
       });
       const originalUpdatedAt = staffType.updatedAt;
 
-      staffType.deactivate();
+      staffType.unarchive();
 
-      expect(staffType.isActive).toBe(false);
+      expect(staffType.isArchived).toBe(false);
       expect(staffType.updatedAt).toEqual(originalUpdatedAt);
     });
   });

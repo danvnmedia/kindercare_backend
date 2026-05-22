@@ -101,6 +101,7 @@ export class StaffTypeController {
   }
 
   @Get()
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Staff types retrieved successfully",
     type: StaffTypeResponse,
@@ -109,10 +110,22 @@ export class StaffTypeController {
   @ApiOperation({
     summary: "Get all staff types",
     description:
-      "Retrieve all staff types with pagination, filtering, and sorting. Supports filtering by campusId, name, description, isActive, defaultRoleId, order.",
+      "Retrieve all staff types for the active campus with pagination, filtering, and sorting. Supports filtering by name, description, isArchived, defaultRoleId, order.",
   })
-  async findAll(@StandardRequestParam() query: StandardRequestDto) {
-    return await this.getAllStaffTypesUseCase.execute(query);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the list",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async findAll(
+    @CampusContext() campusId: string,
+    @StandardRequestParam() query: StandardRequestDto,
+  ) {
+    return await this.getAllStaffTypesUseCase.execute({
+      campusId,
+      params: query,
+    });
   }
 
   @Get(":id")
@@ -141,7 +154,7 @@ export class StaffTypeController {
   @ApiOperation({
     summary: "Update a staff type",
     description:
-      "Update staff type name, description, default role, or active status.",
+      "Update staff type name, description, default role, or archived status.",
   })
   @ApiParam({
     name: "id",
@@ -154,13 +167,13 @@ export class StaffTypeController {
 
   @Delete(":id")
   @StandardResponse({
-    message: "Staff type deactivated successfully",
+    message: "Staff type archived successfully",
     type: StaffTypeResponse,
   })
   @ApiOperation({
-    summary: "Deactivate a staff type",
+    summary: "Archive a staff type",
     description:
-      "Soft delete a staff type by setting isActive to false. The staff type data is retained.",
+      "Soft delete a staff type by setting isArchived to true. The staff type data is retained.",
   })
   @ApiParam({
     name: "id",

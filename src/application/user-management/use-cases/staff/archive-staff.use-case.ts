@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { StaffRepository } from "../../ports/staff.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
@@ -28,7 +29,11 @@ export class ArchiveStaffUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, campusId: string): Promise<Staff> {
+  async execute(
+    id: string,
+    campusId: string,
+    currentUser: User,
+  ): Promise<Staff> {
     this.logger.log(`Archiving staff: ${id} in campus ${campusId}`);
 
     // Step 1: Find existing staff
@@ -49,18 +54,16 @@ export class ArchiveStaffUseCase {
       await this.lockClerkUser(staff.userId!);
     }
 
-    // Step 3: Archive staff and deactivate user atomically
+    // Step 4: Archive staff + deactivate user + emit audit row atomically.
     staff.archive();
 
     await this.unitOfWork.run(async (tx) => {
-      // Archive the staff (set isArchived = true)
       await tx.updateStaff(staff.id, {
         isArchived: true,
         updatedAt: staff.updatedAt,
       });
       this.logger.log(`Staff archived in transaction: ${id}`);
 
-      // Deactivate linked user account if exists
       if (staff.hasUserAccount()) {
         await tx.updateUser(staff.userId!, {
           isActive: false,
@@ -69,6 +72,17 @@ export class ArchiveStaffUseCase {
           `User account deactivated in transaction for staff: ${staff.email}`,
         );
       }
+
+      await tx.recordAudit({
+        actorId: currentUser.id,
+        action: "ARCHIVE_STAFF",
+        targetType: "staff",
+        targetId: staff.id,
+        campusId: staff.campusId,
+        context: { actorName: currentUser.profile?.fullName ?? null },
+        beforeValue: { isArchived: false },
+        afterValue: { isArchived: true },
+      });
     });
 
     this.logger.log(`Staff archived successfully: ${id}`);

@@ -6,11 +6,13 @@ describe("Staff Entity", () => {
   const validPhoneNumber = "+84901234567";
   const validEmail = "staff@example.com";
   const validStaffTypeId = "456e7890-e89b-12d3-a456-426614174000";
+  const validStaffCode = "ST-2025-000001";
 
   describe("create", () => {
     it("should create a staff with required fields", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "John Doe",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -41,6 +43,7 @@ describe("Staff Entity", () => {
       const startDate = new Date("2023-01-01");
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Jane Smith",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -69,6 +72,7 @@ describe("Staff Entity", () => {
       const staff = Staff.create(
         {
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: validEmail,
           phoneNumber: validPhoneNumber,
@@ -87,6 +91,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: "",
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: validEmail,
           phoneNumber: validPhoneNumber,
@@ -102,6 +107,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "",
           email: validEmail,
           phoneNumber: validPhoneNumber,
@@ -117,6 +123,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "A",
           email: validEmail,
           phoneNumber: validPhoneNumber,
@@ -132,6 +139,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: "",
           phoneNumber: validPhoneNumber,
@@ -147,6 +155,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: "invalid-email",
           phoneNumber: validPhoneNumber,
@@ -162,6 +171,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: validEmail,
           phoneNumber: "",
@@ -179,6 +189,7 @@ describe("Staff Entity", () => {
       expect(() =>
         Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: validEmail,
           phoneNumber: "0901234567",
@@ -198,6 +209,7 @@ describe("Staff Entity", () => {
       validNumbers.forEach((phone) => {
         const staff = Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: validEmail,
           phoneNumber: phone,
@@ -220,6 +232,7 @@ describe("Staff Entity", () => {
       validEmails.forEach((email) => {
         const staff = Staff.create({
           campusId: validCampusId,
+          staffCode: validStaffCode,
           fullName: "Test Staff",
           email: email,
           phoneNumber: validPhoneNumber,
@@ -231,6 +244,71 @@ describe("Staff Entity", () => {
         expect(staff.email).toBe(email);
       });
     });
+
+    it("should throw error for missing staffCode", () => {
+      expect(() =>
+        Staff.create({
+          campusId: validCampusId,
+          staffCode: "",
+          fullName: "Test Staff",
+          email: validEmail,
+          phoneNumber: validPhoneNumber,
+          address: null,
+          dateOfBirth: null,
+          gender: null,
+          startDate: null,
+        }),
+      ).toThrow(
+        "A valid staff code in format ST-YYYY-XXXXXX is required (e.g., ST-2025-000001).",
+      );
+    });
+
+    it("should throw error for invalid staffCode format", () => {
+      const invalidCodes = [
+        "ST-2025-00001",
+        "ST-25-000001",
+        "STU-2025-000001",
+        "ST_2025_000001",
+        "2025-000001",
+      ];
+
+      invalidCodes.forEach((code) => {
+        expect(() =>
+          Staff.create({
+            campusId: validCampusId,
+            staffCode: code,
+            fullName: "Test Staff",
+            email: validEmail,
+            phoneNumber: validPhoneNumber,
+            address: null,
+            dateOfBirth: null,
+            gender: null,
+            startDate: null,
+          }),
+        ).toThrow(
+          "A valid staff code in format ST-YYYY-XXXXXX is required (e.g., ST-2025-000001).",
+        );
+      });
+    });
+
+    it("should accept valid staff codes", () => {
+      const validCodes = ["ST-2025-000001", "ST-1999-123456", "ST-2099-999999"];
+
+      validCodes.forEach((code) => {
+        const staff = Staff.create({
+          campusId: validCampusId,
+          staffCode: code,
+          fullName: "Test Staff",
+          email: validEmail,
+          phoneNumber: validPhoneNumber,
+          address: null,
+          dateOfBirth: null,
+          gender: null,
+          startDate: null,
+        });
+        expect(staff.staffCode).toBe(code);
+      });
+    });
   });
 
   describe("updateProfile", () => {
@@ -239,6 +317,7 @@ describe("Staff Entity", () => {
     beforeEach(() => {
       staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Original Name",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -254,6 +333,18 @@ describe("Staff Entity", () => {
       staff.updateProfile({ fullName: "Updated Name" });
 
       expect(staff.fullName).toBe("Updated Name");
+    });
+
+    it("should update email", () => {
+      staff.updateProfile({ email: "newemail@example.com" });
+
+      expect(staff.email).toBe("newemail@example.com");
+    });
+
+    it("should update phoneNumber", () => {
+      staff.updateProfile({ phoneNumber: "+84987654321" });
+
+      expect(staff.phoneNumber).toBe("+84987654321");
     });
 
     it("should update staffTypeId", () => {
@@ -328,6 +419,7 @@ describe("Staff Entity", () => {
     it("should set userId to null", () => {
       const staffWithUser = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -385,6 +477,7 @@ describe("Staff Entity", () => {
     it("should change staff type", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -403,6 +496,7 @@ describe("Staff Entity", () => {
     it("should clear staff type when set to null", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -421,6 +515,7 @@ describe("Staff Entity", () => {
     it("should update updatedAt timestamp", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -448,6 +543,7 @@ describe("Staff Entity", () => {
     it("should return true when staffTypeId is set", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -464,6 +560,7 @@ describe("Staff Entity", () => {
     it("should return false when staffTypeId is null", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -481,6 +578,7 @@ describe("Staff Entity", () => {
     it("should link a user to staff", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -498,6 +596,7 @@ describe("Staff Entity", () => {
     it("should update updatedAt timestamp", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -525,6 +624,7 @@ describe("Staff Entity", () => {
     it("should unlink user from staff", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -543,6 +643,7 @@ describe("Staff Entity", () => {
     it("should update updatedAt timestamp", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -571,6 +672,7 @@ describe("Staff Entity", () => {
     it("should return true when userId is set", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -587,6 +689,7 @@ describe("Staff Entity", () => {
     it("should return false when userId is null", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -604,6 +707,7 @@ describe("Staff Entity", () => {
     it("should set isArchived to true", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -622,6 +726,7 @@ describe("Staff Entity", () => {
     it("should update updatedAt timestamp", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -649,6 +754,7 @@ describe("Staff Entity", () => {
     it("should set isArchived to false", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
@@ -667,6 +773,7 @@ describe("Staff Entity", () => {
     it("should update updatedAt timestamp", () => {
       const staff = Staff.create({
         campusId: validCampusId,
+        staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,

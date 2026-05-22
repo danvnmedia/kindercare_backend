@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
   IsDateString,
+  IsEmail,
   IsEnum,
   IsOptional,
   IsString,
@@ -9,7 +10,7 @@ import {
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { IsAdultDateOfBirth } from "@/core/validators";
+import { IsAdultDateOfBirth, IsE164Phone } from "@/core/validators";
 
 export class UpdateStaffRequest {
   @ApiProperty({
@@ -24,6 +25,27 @@ export class UpdateStaffRequest {
   @MinLength(2)
   @MaxLength(100)
   fullName?: string;
+
+  @ApiProperty({
+    description:
+      "Staff email (synced to Clerk; enforces campus-scoped uniqueness)",
+    example: "staff@example.com",
+    required: false,
+  })
+  @IsOptional()
+  @IsEmail({}, { message: "Invalid email format" })
+  email?: string;
+
+  @ApiProperty({
+    description:
+      "Staff phone number in E.164 format (synced to Clerk; enforces campus-scoped uniqueness)",
+    example: "+84912345678",
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @IsE164Phone()
+  phoneNumber?: string;
 
   @ApiProperty({
     description: "Staff type ID (references staff_type table)",

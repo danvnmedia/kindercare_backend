@@ -1,5 +1,6 @@
 import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
@@ -28,7 +29,11 @@ export class ArchiveGuardianUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, campusId?: string): Promise<Guardian> {
+  async execute(
+    id: string,
+    campusId: string | undefined,
+    currentUser: User,
+  ): Promise<Guardian> {
     this.logger.log(`Archiving guardian: ${id}`);
 
     // Step 1: Find existing guardian
@@ -49,18 +54,16 @@ export class ArchiveGuardianUseCase {
       await this.lockClerkUser(guardian.userId!);
     }
 
-    // Step 4: Archive guardian and deactivate user atomically
+    // Step 4: Archive guardian + deactivate user + emit audit row atomically.
     guardian.archive();
 
     await this.unitOfWork.run(async (tx) => {
-      // Archive the guardian (set isArchived = true)
       await tx.updateGuardian(guardian.id, {
         isArchived: true,
         updatedAt: guardian.updatedAt,
       });
       this.logger.log(`Guardian archived in transaction: ${id}`);
 
-      // Deactivate linked user account if exists
       if (guardian.hasUserAccount()) {
         await tx.updateUser(guardian.userId!, {
           isActive: false,
@@ -69,6 +72,17 @@ export class ArchiveGuardianUseCase {
           `User account deactivated in transaction for guardian: ${guardian.email ?? guardian.phoneNumber}`,
         );
       }
+
+      await tx.recordAudit({
+        actorId: currentUser.id,
+        action: "ARCHIVE_GUARDIAN",
+        targetType: "guardian",
+        targetId: guardian.id,
+        campusId: guardian.campusId,
+        context: { actorName: currentUser.profile?.fullName ?? null },
+        beforeValue: { isArchived: false },
+        afterValue: { isArchived: true },
+      });
     });
 
     this.logger.log(`Guardian archived successfully: ${id}`);

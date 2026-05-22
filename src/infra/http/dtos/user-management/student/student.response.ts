@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
+import { STUDENT_PHASES } from "@/domain/user-management/enums/student-phase.enum";
 
 export class ClassInfo {
   @Expose()
@@ -85,11 +86,16 @@ export class StudentResponse {
 
   @Expose()
   @ApiProperty({
-    example: "WAITING",
+    enum: STUDENT_PHASES,
+    example: "ACTIVE",
+    nullable: true,
     description:
-      "Student status: DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED",
+      "Derived lifecycle phase computed from Enrollment + SchoolYearEnrollment state. " +
+      "One of ACTIVE, WAITING, DEFERRED, GRADUATED, WITHDRAWN. " +
+      "May be null on responses to write endpoints (POST/PATCH) that read back from the base table; " +
+      "GET endpoints project phase from the student_with_phase view.",
   })
-  status: string;
+  phase: string | null;
 
   @Expose()
   @ApiProperty({ example: "2025-01-15T00:00:00.000Z", nullable: true })

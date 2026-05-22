@@ -7,6 +7,11 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 
+/**
+ * Reads target the `student_with_phase` Postgres view so `phase` is projected
+ * into the domain entity at mapping time (Spec D7, AC-14). Writes still target
+ * the raw `student` table — the view is read-only.
+ */
 @Injectable()
 export class PrismaStudentRepository implements StudentRepository {
   constructor(
@@ -15,22 +20,14 @@ export class PrismaStudentRepository implements StudentRepository {
   ) {}
 
   async findById(id: string): Promise<Student | null> {
-    const prismaStudent = await this.prisma.student.findUnique({
+    const prismaStudent = await this.prisma.studentWithPhase.findUnique({
       where: { id },
-      include: {
-        guardians: {
-          include: {
-            guardian: true,
-            guardianRelationship: true,
-          },
-        },
-      },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
   }
 
   async findByEmail(email: string): Promise<Student | null> {
-    const prismaStudent = await this.prisma.student.findFirst({
+    const prismaStudent = await this.prisma.studentWithPhase.findFirst({
       where: { email },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
@@ -40,14 +37,14 @@ export class PrismaStudentRepository implements StudentRepository {
     campusId: string,
     email: string,
   ): Promise<Student | null> {
-    const prismaStudent = await this.prisma.student.findFirst({
+    const prismaStudent = await this.prisma.studentWithPhase.findFirst({
       where: { campusId, email },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
   }
 
   async findByPhoneNumber(phoneNumber: string): Promise<Student | null> {
-    const prismaStudent = await this.prisma.student.findFirst({
+    const prismaStudent = await this.prisma.studentWithPhase.findFirst({
       where: { phoneNumber },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
@@ -57,7 +54,7 @@ export class PrismaStudentRepository implements StudentRepository {
     campusId: string,
     phoneNumber: string,
   ): Promise<Student | null> {
-    const prismaStudent = await this.prisma.student.findFirst({
+    const prismaStudent = await this.prisma.studentWithPhase.findFirst({
       where: { campusId, phoneNumber },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
@@ -67,29 +64,21 @@ export class PrismaStudentRepository implements StudentRepository {
     campusId: string,
     studentCode: string,
   ): Promise<Student | null> {
-    const prismaStudent = await this.prisma.student.findFirst({
+    const prismaStudent = await this.prisma.studentWithPhase.findFirst({
       where: { campusId, studentCode },
     });
     return prismaStudent ? PrismaStudentMapper.toDomain(prismaStudent) : null;
   }
 
   async findByCampusId(campusId: string): Promise<Student[]> {
-    const students = await this.prisma.student.findMany({
+    const students = await this.prisma.studentWithPhase.findMany({
       where: { campusId },
-      include: {
-        guardians: {
-          include: {
-            guardian: true,
-            guardianRelationship: true,
-          },
-        },
-      },
     });
     return students.map(PrismaStudentMapper.toDomain);
   }
 
   async findByIds(ids: string[]): Promise<Student[]> {
-    const prismaStudents = await this.prisma.student.findMany({
+    const prismaStudents = await this.prisma.studentWithPhase.findMany({
       where: { id: { in: ids } },
     });
     return prismaStudents.map(PrismaStudentMapper.toDomain);
@@ -99,7 +88,6 @@ export class PrismaStudentRepository implements StudentRepository {
     params: StandardRequest,
     scope?: Record<string, any>,
   ): Promise<PaginatedResult<Student>> {
-    // Define allowed fields for filtering and sorting
     params.allowedFilterFields = [
       "campusId",
       "studentCode",
@@ -110,7 +98,7 @@ export class PrismaStudentRepository implements StudentRepository {
       "nickname",
       "isArchived",
       "dateOfBirth",
-      "status",
+      "phase",
     ];
     params.allowedSortFields = [
       "createdAt",
@@ -121,21 +109,49 @@ export class PrismaStudentRepository implements StudentRepository {
       "dateOfBirth",
     ];
 
-    // Use PrismaQueryService to execute query with StandardRequest
     return await this.queryService.executeQuery<Student>(
       this.prisma,
-      "student",
+      "studentWithPhase",
       params,
       {
-        include: {
-          guardians: {
-            include: {
-              guardian: true,
-              guardianRelationship: true,
-            },
-          },
+        orderBy: { studentCode: "desc" },
+        scope,
+      },
+      PrismaStudentMapper,
+    );
+  }
+
+  async findEligibleForClass(
+    _classId: string,
+    params: StandardRequest,
+    scope?: { campusId: string },
+  ): Promise<PaginatedResult<Student>> {
+    // Narrow user-controllable surface: caller can filter by fullName (ilike
+    // for ?search) and studentCode. `status` is gone (Spec D9). isArchived,
+    // open-enrollment exclusion, and scope.campusId are system-enforced via
+    // `where` + `scope` — phase narrowing is a client-side concern.
+    params.allowedFilterFields = ["fullName", "studentCode"];
+    params.allowedSortFields = [
+      "fullName",
+      "studentCode",
+      "dateOfBirth",
+      "createdAt",
+    ];
+
+    return await this.queryService.executeQuery<Student>(
+      this.prisma,
+      "studentWithPhase",
+      params,
+      {
+        where: {
+          isArchived: false,
+          // The view's CASE encodes phase='ACTIVE' iff the student has an
+          // open Enrollment (end_date IS NULL). `phase != 'ACTIVE'` is the
+          // view-friendly form of the previous `enrollments: { none: { endDate: null } }`
+          // relation filter, which Prisma rejects on a view model (no FK relations).
+          phase: { not: "ACTIVE" },
         },
-        orderBy: { studentCode: "desc" }, // Default sort: newest students first
+        orderBy: { createdAt: "desc" },
         scope,
       },
       PrismaStudentMapper,
@@ -175,7 +191,7 @@ export class PrismaStudentRepository implements StudentRepository {
         guardianId: relation.guardianId,
         guardianRelationshipId: relation.relationshipId,
       })),
-      skipDuplicates: true, // Skip if relationship already exists
+      skipDuplicates: true,
     });
   }
 
@@ -188,6 +204,17 @@ export class PrismaStudentRepository implements StudentRepository {
         studentId,
         guardianId: { in: guardianIds },
       },
+    });
+  }
+
+  async updateGuardianRelationship(
+    studentId: string,
+    guardianId: string,
+    relationshipId: string,
+  ): Promise<void> {
+    await this.prisma.guardianStudent.update({
+      where: { studentId_guardianId: { studentId, guardianId } },
+      data: { guardianRelationshipId: relationshipId },
     });
   }
 

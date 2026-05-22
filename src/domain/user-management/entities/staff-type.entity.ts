@@ -7,7 +7,7 @@ export interface StaffTypeProps {
   name: string;
   description: string | null;
   defaultRoleId: string | null;
-  isActive: boolean;
+  isArchived: boolean;
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -36,8 +36,8 @@ export class StaffType extends Entity<StaffTypeProps> {
     return this.props.defaultRoleId;
   }
 
-  get isActive(): boolean {
-    return this.props.isActive;
+  get isArchived(): boolean {
+    return this.props.isArchived;
   }
 
   get order(): number {
@@ -68,8 +68,8 @@ export class StaffType extends Entity<StaffTypeProps> {
       this.props.defaultRoleId = data.defaultRoleId;
     }
 
-    if (data.isActive !== undefined) {
-      this.props.isActive = data.isActive;
+    if (data.isArchived !== undefined) {
+      this.props.isArchived = data.isArchived;
     }
 
     if (data.order !== undefined) {
@@ -86,19 +86,19 @@ export class StaffType extends Entity<StaffTypeProps> {
     this.touch();
   }
 
-  public activate(): void {
-    if (this.props.isActive) {
-      return; // Already active
+  public archive(): void {
+    if (this.props.isArchived) {
+      return; // Already archived
     }
-    this.props.isActive = true;
+    this.props.isArchived = true;
     this.touch();
   }
 
-  public deactivate(): void {
-    if (!this.props.isActive) {
-      return; // Already inactive
+  public unarchive(): void {
+    if (!this.props.isArchived) {
+      return; // Already not archived
     }
-    this.props.isActive = false;
+    this.props.isArchived = false;
     this.touch();
   }
 
@@ -137,7 +137,7 @@ export class StaffType extends Entity<StaffTypeProps> {
   public static create(
     props: Optional<
       StaffTypeProps,
-      "createdAt" | "updatedAt" | "isActive" | "description" | "defaultRoleId"
+      "createdAt" | "updatedAt" | "isArchived" | "description" | "defaultRoleId"
     >,
     id?: string,
   ): StaffType {
@@ -163,7 +163,7 @@ export class StaffType extends Entity<StaffTypeProps> {
       name: props.name.trim(),
       description: props.description?.trim() || null,
       defaultRoleId: props.defaultRoleId ?? null,
-      isActive: props.isActive ?? true,
+      isArchived: props.isArchived ?? false,
       order: props.order,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

@@ -20,6 +20,7 @@ import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { User } from "@/domain/user-management/user.entity";
 import {
   CreateStaffRequest,
   UpdateStaffRequest,
@@ -28,6 +29,7 @@ import {
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../../decorators";
@@ -74,18 +76,22 @@ export class StaffController {
   async create(
     @CampusContext() campusId: string,
     @Body() dto: CreateStaffRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.createStaffUseCase.execute({
-      campusId,
-      fullName: dto.fullName,
-      email: dto.email,
-      phoneNumber: dto.phoneNumber,
-      staffTypeId: dto.staffTypeId,
-      address: dto.address,
-      dateOfBirth: dto.dateOfBirth,
-      gender: dto.gender as Gender | undefined,
-      startDate: dto.startDate,
-    });
+    return await this.createStaffUseCase.execute(
+      {
+        campusId,
+        fullName: dto.fullName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        staffTypeId: dto.staffTypeId,
+        address: dto.address,
+        dateOfBirth: dto.dateOfBirth,
+        gender: dto.gender as Gender | undefined,
+        startDate: dto.startDate,
+      },
+      currentUser,
+    );
   }
 
   @Get()
@@ -98,7 +104,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Get all staff members",
     description:
-      "Retrieve all staff members within a campus with advanced filtering, sorting, and pagination. Requires X-Campus-Id header. Supports filtering by fullName, email, phoneNumber, staffType, gender, isArchived. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
+      "Retrieve all staff members within a campus with advanced filtering, sorting, and pagination. Requires X-Campus-Id header. Supports filtering by staffCode, fullName, email, phoneNumber, staffType, gender, isArchived. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -148,7 +154,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Update staff",
     description:
-      "Update staff information within the specified campus. If staffType is changed, the associated user role will also be updated accordingly.",
+      "Update staff information within the specified campus. Email and phone number are synced to Clerk and enforce campus-scoped uniqueness. If staffType is changed, the associated user role will also be updated accordingly.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -165,16 +171,23 @@ export class StaffController {
     @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() dto: UpdateStaffRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.updateStaffUseCase.execute(id, {
-      campusId,
-      fullName: dto.fullName,
-      staffTypeId: dto.staffTypeId,
-      address: dto.address,
-      dateOfBirth: dto.dateOfBirth,
-      gender: dto.gender as Gender | undefined,
-      startDate: dto.startDate,
-    });
+    return await this.updateStaffUseCase.execute(
+      id,
+      {
+        campusId,
+        fullName: dto.fullName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        staffTypeId: dto.staffTypeId,
+        address: dto.address,
+        dateOfBirth: dto.dateOfBirth,
+        gender: dto.gender as Gender | undefined,
+        startDate: dto.startDate,
+      },
+      currentUser,
+    );
   }
 
   @Delete(":id")
@@ -199,8 +212,12 @@ export class StaffController {
     description: "Staff UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async archive(@CampusContext() campusId: string, @Param("id") id: string) {
-    return await this.archiveStaffUseCase.execute(id, campusId);
+  async archive(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.archiveStaffUseCase.execute(id, campusId, currentUser);
   }
 
   @Patch(":id/restore")
@@ -225,7 +242,11 @@ export class StaffController {
     description: "Staff UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async restore(@CampusContext() campusId: string, @Param("id") id: string) {
-    return await this.restoreStaffUseCase.execute(id, campusId);
+  async restore(
+    @CampusContext() campusId: string,
+    @Param("id") id: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.restoreStaffUseCase.execute(id, campusId, currentUser);
   }
 }

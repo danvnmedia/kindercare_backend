@@ -1,11 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsNotEmpty, IsUUID } from "class-validator";
-
-export enum GuardianRelationshipType {
-  FATHER = "FATHER",
-  MOTHER = "MOTHER",
-  GUARDIAN = "GUARDIAN",
-}
+import { IsNotEmpty, IsUUID } from "class-validator";
 
 export class LinkStudentGuardianRequest {
   @ApiProperty({
@@ -17,13 +11,11 @@ export class LinkStudentGuardianRequest {
   guardianId: string;
 
   @ApiProperty({
-    description: "Relationship type between student and guardian",
-    enum: GuardianRelationshipType,
-    example: GuardianRelationshipType.FATHER,
+    description:
+      "Guardian relationship type ID (UUID from guardian-relationship-types)",
+    example: "123e4567-e89b-12d3-a456-426614174002",
   })
   @IsNotEmpty()
-  @IsEnum(GuardianRelationshipType, {
-    message: "Relationship must be FATHER, MOTHER, or GUARDIAN",
-  })
-  relationshipId: GuardianRelationshipType;
+  @IsUUID("4", { message: "Relationship ID must be a valid UUID" })
+  relationshipId: string;
 }

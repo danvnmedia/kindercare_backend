@@ -85,18 +85,18 @@ describe("UpdateCampusUseCase", () => {
     expect(result.address).toBe("Updated Address");
   });
 
-  it("should update isActive status", async () => {
+  it("should update isArchived status", async () => {
     const existingCampus = Campus.create(
-      { name: "Test Campus", isActive: true },
+      { name: "Test Campus", isArchived: false },
       "campus-id",
     );
 
     mockCampusRepository.findById.mockResolvedValue(existingCampus);
     mockCampusRepository.update.mockImplementation(async (campus) => campus);
 
-    const result = await useCase.execute("campus-id", { isActive: false });
+    const result = await useCase.execute("campus-id", { isArchived: true });
 
-    expect(result.isActive).toBe(false);
+    expect(result.isArchived).toBe(true);
   });
 
   it("should throw BadRequestException for validation errors", async () => {

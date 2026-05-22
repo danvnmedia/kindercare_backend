@@ -37,9 +37,12 @@ export abstract class StaffTypeRepository {
 
   /**
    * Find all staff types with pagination, filtering, and sorting
+   * @param params - Standard query parameters (filters, sorts, pagination)
+   * @param scope - Optional system-enforced filters (e.g., campusId) that bypass allowedFilterFields
    */
   abstract findAll(
     params: StandardRequest,
+    scope?: Record<string, any>,
   ): Promise<PaginatedResult<StaffType>>;
 
   /**
@@ -63,9 +66,9 @@ export abstract class StaffTypeRepository {
   abstract exists(id: string): Promise<boolean>;
 
   /**
-   * Check if staff type exists and is active
+   * Check if staff type exists and is not archived
    */
-  abstract existsAndActive(id: string): Promise<boolean>;
+  abstract existsAndNotArchived(id: string): Promise<boolean>;
 
   /**
    * Get the maximum order value for staff types in a campus

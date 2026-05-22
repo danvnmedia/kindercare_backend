@@ -25,7 +25,7 @@ export class PrismaPostCategoryMapper {
         color: prismaCategory.color,
         icon: prismaCategory.icon,
         order: prismaCategory.order,
-        isActive: prismaCategory.isActive,
+        isArchived: prismaCategory.isArchived,
         createdAt: prismaCategory.createdAt,
         updatedAt: prismaCategory.updatedAt,
       },
@@ -58,7 +58,7 @@ export class PrismaPostCategoryMapper {
       color: category.color,
       icon: category.icon,
       order: category.order,
-      isActive: category.isActive,
+      isArchived: category.isArchived,
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
     };
@@ -77,7 +77,7 @@ export class PrismaPostCategoryMapper {
       color: category.color,
       icon: category.icon,
       order: category.order,
-      isActive: category.isActive,
+      isArchived: category.isArchived,
       updatedAt: category.updatedAt,
     };
   }

@@ -3,12 +3,14 @@ import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
 import { PrismaService } from "../prisma.service";
 import {
   PrismaTransactionClient,
   UserTransactionOps,
   GuardianTransactionOps,
   StaffTransactionOps,
+  StudentTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -23,7 +25,10 @@ import {
  */
 @Injectable()
 export class PrismaUnitOfWork extends UnitOfWorkPort {
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditRecorder: AuditEventRecorderPort,
+  ) {
     super();
   }
 
@@ -50,6 +55,7 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const userOps = new UserTransactionOps(tx);
     const guardianOps = new GuardianTransactionOps(tx);
     const staffOps = new StaffTransactionOps(tx);
+    const studentOps = new StudentTransactionOps(tx);
 
     return {
       // User operations
@@ -64,6 +70,18 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       // Staff operations
       createStaff: staffOps.createStaff.bind(staffOps),
       updateStaff: staffOps.updateStaff.bind(staffOps),
+
+      // Student operations
+      createStudent: studentOps.createStudent.bind(studentOps),
+      updateStudent: studentOps.updateStudent.bind(studentOps),
+      assignGuardians: studentOps.assignGuardians.bind(studentOps),
+      removeGuardians: studentOps.removeGuardians.bind(studentOps),
+
+      // Audit operations — captures the active `prismaTransaction` so callers
+      // never have to thread a raw `Prisma.TransactionClient` themselves.
+      // Guarantees same-tx atomicity by construction (D4 of
+      // `@doc/specs/admin-audit-log`).
+      recordAudit: (input) => this.auditRecorder.record(input, tx),
     };
   }
 }

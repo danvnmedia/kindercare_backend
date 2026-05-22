@@ -6,14 +6,16 @@ import {
   ConflictException,
   Logger,
 } from "@nestjs/common";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { User } from "@/domain/user-management/user.entity";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
-import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import { GuardianRelationshipTypeRepository } from "../../ports/guardian-relationship-type.repository";
 
 export interface LinkStudentWithGuardianInput {
   studentId: string;
   guardianId: string;
-  relationshipId: string; // FATHER, MOTHER, GUARDIAN
+  relationshipId: string;
 }
 
 export interface LinkStudentWithGuardianOutput {
@@ -32,24 +34,35 @@ export class LinkStudentWithGuardianUseCase {
     private readonly studentRepository: StudentRepository,
     @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
+    @Inject("GUARDIAN_RELATIONSHIP_TYPE_REPOSITORY")
+    private readonly guardianRelationshipTypeRepository: GuardianRelationshipTypeRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
   async execute(
     input: LinkStudentWithGuardianInput,
+    currentUser: User,
   ): Promise<LinkStudentWithGuardianOutput> {
     try {
       this.logger.log(
         `Linking student ${input.studentId} with guardian ${input.guardianId} (${input.relationshipId})`,
       );
 
-      // Validate relationship ID
-      if (!Guardian.validateRelationshipId(input.relationshipId)) {
+      const relationshipType =
+        await this.guardianRelationshipTypeRepository.findById(
+          input.relationshipId,
+        );
+      if (!relationshipType) {
+        throw new NotFoundException(
+          `Guardian relationship type with ID "${input.relationshipId}" not found`,
+        );
+      }
+      if (relationshipType.isArchived) {
         throw new BadRequestException(
-          `Invalid relationship ID: ${input.relationshipId}. Must be FATHER, MOTHER, or GUARDIAN`,
+          `Guardian relationship type "${relationshipType.name}" is archived and cannot be used`,
         );
       }
 
-      // Check student exists
       const student = await this.studentRepository.findById(input.studentId);
       if (!student) {
         throw new NotFoundException(
@@ -57,7 +70,6 @@ export class LinkStudentWithGuardianUseCase {
         );
       }
 
-      // Check guardian exists
       const guardian = await this.guardianRepository.findById(input.guardianId);
       if (!guardian) {
         throw new NotFoundException(
@@ -65,7 +77,6 @@ export class LinkStudentWithGuardianUseCase {
         );
       }
 
-      // Check if relationship already exists
       const existingGuardians =
         await this.studentRepository.getStudentGuardians(input.studentId);
       const existingRelation = existingGuardians.find(
@@ -77,26 +88,41 @@ export class LinkStudentWithGuardianUseCase {
         );
       }
 
-      // Create the link
-      await this.studentRepository.assignGuardians(input.studentId, [
-        {
-          guardianId: input.guardianId,
-          relationshipId: input.relationshipId,
-        },
-      ]);
+      await this.unitOfWork.run(async (tx) => {
+        await tx.assignGuardians(input.studentId, [
+          {
+            guardianId: input.guardianId,
+            relationshipId: input.relationshipId,
+          },
+        ]);
+
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "LINK_GUARDIAN_TO_STUDENT",
+          targetType: "student",
+          targetId: input.studentId,
+          campusId: student.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            studentId: input.studentId,
+            studentName: student.fullName,
+            guardianId: input.guardianId,
+            guardianName: guardian.fullName,
+            relationshipId: input.relationshipId,
+            relationshipType: relationshipType.name,
+          },
+        });
+      });
 
       this.logger.log(
         `Successfully linked student ${input.studentId} with guardian ${input.guardianId}`,
       );
 
-      // Get relationship name
-      const relationshipName = Guardian.getGuardianType(input.relationshipId);
-
       return {
         studentId: input.studentId,
         guardianId: input.guardianId,
         relationshipId: input.relationshipId,
-        relationshipName,
+        relationshipName: relationshipType.name,
       };
     } catch (error) {
       this.logger.error(

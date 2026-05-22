@@ -10,7 +10,7 @@ describe("Campus Entity", () => {
       expect(campus.name).toBe("Main Campus");
       expect(campus.address).toBeNull();
       expect(campus.phoneNumber).toBeNull();
-      expect(campus.isActive).toBe(true);
+      expect(campus.isArchived).toBe(false);
       expect(campus.id).toBeDefined();
       expect(campus.createdAt).toBeInstanceOf(Date);
       expect(campus.updatedAt).toBeInstanceOf(Date);
@@ -21,13 +21,13 @@ describe("Campus Entity", () => {
         name: "Branch Campus",
         address: "123 Main Street",
         phoneNumber: "+84901234567",
-        isActive: false,
+        isArchived: true,
       });
 
       expect(campus.name).toBe("Branch Campus");
       expect(campus.address).toBe("123 Main Street");
       expect(campus.phoneNumber).toBe("+84901234567");
-      expect(campus.isActive).toBe(false);
+      expect(campus.isArchived).toBe(true);
     });
 
     it("should create a campus with provided id", () => {
@@ -123,22 +123,22 @@ describe("Campus Entity", () => {
       expect(campus.phoneNumber).toBeNull();
     });
 
-    it("should update isActive", () => {
-      campus.update({ isActive: false });
+    it("should update isArchived", () => {
+      campus.update({ isArchived: true });
 
-      expect(campus.isActive).toBe(false);
+      expect(campus.isArchived).toBe(true);
     });
 
     it("should update multiple fields at once", () => {
       campus.update({
         name: "New Name",
         address: "New Address",
-        isActive: false,
+        isArchived: true,
       });
 
       expect(campus.name).toBe("New Name");
       expect(campus.address).toBe("New Address");
-      expect(campus.isActive).toBe(false);
+      expect(campus.isArchived).toBe(true);
     });
 
     it("should update updatedAt timestamp", () => {
@@ -170,42 +170,42 @@ describe("Campus Entity", () => {
     });
   });
 
-  describe("activate", () => {
-    it("should set isActive to true", () => {
-      const campus = Campus.create({ name: "Test", isActive: false });
+  describe("archive", () => {
+    it("should set isArchived to true", () => {
+      const campus = Campus.create({ name: "Test", isArchived: false });
 
-      campus.activate();
+      campus.archive();
 
-      expect(campus.isActive).toBe(true);
+      expect(campus.isArchived).toBe(true);
     });
 
-    it("should not change if already active", () => {
-      const campus = Campus.create({ name: "Test", isActive: true });
+    it("should not change if already archived", () => {
+      const campus = Campus.create({ name: "Test", isArchived: true });
       const originalUpdatedAt = campus.updatedAt;
 
-      campus.activate();
+      campus.archive();
 
-      expect(campus.isActive).toBe(true);
+      expect(campus.isArchived).toBe(true);
       expect(campus.updatedAt).toEqual(originalUpdatedAt);
     });
   });
 
-  describe("deactivate", () => {
-    it("should set isActive to false", () => {
-      const campus = Campus.create({ name: "Test", isActive: true });
+  describe("unarchive", () => {
+    it("should set isArchived to false", () => {
+      const campus = Campus.create({ name: "Test", isArchived: true });
 
-      campus.deactivate();
+      campus.unarchive();
 
-      expect(campus.isActive).toBe(false);
+      expect(campus.isArchived).toBe(false);
     });
 
-    it("should not change if already inactive", () => {
-      const campus = Campus.create({ name: "Test", isActive: false });
+    it("should not change if already not archived", () => {
+      const campus = Campus.create({ name: "Test", isArchived: false });
       const originalUpdatedAt = campus.updatedAt;
 
-      campus.deactivate();
+      campus.unarchive();
 
-      expect(campus.isActive).toBe(false);
+      expect(campus.isArchived).toBe(false);
       expect(campus.updatedAt).toEqual(originalUpdatedAt);
     });
   });

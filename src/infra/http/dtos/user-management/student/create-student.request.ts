@@ -12,7 +12,6 @@ import {
   MinLength,
 } from "class-validator";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { StudentStatus } from "@/domain/user-management/enums/student-status.enum";
 import {
   IsE164Phone,
   IsDateOfBirth,
@@ -96,20 +95,6 @@ export class CreateStudentRequest {
   address?: string;
 
   // ========== Student-Specific Information ==========
-
-  @ApiProperty({
-    description: "Student status",
-    enum: StudentStatus,
-    example: StudentStatus.WAITING,
-    default: StudentStatus.WAITING,
-    required: false,
-  })
-  @IsOptional()
-  @IsEnum(StudentStatus, {
-    message:
-      "Status must be DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, or DEFERRED",
-  })
-  status?: StudentStatus;
 
   @ApiProperty({
     description:

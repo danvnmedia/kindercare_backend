@@ -12,7 +12,7 @@ export class DeletePostCategoryUseCase {
   ) {}
 
   async execute(id: string, campusId?: string): Promise<PostCategory> {
-    this.logger.log(`Deactivating post category: ${id}`);
+    this.logger.log(`Archiving post category: ${id}`);
 
     // Step 1: Check existence
     const category = await this.postCategoryRepository.findById(id);
@@ -27,14 +27,13 @@ export class DeletePostCategoryUseCase {
       );
     }
 
-    // Step 3: Deactivate (soft delete) via domain method
-    category.deactivate();
+    // Step 3: Archive (soft delete) via domain method
+    category.archive();
 
-    // Step 3: Save to repository
-    const deactivatedCategory =
-      await this.postCategoryRepository.update(category);
-    this.logger.log(`Post category deactivated successfully: ${id}`);
+    // Step 4: Save to repository
+    const archivedCategory = await this.postCategoryRepository.update(category);
+    this.logger.log(`Post category archived successfully: ${id}`);
 
-    return deactivatedCategory;
+    return archivedCategory;
   }
 }

@@ -1,6 +1,5 @@
 import { Student } from "./student.entity";
 import { Gender } from "../enums/gender.enum";
-import { StudentStatus } from "../enums/student-status.enum";
 
 describe("Student Entity", () => {
   const validCampusId = "123e4567-e89b-12d3-a456-426614174000";
@@ -31,7 +30,6 @@ describe("Student Entity", () => {
       expect(student.dateOfBirth).toBeNull();
       expect(student.nickname).toBeNull();
       expect(student.gender).toBeNull();
-      expect(student.status).toBe(StudentStatus.ACTIVE);
       expect(student.isArchived).toBe(false);
       expect(student.id).toBeDefined();
       expect(student.createdAt).toBeInstanceOf(Date);
@@ -50,7 +48,6 @@ describe("Student Entity", () => {
         dateOfBirth: dateOfBirth,
         nickname: "JD",
         gender: Gender.FEMALE,
-        status: StudentStatus.WAITING,
         isArchived: false,
       });
 
@@ -63,7 +60,6 @@ describe("Student Entity", () => {
       expect(student.dateOfBirth).toEqual(dateOfBirth);
       expect(student.nickname).toBe("JD");
       expect(student.gender).toBe(Gender.FEMALE);
-      expect(student.status).toBe(StudentStatus.WAITING);
     });
 
     it("should create a student with provided id", () => {
@@ -166,22 +162,6 @@ describe("Student Entity", () => {
       expect(student.email).toBeNull();
     });
 
-    it("should default status to ACTIVE", () => {
-      const student = Student.create({
-        campusId: validCampusId,
-        studentCode: validStudentCode,
-        fullName: "Test Student",
-        email: null,
-        phoneNumber: null,
-        address: null,
-        dateOfBirth: null,
-        nickname: null,
-        gender: null,
-      });
-
-      expect(student.status).toBe(StudentStatus.ACTIVE);
-    });
-
     it("should default isArchived to false", () => {
       const student = Student.create({
         campusId: validCampusId,
@@ -213,7 +193,6 @@ describe("Student Entity", () => {
         dateOfBirth: new Date("2018-01-01"),
         nickname: "Original Nickname",
         gender: Gender.MALE,
-        status: StudentStatus.ACTIVE,
       });
     });
 
@@ -296,12 +275,6 @@ describe("Student Entity", () => {
       expect(student.gender).toBeNull();
     });
 
-    it("should update status", () => {
-      student.updateProfile({ status: StudentStatus.GRADUATED });
-
-      expect(student.status).toBe(StudentStatus.GRADUATED);
-    });
-
     it("should update multiple fields at once", () => {
       student.updateProfile({
         fullName: "New Name",
@@ -334,7 +307,6 @@ describe("Student Entity", () => {
     it("should not change campusId (immutable)", () => {
       const originalCampusId = student.campusId;
 
-      // campusId is not part of UpdateStudentData, so the entity preserves campusId through updates
       student.updateProfile({ fullName: "New Name" });
 
       expect(student.campusId).toBe(originalCampusId);
@@ -369,23 +341,47 @@ describe("Student Entity", () => {
       expect(student.isArchived).toBe(true);
     });
 
-    it("should set status to DROPPED", () => {
+    it("should only mutate isArchived and updatedAt (single-write contract)", () => {
       const student = Student.create({
         campusId: validCampusId,
         studentCode: validStudentCode,
-        fullName: "Test Student",
-        email: null,
-        phoneNumber: null,
-        address: null,
-        dateOfBirth: null,
-        nickname: null,
-        gender: null,
-        status: StudentStatus.ACTIVE,
+        fullName: "Snapshot Subject",
+        email: validEmail,
+        phoneNumber: validPhoneNumber,
+        address: "1 Main St",
+        dateOfBirth: new Date("2018-01-01"),
+        nickname: "Snap",
+        gender: Gender.FEMALE,
+        isArchived: false,
       });
+      const before = {
+        campusId: student.campusId,
+        studentCode: student.studentCode,
+        fullName: student.fullName,
+        email: student.email,
+        phoneNumber: student.phoneNumber,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        nickname: student.nickname,
+        gender: student.gender,
+        phase: student.phase,
+        createdAt: student.createdAt,
+      };
 
       student.archive();
 
-      expect(student.status).toBe(StudentStatus.DROPPED);
+      expect(student.isArchived).toBe(true);
+      expect(student.campusId).toBe(before.campusId);
+      expect(student.studentCode).toBe(before.studentCode);
+      expect(student.fullName).toBe(before.fullName);
+      expect(student.email).toBe(before.email);
+      expect(student.phoneNumber).toBe(before.phoneNumber);
+      expect(student.address).toBe(before.address);
+      expect(student.dateOfBirth).toBe(before.dateOfBirth);
+      expect(student.nickname).toBe(before.nickname);
+      expect(student.gender).toBe(before.gender);
+      expect(student.phase).toBe(before.phase);
+      expect(student.createdAt).toBe(before.createdAt);
     });
 
     it("should update updatedAt timestamp", () => {
@@ -435,24 +431,47 @@ describe("Student Entity", () => {
       expect(student.isArchived).toBe(false);
     });
 
-    it("should set status to ACTIVE", () => {
+    it("should only mutate isArchived and updatedAt (single-write contract)", () => {
       const student = Student.create({
         campusId: validCampusId,
         studentCode: validStudentCode,
-        fullName: "Test Student",
-        email: null,
-        phoneNumber: null,
-        address: null,
-        dateOfBirth: null,
-        nickname: null,
-        gender: null,
-        status: StudentStatus.DROPPED,
+        fullName: "Snapshot Subject",
+        email: validEmail,
+        phoneNumber: validPhoneNumber,
+        address: "1 Main St",
+        dateOfBirth: new Date("2018-01-01"),
+        nickname: "Snap",
+        gender: Gender.FEMALE,
         isArchived: true,
       });
+      const before = {
+        campusId: student.campusId,
+        studentCode: student.studentCode,
+        fullName: student.fullName,
+        email: student.email,
+        phoneNumber: student.phoneNumber,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        nickname: student.nickname,
+        gender: student.gender,
+        phase: student.phase,
+        createdAt: student.createdAt,
+      };
 
       student.restore();
 
-      expect(student.status).toBe(StudentStatus.ACTIVE);
+      expect(student.isArchived).toBe(false);
+      expect(student.campusId).toBe(before.campusId);
+      expect(student.studentCode).toBe(before.studentCode);
+      expect(student.fullName).toBe(before.fullName);
+      expect(student.email).toBe(before.email);
+      expect(student.phoneNumber).toBe(before.phoneNumber);
+      expect(student.address).toBe(before.address);
+      expect(student.dateOfBirth).toBe(before.dateOfBirth);
+      expect(student.nickname).toBe(before.nickname);
+      expect(student.gender).toBe(before.gender);
+      expect(student.phase).toBe(before.phase);
+      expect(student.createdAt).toBe(before.createdAt);
     });
 
     it("should update updatedAt timestamp", () => {
@@ -480,6 +499,41 @@ describe("Student Entity", () => {
       );
 
       jest.useRealTimers();
+    });
+  });
+
+  describe("phase getter", () => {
+    it("should return undefined when no phase is projected (raw-table read path)", () => {
+      const student = Student.create({
+        campusId: validCampusId,
+        studentCode: validStudentCode,
+        fullName: "Test Student",
+        email: null,
+        phoneNumber: null,
+        address: null,
+        dateOfBirth: null,
+        nickname: null,
+        gender: null,
+      });
+
+      expect(student.phase).toBeUndefined();
+    });
+
+    it("should return the StudentPhase value supplied via props (view-projected read path)", () => {
+      const student = Student.create({
+        campusId: validCampusId,
+        studentCode: validStudentCode,
+        fullName: "Test Student",
+        email: null,
+        phoneNumber: null,
+        address: null,
+        dateOfBirth: null,
+        nickname: null,
+        gender: null,
+        phase: "WAITING",
+      });
+
+      expect(student.phase).toBe("WAITING");
     });
   });
 

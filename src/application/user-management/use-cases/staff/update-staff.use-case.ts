@@ -1,11 +1,14 @@
 import { IdentityPort } from "@/application/ports/identity.port";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { computeDiff } from "@/application/audit";
 import {
   Staff,
   UpdateStaffData,
 } from "@/domain/user-management/entities/staff.entity";
+import { User } from "@/domain/user-management/user.entity";
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -23,10 +26,14 @@ export interface UpdateStaffInput extends UpdateStaffData {
 
 interface ClerkChanges {
   hasChanges: boolean;
+  email?: string;
+  phoneNumber?: string;
   fullName?: string;
 }
 
 interface ClerkOriginalValues {
+  email: string;
+  phoneNumber: string;
   fullName: string;
 }
 
@@ -47,7 +54,11 @@ export class UpdateStaffUseCase {
     private readonly identityPort: IdentityPort,
   ) {}
 
-  async execute(id: string, input: UpdateStaffInput): Promise<Staff> {
+  async execute(
+    id: string,
+    input: UpdateStaffInput,
+    currentUser: User,
+  ): Promise<Staff> {
     this.logger.log(`Updating staff: ${id} in campus ${input.campusId}`);
 
     // Step 1: Find existing staff
@@ -63,7 +74,15 @@ export class UpdateStaffUseCase {
       );
     }
 
-    // Step 3: Validate new staffTypeId if provided
+    // Step 3: Check uniqueness (email and phone) - campus-scoped
+    if (input.email && input.email !== staff.email) {
+      await this.checkEmailUniqueness(staff.campusId, input.email, id);
+    }
+    if (input.phoneNumber && input.phoneNumber !== staff.phoneNumber) {
+      await this.checkPhoneUniqueness(staff.campusId, input.phoneNumber, id);
+    }
+
+    // Step 4: Validate new staffTypeId if provided
     let newDefaultRoleId: string | null = null;
     if (
       input.staffTypeId !== undefined &&
@@ -78,9 +97,9 @@ export class UpdateStaffUseCase {
             `Staff type with ID ${input.staffTypeId} not found`,
           );
         }
-        if (!newStaffType.isActive) {
+        if (newStaffType.isArchived) {
           throw new BadRequestException(
-            `Staff type ${newStaffType.name} is inactive`,
+            `Staff type ${newStaffType.name} is archived`,
           );
         }
         if (newStaffType.campusId !== staff.campusId) {
@@ -95,26 +114,26 @@ export class UpdateStaffUseCase {
       }
     }
 
-    // Step 3: Detect Clerk-relevant changes (only fullName for staff)
+    // Step 5: Detect Clerk-relevant changes (email, phone, fullName)
     const clerkChanges = this.detectClerkChanges(staff, input);
 
-    // Step 4: If has User account AND has Clerk changes -> Saga pattern
+    // Step 6: If has User account AND has Clerk changes -> Saga pattern
     if (staff.userId && clerkChanges.hasChanges) {
       return await this.updateWithClerkSync(
         staff,
         input,
         clerkChanges,
         newDefaultRoleId,
+        currentUser,
       );
     }
 
-    // Step 5: Otherwise, just update DB with transaction
-    return await this.updateDbOnly(staff, input, newDefaultRoleId);
+    // Step 7: Otherwise, just update DB with transaction
+    return await this.updateDbOnly(staff, input, newDefaultRoleId, currentUser);
   }
 
   /**
    * Detect which fields need to be synced with Clerk
-   * For Staff, only fullName is synced (email/phone excluded from updates per UpdateStaffData)
    */
   private detectClerkChanges(
     staff: Staff,
@@ -122,6 +141,17 @@ export class UpdateStaffUseCase {
   ): ClerkChanges {
     const changes: ClerkChanges = { hasChanges: false };
 
+    if (input.email !== undefined && input.email !== staff.email) {
+      changes.email = input.email;
+      changes.hasChanges = true;
+    }
+    if (
+      input.phoneNumber !== undefined &&
+      input.phoneNumber !== staff.phoneNumber
+    ) {
+      changes.phoneNumber = input.phoneNumber;
+      changes.hasChanges = true;
+    }
     if (input.fullName !== undefined && input.fullName !== staff.fullName) {
       changes.fullName = input.fullName;
       changes.hasChanges = true;
@@ -139,6 +169,7 @@ export class UpdateStaffUseCase {
     input: UpdateStaffInput,
     clerkChanges: ClerkChanges,
     newDefaultRoleId: string | null,
+    currentUser: User,
   ): Promise<Staff> {
     // Get User to find clerkUid
     const user = await this.userRepository.findById(staff.userId!);
@@ -146,11 +177,18 @@ export class UpdateStaffUseCase {
       this.logger.warn(
         `User not found for staff ${staff.id}, falling back to DB-only update`,
       );
-      return await this.updateDbOnly(staff, input, newDefaultRoleId);
+      return await this.updateDbOnly(
+        staff,
+        input,
+        newDefaultRoleId,
+        currentUser,
+      );
     }
 
     // Store original values for potential rollback
     const originalValues: ClerkOriginalValues = {
+      email: staff.email,
+      phoneNumber: staff.phoneNumber,
       fullName: staff.fullName,
     };
 
@@ -163,6 +201,8 @@ export class UpdateStaffUseCase {
     // Update Clerk FIRST (external service)
     try {
       await this.identityPort.updateUser(user.clerkUid, {
+        email: clerkChanges.email,
+        phoneNumber: clerkChanges.phoneNumber,
         fullName: clerkChanges.fullName,
       });
       this.logger.log(`Clerk user updated successfully: ${user.clerkUid}`);
@@ -177,7 +217,8 @@ export class UpdateStaffUseCase {
     }
 
     try {
-      // Update DB in transaction using UnitOfWork
+      // Snapshot before/after for the EDIT_STAFF_PROFILE audit diff.
+      const beforeAudit = pickStaffAuditFields(staff);
       staff.updateProfile(input);
 
       // Handle staffTypeId change
@@ -188,10 +229,15 @@ export class UpdateStaffUseCase {
         staff.changeStaffType(input.staffTypeId);
       }
 
+      const afterAudit = pickStaffAuditFields(staff);
+      const diff = computeDiff(beforeAudit, afterAudit);
+
       const updatedStaff = await this.unitOfWork.run(async (tx) => {
         // Update staff in transaction
         await tx.updateStaff(staff.id, {
           fullName: staff.fullName,
+          email: staff.email,
+          phoneNumber: staff.phoneNumber,
           staffTypeId: staff.staffTypeId,
           address: staff.address,
           dateOfBirth: staff.dateOfBirth,
@@ -208,6 +254,19 @@ export class UpdateStaffUseCase {
           newDefaultRoleId
         ) {
           await this.assignDefaultRole(tx, staff, newDefaultRoleId);
+        }
+
+        if (Object.keys(diff.after).length > 0) {
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "EDIT_STAFF_PROFILE",
+            targetType: "staff",
+            targetId: staff.id,
+            campusId: staff.campusId,
+            context: { actorName: currentUser.profile?.fullName ?? null },
+            beforeValue: diff.before,
+            afterValue: diff.after,
+          });
         }
 
         this.logger.log(`Staff updated in DB: ${staff.id}`);
@@ -244,10 +303,13 @@ export class UpdateStaffUseCase {
     staff: Staff,
     input: UpdateStaffInput,
     newDefaultRoleId: string | null,
+    currentUser: User,
   ): Promise<Staff> {
     const oldStaffTypeId = staff.staffTypeId;
 
     try {
+      // Snapshot before/after for the EDIT_STAFF_PROFILE audit diff.
+      const beforeAudit = pickStaffAuditFields(staff);
       staff.updateProfile(input);
 
       // Handle staffTypeId change
@@ -258,10 +320,15 @@ export class UpdateStaffUseCase {
         staff.changeStaffType(input.staffTypeId);
       }
 
+      const afterAudit = pickStaffAuditFields(staff);
+      const diff = computeDiff(beforeAudit, afterAudit);
+
       const updatedStaff = await this.unitOfWork.run(async (tx) => {
         // Update staff in transaction
         await tx.updateStaff(staff.id, {
           fullName: staff.fullName,
+          email: staff.email,
+          phoneNumber: staff.phoneNumber,
           staffTypeId: staff.staffTypeId,
           address: staff.address,
           dateOfBirth: staff.dateOfBirth,
@@ -278,6 +345,19 @@ export class UpdateStaffUseCase {
           newDefaultRoleId
         ) {
           await this.assignDefaultRole(tx, staff, newDefaultRoleId);
+        }
+
+        if (Object.keys(diff.after).length > 0) {
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "EDIT_STAFF_PROFILE",
+            targetType: "staff",
+            targetId: staff.id,
+            campusId: staff.campusId,
+            context: { actorName: currentUser.profile?.fullName ?? null },
+            beforeValue: diff.before,
+            afterValue: diff.after,
+          });
         }
 
         this.logger.log(`Staff updated (DB only): ${staff.id}`);
@@ -335,9 +415,19 @@ export class UpdateStaffUseCase {
     appliedChanges: ClerkChanges,
   ): Promise<void> {
     try {
-      const revertData: { fullName?: string } = {};
+      const revertData: {
+        email?: string;
+        phoneNumber?: string;
+        fullName?: string;
+      } = {};
 
       // Only revert fields that were actually changed
+      if (appliedChanges.email !== undefined) {
+        revertData.email = originalValues.email;
+      }
+      if (appliedChanges.phoneNumber !== undefined) {
+        revertData.phoneNumber = originalValues.phoneNumber;
+      }
       if (appliedChanges.fullName !== undefined) {
         revertData.fullName = originalValues.fullName;
       }
@@ -354,4 +444,50 @@ export class UpdateStaffUseCase {
       );
     }
   }
+
+  private async checkEmailUniqueness(
+    campusId: string,
+    email: string,
+    excludeId: string,
+  ): Promise<void> {
+    const existingByEmail = await this.staffRepository.findByEmailInCampus(
+      campusId,
+      email,
+    );
+    if (existingByEmail && existingByEmail.id !== excludeId) {
+      throw new ConflictException(
+        `Staff with email ${email} already exists in this campus`,
+      );
+    }
+  }
+
+  private async checkPhoneUniqueness(
+    campusId: string,
+    phoneNumber: string,
+    excludeId: string,
+  ): Promise<void> {
+    const existingByPhone =
+      await this.staffRepository.findByPhoneNumberInCampus(
+        campusId,
+        phoneNumber,
+      );
+    if (existingByPhone && existingByPhone.id !== excludeId) {
+      throw new ConflictException(
+        `Staff with phone number ${phoneNumber} already exists in this campus`,
+      );
+    }
+  }
+}
+
+function pickStaffAuditFields(s: Staff) {
+  return {
+    fullName: s.fullName,
+    email: s.email,
+    phoneNumber: s.phoneNumber,
+    staffTypeId: s.staffTypeId,
+    address: s.address,
+    dateOfBirth: s.dateOfBirth,
+    gender: s.gender,
+    startDate: s.startDate,
+  };
 }

@@ -19,6 +19,7 @@ describe("Entity Creation with Campus Validation", () => {
   // Helper to create valid staff props
   const validStaffProps = {
     campusId: validCampusId,
+    staffCode: "ST-2025-000001",
     fullName: "John Doe",
     email: "john@test.com",
     phoneNumber: "+84901234567",
@@ -63,7 +64,7 @@ describe("Entity Creation with Campus Validation", () => {
       });
 
       expect(campus.name).toBe("Main Campus");
-      expect(campus.isActive).toBe(true);
+      expect(campus.isArchived).toBe(false);
     });
 
     it("should validate campus name is required", () => {

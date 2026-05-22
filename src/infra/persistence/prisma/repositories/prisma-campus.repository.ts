@@ -32,8 +32,13 @@ export class PrismaCampusRepository implements CampusRepository {
     params: StandardRequest,
     scope?: Record<string, any>,
   ): Promise<PaginatedResult<Campus>> {
-    params.allowedFilterFields = ["name", "address", "phoneNumber", "isActive"];
-    params.allowedSortFields = ["name", "createdAt", "updatedAt", "isActive"];
+    params.allowedFilterFields = [
+      "name",
+      "address",
+      "phoneNumber",
+      "isArchived",
+    ];
+    params.allowedSortFields = ["name", "createdAt", "updatedAt", "isArchived"];
 
     return await this.queryService.executeQuery<Campus>(
       this.prisma,

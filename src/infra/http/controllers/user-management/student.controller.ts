@@ -19,12 +19,18 @@ import {
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
-import { CampusContext, RequireCampusAccess } from "../../decorators";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  CampusContext,
+  CurrentUser,
+  RequireCampusAccess,
+} from "../../decorators";
 import {
   CreateStudentRequest,
   UpdateStudentRequest,
   StudentResponse,
   LinkStudentGuardianRequest,
+  UpdateStudentGuardianRequest,
   StudentGuardianResponse,
   LinkStudentGuardianResponse,
 } from "../../dtos/user-management/student";
@@ -40,6 +46,7 @@ import { RestoreStudentUseCase } from "@/application/user-management/use-cases/s
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/student/unlink-student-from-guardian.use-case";
 import { GetStudentGuardiansUseCase } from "@/application/user-management/use-cases/student/get-student-guardians.use-case";
+import { UpdateStudentGuardianRelationshipUseCase } from "@/application/user-management/use-cases/student/update-student-guardian-relationship.use-case";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 
 @Controller("students")
@@ -57,6 +64,7 @@ export class StudentController {
     private readonly linkStudentWithGuardianUseCase: LinkStudentWithGuardianUseCase,
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
     private readonly getStudentGuardiansUseCase: GetStudentGuardiansUseCase,
+    private readonly updateStudentGuardianRelationshipUseCase: UpdateStudentGuardianRelationshipUseCase,
   ) {}
 
   @Post()
@@ -78,12 +86,16 @@ export class StudentController {
   async create(
     @CampusContext() campusId: string,
     @Body() dto: CreateStudentRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.createStudentUseCase.execute({
-      ...dto,
-      campusId,
-      gender: dto.gender as Gender,
-    });
+    return await this.createStudentUseCase.execute(
+      {
+        ...dto,
+        campusId,
+        gender: dto.gender as Gender,
+      },
+      currentUser,
+    );
   }
 
   @Get()
@@ -96,7 +108,7 @@ export class StudentController {
   @ApiOperation({
     summary: "Get all students in a campus",
     description:
-      "Retrieve all students within a specific campus with advanced filtering, sorting, and pagination. Supports filtering by fullName, nickname, classId, gender, enrollmentDate. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
+      "Retrieve all students within a specific campus with advanced filtering, sorting, and pagination. Supports filtering by studentCode, fullName, email, phoneNumber, gender, nickname, isArchived, dateOfBirth, phase. Use filter parameter for complex queries with operators (eq, ne, gt, gte, lt, lte, like, ilike, in, not_in, between).",
   })
   @ApiHeader({
     name: "x-campus-id",
@@ -111,13 +123,19 @@ export class StudentController {
   }
 
   @Get(":id")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Student retrieved successfully",
     type: StudentResponse,
   })
   @ApiOperation({
     summary: "Get a student by ID",
-    description: "Retrieves a single student by their unique ID.",
+    description: "Retrieve a single student by their unique ID.",
+  })
+  @ApiHeader({
+    name: "x-campus-id",
+    description: "Campus ID to scope the request",
+    required: true,
   })
   @ApiParam({
     name: "id",
@@ -125,8 +143,11 @@ export class StudentController {
     type: "string",
     format: "uuid",
   })
-  async findOne(@Param("id", ParseUUIDPipe) id: string) {
-    return this.getStudentByIdUseCase.execute(id);
+  async findOne(
+    @CampusContext() campusId: string,
+    @Param("id", ParseUUIDPipe) id: string,
+  ) {
+    return await this.getStudentByIdUseCase.execute(id, campusId);
   }
 
   @Patch(":id")
@@ -155,11 +176,16 @@ export class StudentController {
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() dto: UpdateStudentRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.updateStudentUseCase.execute(id, {
-      ...dto,
-      gender: dto.gender as Gender | undefined,
-    });
+    return await this.updateStudentUseCase.execute(
+      id,
+      {
+        ...dto,
+        gender: dto.gender as Gender | undefined,
+      },
+      currentUser,
+    );
   }
 
   @Delete(":id")
@@ -187,8 +213,9 @@ export class StudentController {
   async archive(
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.archiveStudentUseCase.execute(id, campusId);
+    return await this.archiveStudentUseCase.execute(id, campusId, currentUser);
   }
 
   @Patch(":id/restore")
@@ -216,8 +243,9 @@ export class StudentController {
   async restore(
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.restoreStudentUseCase.execute(id, campusId);
+    return await this.restoreStudentUseCase.execute(id, campusId, currentUser);
   }
 
   // ========== Student-Guardian Relationship Endpoints ==========
@@ -248,12 +276,16 @@ export class StudentController {
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) studentId: string,
     @Body() dto: LinkStudentGuardianRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.linkStudentWithGuardianUseCase.execute({
-      studentId,
-      guardianId: dto.guardianId,
-      relationshipId: dto.relationshipId,
-    });
+    return await this.linkStudentWithGuardianUseCase.execute(
+      {
+        studentId,
+        guardianId: dto.guardianId,
+        relationshipId: dto.relationshipId,
+      },
+      currentUser,
+    );
   }
 
   @Delete(":id/guardians/:guardianId")
@@ -287,12 +319,58 @@ export class StudentController {
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) studentId: string,
     @Param("guardianId", ParseUUIDPipe) guardianId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    await this.unlinkStudentFromGuardianUseCase.execute({
+    await this.unlinkStudentFromGuardianUseCase.execute(
+      {
+        studentId,
+        guardianId,
+      },
+      currentUser,
+    );
+    return null;
+  }
+
+  @Patch(":id/guardians/:guardianId")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Guardian relationship updated successfully",
+    type: LinkStudentGuardianResponse,
+  })
+  @ApiOperation({
+    summary: "Update guardian relationship type on an existing link",
+    description:
+      "Atomically updates the relationship type (e.g., Mother → Stepmother) on the existing student-guardian link without dropping and recreating the row.",
+  })
+  @ApiHeader({
+    name: "x-campus-id",
+    description: "Campus ID to scope the request",
+    required: true,
+  })
+  @ApiParam({
+    name: "id",
+    description: "Student ID",
+    type: "string",
+    format: "uuid",
+  })
+  @ApiParam({
+    name: "guardianId",
+    description: "Guardian ID",
+    type: "string",
+    format: "uuid",
+  })
+  async updateGuardianRelationship(
+    @CampusContext() campusId: string,
+    @Param("id", ParseUUIDPipe) studentId: string,
+    @Param("guardianId", ParseUUIDPipe) guardianId: string,
+    @Body() dto: UpdateStudentGuardianRequest,
+  ) {
+    return await this.updateStudentGuardianRelationshipUseCase.execute({
       studentId,
       guardianId,
+      campusId,
+      relationshipId: dto.relationshipId,
     });
-    return null;
   }
 
   @Get(":id/guardians")

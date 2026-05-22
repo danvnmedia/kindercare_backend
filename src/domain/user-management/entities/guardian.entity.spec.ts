@@ -12,7 +12,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "John Doe",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -23,7 +23,7 @@ describe("Guardian Entity", () => {
       expect(guardian.campusId).toBe(validCampusId);
       expect(guardian.fullName).toBe("John Doe");
       expect(guardian.phoneNumber).toBe(validPhoneNumber);
-      expect(guardian.email).toBeNull();
+      expect(guardian.email).toBe(validEmail);
       expect(guardian.address).toBeNull();
       expect(guardian.dateOfBirth).toBeNull();
       expect(guardian.gender).toBeNull();
@@ -70,7 +70,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "Test Guardian",
           phoneNumber: validPhoneNumber,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -89,7 +89,7 @@ describe("Guardian Entity", () => {
           campusId: "",
           fullName: "Test Guardian",
           phoneNumber: validPhoneNumber,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -105,7 +105,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "",
           phoneNumber: validPhoneNumber,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -121,7 +121,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "A",
           phoneNumber: validPhoneNumber,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -144,23 +144,23 @@ describe("Guardian Entity", () => {
           occupation: null,
           workAddress: null,
         }),
-      ).toThrow("Email must be a valid email address.");
+      ).toThrow("Email is required and must be a valid email address.");
     });
 
-    it("should allow null email", () => {
-      const guardian = Guardian.create({
-        campusId: validCampusId,
-        fullName: "Test Guardian",
-        phoneNumber: validPhoneNumber,
-        email: null,
-        address: null,
-        dateOfBirth: null,
-        gender: null,
-        occupation: null,
-        workAddress: null,
-      });
-
-      expect(guardian.email).toBeNull();
+    it("should throw error when email is missing", () => {
+      expect(() =>
+        Guardian.create({
+          campusId: validCampusId,
+          fullName: "Test Guardian",
+          phoneNumber: validPhoneNumber,
+          email: "",
+          address: null,
+          dateOfBirth: null,
+          gender: null,
+          occupation: null,
+          workAddress: null,
+        }),
+      ).toThrow("Email is required and must be a valid email address.");
     });
 
     it("should throw error for missing phoneNumber", () => {
@@ -169,7 +169,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "Test Guardian",
           phoneNumber: "",
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -187,7 +187,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "Test Guardian",
           phoneNumber: "0901234567",
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -207,7 +207,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "Test Guardian",
           phoneNumber: phone,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: null,
@@ -224,7 +224,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "Test Guardian",
           phoneNumber: validPhoneNumber,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: "INVALID" as Gender,
@@ -242,7 +242,7 @@ describe("Guardian Entity", () => {
           campusId: validCampusId,
           fullName: "Test Guardian",
           phoneNumber: validPhoneNumber,
-          email: null,
+          email: validEmail,
           address: null,
           dateOfBirth: null,
           gender: gender,
@@ -258,7 +258,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -297,12 +297,6 @@ describe("Guardian Entity", () => {
       guardian.updateProfile({ email: "new@example.com" });
 
       expect(guardian.email).toBe("new@example.com");
-    });
-
-    it("should set email to null", () => {
-      guardian.updateProfile({ email: null });
-
-      expect(guardian.email).toBeNull();
     });
 
     it("should update phoneNumber", () => {
@@ -383,7 +377,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -443,7 +437,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -462,7 +456,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -490,7 +484,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -509,7 +503,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -538,7 +532,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -555,7 +549,7 @@ describe("Guardian Entity", () => {
         campusId: validCampusId,
         fullName: "Test Guardian",
         phoneNumber: validPhoneNumber,
-        email: null,
+        email: validEmail,
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -564,44 +558,6 @@ describe("Guardian Entity", () => {
       });
 
       expect(guardian.hasUserAccount()).toBe(false);
-    });
-  });
-
-  describe("getGuardianType (static)", () => {
-    it("should return 'Father' for FATHER", () => {
-      expect(Guardian.getGuardianType("FATHER")).toBe("Father");
-    });
-
-    it("should return 'Mother' for MOTHER", () => {
-      expect(Guardian.getGuardianType("MOTHER")).toBe("Mother");
-    });
-
-    it("should return 'Guardian' for GUARDIAN", () => {
-      expect(Guardian.getGuardianType("GUARDIAN")).toBe("Guardian");
-    });
-
-    it("should return 'Guardian' for unknown relationship", () => {
-      expect(Guardian.getGuardianType("UNKNOWN")).toBe("Guardian");
-    });
-  });
-
-  describe("validateRelationshipId (static)", () => {
-    it("should return true for FATHER", () => {
-      expect(Guardian.validateRelationshipId("FATHER")).toBe(true);
-    });
-
-    it("should return true for MOTHER", () => {
-      expect(Guardian.validateRelationshipId("MOTHER")).toBe(true);
-    });
-
-    it("should return true for GUARDIAN", () => {
-      expect(Guardian.validateRelationshipId("GUARDIAN")).toBe(true);
-    });
-
-    it("should return false for invalid relationship", () => {
-      expect(Guardian.validateRelationshipId("INVALID")).toBe(false);
-      expect(Guardian.validateRelationshipId("UNCLE")).toBe(false);
-      expect(Guardian.validateRelationshipId("")).toBe(false);
     });
   });
 });

@@ -11,9 +11,6 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-frontend-current-mockup/
-audit/
-
 # OS
 .DS_Store
 
@@ -160,3 +157,10 @@ generated/
 # Sub-agents
 .agents
 .claude
+
+# Knowns workspace — only docs/ is repo-shared.
+# Config, tasks, versions, memory, runtime, archive, and time tracking stay local.
+.knowns/*
+!.knowns/docs/
+
+

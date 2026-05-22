@@ -1,7 +1,6 @@
-import { Injectable, Inject, Logger } from "@nestjs/common";
-import { StudentRepository } from "../../ports/student.repository";
+import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { Student } from "@/domain/user-management/entities/student.entity";
-import { StudentNotFoundException } from "@/domain/user-management/exceptions/student-not-found.exception";
+import { StudentRepository } from "../../ports/student.repository";
 
 @Injectable()
 export class GetStudentByIdUseCase {
@@ -12,16 +11,30 @@ export class GetStudentByIdUseCase {
     private readonly studentRepository: StudentRepository,
   ) {}
 
-  async execute(studentId: string): Promise<Student> {
-    this.logger.log(`Getting student by ID: ${studentId}`);
+  async execute(id: string, campusId?: string): Promise<Student> {
+    try {
+      this.logger.log(`Fetching student by ID: ${id}`);
 
-    const student = await this.studentRepository.findById(studentId);
-    if (!student) {
-      throw new StudentNotFoundException(studentId);
+      const student = await this.studentRepository.findById(id);
+
+      if (!student) {
+        throw new NotFoundException(`Student with ID ${id} not found`);
+      }
+
+      if (campusId && student.campusId !== campusId) {
+        throw new NotFoundException(
+          `Student with ID ${id} not found in this campus`,
+        );
+      }
+
+      this.logger.log(`Found student: ${student.fullName}`);
+      return student;
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch student: ${error.message}`,
+        error.stack,
+      );
+      throw error;
     }
-
-    this.logger.log(`Found student: ${student.fullName}`);
-
-    return student;
   }
 }

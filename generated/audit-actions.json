@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2026-05-22T12:33:36.427Z",
+  "source": "src/domain/audit/audit-action.enum.ts",
+  "spec": "@doc/specs/admin-audit-log",
+  "actions": [
+    "ENROLL_STUDENT_TO_CLASS",
+    "TRANSFER_STUDENT",
+    "WITHDRAW_FROM_CLASS",
+    "REGISTER_FOR_SCHOOL_YEAR",
+    "WITHDRAW_FROM_SCHOOL_YEAR",
+    "EDIT_STUDENT_PROFILE",
+    "EDIT_GUARDIAN_PROFILE",
+    "EDIT_STAFF_PROFILE",
+    "ARCHIVE_STUDENT",
+    "RESTORE_STUDENT",
+    "ARCHIVE_GUARDIAN",
+    "RESTORE_GUARDIAN",
+    "ARCHIVE_STAFF",
+    "RESTORE_STAFF",
+    "CREATE_STUDENT",
+    "CREATE_GUARDIAN",
+    "CREATE_STAFF",
+    "LINK_GUARDIAN_TO_STUDENT",
+    "UNLINK_GUARDIAN_FROM_STUDENT"
+  ]
+}

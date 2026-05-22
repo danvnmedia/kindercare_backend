@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  previewFeatures = ["postgresqlExtensions", "views"]
 }
 
 datasource db {
@@ -18,25 +18,28 @@ model Campus {
   name        String
   address     String?
   phoneNumber String? @map("phone_number")
-  isActive    Boolean @default(true) @map("is_active")
+  isArchived  Boolean @default(false) @map("is_archived")
 
   // Relations - RBAC
   roles                Role[]
   userRoles            UserRole[]
   staffTypes           StaffType[]
   studentCodeSequences StudentCodeSequence[]
+  staffCodeSequences   StaffCodeSequence[]
 
   // Relations - Profiles
-  staff     Staff[]
-  guardians Guardian[]
-  students  Student[]
+  staff                 Staff[]
+  guardians             Guardian[]
+  students              Student[]
+  guardianRelationships GuardianRelationship[]
 
   // Relations - Academic
-  gradeLevels         GradeLevel[]
-  subjects            Subject[]
-  schoolYears         SchoolYear[]
-  classes             Class[]
-  attendanceSummaries StudentAttendanceSummary[]
+  gradeLevels           GradeLevel[]
+  subjects              Subject[]
+  schoolYears           SchoolYear[]
+  classes               Class[]
+  schoolYearEnrollments SchoolYearEnrollment[]
+  attendanceSummaries   StudentAttendanceSummary[]
 
   // Relations - Content
   posts          Post[]
@@ -69,17 +72,40 @@ model StudentCodeSequence {
   @@map("student_code_sequence")
 }
 
+model StaffCodeSequence {
+  campusId   String   @map("campus_id") @db.Uuid
+  year       Int
+  lastNumber Int      @default(0) @map("last_number")
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  @@id([campusId, year])
+  @@map("staff_code_sequence")
+}
+
 // ==========================================
 // LOOKUP TABLES
 // ==========================================
 
 model GuardianRelationship {
-  id          String  @id
-  name        String  @unique
+  id          String  @id @default(uuid()) @db.Uuid
+  campusId    String  @map("campus_id") @db.Uuid
+  name        String
   description String?
+  isArchived  Boolean @default(false) @map("is_archived")
+  order       Int
 
+  campus           Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
   guardianStudents GuardianStudent[]
 
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([campusId, name])
+  @@unique([campusId, order])
+  @@index([campusId])
+  @@index([order])
   @@map("guardian_relationship")
 }
 
@@ -142,7 +168,7 @@ model StaffType {
   name          String
   description   String?
   defaultRoleId String? @map("default_role_id") @db.Uuid
-  isActive      Boolean @default(true) @map("is_active")
+  isArchived    Boolean @default(false) @map("is_archived")
   order         Int
 
   campus      Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
@@ -242,7 +268,6 @@ model Student {
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   nickname    String?
   gender      String?
-  status      String    @default("WAITING") // DROPPED, ACTIVE, GRADUATED, TRIAL, WAITING, DEFERRED
   isArchived  Boolean   @default(false) @map("is_archived")
 
   // Campus scoping
@@ -253,9 +278,10 @@ model Student {
   guardians GuardianStudent[]
 
   // Class & Enrollment
-  enrollments         Enrollment[]
-  attendanceSummaries StudentAttendanceSummary[]
-  postAudiences       PostAudience[]
+  enrollments           Enrollment[]
+  schoolYearEnrollments SchoolYearEnrollment[]
+  attendanceSummaries   StudentAttendanceSummary[]
+  postAudiences         PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -266,13 +292,37 @@ model Student {
   @@index([campusId])
   @@index([email])
   @@index([phoneNumber])
-  @@index([status])
   @@index([isArchived])
   @@map("student")
 }
 
+/// Derived projection of `Student` that adds a computed `phase` column based
+/// on open Enrollment / open SchoolYearEnrollment / latest closed
+/// SchoolYearEnrollment.exitReason. Backed by Postgres view `student_with_phase`.
+/// Read-only; writes target `Student`. See @doc/specs/student-status-simplification D6/D7.
+view StudentWithPhase {
+  id          String    @unique @db.Uuid
+  studentCode String    @map("student_code")
+  fullName    String    @map("full_name")
+  email       String?   @db.Citext
+  phoneNumber String?   @map("phone_number")
+  address     String?
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  nickname    String?
+  gender      String?
+  isArchived  Boolean   @map("is_archived")
+  campusId    String    @map("campus_id") @db.Uuid
+  phase       String
+
+  createdAt DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @map("updated_at") @db.Timestamptz(6)
+
+  @@map("student_with_phase")
+}
+
 model Staff {
   id          String    @id @default(uuid()) @db.Uuid
+  staffCode   String    @map("staff_code")
   fullName    String    @map("full_name")
   email       String    @db.Citext
   phoneNumber String    @map("phone_number")
@@ -301,6 +351,7 @@ model Staff {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Campus-scoped unique constraints
+  @@unique([campusId, staffCode])
   @@unique([campusId, email])
   @@unique([campusId, phoneNumber])
   @@unique([campusId, userId])
@@ -314,7 +365,7 @@ model Staff {
 model Guardian {
   id          String    @id @default(uuid()) @db.Uuid
   fullName    String    @map("full_name")
-  email       String?   @db.Citext
+  email       String    @db.Citext
   phoneNumber String    @map("phone_number")
   address     String?
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
@@ -359,7 +410,7 @@ model GuardianStudent {
   guardianId String   @map("guardian_id") @db.Uuid
 
   guardianRelationship   GuardianRelationship @relation(fields: [guardianRelationshipId], references: [id])
-  guardianRelationshipId String               @map("guardian_relationship_id")
+  guardianRelationshipId String               @map("guardian_relationship_id") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -384,9 +435,9 @@ model GradeLevel {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  classes       Class[]
-  postAudiences PostAudience[]
-  files         File[]
+  classes               Class[]
+  postAudiences         PostAudience[]
+  schoolYearEnrollments SchoolYearEnrollment[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -431,7 +482,8 @@ model SchoolYear {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  classes Class[]
+  classes               Class[]
+  schoolYearEnrollments SchoolYearEnrollment[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -462,7 +514,6 @@ model Class {
   enrollments         Enrollment[]
   attendanceSummaries StudentAttendanceSummary[]
   postAudiences       PostAudience[]
-  files               File[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -498,14 +549,18 @@ model ClassStaff {
 // ==========================================
 
 model Enrollment {
-  id             String   @id @default(uuid()) @db.Uuid
-  classId        String   @map("class_id") @db.Uuid
-  studentId      String   @map("student_id") @db.Uuid
-  enrollmentDate DateTime @map("enrollment_date") @db.Date
-  note           String?
+  id                     String    @id @default(uuid()) @db.Uuid
+  classId                String    @map("class_id") @db.Uuid
+  studentId              String    @map("student_id") @db.Uuid
+  schoolYearEnrollmentId String    @map("school_year_enrollment_id") @db.Uuid
+  enrollmentDate         DateTime  @map("enrollment_date") @db.Date
+  endDate                DateTime? @map("end_date") @db.Date
+  exitReason             String?   @map("exit_reason")
+  note                   String?
 
-  class   Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class                Class                @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student              Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolYearEnrollment SchoolYearEnrollment @relation(fields: [schoolYearEnrollmentId], references: [id], onDelete: Restrict)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -514,7 +569,49 @@ model Enrollment {
   @@index([classId])
   @@index([studentId])
   @@index([enrollmentDate])
+  @@index([schoolYearEnrollmentId])
+  // Partial unique index applied via raw SQL in migration 20260505_add_enrollment_period_columns
+  // (Prisma cannot natively express partial unique indexes):
+  //   CREATE UNIQUE INDEX idx_enrollment_one_active_per_student
+  //     ON enrollment (student_id) WHERE end_date IS NULL;
   @@map("enrollment")
+}
+
+// ==========================================
+// SCHOOL YEAR ENROLLMENT (PARENT OF Enrollment)
+// ==========================================
+// Parent record above class-level Enrollment. Captures the student-school
+// relationship for a given school year, owns grade level placement, and anchors
+// derived student status. See @doc/specs/school-year-enrollment-model.
+model SchoolYearEnrollment {
+  id             String    @id @default(uuid()) @db.Uuid
+  studentId      String    @map("student_id") @db.Uuid
+  campusId       String    @map("campus_id") @db.Uuid
+  schoolYearId   String    @map("school_year_id") @db.Uuid
+  gradeLevelId   String    @map("grade_level_id") @db.Uuid
+  enrollmentDate DateTime  @map("enrollment_date") @db.Date
+  exitDate       DateTime? @map("exit_date") @db.Date
+  exitReason     String?   @map("exit_reason")
+  note           String?
+
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  campus      Campus       @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  schoolYear  SchoolYear   @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
+  gradeLevel  GradeLevel   @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([studentId])
+  @@index([schoolYearId])
+  @@index([gradeLevelId])
+  @@index([campusId])
+  // Partial unique index applied via raw SQL in migration 20260515120000_add_school_year_enrollment
+  // (Prisma cannot natively express partial unique indexes):
+  //   CREATE UNIQUE INDEX idx_sye_one_open_per_year
+  //     ON school_year_enrollment (student_id, school_year_id) WHERE exit_date IS NULL;
+  @@map("school_year_enrollment")
 }
 
 // ==========================================
@@ -717,13 +814,13 @@ model PostAudience {
 }
 
 model PostCategory {
-  id       String  @id @default(uuid()) @db.Uuid
-  campusId String  @map("campus_id") @db.Uuid
-  name     String
-  color    String
-  icon     String?
-  order    Int     @default(0)
-  isActive Boolean @default(true) @map("is_active")
+  id         String  @id @default(uuid()) @db.Uuid
+  campusId   String  @map("campus_id") @db.Uuid
+  name       String
+  color      String
+  icon       String?
+  order      Int     @default(0)
+  isArchived Boolean @default(false) @map("is_archived")
 
   campus Campus             @relation(fields: [campusId], references: [id], onDelete: Restrict)
   posts  PostCategoryLink[]
@@ -732,7 +829,7 @@ model PostCategory {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([campusId, name])
-  @@index([campusId, isActive])
+  @@index([campusId, isArchived])
   @@index([campusId, order])
   @@map("post_category")
 }
@@ -863,11 +960,6 @@ model File {
   size      BigInt
   extension String? @map("extension")
 
-  // File Purpose/Context
-  purpose      String  @default("GENERAL") /// GENERAL, POST_ATTACHMENT, PROFILE_PHOTO, ATTENDANCE_IMAGE
-  audienceType String? @map("audience_type") /// ALL, GRADE, CLASS, STUDENT - mirrors post audience scope
-  audienceId   String? @map("audience_id") @db.Uuid /// The specific grade/class/student ID (null for ALL or GENERAL)
-
   // Lifecycle
   status     String  @default("PENDING") /// PENDING, UPLOADED, PROCESSED, ERROR
   uploadedBy String  @map("uploaded_by") @db.Uuid
@@ -876,12 +968,6 @@ model File {
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
-
-  // Optional relations for audience scoping
-  class      Class?      @relation(fields: [classId], references: [id], onDelete: SetNull)
-  classId    String?     @map("class_id") @db.Uuid
-  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: SetNull)
-  gradeLevelId String?   @map("grade_level_id") @db.Uuid
 
   uploader    User         @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
   attachments Attachment[]
@@ -898,10 +984,6 @@ model File {
   @@index([key])
   @@index([isDeleted])
   @@index([createdAt])
-  @@index([purpose])
-  @@index([audienceType])
-  @@index([classId])
-  @@index([gradeLevelId])
   @@map("file")
 }
 
@@ -922,4 +1004,35 @@ model Attachment {
   @@index([postId])
   @@index([fileId])
   @@map("attachment")
+}
+
+// ==========================================
+// AUDIT
+// ==========================================
+
+// Append-only audit log per @doc/specs/admin-audit-log FR-2.
+// actor_id / target_id / campus_id are bare UUIDs (no @relation) so audit
+// rows survive hard delete of referenced entities (Scenario 4). Application
+// layer enforces integrity at write time.
+model AuditEvent {
+  id String @id @default(uuid()) @db.Uuid
+
+  actorId    String @map("actor_id") @db.Uuid
+  targetType String @map("target_type")
+  targetId   String @map("target_id") @db.Uuid
+  action     String
+
+  beforeValue Json? @map("before_value")
+  afterValue  Json? @map("after_value")
+  context     Json
+
+  visibility String @default("ADMIN")
+  campusId   String @map("campus_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([targetType, targetId, createdAt(sort: Desc)])
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([campusId, createdAt(sort: Desc)])
+  @@map("audit_event")
 }

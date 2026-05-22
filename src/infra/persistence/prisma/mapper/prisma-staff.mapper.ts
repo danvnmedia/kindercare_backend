@@ -16,6 +16,7 @@ export class PrismaStaffMapper {
   static toDomain(prismaStaff: PrismaStaffWithRelations): Staff {
     const staffProps = {
       campusId: prismaStaff.campusId,
+      staffCode: prismaStaff.staffCode,
       fullName: prismaStaff.fullName,
       email: prismaStaff.email,
       phoneNumber: prismaStaff.phoneNumber,
@@ -36,6 +37,7 @@ export class PrismaStaffMapper {
   static toDomainSimple(prismaStaff: PrismaStaff): Staff {
     const staffProps = {
       campusId: prismaStaff.campusId,
+      staffCode: prismaStaff.staffCode,
       fullName: prismaStaff.fullName,
       email: prismaStaff.email,
       phoneNumber: prismaStaff.phoneNumber,
@@ -57,6 +59,7 @@ export class PrismaStaffMapper {
     return {
       id: staff.id,
       campusId: staff.campusId,
+      staffCode: staff.staffCode,
       fullName: staff.fullName,
       email: staff.email,
       phoneNumber: staff.phoneNumber,
@@ -73,6 +76,7 @@ export class PrismaStaffMapper {
   }
 
   static toPrismaUpdate(staff: Staff): Prisma.StaffUpdateInput {
+    // staffCode is intentionally omitted - it is immutable after creation.
     const updateData: Prisma.StaffUpdateInput = {
       fullName: staff.fullName,
       email: staff.email,

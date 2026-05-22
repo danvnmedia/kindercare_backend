@@ -7,9 +7,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
 
 export interface EnrollStudentInput {
   campusId: string;
@@ -30,9 +35,16 @@ export class EnrollStudentUseCase {
     private readonly classRepository: ClassRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    @Inject("SCHOOL_YEAR_ENROLLMENT_REPOSITORY")
+    private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
+    private readonly transactionRunner: TransactionRunnerPort,
+    private readonly recorder: AuditEventRecorderPort,
   ) {}
 
-  async execute(input: EnrollStudentInput): Promise<Enrollment> {
+  async execute(
+    input: EnrollStudentInput,
+    currentUser: User,
+  ): Promise<Enrollment> {
     try {
       this.logger.log(
         `Enrolling student ${input.studentId} in class ${input.classId}`,
@@ -64,7 +76,23 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 3: Check for duplicate enrollment
+      // Step 3: Validate enrollmentDate within the class's school year.
+      // PrismaClassRepository.findById always eager-loads schoolYear, so
+      // the non-null assertion reflects a real invariant.
+      if (!classEntity.schoolYear!.isWithinDateRange(input.enrollmentDate)) {
+        throw new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
+      }
+
+      // Step 4: Reject if student has any currently-active enrollment.
+      // Caller must transfer (atomic) or withdraw + enroll (two steps).
+      const activeEnrollment =
+        await this.enrollmentRepository.findActiveByStudentId(input.studentId);
+      if (activeEnrollment) {
+        throw new ConflictException("STUDENT_ALREADY_ENROLLED");
+      }
+
+      // Step 5: Defensive composite-key check (student, class, enrollmentDate).
+      // The DB-level constraint would otherwise raise an opaque unique-violation.
       const existingEnrollment =
         await this.enrollmentRepository.findByStudentClassDate(
           input.studentId,
@@ -77,15 +105,58 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 4: Create and save enrollment
+      // Step 6: Parent-enrollment gate (specs/school-year-enrollment-model D1/D3).
+      // Class enrollment requires an open parent SchoolYearEnrollment for the
+      // student in the class's school year, and the parent's grade level must
+      // match the class's grade level. Year-end grade changes go through the
+      // (v2) promotion flow, not via direct class enrollment.
+      const parent =
+        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+          input.studentId,
+          classEntity.schoolYearId,
+        );
+      if (!parent) {
+        throw new ConflictException(
+          SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+        );
+      }
+      if (parent.gradeLevelId !== classEntity.gradeLevelId) {
+        throw new ConflictException(
+          SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+        );
+      }
+
+      // Step 7: Create enrollment with parent FK threaded through.
       const enrollment = Enrollment.create({
         classId: input.classId,
         studentId: input.studentId,
+        schoolYearEnrollmentId: parent.id,
         enrollmentDate: input.enrollmentDate,
         note: input.note || null,
       });
 
-      const savedEnrollment = await this.enrollmentRepository.save(enrollment);
+      // Step 8: Persist + emit audit inside one tx (D4 atomicity —
+      // @doc/specs/admin-audit-log). Recorder throw rolls back the enrollment.
+      const savedEnrollment = await this.transactionRunner.run(async (tx) => {
+        const saved = await this.enrollmentRepository.save(enrollment, tx);
+        await this.recorder.record(
+          {
+            actorId: currentUser.id,
+            action: "ENROLL_STUDENT_TO_CLASS",
+            targetType: "student",
+            targetId: input.studentId,
+            campusId: input.campusId,
+            context: {
+              actorName: currentUser.profile?.fullName ?? null,
+              classId: input.classId,
+              className: classEntity.name,
+              enrollmentDate: input.enrollmentDate.toISOString(),
+            },
+          },
+          tx,
+        );
+        return saved;
+      });
       this.logger.log(`Enrollment created: ${savedEnrollment.id}`);
 
       return savedEnrollment;

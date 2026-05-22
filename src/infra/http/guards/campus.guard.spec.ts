@@ -299,15 +299,15 @@ describe("CampusGuard", () => {
     });
   });
 
-  describe("Validation - Inactive Campus", () => {
-    it("should throw ForbiddenException when campus is inactive and requireActive is true", async () => {
-      const inactiveCampus = createCampus({ id: validUUID, isActive: false });
+  describe("Validation - Archived Campus", () => {
+    it("should throw ForbiddenException when campus is archived and requireActive is true", async () => {
+      const archivedCampus = createCampus({ id: validUUID, isArchived: true });
 
       mockReflector.getAllAndOverride.mockReturnValue({
         required: true,
         requireActive: true,
       });
-      mockCampusRepository.findById.mockResolvedValue(inactiveCampus);
+      mockCampusRepository.findById.mockResolvedValue(archivedCampus);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },
@@ -320,12 +320,12 @@ describe("CampusGuard", () => {
         ForbiddenException,
       );
       await expect(guard.canActivate(context)).rejects.toThrow(
-        "Campus is not active",
+        "Campus is archived",
       );
     });
 
-    it("should allow access to inactive campus when requireActive is false", async () => {
-      const inactiveCampus = createCampus({ id: validUUID, isActive: false });
+    it("should allow access to archived campus when requireActive is false", async () => {
+      const archivedCampus = createCampus({ id: validUUID, isArchived: true });
       const role = createRole({ name: "Staff" });
       const user = createUser({
         id: "user-1",
@@ -346,7 +346,7 @@ describe("CampusGuard", () => {
         requireActive: false,
         checkUserAccess: true,
       });
-      mockCampusRepository.findById.mockResolvedValue(inactiveCampus);
+      mockCampusRepository.findById.mockResolvedValue(archivedCampus);
 
       const context = createMockContext(
         { "x-campus-id": validUUID },

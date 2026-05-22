@@ -10,7 +10,7 @@ export class PrismaStaffTypeMapper {
         name: prismaStaffType.name,
         description: prismaStaffType.description,
         defaultRoleId: prismaStaffType.defaultRoleId,
-        isActive: prismaStaffType.isActive,
+        isArchived: prismaStaffType.isArchived,
         order: prismaStaffType.order,
         createdAt: prismaStaffType.createdAt,
         updatedAt: prismaStaffType.updatedAt,
@@ -26,7 +26,7 @@ export class PrismaStaffTypeMapper {
       name: staffType.name,
       description: staffType.description,
       defaultRoleId: staffType.defaultRoleId,
-      isActive: staffType.isActive,
+      isArchived: staffType.isArchived,
       order: staffType.order,
       createdAt: staffType.createdAt,
       updatedAt: staffType.updatedAt,
@@ -37,7 +37,7 @@ export class PrismaStaffTypeMapper {
     const updateData: Prisma.StaffTypeUpdateInput = {
       name: staffType.name,
       description: staffType.description,
-      isActive: staffType.isActive,
+      isArchived: staffType.isArchived,
       order: staffType.order,
       updatedAt: staffType.updatedAt,
     };

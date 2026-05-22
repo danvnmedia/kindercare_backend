@@ -1,3 +1,4 @@
+import { AuditEventInput } from "@/application/audit";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -63,7 +64,7 @@ export interface TransactionContext {
     id: string;
     campusId: string;
     fullName: string;
-    email: string | null;
+    email: string;
     phoneNumber: string;
     address: string | null;
     dateOfBirth: Date | null;
@@ -83,7 +84,7 @@ export interface TransactionContext {
     id: string,
     data: {
       fullName?: string;
-      email?: string | null;
+      email?: string;
       phoneNumber?: string;
       address?: string | null;
       dateOfBirth?: Date | null;
@@ -101,6 +102,7 @@ export interface TransactionContext {
   createStaff(data: {
     id: string;
     campusId: string;
+    staffCode: string;
     fullName: string;
     email: string;
     phoneNumber: string;
@@ -134,6 +136,77 @@ export interface TransactionContext {
       updatedAt?: Date;
     },
   ): Promise<{ id: string }>;
+
+  /**
+   * Execute a raw create operation for Student entity
+   */
+  createStudent(data: {
+    id: string;
+    campusId: string;
+    studentCode: string;
+    fullName: string;
+    email: string | null;
+    phoneNumber: string | null;
+    address: string | null;
+    dateOfBirth: Date | null;
+    nickname: string | null;
+    gender: string | null;
+    isArchived: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Promise<{ id: string }>;
+
+  /**
+   * Execute a raw update operation for Student entity.
+   *
+   * Immutable fields (`studentCode`, `campusId`, `createdAt`) are excluded by
+   * design — see `@doc/guides/code-generation-pattern#immutability`.
+   */
+  updateStudent(
+    id: string,
+    data: {
+      fullName?: string;
+      email?: string | null;
+      phoneNumber?: string | null;
+      address?: string | null;
+      dateOfBirth?: Date | null;
+      nickname?: string | null;
+      gender?: string | null;
+      isArchived?: boolean;
+      updatedAt?: Date;
+    },
+  ): Promise<{ id: string }>;
+
+  /**
+   * Assign guardians to a student within the transaction.
+   *
+   * Mirrors `StudentRepository.assignGuardians`; called by the link use case
+   * so the audit row + relationship insert atomically commit together (D4).
+   */
+  assignGuardians(
+    studentId: string,
+    guardianRelations: Array<{ guardianId: string; relationshipId: string }>,
+  ): Promise<void>;
+
+  /**
+   * Remove guardians from a student within the transaction.
+   *
+   * Mirrors `StudentRepository.removeGuardians`. Used by the unlink use case;
+   * callers must pre-resolve any relationship snapshot for `context` BEFORE
+   * invoking this op (the row is gone by audit time).
+   */
+  removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
+
+  /**
+   * Record an audit event inside the current transaction.
+   *
+   * Delegates to `AuditEventRecorderPort.record` with the underlying Prisma
+   * transaction client supplied by the UoW — callers never touch
+   * `Prisma.TransactionClient` directly. Guarantees same-tx atomicity (D4 of
+   * `@doc/specs/admin-audit-log`): if this throws, the surrounding
+   * `unitOfWork.run` rolls back the mutation as well.
+   */
+  recordAudit(input: AuditEventInput): Promise<void>;
 }
 
 /**

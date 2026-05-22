@@ -12,7 +12,7 @@ export interface CreateCampusInput {
   name: string;
   address?: string | null;
   phoneNumber?: string | null;
-  isActive?: boolean;
+  isArchived?: boolean;
 }
 
 @Injectable()
@@ -39,7 +39,7 @@ export class CreateCampusUseCase {
         name: input.name,
         address: input.address ?? null,
         phoneNumber: input.phoneNumber ?? null,
-        isActive: input.isActive ?? true,
+        isArchived: input.isArchived,
       });
 
       // Save to repository

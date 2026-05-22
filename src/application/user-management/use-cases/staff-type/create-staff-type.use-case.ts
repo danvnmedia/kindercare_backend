@@ -15,7 +15,7 @@ export interface CreateStaffTypeInput {
   name: string;
   description?: string | null;
   defaultRoleId?: string | null;
-  isActive?: boolean;
+  isArchived?: boolean;
   order?: number;
 }
 
@@ -88,7 +88,7 @@ export class CreateStaffTypeUseCase {
         name: input.name,
         description: input.description ?? null,
         defaultRoleId: input.defaultRoleId ?? null,
-        isActive: input.isActive ?? true,
+        isArchived: input.isArchived,
         order,
       });
 

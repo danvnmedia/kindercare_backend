@@ -58,7 +58,7 @@ export class PostCategoryController {
   @ApiOperation({
     summary: "Get all post categories",
     description:
-      "Retrieve all post categories with pagination, filtering, and sorting. Supports filtering by name, isActive, order. Default sort by order ascending.",
+      "Retrieve all post categories with pagination, filtering, and sorting. Supports filtering by name, isArchived, order. Default sort by order ascending.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -138,13 +138,13 @@ export class PostCategoryController {
   @Delete(":id")
   @RequireCampusAccess()
   @StandardResponse({
-    message: "Post category deactivated successfully",
+    message: "Post category archived successfully",
     type: PostCategoryResponse,
   })
   @ApiOperation({
-    summary: "Deactivate a post category",
+    summary: "Archive a post category",
     description:
-      "Deactivates a post category (soft delete). Existing posts with this category remain associated.",
+      "Archives a post category (soft delete). Existing posts with this category remain associated.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

@@ -18,11 +18,11 @@ export class DeleteCampusUseCase {
   ) {}
 
   /**
-   * Soft delete campus by deactivating it (isActive = false)
+   * Soft delete campus by archiving it (isArchived = true)
    */
   async execute(id: string): Promise<Campus> {
     try {
-      this.logger.log(`Deactivating campus: ${id}`);
+      this.logger.log(`Archiving campus: ${id}`);
 
       // Find existing campus
       const campus = await this.campusRepository.findById(id);
@@ -30,23 +30,23 @@ export class DeleteCampusUseCase {
         throw new NotFoundException(`Campus with ID "${id}" not found`);
       }
 
-      // Check if already inactive
-      if (!campus.isActive) {
-        this.logger.log(`Campus ${id} is already inactive`);
+      // Check if already archived
+      if (campus.isArchived) {
+        this.logger.log(`Campus ${id} is already archived`);
         return campus;
       }
 
-      // Deactivate the campus (soft delete)
-      campus.deactivate();
+      // Archive the campus (soft delete)
+      campus.archive();
 
       // Save to repository
-      const deactivatedCampus = await this.campusRepository.update(campus);
-      this.logger.log(`Campus deactivated: ${deactivatedCampus.id}`);
+      const archivedCampus = await this.campusRepository.update(campus);
+      this.logger.log(`Campus archived: ${archivedCampus.id}`);
 
-      return deactivatedCampus;
+      return archivedCampus;
     } catch (error) {
       this.logger.error(
-        `Failed to deactivate campus: ${error.message}`,
+        `Failed to archive campus: ${error.message}`,
         error.stack,
       );
       if (error instanceof NotFoundException) {

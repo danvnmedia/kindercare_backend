@@ -103,10 +103,10 @@ export class CampusGuard implements CanActivate {
       throw new NotFoundException(`Campus not found: ${campusId}`);
     }
 
-    // Check if campus is active
-    if (requireActive && !campus.isActive) {
-      this.logger.warn(`CampusGuard: Campus is not active: ${campusId}`);
-      throw new ForbiddenException("Campus is not active");
+    // Check if campus is archived
+    if (requireActive && campus.isArchived) {
+      this.logger.warn(`CampusGuard: Campus is archived: ${campusId}`);
+      throw new ForbiddenException("Campus is archived");
     }
 
     // Check user access to campus

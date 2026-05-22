@@ -12,7 +12,7 @@ export interface PostCategoryProps {
   color: string;
   icon: string | null;
   order: number;
-  isActive: boolean;
+  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,8 +51,8 @@ export class PostCategory extends Entity<PostCategoryProps> {
     return this.props.order;
   }
 
-  get isActive(): boolean {
-    return this.props.isActive;
+  get isArchived(): boolean {
+    return this.props.isArchived;
   }
 
   get createdAt(): Date {
@@ -102,25 +102,25 @@ export class PostCategory extends Entity<PostCategoryProps> {
   }
 
   /**
-   * Activates the category, making it visible for selection.
+   * Archives the category, hiding it from selection.
+   * Existing posts with this category remain associated.
    */
-  public activate(): void {
-    if (this.props.isActive) {
-      return; // Already active
+  public archive(): void {
+    if (this.props.isArchived) {
+      return; // Already archived
     }
-    this.props.isActive = true;
+    this.props.isArchived = true;
     this.touch();
   }
 
   /**
-   * Deactivates the category, hiding it from selection.
-   * Existing posts with this category remain associated.
+   * Unarchives the category, making it visible for selection.
    */
-  public deactivate(): void {
-    if (!this.props.isActive) {
-      return; // Already inactive
+  public unarchive(): void {
+    if (!this.props.isArchived) {
+      return; // Already not archived
     }
-    this.props.isActive = false;
+    this.props.isArchived = false;
     this.touch();
   }
 
@@ -142,7 +142,7 @@ export class PostCategory extends Entity<PostCategoryProps> {
   public static create(
     props: Optional<
       PostCategoryProps,
-      "createdAt" | "updatedAt" | "isActive" | "icon" | "order"
+      "createdAt" | "updatedAt" | "isArchived" | "icon" | "order"
     >,
     id?: string,
   ): PostCategory {
@@ -173,7 +173,7 @@ export class PostCategory extends Entity<PostCategoryProps> {
       color: props.color.toUpperCase(),
       icon: props.icon ?? null,
       order: props.order ?? 0,
-      isActive: props.isActive ?? true,
+      isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

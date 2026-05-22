@@ -27,8 +27,8 @@ export class PostCategoryResponse {
   order: number;
 
   @Expose()
-  @ApiProperty({ example: true })
-  isActive: boolean;
+  @ApiProperty({ example: false })
+  isArchived: boolean;
 
   @Expose()
   @ApiProperty({ example: "2025-01-01T00:00:00.000Z" })

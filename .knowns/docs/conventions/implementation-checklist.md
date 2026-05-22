@@ -1,73 +1,144 @@
 ---
 title: Implementation Checklist
+description: Step-by-step checklist for adding a new entity or feature across all layers
 createdAt: '2026-01-03T19:51:49.074Z'
-updatedAt: '2026-01-03T20:20:09.639Z'
-description: Checklist for implementing new features across all layers
+updatedAt: '2026-05-05T17:38:07.022Z'
 tags:
   - conventions
   - checklist
 ---
+
 # Implementation Checklist
 
----
+> Use this when adding a new entity or feature. Check items in order — each layer depends on the one above.
 
-## New Feature
+## 1. Schema (`prisma/schema.prisma`)
 
-### Domain Layer (`src/domain/{module}/`)
+- [ ] Add the model with `id String @id @default(uuid()) @db.Uuid`.
+- [ ] Add `campusId String @map("campus_id") @db.Uuid` and the relation if the entity is campus-scoped (almost always — see [@doc/architecture/multi-campus-architecture](architecture/multi-campus-architecture)).
+- [ ] Add `createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)`.
+- [ ] Add `updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)`.
+- [ ] Decide soft-delete style: `isArchived Boolean` (recoverable) **or** `isDeleted Boolean + deletedAt DateTime?` (audit trail). See [@doc/architecture/audit-and-soft-delete](architecture/audit-and-soft-delete).
+- [ ] Add composite uniqueness with `campusId` (e.g. `@@unique([campusId, name])`).
+- [ ] Add `@@index([campusId])` and any per-status indexes you'll filter on.
+- [ ] Use `onDelete: Restrict` on the campus relation; `Cascade` only for entities owned by the parent (e.g. `Attachment` cascades from `Post`).
+- [ ] `npm run prisma:migrate:dev -- --name <description>`.
 
-- [ ] Create entity extending `Entity<Props>` or `EntityWithEvents<Props>`
-- [ ] Define enum for entity status
-- [ ] Create domain events (if state changes)
-- [ ] Define repository interface (abstract class)
+## 2. Domain Layer (`src/domain/{module}/`)
 
-### Value Objects (`src/core/value-objects/`)
+- [ ] Create the entity at `entities/{entity}.entity.ts` extending `Entity<Props>`.
+- [ ] Define `XxxProps` interface and `UpdateXxxData = Partial<Omit<XxxProps, immutables>>`.
+- [ ] Implement getters for every prop.
+- [ ] Implement domain methods (`updateProfile`, `archive`, `restore`, etc.) — each calls `touch()`.
+- [ ] Implement `static create(props, id?)` factory with invariant validation throwing plain `Error`.
+- [ ] Add enums under `enums/` if any field uses one.
+- [ ] Re-export from the module-level `index.ts`.
+- [ ] Write a `*.entity.spec.ts` covering factory invariants and domain methods.
 
-- [ ] Create value objects for complex types
-- [ ] Implement `create()` factory with validation
-- [ ] Implement `isValid()` static method
-- [ ] Implement `toPlain()` for serialization
+> Domain code is framework-agnostic: no `@Injectable`, no Prisma types, no class-validator.
 
-### Exceptions (`src/core/exceptions/`)
+## 3. Application Layer (`src/application/{module}/`)
 
-- [ ] Create domain exceptions extending `DomainException`
-- [ ] Define unique `code` for each
-- [ ] Use appropriate HTTP status codes
+### Repository port
 
-### Application Layer (`src/application/{module}/`)
+- [ ] Create `ports/{entity}.repository.ts` as an `interface` or abstract class.
+- [ ] Standard methods: `findById`, `findAll(params, scope?)`, `save`, `update`, `delete`.
+- [ ] Add campus-scoped lookups: `findByCampusId(campusId)`, `findByXxxInCampus(campusId, value)`.
+- [ ] If your entity links to identities, add `findByUserId(userId)`.
 
-- [ ] Create repository port in `ports/`
-- [ ] Create use cases in `use-cases/`
-- [ ] Create event handlers in `event-handlers/`
+### Use cases
 
-### Infrastructure Layer (`src/infra/`)
+- [ ] One file per operation under `use-cases/{entity}/{action}-{entity}.use-case.ts`.
+- [ ] Define `XxxInput` interface (campus-scoped fields first).
+- [ ] Inject repositories with `@Inject('XXX_REPOSITORY')`.
+- [ ] Validate cross-campus references — every related entity must have the same `campusId`.
+- [ ] Throw NestJS exceptions (`BadRequestException`, `ConflictException`, `NotFoundException`, `ForbiddenException`).
+- [ ] Use `UnitOfWorkPort` for multi-table writes (see [@doc/patterns/unit-of-work-pattern](patterns/unit-of-work-pattern)).
+- [ ] Use the saga pattern when external services (Clerk) participate (see [@doc/patterns/saga-pattern](patterns/saga-pattern)).
+- [ ] Log entry, success, and failure (`Logger`).
 
-- [ ] Create Prisma mapper (5 methods) in `persistence/prisma/mapper/`
-- [ ] Create Prisma repository in `persistence/prisma/repositories/`
-- [ ] Create DTOs in `http/dtos/`
-- [ ] Create controller in `http/controllers/`
+## 4. Infrastructure Layer (`src/infra/`)
 
-### Module Registration
+### Mapper (`persistence/prisma/mapper/`)
 
-- [ ] Register use cases as providers
-- [ ] Bind repository port to implementation
-- [ ] Register event handlers
-- [ ] Export necessary providers
+- [ ] `prisma-{entity}.mapper.ts` with five static methods: `toDomain`, `toDomainSimple`, `toPrisma`, `toPrismaUpdate`, `toDomainArray`.
+- [ ] Use `Prisma.XxxUncheckedCreateInput` for `toPrisma`.
+- [ ] Use `Prisma.XxxUncheckedUpdateInput` for `toPrismaUpdate` if any FK column is being updated. See [@doc/patterns/mapper-pattern](patterns/mapper-pattern).
+- [ ] Omit immutable fields (`id`, `campusId`, generated codes, `createdAt`) from `toPrismaUpdate`.
 
----
+### Repository implementation
 
-## Security
+- [ ] `persistence/prisma/repositories/prisma-{entity}.repository.ts` implementing the port.
+- [ ] Use `PrismaQueryService.executeQuery(...)` for `findAll` with `allowedFilterFields`/`allowedSortFields`.
+- [ ] Pass `scope: { campusId }` to enforce campus filter at the system level (not user-controllable).
 
-- [ ] `@UseGuards(JwtGuard, EmailVerifiedGuard, RoleGuard)`
-- [ ] `@Roles()` for required roles
-- [ ] `@Public()` for public endpoints
-- [ ] `@SkipEmailVerification()` where needed
-- [ ] Validate inputs with class-validator
+### DTOs
 
----
+- [ ] Request DTOs: `dtos/{module}/{action}-{entity}.request.ts` with `class-validator` decorators and `@ApiProperty`.
+- [ ] Response DTOs: `dtos/{module}/{entity}.response.ts` with `@Expose()` on every field.
+- [ ] Use custom validators where applicable: `@IsE164Phone`, `@IsDateOfBirth`, `@TransformToUTCDate`.
 
-## Event-Driven
+### Controller
 
-- [ ] Entity extends `EntityWithEvents<Props>`
-- [ ] Events in `src/domain/{module}/events/`
-- [ ] Handlers in `src/application/{module}/event-handlers/`
-- [ ] Repository dispatches events after persistence
+- [ ] `controllers/{module}/{entity}.controller.ts` with `@Controller`, `@ApiTags`, `@ApiBearerAuth("JWT")`.
+- [ ] `@UseGuards(ClerkAuthGuard)` at the class level.
+- [ ] `@RequireCampusAccess()` on each route (auto-applies `CampusGuard`).
+- [ ] `@StandardResponse({ type: XxxResponse, isPaginated?, isArray? })` on each endpoint.
+- [ ] `@CampusContext()` to extract campus, `@CurrentUser()` for the authenticated user.
+- [ ] `@ApiHeader({ name: "x-campus-id", required: true })` documentation.
+- [ ] Hard-deletes go in a separate `DangerXxxController`.
+
+### Module
+
+- [ ] Bind repository: `{ provide: 'XXX_REPOSITORY', useClass: PrismaXxxRepository }`.
+- [ ] Register all use cases as providers.
+- [ ] Register controllers.
+- [ ] Import `RequestContextModule`, `CampusModule`, `PrismaModule`, `StandardResponseModule`, `ClerkModule` (as needed).
+- [ ] Export the repository token if other modules need it.
+
+## 5. Cross-Cutting
+
+### Authorization
+
+- [ ] Add per-action permissions (`{entity}.create`, `{entity}.read`, …) to `SeedPermissionsUseCase` and re-seed.
+- [ ] Apply `@Permissions(...)` + `@UseGuards(PermissionsGuard)` to each route.
+- [ ] Decide which roles get the new permissions and assign in seed/migration.
+
+### Tests
+
+- [ ] Use `src/test-utils/entity-factories.ts` to construct entities.
+- [ ] Use `src/test-utils/mock-repository-factory.ts` to mock repositories.
+- [ ] Add an integration spec for cross-campus prevention if the entity is campus-scoped (see `application/campus/use-cases/campus-isolation.integration.spec.ts` for the pattern).
+
+### Documentation
+
+- [ ] Update [@doc/guides/pagination-and-filtering](guides/pagination-and-filtering) with allowed sort/filter fields for new list endpoints.
+- [ ] If you add a sequential code generator, follow [@doc/guides/code-generation-pattern](guides/code-generation-pattern) end-to-end.
+
+## What NOT to Add
+
+- **Domain events / event handlers** — not implemented. See [@doc/patterns/domain-events-pattern](patterns/domain-events-pattern).
+- **`DomainException` base class / global filter** — not implemented. Use NestJS exceptions.
+- **`Email` / `PhoneNumber` value objects** — not used. Validate in the DTO.
+- **`@SkipEmailVerification`** — does not exist. Email verification is not a guard concern in this codebase.
+- **JWT decoding in guards** — Clerk/`AuthMiddleware` handle that.
+
+## File Creation Cheat Sheet
+
+Adding a new `Subject` entity, for instance, requires roughly these files:
+
+```
+prisma/schema.prisma                                       (modified)
+src/domain/class-management/entities/subject.entity.ts
+src/domain/class-management/entities/subject.entity.spec.ts
+src/application/class-management/ports/subject.repository.ts
+src/application/class-management/use-cases/subject/{create,get-all,update,delete}-subject.use-case.ts
+src/infra/persistence/prisma/mapper/prisma-subject.mapper.ts
+src/infra/persistence/prisma/repositories/prisma-subject.repository.ts
+src/infra/http/dtos/class-management/subject/{create,update}-subject.request.ts
+src/infra/http/dtos/class-management/subject/subject.response.ts
+src/infra/http/controllers/class-management/subject.controller.ts
+src/infra/http/modules/class-management.module.ts          (modified to register)
+```
+
+Plus, if applicable, permission seeds and tests.
