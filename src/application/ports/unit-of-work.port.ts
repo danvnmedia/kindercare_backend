@@ -1,4 +1,5 @@
 import { AuditEventInput } from "@/application/audit";
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -196,6 +197,45 @@ export interface TransactionContext {
    * invoking this op (the row is gone by audit time).
    */
   removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
+
+  /**
+   * Create a class-staff assignment within the transaction.
+   *
+   * Used by `AssignStaffToClassUseCase` so the new row and its
+   * `ASSIGN_STAFF_TO_CLASS` audit event commit atomically (D4 of
+   * `@doc/specs/admin-audit-log`).
+   */
+  createClassStaff(data: {
+    classId: string;
+    staffId: string;
+    role: ClassStaffRole;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Promise<{ classId: string; staffId: string }>;
+
+  /**
+   * Delete a class-staff assignment within the transaction.
+   *
+   * Used by `RemoveStaffFromClassUseCase` so the row deletion and its
+   * `REMOVE_STAFF_FROM_CLASS` audit event commit atomically. Callers must
+   * pre-resolve the role for the audit `context` BEFORE invoking this op —
+   * the row is gone by audit time.
+   */
+  deleteClassStaff(classId: string, staffId: string): Promise<void>;
+
+  /**
+   * Update a class-staff assignment's role within the transaction.
+   *
+   * Used by `ChangeClassStaffRoleUseCase` so the role update and its
+   * `CHANGE_STAFF_ROLE` audit event commit atomically (D4 of
+   * `@doc/specs/admin-audit-log`). Identity `(classId, staffId)` is immutable
+   * — only mutable fields (`role`, `updatedAt`) are accepted.
+   */
+  updateClassStaff(
+    classId: string,
+    staffId: string,
+    data: { role: ClassStaffRole; updatedAt: Date },
+  ): Promise<{ classId: string; staffId: string }>;
 
   /**
    * Record an audit event inside the current transaction.

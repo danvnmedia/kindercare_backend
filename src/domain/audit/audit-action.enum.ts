@@ -40,6 +40,11 @@ export const AUDIT_ACTIONS = [
   // Guardian ↔ Student (2)
   "LINK_GUARDIAN_TO_STUDENT",
   "UNLINK_GUARDIAN_FROM_STUDENT",
+
+  // Class-staff lifecycle (3)
+  "ASSIGN_STAFF_TO_CLASS",
+  "REMOVE_STAFF_FROM_CLASS",
+  "CHANGE_STAFF_ROLE",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

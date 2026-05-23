@@ -2,52 +2,46 @@ import {
   ClassStaff as PrismaClassStaff,
   Class as PrismaClass,
   Staff as PrismaStaff,
-  Subject as PrismaSubject,
+  Prisma,
 } from "@prisma/client";
 import { ClassStaff } from "@/domain/class-management/entities/class-staff.entity";
-import { Prisma } from "@prisma/client";
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { PrismaClassMapper } from "./prisma-class.mapper";
 import { PrismaStaffMapper } from "./prisma-staff.mapper";
-import { PrismaSubjectMapper } from "./prisma-subject.mapper";
 
 type PrismaClassStaffWithRelations = PrismaClassStaff & {
   class?: PrismaClass | null;
   staff?: PrismaStaff | null;
-  subject?: PrismaSubject | null;
 };
 
 export class PrismaClassStaffMapper {
   static toDomain(prismaClassStaff: PrismaClassStaffWithRelations): ClassStaff {
-    const props: any = {
-      classId: prismaClassStaff.classId,
-      staffId: prismaClassStaff.staffId,
-      subjectId: prismaClassStaff.subjectId,
-      createdAt: prismaClassStaff.createdAt,
-      updatedAt: prismaClassStaff.updatedAt,
-    };
-
-    // Map relations if they exist
-    if (prismaClassStaff.class) {
-      props.class = PrismaClassMapper.toDomainSimple(prismaClassStaff.class);
-    }
-    if (prismaClassStaff.staff) {
-      props.staff = PrismaStaffMapper.toDomainSimple(prismaClassStaff.staff);
-    }
-    if (prismaClassStaff.subject) {
-      props.subject = PrismaSubjectMapper.toDomain(prismaClassStaff.subject);
-    }
-
-    const compositeId = `${prismaClassStaff.classId}-${prismaClassStaff.staffId}-${prismaClassStaff.subjectId}`;
-    return ClassStaff.create(props, compositeId);
-  }
-
-  static toDomainSimple(prismaClassStaff: PrismaClassStaff): ClassStaff {
-    const compositeId = `${prismaClassStaff.classId}-${prismaClassStaff.staffId}-${prismaClassStaff.subjectId}`;
+    const compositeId = `${prismaClassStaff.classId}-${prismaClassStaff.staffId}`;
     return ClassStaff.create(
       {
         classId: prismaClassStaff.classId,
         staffId: prismaClassStaff.staffId,
-        subjectId: prismaClassStaff.subjectId,
+        role: prismaClassStaff.role as ClassStaffRole,
+        class: prismaClassStaff.class
+          ? PrismaClassMapper.toDomainSimple(prismaClassStaff.class)
+          : undefined,
+        staff: prismaClassStaff.staff
+          ? PrismaStaffMapper.toDomainSimple(prismaClassStaff.staff)
+          : undefined,
+        createdAt: prismaClassStaff.createdAt,
+        updatedAt: prismaClassStaff.updatedAt,
+      },
+      compositeId,
+    );
+  }
+
+  static toDomainSimple(prismaClassStaff: PrismaClassStaff): ClassStaff {
+    const compositeId = `${prismaClassStaff.classId}-${prismaClassStaff.staffId}`;
+    return ClassStaff.create(
+      {
+        classId: prismaClassStaff.classId,
+        staffId: prismaClassStaff.staffId,
+        role: prismaClassStaff.role as ClassStaffRole,
         createdAt: prismaClassStaff.createdAt,
         updatedAt: prismaClassStaff.updatedAt,
       },
@@ -61,8 +55,24 @@ export class PrismaClassStaffMapper {
     return {
       classId: classStaff.classId,
       staffId: classStaff.staffId,
-      subjectId: classStaff.subjectId,
+      role: classStaff.role,
       createdAt: classStaff.createdAt,
+      updatedAt: classStaff.updatedAt,
+    };
+  }
+
+  /**
+   * Update input for role mutations. `role` is an enum column (not an FK),
+   * so the regular `UpdateInput` shape is correct — the `UncheckedUpdateInput`
+   * escape hatch only matters when raw FK columns must be assigned (see
+   * @doc/patterns/mapper-pattern). Identity columns (classId, staffId) are
+   * intentionally omitted because they are immutable after creation.
+   */
+  static toPrismaUpdate(
+    classStaff: ClassStaff,
+  ): Prisma.ClassStaffUpdateInput {
+    return {
+      role: classStaff.role,
       updatedAt: classStaff.updatedAt,
     };
   }
@@ -70,6 +80,6 @@ export class PrismaClassStaffMapper {
   static toDomainArray(
     prismaClassStaffs: PrismaClassStaffWithRelations[],
   ): ClassStaff[] {
-    return prismaClassStaffs.map((ct) => PrismaClassStaffMapper.toDomain(ct));
+    return prismaClassStaffs.map((cs) => PrismaClassStaffMapper.toDomain(cs));
   }
 }

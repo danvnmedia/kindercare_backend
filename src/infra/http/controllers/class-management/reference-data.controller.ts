@@ -29,7 +29,6 @@ import { StandardRequestDto } from "@/core/modules/standard-response/dto/standar
 import {
   GradeLevelResponse,
   SchoolYearResponse,
-  SubjectResponse,
 } from "../../dtos/class-management/class.response";
 
 import { CreateSchoolYearRequest } from "../../dtos/class-management/create-school-year.request";
@@ -42,7 +41,6 @@ import { ReorderGradeLevelsRequest } from "../../dtos/class-management/reorder-g
 import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-grade-levels.use-case";
 import { GetAllSchoolYearsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-school-years.use-case";
 import { GetSchoolYearByIdUseCase } from "@/application/class-management/use-cases/reference-data/get-school-year-by-id.use-case";
-import { GetAllSubjectsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-subjects.use-case";
 
 // Use Cases - School Year CUD
 import { CreateSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/create-school-year.use-case";
@@ -64,7 +62,6 @@ export class ReferenceDataController {
     private readonly getAllGradeLevelsUseCase: GetAllGradeLevelsUseCase,
     private readonly getAllSchoolYearsUseCase: GetAllSchoolYearsUseCase,
     private readonly getSchoolYearByIdUseCase: GetSchoolYearByIdUseCase,
-    private readonly getAllSubjectsUseCase: GetAllSubjectsUseCase,
     // School Year CUD Use Cases
     private readonly createSchoolYearUseCase: CreateSchoolYearUseCase,
     private readonly updateSchoolYearUseCase: UpdateSchoolYearUseCase,
@@ -364,28 +361,5 @@ export class ReferenceDataController {
   ) {
     await this.deleteSchoolYearUseCase.execute(id, campusId);
     return null;
-  }
-
-  // ==================== Subject Endpoints ====================
-
-  @Get("subjects")
-  @RequireCampusAccess()
-  @StandardResponse({
-    message: "Subjects retrieved successfully",
-    type: SubjectResponse,
-    isArray: true,
-  })
-  @ApiOperation({
-    summary: "Get all subjects",
-    description: "Retrieve all subjects ordered by name.",
-  })
-  @ApiHeader({
-    name: CAMPUS_ID_HEADER,
-    required: true,
-    description: "Campus UUID to filter subjects",
-    example: "123e4567-e89b-12d3-a456-426614174000",
-  })
-  async getSubjects(@CampusContext() campusId: string) {
-    return await this.getAllSubjectsUseCase.execute(campusId);
   }
 }

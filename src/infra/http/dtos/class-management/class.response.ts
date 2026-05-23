@@ -63,20 +63,6 @@ export class SchoolYearResponse {
   isArchived: boolean;
 }
 
-export class SubjectResponse {
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
-  id: string;
-
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
-  campusId: string;
-
-  @Expose()
-  @ApiProperty({ example: "Toán" })
-  name: string;
-}
-
 export class ClassResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })

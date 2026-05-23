@@ -19,6 +19,7 @@ export * from "./eligible-students.query";
 export * from "./get-class-enrollments.query";
 export * from "./student-enrollment-history.response";
 export * from "./assign-staff.request";
+export * from "./change-class-staff-role.request";
 export * from "./class-staff.response";
 export * from "./create-school-year.request";
 export * from "./update-school-year.request";

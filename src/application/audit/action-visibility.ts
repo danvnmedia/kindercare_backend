@@ -45,6 +45,11 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   // Guardian ↔ Student (2)
   LINK_GUARDIAN_TO_STUDENT: "ADMIN",
   UNLINK_GUARDIAN_FROM_STUDENT: "ADMIN",
+
+  // Class-staff lifecycle (3)
+  ASSIGN_STAFF_TO_CLASS: "ADMIN",
+  REMOVE_STAFF_FROM_CLASS: "ADMIN",
+  CHANGE_STAFF_ROLE: "ADMIN",
 };
 
 // Runtime self-check — keeps the map covering every AuditAction even if the

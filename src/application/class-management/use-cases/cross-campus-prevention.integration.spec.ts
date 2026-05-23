@@ -11,11 +11,15 @@ import { ClassStaffRepository } from "../ports/class-staff.repository";
 import { ClassRepository } from "../ports/class.repository";
 import { SchoolYearEnrollmentRepository } from "../ports/school-year-enrollment.repository";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
-import { SubjectRepository } from "../ports/subject.repository";
 import { StaffRepository } from "@/application/user-management/ports/staff.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import {
+  TransactionContext,
+  UnitOfWorkPort,
+} from "@/application/ports/unit-of-work.port";
 import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 
 // Most cross-campus cases short-circuit before the persist + audit-emit tx,
 // but the same-campus happy-path test does reach it. Make the runner invoke
@@ -46,7 +50,6 @@ import {
   createClass,
   createStaff,
   createStudent,
-  createSubject,
   DEFAULT_CAMPUS_ID_A,
   DEFAULT_CAMPUS_ID_B,
 } from "@/test-utils";
@@ -263,156 +266,90 @@ describe("Cross-Campus Prevention Integration Tests", () => {
     let mockClassStaffRepository: jest.Mocked<ClassStaffRepository>;
     let mockClassRepository: jest.Mocked<ClassRepository>;
     let mockStaffRepository: jest.Mocked<StaffRepository>;
-    let mockSubjectRepository: jest.Mocked<SubjectRepository>;
+    let unitOfWork: jest.Mocked<UnitOfWorkPort>;
+    let mockTx: jest.Mocked<TransactionContext>;
 
     beforeEach(() => {
       mockClassStaffRepository = {
-        findByCompositeKey: jest.fn(),
+        findByPair: jest.fn(),
+        findHomeroomByClassId: jest.fn(),
         findByClassId: jest.fn(),
         findByStaffId: jest.fn(),
-        findBySubjectId: jest.fn(),
-        findByClassAndSubject: jest.fn(),
         save: jest.fn(),
+        update: jest.fn(),
         delete: jest.fn(),
         deleteByClassId: jest.fn(),
         deleteByStaffId: jest.fn(),
-      } as jest.Mocked<ClassStaffRepository>;
+      } as unknown as jest.Mocked<ClassStaffRepository>;
 
       mockClassRepository = {
         findById: jest.fn(),
-        findByNameInContextAndCampus: jest.fn(),
-        findByCampusId: jest.fn(),
-        findByGradeLevelId: jest.fn(),
-        findBySchoolYearId: jest.fn(),
-        findByIds: jest.fn(),
-        findAll: jest.fn(),
-        save: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      } as jest.Mocked<ClassRepository>;
+      } as unknown as jest.Mocked<ClassRepository>;
 
       mockStaffRepository = {
         findById: jest.fn(),
-        findByEmail: jest.fn(),
-        findByEmailInCampus: jest.fn(),
-        findByPhoneNumber: jest.fn(),
-        findByPhoneNumberInCampus: jest.fn(),
-        findByUserId: jest.fn(),
-        findByStaffTypeId: jest.fn(),
-        findByCampusId: jest.fn(),
-        findByIds: jest.fn(),
-        findAll: jest.fn(),
-        save: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      } as jest.Mocked<StaffRepository>;
+      } as unknown as jest.Mocked<StaffRepository>;
 
-      mockSubjectRepository = {
-        findById: jest.fn(),
-        findByNameAndCampus: jest.fn(),
-        findAll: jest.fn(),
-        save: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
-      } as jest.Mocked<SubjectRepository>;
+      mockTx = {
+        createClassStaff: jest
+          .fn()
+          .mockResolvedValue({ classId: "class-1", staffId: "staff-1" }),
+        recordAudit: jest.fn().mockResolvedValue(undefined),
+      } as unknown as jest.Mocked<TransactionContext>;
+
+      unitOfWork = {
+        run: jest.fn((task) => task(mockTx)),
+      } as unknown as jest.Mocked<UnitOfWorkPort>;
 
       useCase = new AssignStaffToClassUseCase(
         mockClassStaffRepository,
         mockClassRepository,
         mockStaffRepository,
-        mockSubjectRepository,
+        unitOfWork,
       );
     });
 
     it("should reject assigning campus A staff to campus B class", async () => {
-      // Class in campus A
       const classInCampusA = createClass({
         id: "class-1",
         campusId: campusA,
       });
-
-      // Staff in campus B
       const staffInCampusB = createStaff({
         id: "staff-1",
         campusId: campusB,
       });
 
-      // Subject in campus A
-      const subjectInCampusA = createSubject({
-        id: "subject-1",
-        campusId: campusA,
-      });
-
       mockClassRepository.findById.mockResolvedValue(classInCampusA);
       mockStaffRepository.findById.mockResolvedValue(staffInCampusB);
-      mockSubjectRepository.findById.mockResolvedValue(subjectInCampusA);
 
       await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          staffId: "staff-1",
-          subjectId: "subject-1",
-        }),
+        useCase.execute(
+          {
+            campusId: campusA,
+            classId: "class-1",
+            staffId: "staff-1",
+            role: ClassStaffRole.ASSISTANT,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          staffId: "staff-1",
-          subjectId: "subject-1",
-        }),
+        useCase.execute(
+          {
+            campusId: campusA,
+            classId: "class-1",
+            staffId: "staff-1",
+            role: ClassStaffRole.ASSISTANT,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("Staff does not belong to this campus");
 
-      expect(mockClassStaffRepository.save).not.toHaveBeenCalled();
-    });
-
-    it("should reject when subject belongs to different campus", async () => {
-      // All in campus A except subject
-      const classInCampusA = createClass({
-        id: "class-1",
-        campusId: campusA,
-      });
-
-      const staffInCampusA = createStaff({
-        id: "staff-1",
-        campusId: campusA,
-      });
-
-      // Subject in campus B
-      const subjectInCampusB = createSubject({
-        id: "subject-1",
-        campusId: campusB,
-      });
-
-      mockClassRepository.findById.mockResolvedValue(classInCampusA);
-      mockStaffRepository.findById.mockResolvedValue(staffInCampusA);
-      mockSubjectRepository.findById.mockResolvedValue(subjectInCampusB);
-
-      await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          staffId: "staff-1",
-          subjectId: "subject-1",
-        }),
-      ).rejects.toThrow(BadRequestException);
-
-      await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          staffId: "staff-1",
-          subjectId: "subject-1",
-        }),
-      ).rejects.toThrow("Subject does not belong to this campus");
-
-      expect(mockClassStaffRepository.save).not.toHaveBeenCalled();
+      expect(unitOfWork.run).not.toHaveBeenCalled();
     });
 
     it("should reject when class belongs to different campus than context", async () => {
-      // Class in campus B
       const classInCampusB = createClass({
         id: "class-1",
         campusId: campusB,
@@ -420,61 +357,61 @@ describe("Cross-Campus Prevention Integration Tests", () => {
 
       mockClassRepository.findById.mockResolvedValue(classInCampusB);
 
-      // Request with campus A context
       await expect(
-        useCase.execute({
-          campusId: campusA, // Context is campus A
-          classId: "class-1", // But class is in campus B
-          staffId: "staff-1",
-          subjectId: "subject-1",
-        }),
+        useCase.execute(
+          {
+            campusId: campusA,
+            classId: "class-1",
+            staffId: "staff-1",
+            role: ClassStaffRole.ASSISTANT,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow(BadRequestException);
 
       await expect(
-        useCase.execute({
-          campusId: campusA,
-          classId: "class-1",
-          staffId: "staff-1",
-          subjectId: "subject-1",
-        }),
+        useCase.execute(
+          {
+            campusId: campusA,
+            classId: "class-1",
+            staffId: "staff-1",
+            role: ClassStaffRole.ASSISTANT,
+          },
+          stubActor,
+        ),
       ).rejects.toThrow("Class does not belong to this campus");
 
-      // Staff and subject lookups should not happen
+      // Staff lookup should not happen
       expect(mockStaffRepository.findById).not.toHaveBeenCalled();
-      expect(mockSubjectRepository.findById).not.toHaveBeenCalled();
     });
 
-    it("should allow assignment when all entities are in the same campus", async () => {
+    it("should allow assignment when class and staff are in the same campus", async () => {
       const classInCampusA = createClass({
         id: "class-1",
         campusId: campusA,
       });
-
       const staffInCampusA = createStaff({
         id: "staff-1",
         campusId: campusA,
       });
 
-      const subjectInCampusA = createSubject({
-        id: "subject-1",
-        campusId: campusA,
-      });
-
       mockClassRepository.findById.mockResolvedValue(classInCampusA);
       mockStaffRepository.findById.mockResolvedValue(staffInCampusA);
-      mockSubjectRepository.findById.mockResolvedValue(subjectInCampusA);
-      mockClassStaffRepository.findByCompositeKey.mockResolvedValue(null);
-      mockClassStaffRepository.save.mockImplementation(async (cs) => cs);
+      mockClassStaffRepository.findByPair.mockResolvedValue(null);
 
-      const result = await useCase.execute({
-        campusId: campusA,
-        classId: "class-1",
-        staffId: "staff-1",
-        subjectId: "subject-1",
-      });
+      const result = await useCase.execute(
+        {
+          campusId: campusA,
+          classId: "class-1",
+          staffId: "staff-1",
+          role: ClassStaffRole.ASSISTANT,
+        },
+        stubActor,
+      );
 
       expect(result).toBeDefined();
-      expect(mockClassStaffRepository.save).toHaveBeenCalled();
+      expect(unitOfWork.run).toHaveBeenCalledTimes(1);
+      expect(mockTx.createClassStaff).toHaveBeenCalled();
     });
   });
 

@@ -2,29 +2,37 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import { ClassStaffRepository } from "@/application/class-management/ports/class-staff.repository";
 import { ClassStaff } from "@/domain/class-management/entities/class-staff.entity";
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { PrismaClassStaffMapper } from "../mapper/prisma-class-staff.mapper";
 
 @Injectable()
 export class PrismaClassStaffRepository implements ClassStaffRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByCompositeKey(
+  async findByPair(
     classId: string,
     staffId: string,
-    subjectId: string,
   ): Promise<ClassStaff | null> {
     const prismaClassStaff = await this.prisma.classStaff.findUnique({
       where: {
-        classId_staffId_subjectId: {
-          classId,
-          staffId,
-          subjectId,
-        },
+        classId_staffId: { classId, staffId },
       },
       include: {
         class: true,
         staff: true,
-        subject: true,
+      },
+    });
+    return prismaClassStaff
+      ? PrismaClassStaffMapper.toDomain(prismaClassStaff)
+      : null;
+  }
+
+  async findHomeroomByClassId(classId: string): Promise<ClassStaff | null> {
+    const prismaClassStaff = await this.prisma.classStaff.findFirst({
+      where: { classId, role: ClassStaffRole.HOMEROOM },
+      include: {
+        class: true,
+        staff: true,
       },
     });
     return prismaClassStaff
@@ -38,7 +46,6 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       include: {
         class: true,
         staff: true,
-        subject: true,
       },
     });
     return PrismaClassStaffMapper.toDomainArray(prismaClassStaffs);
@@ -50,34 +57,6 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       include: {
         class: true,
         staff: true,
-        subject: true,
-      },
-    });
-    return PrismaClassStaffMapper.toDomainArray(prismaClassStaffs);
-  }
-
-  async findBySubjectId(subjectId: string): Promise<ClassStaff[]> {
-    const prismaClassStaffs = await this.prisma.classStaff.findMany({
-      where: { subjectId },
-      include: {
-        class: true,
-        staff: true,
-        subject: true,
-      },
-    });
-    return PrismaClassStaffMapper.toDomainArray(prismaClassStaffs);
-  }
-
-  async findByClassAndSubject(
-    classId: string,
-    subjectId: string,
-  ): Promise<ClassStaff[]> {
-    const prismaClassStaffs = await this.prisma.classStaff.findMany({
-      where: { classId, subjectId },
-      include: {
-        class: true,
-        staff: true,
-        subject: true,
       },
     });
     return PrismaClassStaffMapper.toDomainArray(prismaClassStaffs);
@@ -90,24 +69,33 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       include: {
         class: true,
         staff: true,
-        subject: true,
       },
     });
     return PrismaClassStaffMapper.toDomain(created);
   }
 
-  async delete(
-    classId: string,
-    staffId: string,
-    subjectId: string,
-  ): Promise<void> {
+  async update(classStaff: ClassStaff): Promise<ClassStaff> {
+    const updateData = PrismaClassStaffMapper.toPrismaUpdate(classStaff);
+    const updated = await this.prisma.classStaff.update({
+      where: {
+        classId_staffId: {
+          classId: classStaff.classId,
+          staffId: classStaff.staffId,
+        },
+      },
+      data: updateData,
+      include: {
+        class: true,
+        staff: true,
+      },
+    });
+    return PrismaClassStaffMapper.toDomain(updated);
+  }
+
+  async delete(classId: string, staffId: string): Promise<void> {
     await this.prisma.classStaff.delete({
       where: {
-        classId_staffId_subjectId: {
-          classId,
-          staffId,
-          subjectId,
-        },
+        classId_staffId: { classId, staffId },
       },
     });
   }

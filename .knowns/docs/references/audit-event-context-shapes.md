@@ -2,7 +2,7 @@
 title: Audit Event Context Shapes
 description: 'Per-action JSONB context shape for `audit_event.context`. Source of truth for what each use case writes and what the FE display-template registry consumes.'
 createdAt: '2026-05-19T20:14:31.630Z'
-updatedAt: '2026-05-20T12:01:50.355Z'
+updatedAt: '2026-05-23T15:27:58.710Z'
 tags:
   - audit
   - reference
@@ -359,7 +359,100 @@ Two actions emitted by `{link,unlink}-*.use-case.ts` for the guardian–student 
 The link row carries the FK to `GuardianRelationshipType`; once `tx.removeGuardians` runs, that FK is gone and the row is unreachable for snapshot lookup. The unlink use case therefore resolves `relationshipId` + `relationshipType` from `studentRepository.getStudentGuardians` **before** entering the UoW callback, then writes those snapshots into `context` inside the callback. This keeps the audit row self-sufficient post-hard-delete (Scenario 4 of the spec) without requiring the recorder to do its own snapshot lookup against the just-deleted row.
 ## Open shapes (added by future tasks)
 
-All 19 v1 action shapes from [@doc/specs/admin-audit-log](specs/admin-audit-log) FR-1 are now documented above. New actions added in v2 should land their shape here when the wiring task ships.
+All 19 v1 action shapes from [@doc/specs/admin-audit-log](specs/admin-audit-log) FR-1 are documented above. New actions added in v2 land below as their wiring tasks ship.
+
+### Staff ↔ Class (3 actions — @doc/specs/subject-removal-classstaff-role-refactor)
+
+Three actions emitted by the staff-assignment use cases under `src/application/class-management/use-cases/class-staff/` — `assign-staff-to-class.use-case.ts`, `remove-staff-from-class.use-case.ts`, and `change-class-staff-role.use-case.ts`. All three target the staff member at the audit-row level (`targetType = "staff"`, `targetId = staffId`); `context` carries the class context (`classId`) plus the role(s) involved. The staff member's identity is therefore reachable from the row's `targetId` — it is intentionally not duplicated into `context`, consistent with the profile-edit convention.
+
+These actions cannot piggy-back on a single shared shape because role-change carries `previousRole + newRole` while assign/remove carry a single `role`. Per-action shapes below.
+
+`role`, `previousRole`, and `newRole` are stored as the `ClassStaffRole` enum string (`HOMEROOM`, `ASSISTANT`, `BOARDING`) — see [@doc/decisions/subject-removal](decisions/subject-removal) for the Vietnamese↔English label mapping and the deferred-enum reservation list.
+
+#### `ASSIGN_STAFF_TO_CLASS`
+
+```json
+// context
+{
+  "actorName": "Alice Nguyen",
+  "classId": "uuid-of-class",
+  "role": "HOMEROOM"
+}
+```
+
+| Field | Source | Notes |
+|---|---|---|
+| `targetId` | caller (row-level, not context) | `staffId` |
+| `targetType` | caller (row-level) | `"staff"` |
+| `actorName` | caller | `currentUser.profile?.fullName ?? null` |
+| `classId` | caller | the class the staff is being assigned to |
+| `role` | caller | `ClassStaffRole` enum value at write-time |
+| `before_value` / `after_value` | — | both `null`; assignment has no field-diff semantic |
+
+Display template: `"Staff {{actorName}} assigned Staff to a class as {{role}}"`. Class + staff names render from sibling resolver lookups since the row carries only IDs.
+
+Domain invariant: HOMEROOM is exactly one per class. Reject duplicate at the use case (typed `409 HOMEROOM_ALREADY_ASSIGNED`) and at the DB (partial unique index `class_staff_homeroom_unique WHERE role = 'HOMEROOM'`). The DB index is the structural backstop for race conditions.
+
+#### `REMOVE_STAFF_FROM_CLASS`
+
+```json
+// context
+{
+  "actorName": "Alice Nguyen",
+  "classId": "uuid-of-class",
+  "role": "ASSISTANT"
+}
+```
+
+| Field | Source | Notes |
+|---|---|---|
+| `targetId` | caller (row-level) | `staffId` |
+| `targetType` | caller (row-level) | `"staff"` |
+| `actorName` | caller | as above |
+| `classId` | caller | the class the staff is being removed from |
+| `role` | caller (pre-delete snapshot) | the role the staff held at removal time — resolved BEFORE `tx.deleteClassStaff` so the value survives the row deletion |
+| `before_value` / `after_value` | — | both `null` |
+
+Display template: `"Staff {{actorName}} removed Staff (was {{role}}) from a class"`.
+
+Pre-resolution rule: the assignment row is deleted inside the UoW callback, so `role` must be captured from `classStaffRepository.findByPair` *before* the callback enters (see `remove-staff-from-class.use-case.ts`). The audit row therefore stays self-sufficient post-hard-delete (Scenario 4 of [@doc/specs/admin-audit-log](specs/admin-audit-log)).
+
+#### `CHANGE_STAFF_ROLE`
+
+```json
+// context
+{
+  "actorName": "Alice Nguyen",
+  "classId": "uuid-of-class",
+  "previousRole": "ASSISTANT",
+  "newRole": "HOMEROOM"
+}
+```
+
+| Field | Source | Notes |
+|---|---|---|
+| `targetId` | caller (row-level) | `staffId` |
+| `targetType` | caller (row-level) | `"staff"` |
+| `actorName` | caller | as above |
+| `classId` | caller | the class context |
+| `previousRole` | caller (pre-update snapshot) | the role before the change; captured before `tx.updateClassStaff` so it survives the in-place update |
+| `newRole` | caller | the role after the change |
+| `before_value` / `after_value` | — | both `null`; the role-pair in context carries the change semantic |
+
+Display template: `"Staff {{actorName}} changed Staff role from {{previousRole}} to {{newRole}}"`.
+
+No-op rule: when `newRole === existing.role`, the use case short-circuits (Scenario 6 of [@doc/specs/subject-removal-classstaff-role-refactor](specs/subject-removal-classstaff-role-refactor)) — no DB write and no audit emission. The FE still gets a stable 200 response shape carrying the existing row.
+
+HOMEROOM uniqueness applies on promotions to HOMEROOM identically to `ASSIGN_STAFF_TO_CLASS` — same domain check + same partial unique index backstop.
+
+#### Per-action codes and display templates
+
+| Action | targetType | `context` keys | Display template |
+|---|---|---|---|
+| `ASSIGN_STAFF_TO_CLASS` | `staff` | `actorName`, `classId`, `role` | `"Staff {{actorName}} assigned Staff to a class as {{role}}"` |
+| `REMOVE_STAFF_FROM_CLASS` | `staff` | `actorName`, `classId`, `role` | `"Staff {{actorName}} removed Staff (was {{role}}) from a class"` |
+| `CHANGE_STAFF_ROLE` | `staff` | `actorName`, `classId`, `previousRole`, `newRole` | `"Staff {{actorName}} changed Staff role from {{previousRole}} to {{newRole}}"` |
+
 ## Failure modes
 
 If a use case writes a context field that no display template references, the FE renders the template literally with the missing variable. To prevent silent template drift:

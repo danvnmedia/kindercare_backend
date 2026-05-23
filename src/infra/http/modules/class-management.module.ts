@@ -18,7 +18,6 @@ import { DeleteClassUseCase } from "@/application/class-management/use-cases/cla
 import { GetAllGradeLevelsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-grade-levels.use-case";
 import { GetAllSchoolYearsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-school-years.use-case";
 import { GetSchoolYearByIdUseCase } from "@/application/class-management/use-cases/reference-data/get-school-year-by-id.use-case";
-import { GetAllSubjectsUseCase } from "@/application/class-management/use-cases/reference-data/get-all-subjects.use-case";
 
 // Use Cases - School Year CUD
 import { CreateSchoolYearUseCase } from "@/application/class-management/use-cases/school-year/create-school-year.use-case";
@@ -53,12 +52,12 @@ import { GetEligibleStudentsForClassUseCase } from "@/application/user-managemen
 import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
 import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
 import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
+import { ChangeClassStaffRoleUseCase } from "@/application/class-management/use-cases/class-staff/change-class-staff-role.use-case";
 
 // Repositories
 import { PrismaClassRepository } from "@/infra/persistence/prisma/repositories/prisma-class.repository";
 import { PrismaGradeLevelRepository } from "@/infra/persistence/prisma/repositories/prisma-grade-level.repository";
 import { PrismaSchoolYearRepository } from "@/infra/persistence/prisma/repositories/prisma-school-year.repository";
-import { PrismaSubjectRepository } from "@/infra/persistence/prisma/repositories/prisma-subject.repository";
 import { PrismaEnrollmentRepository } from "@/infra/persistence/prisma/repositories/prisma-enrollment.repository";
 import { PrismaSchoolYearEnrollmentRepository } from "@/infra/persistence/prisma/repositories/prisma-school-year-enrollment.repository";
 import { PrismaClassStaffRepository } from "@/infra/persistence/prisma/repositories/prisma-class-staff.repository";
@@ -103,7 +102,6 @@ import { RequestContextModule } from "../context/request-context.module";
     GetAllGradeLevelsUseCase,
     GetAllSchoolYearsUseCase,
     GetSchoolYearByIdUseCase,
-    GetAllSubjectsUseCase,
 
     // School Year CUD Use Cases
     CreateSchoolYearUseCase,
@@ -130,6 +128,7 @@ import { RequestContextModule } from "../context/request-context.module";
     AssignStaffToClassUseCase,
     GetClassStaffUseCase,
     RemoveStaffFromClassUseCase,
+    ChangeClassStaffRoleUseCase,
 
     // School Year Enrollment Use Cases
     RegisterForSchoolYearUseCase,
@@ -150,10 +149,6 @@ import { RequestContextModule } from "../context/request-context.module";
       useClass: PrismaSchoolYearRepository,
     },
     {
-      provide: "SUBJECT_REPOSITORY",
-      useClass: PrismaSubjectRepository,
-    },
-    {
       provide: "ENROLLMENT_REPOSITORY",
       useClass: PrismaEnrollmentRepository,
     },
@@ -170,7 +165,6 @@ import { RequestContextModule } from "../context/request-context.module";
     "CLASS_REPOSITORY",
     "GRADE_LEVEL_REPOSITORY",
     "SCHOOL_YEAR_REPOSITORY",
-    "SUBJECT_REPOSITORY",
     "ENROLLMENT_REPOSITORY",
     "SCHOOL_YEAR_ENROLLMENT_REPOSITORY",
     "CLASS_STAFF_REPOSITORY",

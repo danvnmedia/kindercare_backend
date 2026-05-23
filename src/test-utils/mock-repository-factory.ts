@@ -10,7 +10,6 @@ import { GuardianRepository } from "@/application/user-management/ports/guardian
 import { UserRepository } from "@/application/user-management/ports/user.repository";
 import { RoleRepository } from "@/application/user-management/ports/role.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
-import { SubjectRepository } from "@/application/class-management/ports/subject.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { SchoolYearRepository } from "@/application/class-management/ports/school-year.repository";
 
@@ -154,20 +153,6 @@ export function createMockClassRepository(): jest.Mocked<ClassRepository> {
     update: jest.fn(),
     delete: jest.fn(),
   } as jest.Mocked<ClassRepository>;
-}
-
-/**
- * Create a mock SubjectRepository
- */
-export function createMockSubjectRepository(): jest.Mocked<SubjectRepository> {
-  return {
-    findById: jest.fn(),
-    findByNameAndCampus: jest.fn(),
-    findAll: jest.fn(),
-    save: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  } as jest.Mocked<SubjectRepository>;
 }
 
 /**

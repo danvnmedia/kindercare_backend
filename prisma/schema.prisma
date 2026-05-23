@@ -35,7 +35,6 @@ model Campus {
 
   // Relations - Academic
   gradeLevels           GradeLevel[]
-  subjects              Subject[]
   schoolYears           SchoolYear[]
   classes               Class[]
   schoolYearEnrollments SchoolYearEnrollment[]
@@ -451,26 +450,6 @@ model GradeLevel {
   @@map("grade_level")
 }
 
-model Subject {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
-
-  // Campus scoping
-  campusId String @map("campus_id") @db.Uuid
-  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
-
-  classes ClassStaff[]
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  // Campus-scoped unique constraint
-  @@unique([campusId, name])
-  // Indexes
-  @@index([campusId])
-  @@map("subject")
-}
-
 model SchoolYear {
   id         String   @id @default(uuid()) @db.Uuid
   name       String
@@ -527,20 +506,27 @@ model Class {
   @@map("class")
 }
 
+enum ClassStaffRole {
+  HOMEROOM
+  ASSISTANT
+  BOARDING
+}
+
 model ClassStaff {
-  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId   String  @map("class_id") @db.Uuid
-  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  staffId   String  @map("staff_id") @db.Uuid
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId String  @map("subject_id") @db.Uuid
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId String         @map("class_id") @db.Uuid
+  staff   Staff          @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String         @map("staff_id") @db.Uuid
+  role    ClassStaffRole
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@id([classId, staffId, subjectId])
+  // Partial unique index `class_staff_homeroom_unique` enforced via raw SQL in
+  // migration (one HOMEROOM per class). Prisma cannot model partial unique
+  // indexes natively, so it lives only in the migration SQL, not here.
+  @@id([classId, staffId])
   @@index([staffId])
-  @@index([subjectId])
   @@map("class_staff")
 }
 

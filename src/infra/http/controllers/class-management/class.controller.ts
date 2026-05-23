@@ -41,6 +41,7 @@ import {
   BulkTransferStudentsRequest,
   BulkTransferStudentsResponse,
   AssignStaffRequest,
+  ChangeClassStaffRoleRequest,
   ClassStaffResponse,
   GetClassEnrollmentsQuery,
   EligibleStudentsQuery,
@@ -62,6 +63,7 @@ import { GetEligibleStudentsForClassUseCase } from "@/application/user-managemen
 import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
 import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
 import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
+import { ChangeClassStaffRoleUseCase } from "@/application/class-management/use-cases/class-staff/change-class-staff-role.use-case";
 
 @Controller("classes")
 @ApiTags("Classes")
@@ -82,6 +84,7 @@ export class ClassController {
     private readonly assignStaffToClassUseCase: AssignStaffToClassUseCase,
     private readonly getClassStaffUseCase: GetClassStaffUseCase,
     private readonly removeStaffFromClassUseCase: RemoveStaffFromClassUseCase,
+    private readonly changeClassStaffRoleUseCase: ChangeClassStaffRoleUseCase,
   ) {}
 
   @Post()
@@ -492,7 +495,7 @@ export class ClassController {
   @ApiOperation({
     summary: "Assign a staff member to class",
     description:
-      "Assign a staff member to teach a specific subject in this class.",
+      "Assign a staff member to a class with a role (HOMEROOM / ASSISTANT / BOARDING). HOMEROOM is at most one per class. Emits an ASSIGN_STAFF_TO_CLASS audit event.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -509,13 +512,17 @@ export class ClassController {
     @CampusContext() campusId: string,
     @Param("id") classId: string,
     @Body() dto: AssignStaffRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.assignStaffToClassUseCase.execute({
-      campusId,
-      classId,
-      staffId: dto.staffId,
-      subjectId: dto.subjectId,
-    });
+    return await this.assignStaffToClassUseCase.execute(
+      {
+        campusId,
+        classId,
+        staffId: dto.staffId,
+        role: dto.role,
+      },
+      currentUser,
+    );
   }
 
   @Get(":id/staff")
@@ -547,7 +554,7 @@ export class ClassController {
     return await this.getClassStaffUseCase.execute(classId, campusId);
   }
 
-  @Delete(":classId/staff/:staffId/subjects/:subjectId")
+  @Delete(":classId/staff/:staffId")
   @RequireCampusAccess()
   @StandardResponse({
     message: "Staff removed from class successfully",
@@ -556,7 +563,7 @@ export class ClassController {
   @ApiOperation({
     summary: "Remove staff from class",
     description:
-      "Remove a staff member's assignment from this class for a specific subject.",
+      "Remove a staff member's assignment from this class. Emits a REMOVE_STAFF_FROM_CLASS audit event capturing the previous role.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -574,23 +581,65 @@ export class ClassController {
     description: "Staff UUID",
     example: "123e4567-e89b-12d3-a456-426614174001",
   })
-  @ApiParam({
-    name: "subjectId",
-    description: "Subject UUID",
-    example: "123e4567-e89b-12d3-a456-426614174002",
-  })
   async removeStaff(
     @CampusContext() campusId: string,
     @Param("classId") classId: string,
     @Param("staffId") staffId: string,
-    @Param("subjectId") subjectId: string,
+    @CurrentUser() currentUser: User,
   ) {
-    await this.removeStaffFromClassUseCase.execute({
-      campusId,
-      classId,
-      staffId,
-      subjectId,
-    });
+    await this.removeStaffFromClassUseCase.execute(
+      {
+        campusId,
+        classId,
+        staffId,
+      },
+      currentUser,
+    );
     return null;
+  }
+
+  @Patch(":classId/staff/:staffId")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Staff role updated successfully",
+    type: ClassStaffResponse,
+  })
+  @ApiOperation({
+    summary: "Change the role of a staff in a class",
+    description:
+      "Updates the role assigned to a staff in this class. No-op (same role as current) returns 200 with the existing row and emits no audit event. Promoting to HOMEROOM when another HOMEROOM already exists returns 409 HOMEROOM_ALREADY_ASSIGNED.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the role change",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "classId",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "staffId",
+    description: "Staff UUID",
+    example: "123e4567-e89b-12d3-a456-426614174001",
+  })
+  async changeStaffRole(
+    @CampusContext() campusId: string,
+    @Param("classId") classId: string,
+    @Param("staffId") staffId: string,
+    @Body() dto: ChangeClassStaffRoleRequest,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.changeClassStaffRoleUseCase.execute(
+      {
+        campusId,
+        classId,
+        staffId,
+        newRole: dto.role,
+      },
+      currentUser,
+    );
   }
 }

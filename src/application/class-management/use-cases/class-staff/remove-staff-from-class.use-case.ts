@@ -1,18 +1,22 @@
 import {
   Injectable,
   Inject,
+  BadRequestException,
   Logger,
   NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
+
+import { User } from "@/domain/user-management/user.entity";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+
 import { ClassStaffRepository } from "../../ports/class-staff.repository";
 import { ClassRepository } from "../../ports/class.repository";
+import { ClassStaffErrorCode } from "../../class-staff-error-codes";
 
 export interface RemoveStaffFromClassInput {
   campusId: string;
   classId: string;
   staffId: string;
-  subjectId: string;
 }
 
 @Injectable()
@@ -24,57 +28,59 @@ export class RemoveStaffFromClassUseCase {
     private readonly classStaffRepository: ClassStaffRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
-  async execute(input: RemoveStaffFromClassInput): Promise<void> {
-    try {
-      this.logger.log(
-        `Removing staff ${input.staffId} from class ${input.classId} for subject ${input.subjectId}`,
-      );
+  async execute(
+    input: RemoveStaffFromClassInput,
+    currentUser: User,
+  ): Promise<void> {
+    this.logger.log(
+      `Removing staff ${input.staffId} from class ${input.classId}`,
+    );
 
-      // Step 1: Validate class exists
-      const classEntity = await this.classRepository.findById(input.classId);
-      if (!classEntity) {
-        throw new NotFoundException(`Class with ID ${input.classId} not found`);
-      }
-
-      // Step 1b: Validate class belongs to the specified campus
-      if (classEntity.campusId !== input.campusId) {
-        throw new BadRequestException(`Class does not belong to this campus`);
-      }
-
-      // Step 2: Check if assignment exists
-      const assignment = await this.classStaffRepository.findByCompositeKey(
-        input.classId,
-        input.staffId,
-        input.subjectId,
-      );
-      if (!assignment) {
-        throw new NotFoundException(
-          `Staff assignment not found for this class and subject`,
-        );
-      }
-
-      // Step 3: Delete assignment
-      await this.classStaffRepository.delete(
-        input.classId,
-        input.staffId,
-        input.subjectId,
-      );
-
-      this.logger.log(`Staff assignment removed successfully`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to remove staff: ${error.message}`,
-        error.stack,
-      );
-      if (
-        error instanceof NotFoundException ||
-        error instanceof BadRequestException
-      ) {
-        throw error;
-      }
-      throw new BadRequestException(error.message);
+    // Step 1: Validate class exists + campus match.
+    const classEntity = await this.classRepository.findById(input.classId);
+    if (!classEntity) {
+      throw new NotFoundException(`Class with ID ${input.classId} not found`);
     }
+    if (classEntity.campusId !== input.campusId) {
+      throw new BadRequestException(`Class does not belong to this campus`);
+    }
+
+    // Step 2: Lookup the existing assignment by natural key (classId, staffId).
+    // Missing → 404 STAFF_NOT_FOUND_IN_CLASS. The role lives on the existing
+    // row, so capture it here BEFORE deletion for the audit context.
+    const existing = await this.classStaffRepository.findByPair(
+      input.classId,
+      input.staffId,
+    );
+    if (!existing) {
+      throw new NotFoundException(ClassStaffErrorCode.STAFF_NOT_FOUND_IN_CLASS);
+    }
+
+    const role = existing.role;
+
+    // Step 3: Delete row + emit audit row atomically.
+    await this.unitOfWork.run(async (tx) => {
+      await tx.deleteClassStaff(input.classId, input.staffId);
+
+      await tx.recordAudit({
+        actorId: currentUser.id,
+        action: "REMOVE_STAFF_FROM_CLASS",
+        targetType: "staff",
+        targetId: input.staffId,
+        campusId: input.campusId,
+        context: {
+          actorName: currentUser.profile?.fullName ?? null,
+          classId: input.classId,
+          role,
+        },
+      });
+    });
+
+    this.logger.log(
+      `Staff ${input.staffId} removed from class ${input.classId}`,
+    );
   }
 }

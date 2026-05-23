@@ -121,25 +121,6 @@ const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     description: "List all grade levels",
   },
 
-  // Subject permissions
-  {
-    id: "subject.create",
-    module: "subject",
-    description: "Create a new subject",
-  },
-  {
-    id: "subject.read",
-    module: "subject",
-    description: "View subject details",
-  },
-  {
-    id: "subject.update",
-    module: "subject",
-    description: "Update subject information",
-  },
-  { id: "subject.delete", module: "subject", description: "Delete a subject" },
-  { id: "subject.list", module: "subject", description: "List all subjects" },
-
   // School Year permissions
   {
     id: "school_year.create",

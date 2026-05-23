@@ -1,6 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+
 export class ClassStaffClassInfo {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
@@ -29,16 +31,6 @@ export class ClassStaffStaffInfo {
   staffType: string;
 }
 
-export class ClassStaffSubjectInfo {
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
-  id: string;
-
-  @Expose()
-  @ApiProperty({ example: "Toán" })
-  name: string;
-}
-
 export class ClassStaffResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
@@ -49,8 +41,13 @@ export class ClassStaffResponse {
   staffId: string;
 
   @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
-  subjectId: string;
+  @ApiProperty({
+    enum: ClassStaffRole,
+    example: ClassStaffRole.HOMEROOM,
+    description:
+      "Role assigned to the staff in this class (HOMEROOM / ASSISTANT / BOARDING).",
+  })
+  role: ClassStaffRole;
 
   @Expose()
   @Type(() => ClassStaffClassInfo)
@@ -61,11 +58,6 @@ export class ClassStaffResponse {
   @Type(() => ClassStaffStaffInfo)
   @ApiProperty({ type: ClassStaffStaffInfo, required: false })
   staff?: ClassStaffStaffInfo;
-
-  @Expose()
-  @Type(() => ClassStaffSubjectInfo)
-  @ApiProperty({ type: ClassStaffSubjectInfo, required: false })
-  subject?: ClassStaffSubjectInfo;
 
   @Expose()
   @ApiProperty({ example: "2025-01-01T00:00:00.000Z" })

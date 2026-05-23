@@ -9,7 +9,6 @@ import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { Class } from "@/domain/class-management/entities/class.entity";
-import { Subject } from "@/domain/class-management/entities/subject.entity";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
 import { User, UserRoleAssignment } from "@/domain/user-management/user.entity";
@@ -214,25 +213,6 @@ export function createClass(
       schoolYearId,
       description: overrides.description ?? null,
       schoolYear,
-    },
-    overrides.id ?? uuidv4(),
-  );
-}
-
-/**
- * Create a Subject entity with defaults
- */
-export function createSubject(
-  overrides: Partial<{
-    id: string;
-    campusId: string;
-    name: string;
-  }> = {},
-): Subject {
-  return Subject.create(
-    {
-      campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
-      name: overrides.name ?? "Test Subject",
     },
     overrides.id ?? uuidv4(),
   );

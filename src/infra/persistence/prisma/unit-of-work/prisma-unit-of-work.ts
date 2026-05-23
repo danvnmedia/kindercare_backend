@@ -11,6 +11,7 @@ import {
   GuardianTransactionOps,
   StaffTransactionOps,
   StudentTransactionOps,
+  ClassStaffTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -56,6 +57,7 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const guardianOps = new GuardianTransactionOps(tx);
     const staffOps = new StaffTransactionOps(tx);
     const studentOps = new StudentTransactionOps(tx);
+    const classStaffOps = new ClassStaffTransactionOps(tx);
 
     return {
       // User operations
@@ -76,6 +78,11 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       updateStudent: studentOps.updateStudent.bind(studentOps),
       assignGuardians: studentOps.assignGuardians.bind(studentOps),
       removeGuardians: studentOps.removeGuardians.bind(studentOps),
+
+      // Class-staff operations
+      createClassStaff: classStaffOps.createClassStaff.bind(classStaffOps),
+      deleteClassStaff: classStaffOps.deleteClassStaff.bind(classStaffOps),
+      updateClassStaff: classStaffOps.updateClassStaff.bind(classStaffOps),
 
       // Audit operations — captures the active `prismaTransaction` so callers
       // never have to thread a raw `Prisma.TransactionClient` themselves.

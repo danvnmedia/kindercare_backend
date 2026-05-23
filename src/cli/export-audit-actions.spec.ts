@@ -20,7 +20,7 @@ import {
 } from "./export-audit-actions";
 
 describe("buildAuditActionsExport", () => {
-  it("returns the documented schema with all 19 v1 actions", () => {
+  it("returns the documented schema with the current AUDIT_ACTIONS tuple", () => {
     const now = new Date("2026-05-20T12:00:00.000Z");
     const result = buildAuditActionsExport(now);
 
@@ -33,9 +33,13 @@ describe("buildAuditActionsExport", () => {
     });
   });
 
-  it("emits exactly 19 actions matching spec FR-1", () => {
+  // Locked count — bump deliberately when adding a new action so the FE
+  // template registry change-log stays auditable. v1 shipped 19 (admin-audit-log);
+  // class-staff lifecycle (assign/remove/change-role) added 3 in
+  // @doc/specs/subject-removal-classstaff-role-refactor.
+  it("emits exactly 22 actions (19 v1 + 3 class-staff lifecycle)", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(19);
+    expect(result.actions).toHaveLength(22);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {
