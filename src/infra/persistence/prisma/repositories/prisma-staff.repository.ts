@@ -159,6 +159,46 @@ export class PrismaStaffRepository implements StaffRepository {
     );
   }
 
+  async findEligibleForClass(
+    classId: string,
+    params: StandardRequest,
+    scope?: { campusId: string },
+  ): Promise<PaginatedResult<Staff>> {
+    // Narrow user-controllable surface: caller may filter by fullName (ilike
+    // for ?search). isArchived, the anti-join on classStaff, and
+    // scope.campusId are all system-enforced via `where` + `scope`.
+    params.allowedFilterFields = ["fullName"];
+    params.allowedSortFields = [
+      "fullName",
+      "staffCode",
+      "createdAt",
+      "startDate",
+    ];
+
+    return await this.queryService.executeQuery<Staff>(
+      this.prisma,
+      "staff",
+      params,
+      {
+        where: {
+          isArchived: false,
+          // Anti-join: exclude staff already linked to the target class via
+          // any classStaff row, regardless of their role on that row
+          // (@doc/specs/bulk-class-staff-assignment AC-13). Prisma `none` is
+          // a typed NOT EXISTS equivalent permitted by D4.
+          classes: { none: { classId } },
+        },
+        include: {
+          user: true,
+          staffType: true,
+        },
+        orderBy: { createdAt: "desc" },
+        scope,
+      },
+      PrismaStaffMapper,
+    );
+  }
+
   async save(staff: Staff): Promise<Staff> {
     const prismaData = PrismaStaffMapper.toPrisma(staff);
     const created = await this.prisma.staff.create({

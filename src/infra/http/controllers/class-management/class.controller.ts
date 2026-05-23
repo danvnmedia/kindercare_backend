@@ -41,12 +41,16 @@ import {
   BulkTransferStudentsRequest,
   BulkTransferStudentsResponse,
   AssignStaffRequest,
+  BulkAssignStaffRequest,
+  BulkAssignStaffResponse,
   ChangeClassStaffRoleRequest,
   ClassStaffResponse,
   GetClassEnrollmentsQuery,
   EligibleStudentsQuery,
+  EligibleStaffQuery,
 } from "../../dtos/class-management";
 import { StudentResponse } from "../../dtos/user-management/student";
+import { StaffResponse } from "../../dtos/user-management/staff/staff.response";
 
 // Use Cases
 import { CreateClassUseCase } from "@/application/class-management/use-cases/class/create-class.use-case";
@@ -60,7 +64,9 @@ import { BulkEnrollStudentsUseCase } from "@/application/class-management/use-ca
 import { BulkTransferStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-transfer-students.use-case";
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
 import { GetEligibleStudentsForClassUseCase } from "@/application/user-management/use-cases/student/get-eligible-students-for-class.use-case";
+import { GetEligibleStaffForClassUseCase } from "@/application/user-management/use-cases/staff/get-eligible-staff-for-class.use-case";
 import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
+import { BulkAssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/bulk-assign-staff-to-class.use-case";
 import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
 import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
 import { ChangeClassStaffRoleUseCase } from "@/application/class-management/use-cases/class-staff/change-class-staff-role.use-case";
@@ -81,7 +87,9 @@ export class ClassController {
     private readonly withdrawStudentUseCase: WithdrawStudentUseCase,
     private readonly getClassEnrollmentsUseCase: GetClassEnrollmentsUseCase,
     private readonly getEligibleStudentsForClassUseCase: GetEligibleStudentsForClassUseCase,
+    private readonly getEligibleStaffForClassUseCase: GetEligibleStaffForClassUseCase,
     private readonly assignStaffToClassUseCase: AssignStaffToClassUseCase,
+    private readonly bulkAssignStaffToClassUseCase: BulkAssignStaffToClassUseCase,
     private readonly getClassStaffUseCase: GetClassStaffUseCase,
     private readonly removeStaffFromClassUseCase: RemoveStaffFromClassUseCase,
     private readonly changeClassStaffRoleUseCase: ChangeClassStaffRoleUseCase,
@@ -484,6 +492,49 @@ export class ClassController {
     });
   }
 
+  @Get(":classId/eligible-staff")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Eligible staff retrieved successfully",
+    type: StaffResponse,
+    isPaginated: true,
+  })
+  @ApiOperation({
+    summary: "Get staff eligible to be assigned to this class",
+    description:
+      "Returns paginated staff at the same campus as the class who are not archived and have no existing classStaff row for this class (anti-join, regardless of role). Cross-campus class lookups return 404.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the eligibility check",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "classId",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiQuery({
+    name: "search",
+    required: false,
+    type: String,
+    description: "Case-insensitive substring match on fullName",
+  })
+  async getEligibleStaff(
+    @CampusContext() campusId: string,
+    @Param("classId") classId: string,
+    @StandardRequestParam() params: StandardRequest,
+    @Query() query: EligibleStaffQuery,
+  ) {
+    return await this.getEligibleStaffForClassUseCase.execute({
+      classId,
+      campusId,
+      params,
+      search: query.search,
+    });
+  }
+
   // ==================== Staff Assignment Endpoints ====================
 
   @Post(":id/staff")
@@ -520,6 +571,47 @@ export class ClassController {
         classId,
         staffId: dto.staffId,
         role: dto.role,
+      },
+      currentUser,
+    );
+  }
+
+  @Post(":id/staff/bulk")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Bulk assign staff completed",
+    type: BulkAssignStaffResponse,
+  })
+  @ApiOperation({
+    summary: "Bulk assign staff to a class",
+    description:
+      "Assigns up to 100 staff members to a class in a single call. Each row carries its own role (HOMEROOM / ASSISTANT / BOARDING) — there is no batch-level role. Whole-call validation (BATCH_EMPTY, BATCH_TOO_LARGE, DUPLICATE_STAFF_IN_BATCH, MULTIPLE_HOMEROOM_IN_BATCH, class+campus) short-circuits with 4xx and zero row work. Per-row validation (STAFF_NOT_FOUND, STAFF_NOT_IN_CAMPUS, STAFF_ALREADY_ASSIGNED, HOMEROOM_ALREADY_ASSIGNED) is tolerant: failing rows appear in `skipped[]` with a stable machine `reason` and the rest persist atomically inside one transaction with their ASSIGN_STAFF_TO_CLASS audit events.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async bulkAssignStaff(
+    @CampusContext() campusId: string,
+    @Param("id") classId: string,
+    @Body() dto: BulkAssignStaffRequest,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.bulkAssignStaffToClassUseCase.execute(
+      {
+        campusId,
+        classId,
+        staff: dto.staff.map((row) => ({
+          staffId: row.staffId,
+          role: row.role,
+        })),
       },
       currentUser,
     );

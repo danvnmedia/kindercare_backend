@@ -48,8 +48,13 @@ import { GetStudentSchoolYearHistoryUseCase } from "@/application/class-manageme
 // CLASS_REPOSITORY + STUDENT_REPOSITORY co-located without a forwardRef cycle.)
 import { GetEligibleStudentsForClassUseCase } from "@/application/user-management/use-cases/student/get-eligible-students-for-class.use-case";
 
+// Use Cases - Eligible Staff (file lives in user-management; registered here to keep
+// CLASS_REPOSITORY + STAFF_REPOSITORY co-located without a forwardRef cycle.)
+import { GetEligibleStaffForClassUseCase } from "@/application/user-management/use-cases/staff/get-eligible-staff-for-class.use-case";
+
 // Use Cases - Class Staff
 import { AssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/assign-staff-to-class.use-case";
+import { BulkAssignStaffToClassUseCase } from "@/application/class-management/use-cases/class-staff/bulk-assign-staff-to-class.use-case";
 import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
 import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
 import { ChangeClassStaffRoleUseCase } from "@/application/class-management/use-cases/class-staff/change-class-staff-role.use-case";
@@ -123,9 +128,11 @@ import { RequestContextModule } from "../context/request-context.module";
     GetClassEnrollmentsUseCase,
     GetStudentEnrollmentHistoryUseCase,
     GetEligibleStudentsForClassUseCase,
+    GetEligibleStaffForClassUseCase,
 
     // Class Staff Use Cases
     AssignStaffToClassUseCase,
+    BulkAssignStaffToClassUseCase,
     GetClassStaffUseCase,
     RemoveStaffFromClassUseCase,
     ChangeClassStaffRoleUseCase,

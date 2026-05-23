@@ -4,3 +4,4 @@ export * from "./get-all-staff.use-case";
 export * from "./update-staff.use-case";
 export * from "./archive-staff.use-case";
 export * from "./restore-staff.use-case";
+export * from "./get-eligible-staff-for-class.use-case";
