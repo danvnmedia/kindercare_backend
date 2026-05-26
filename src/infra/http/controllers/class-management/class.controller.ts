@@ -33,6 +33,7 @@ import {
   CreateClassRequest,
   UpdateClassRequest,
   ClassResponse,
+  ClassListItemResponse,
   EnrollStudentRequest,
   WithdrawStudentRequest,
   EnrollmentResponse,
@@ -126,13 +127,13 @@ export class ClassController {
   @RequireCampusAccess()
   @StandardResponse({
     message: "Classes retrieved successfully",
-    type: ClassResponse,
+    type: ClassListItemResponse,
     isArray: true,
   })
   @ApiOperation({
     summary: "Get all classes",
     description:
-      "Retrieve all classes with advanced filtering, sorting, and pagination. Supports filtering by name, description, gradeLevelId, schoolYearId.",
+      "Retrieve all classes with advanced filtering, sorting, and pagination. Supports filtering by name, description, gradeLevelId, schoolYearId. Each row carries `studentCount` (active enrollments) and a compact `staff[]` preview.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

@@ -38,6 +38,33 @@ export class ClassStaffStaffInfo {
   staffType: StaffTypeSummaryDto | null;
 }
 
+/**
+ * Compact projection of a staff row attached to a class, used by the
+ * `GET /classes` list endpoint so the FE can render a staff `AvatarGroup`
+ * without a second round-trip to `GET /classes/:id/staff`.
+ *
+ * Strict subset of `ClassStaffStaffInfo` — intentionally drops `email` and
+ * `staffType` to keep the list-row payload small.
+ */
+export class ClassStaffPreview {
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
+  id: string;
+
+  @Expose()
+  @ApiProperty({ example: "Nguyễn Văn A" })
+  fullName: string;
+
+  @Expose()
+  @ApiProperty({
+    enum: ClassStaffRole,
+    example: ClassStaffRole.HOMEROOM,
+    description:
+      "Role assigned to the staff in this class (HOMEROOM / ASSISTANT / BOARDING).",
+  })
+  role: ClassStaffRole;
+}
+
 export class ClassStaffResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })

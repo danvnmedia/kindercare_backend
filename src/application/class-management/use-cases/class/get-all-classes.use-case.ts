@@ -1,8 +1,10 @@
 import { Injectable, Inject, Logger } from "@nestjs/common";
-import { ClassRepository } from "../../ports/class.repository";
+import {
+  ClassListItemView,
+  ClassRepository,
+} from "../../ports/class.repository";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
-import { Class } from "@/domain/class-management/entities/class.entity";
 
 export interface GetAllClassesInput {
   campusId: string;
@@ -18,7 +20,9 @@ export class GetAllClassesUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(input: GetAllClassesInput): Promise<PaginatedResult<Class>> {
+  async execute(
+    input: GetAllClassesInput,
+  ): Promise<PaginatedResult<ClassListItemView>> {
     try {
       this.logger.log(
         `Fetching classes for campus ${input.campusId}: offset=${input.params.offset ?? 0}, limit=${input.params.limit ?? 10}`,
