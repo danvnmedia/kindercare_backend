@@ -2,7 +2,7 @@
 title: Audit Event Context Shapes
 description: 'Per-action JSONB context shape for `audit_event.context`. Source of truth for what each use case writes and what the FE display-template registry consumes.'
 createdAt: '2026-05-19T20:14:31.630Z'
-updatedAt: '2026-05-23T15:27:58.710Z'
+updatedAt: '2026-05-25T15:58:25.647Z'
 tags:
   - audit
   - reference
@@ -213,7 +213,13 @@ When the guardian has a linked `User` and the patch touches `email` / `phoneNumb
 // context
 {
   "actorName": "Alice Nguyen",
-  "targetName": "Dan Le"
+  "targetName": "Dan Le",
+  "rolesGranted": [
+    { "roleId": "ROLE_PRINCIPAL", "viaStaffTypeId": "principal" }
+  ],
+  "rolesRevoked": [
+    { "roleId": "ROLE_TEACHER", "viaStaffTypeId": "teacher" }
+  ]
 }
 ```
 
@@ -221,13 +227,14 @@ When the guardian has a linked `User` and the patch touches `email` / `phoneNumb
 |---|---|---|
 | `actorName` | caller | as above |
 | `targetName` | recorder | snapshot of `staff.fullName` |
+| `rolesGranted` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when the edit had no role impact. Populated based on **actual** inserts — a D5 manual-grant conflict (count = 0) keeps it `[]`. |
+| `rolesRevoked` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when no tracked grant was revoked. Populated only when `oldStaffType.defaultRoleId` is known at audit time — the row is still deleted regardless, but cannot be audit-named without it. |
 | `before_value` | caller | `computeDiff` over `fullName, email, phoneNumber, staffTypeId, address, dateOfBirth, gender, startDate` |
 | `after_value` | caller | same field set |
 
-Display template: `"Staff {{actorName}} updated profile of Staff {{targetName}}"`.
+Display template: `"Staff {{actorName}} updated profile of Staff {{targetName}}"`. Timeline renderers should surface a secondary line beneath the profile diff when either role array is non-empty — e.g. `"Granted role {{roleId}} (via Type {{viaStaffTypeId}})"` / `"Revoked role {{roleId}} (via Type {{viaStaffTypeId}})"`.
 
-`staffTypeId` changes appear in the diff as `before_value.staffTypeId` / `after_value.staffTypeId`. The default-role re-assignment that accompanies a staff-type change runs as a sibling `tx.assignRoles` call inside the same UoW — it does NOT emit a separate audit row. Clerk-saga semantics mirror Guardian.
-
+`staffTypeId` changes appear in the diff as `before_value.staffTypeId` / `after_value.staffTypeId`. Unlike v1, the default-role flip that accompanies a staff-type change is no longer a silent sibling of the diff: its outcome is now visible in `rolesGranted` / `rolesRevoked` per @doc/specs/tracked-grant-revocation (D3 single audit event, D5 manual-wins). Clerk-saga semantics mirror Guardian.
 ### Archive / restore (6 actions — @task-2c5xq3)
 
 Soft-delete lifecycle. Six actions emitted by `archive-*.use-case.ts` and `restore-*.use-case.ts`. All six share the same context + diff shape; only the action code and direction of the `isArchived` flip differ.
@@ -452,6 +459,77 @@ HOMEROOM uniqueness applies on promotions to HOMEROOM identically to `ASSIGN_STA
 | `ASSIGN_STAFF_TO_CLASS` | `staff` | `actorName`, `classId`, `role` | `"Staff {{actorName}} assigned Staff to a class as {{role}}"` |
 | `REMOVE_STAFF_FROM_CLASS` | `staff` | `actorName`, `classId`, `role` | `"Staff {{actorName}} removed Staff (was {{role}}) from a class"` |
 | `CHANGE_STAFF_ROLE` | `staff` | `actorName`, `classId`, `previousRole`, `newRole` | `"Staff {{actorName}} changed Staff role from {{previousRole}} to {{newRole}}"` |
+
+### Direct role assignment (2 actions — @task-hc5par + @task-h11ftm)
+
+Two actions emitted by the direct-role-assignment use cases — `assign-users-to-role.use-case.ts` and `remove-users-from-role.use-case.ts` under `src/application/user-management/use-cases/role/`. Both target the user being modified at the audit-row level (`targetType = "user"`, `targetId = userId`); `context` carries the role + campus + actor snapshot.
+
+**Per-pair granularity** (D1 of [@doc/specs/direct-role-assignment-via-uow](specs/direct-role-assignment-via-uow)): batched grants/revokes emit one audit row per `(userId, roleId, campusId)` tuple that actually changes state — never a single batched row. This keeps entity-history reads on the user surface every grant/revoke event in isolation.
+
+**`targetName` is null** for both actions — unique to `targetType="user"`. The `User` row has no name field; identity lives on the linked Guardian/Staff profile, so the recorder does NOT issue a snapshot lookup. The acting admin's name lives in `context.actorName`. Locked down by `src/infra/persistence/prisma/audit-event-recorder.spec.ts:192` ("returns a null targetName for targetType='user'") so future readers don't assume a snapshot regression.
+
+#### `GRANT_ROLE`
+
+```json
+// context
+{
+  "actorName": "Alice Nguyen",
+  "roleId": "role-uuid",
+  "campusId": "campus-uuid"
+}
+```
+
+| Field | Source | Notes |
+|---|---|---|
+| `targetId` | caller (row-level, not context) | `userId` of the user being granted |
+| `targetType` | caller (row-level) | `"user"` |
+| `actorName` | caller | `currentUser.profile?.fullName ?? null` |
+| `roleId` | caller | `input.roleId` — the campus-scoped role being granted |
+| `campusId` | caller | `input.campusId` — equal to `role.campusId` (cross-campus rejected pre-UoW per AC-4) |
+| `targetName` | recorder | always `null` (see callout above) |
+| `before_value` / `after_value` | — | both `null`; the action code carries the operation semantic |
+
+Display template: `"Staff {{actorName}} granted role {{roleId}} in campus {{campusId}}"`. Role + user names render from sibling resolver lookups since the row carries only IDs.
+
+**D5 conflict suppression** (manual-wins): when `tx.assignRoles` returns `inserted = 0` (the user already holds a manual or tracked grant for the pair), the use case does NOT emit `GRANT_ROLE`. The audit log stays silent on idempotent re-grants. See [@doc/specs/tracked-grant-revocation](specs/tracked-grant-revocation) D5 for the underlying manual-wins semantics.
+
+#### `REVOKE_ROLE`
+
+```json
+// context
+{
+  "actorName": "Alice Nguyen",
+  "roleId": "role-uuid",
+  "campusId": "campus-uuid"
+}
+```
+
+| Field | Source | Notes |
+|---|---|---|
+| `targetId` | caller (row-level) | `userId` of the user being revoked |
+| `targetType` | caller (row-level) | `"user"` |
+| `actorName` | caller | as above |
+| `roleId` | caller | `input.roleId` |
+| `campusId` | caller | `input.campusId` |
+| `targetName` | recorder | always `null` (see callout above) |
+| `before_value` / `after_value` | — | both `null` |
+
+Display template: `"Staff {{actorName}} revoked role {{roleId}} in campus {{campusId}}"`.
+
+**D4 no-op suppression**: when `tx.revokeRoles` returns `deleted = 0` (the user never held this role-campus pair), the use case does NOT emit `REVOKE_ROLE`. Idempotent revokes leave the audit log silent — mirror of D5 on the grant side.
+
+**Scenario 9 admin-override** (per [@doc/specs/direct-role-assignment-via-uow](specs/direct-role-assignment-via-uow)): `tx.revokeRoles` deletes by natural key `(userId, roleId, campusId)` regardless of `granted_via_staff_type_id`, so admin revoke removes manual AND tracked-provenance rows. The audit emits identically — same context shape, same display template. The use case never branches on provenance.
+
+#### Per-action codes and display templates
+
+| Action | targetType | `context` keys | Display template |
+|---|---|---|---|
+| `GRANT_ROLE` | `user` | `actorName`, `roleId`, `campusId` | `"Staff {{actorName}} granted role {{roleId}} in campus {{campusId}}"` |
+| `REVOKE_ROLE` | `user` | `actorName`, `roleId`, `campusId` | `"Staff {{actorName}} revoked role {{roleId}} in campus {{campusId}}"` |
+
+#### Atomicity
+
+Both actions run inside the same UoW closure as the underlying `tx.assignRoles` / `tx.revokeRoles` mutation. Per-user iteration: each grant/revoke + its audit emit live in the same `for` loop body. If any iteration throws, Prisma `$transaction` rolls back the entire batch — every user_role mutation already issued AND every audit row already emitted in the same closure. Locked down by `src/application/user-management/use-cases/role/role-assignment-atomicity.integration.spec.ts` ([@task-sgxpsf](task)) for both sides.
 
 ## Failure modes
 

@@ -50,6 +50,10 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   ASSIGN_STAFF_TO_CLASS: "ADMIN",
   REMOVE_STAFF_FROM_CLASS: "ADMIN",
   CHANGE_STAFF_ROLE: "ADMIN",
+
+  // RBAC role grants (2)
+  GRANT_ROLE: "ADMIN",
+  REVOKE_ROLE: "ADMIN",
 };
 
 // Runtime self-check — keeps the map covering every AuditAction even if the

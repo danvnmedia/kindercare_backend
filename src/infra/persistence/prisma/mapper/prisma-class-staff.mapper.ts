@@ -2,6 +2,7 @@ import {
   ClassStaff as PrismaClassStaff,
   Class as PrismaClass,
   Staff as PrismaStaff,
+  StaffType as PrismaStaffType,
   Prisma,
 } from "@prisma/client";
 import { ClassStaff } from "@/domain/class-management/entities/class-staff.entity";
@@ -11,7 +12,9 @@ import { PrismaStaffMapper } from "./prisma-staff.mapper";
 
 type PrismaClassStaffWithRelations = PrismaClassStaff & {
   class?: PrismaClass | null;
-  staff?: PrismaStaff | null;
+  // staff arrives with its staffType relation eager-loaded so the snapshot
+  // makes it onto the domain entity (see prisma-class-staff.repository.ts).
+  staff?: (PrismaStaff & { staffType?: PrismaStaffType | null }) | null;
 };
 
 export class PrismaClassStaffMapper {
@@ -25,8 +28,10 @@ export class PrismaClassStaffMapper {
         class: prismaClassStaff.class
           ? PrismaClassMapper.toDomainSimple(prismaClassStaff.class)
           : undefined,
+        // Use toDomain (not toDomainSimple) so the nested staffType relation
+        // is forwarded into the Staff snapshot.
         staff: prismaClassStaff.staff
-          ? PrismaStaffMapper.toDomainSimple(prismaClassStaff.staff)
+          ? PrismaStaffMapper.toDomain(prismaClassStaff.staff)
           : undefined,
         createdAt: prismaClassStaff.createdAt,
         updatedAt: prismaClassStaff.updatedAt,
@@ -68,9 +73,7 @@ export class PrismaClassStaffMapper {
    * @doc/patterns/mapper-pattern). Identity columns (classId, staffId) are
    * intentionally omitted because they are immutable after creation.
    */
-  static toPrismaUpdate(
-    classStaff: ClassStaff,
-  ): Prisma.ClassStaffUpdateInput {
+  static toPrismaUpdate(classStaff: ClassStaff): Prisma.ClassStaffUpdateInput {
     return {
       role: classStaff.role,
       updatedAt: classStaff.updatedAt,

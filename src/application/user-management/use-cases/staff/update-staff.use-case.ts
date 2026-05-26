@@ -1,5 +1,8 @@
 import { IdentityPort } from "@/application/ports/identity.port";
-import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import {
+  TransactionContext,
+  UnitOfWorkPort,
+} from "@/application/ports/unit-of-work.port";
 import { computeDiff } from "@/application/audit";
 import {
   Staff,
@@ -35,6 +38,26 @@ interface ClerkOriginalValues {
   email: string;
   phoneNumber: string;
   fullName: string;
+}
+
+type RoleProvenanceEntry = { roleId: string; viaStaffTypeId: string };
+
+// Audit `context` shape for EDIT_STAFF_PROFILE. The role arrays are visible
+// in the timeline alongside the profile diff — see
+// @doc/specs/tracked-grant-revocation (D3 single audit event, D5 manual-wins)
+// and @doc/references/audit-event-context-shapes. The index signature lets
+// this typed shape flow into the port's wider `Record<string, unknown>`
+// jsonb contract without an `as` cast at the call site.
+interface EditStaffProfileContext {
+  actorName: string | null;
+  rolesGranted: RoleProvenanceEntry[];
+  rolesRevoked: RoleProvenanceEntry[];
+  [key: string]: unknown;
+}
+
+interface TrackedGrantSync {
+  rolesGranted: RoleProvenanceEntry[];
+  rolesRevoked: RoleProvenanceEntry[];
 }
 
 @Injectable()
@@ -114,6 +137,16 @@ export class UpdateStaffUseCase {
       }
     }
 
+    // Step 4b: Pre-resolve `oldDefaultRoleId` BEFORE entering the UoW so the
+    // audit payload can name what was revoked. `staff.changeStaffType()` only
+    // mutates the FK on the entity — the related role row's ID is not
+    // reconstructable inside the transaction.
+    // (@doc/specs/tracked-grant-revocation#use-case-flow-change-updatestaffusecase)
+    const oldDefaultRoleId = await this.resolveOldDefaultRoleId(
+      staff.staffTypeId,
+      input.staffTypeId,
+    );
+
     // Step 5: Detect Clerk-relevant changes (email, phone, fullName)
     const clerkChanges = this.detectClerkChanges(staff, input);
 
@@ -123,13 +156,39 @@ export class UpdateStaffUseCase {
         staff,
         input,
         clerkChanges,
+        oldDefaultRoleId,
         newDefaultRoleId,
         currentUser,
       );
     }
 
     // Step 7: Otherwise, just update DB with transaction
-    return await this.updateDbOnly(staff, input, newDefaultRoleId, currentUser);
+    return await this.updateDbOnly(
+      staff,
+      input,
+      oldDefaultRoleId,
+      newDefaultRoleId,
+      currentUser,
+    );
+  }
+
+  /**
+   * Look up the old StaffType's `defaultRoleId` when a swap is about to
+   * happen. Returns `null` when no swap is intended or no old type exists.
+   * Caller does this OUTSIDE the UoW so the audit payload can be constructed
+   * without making the transaction wait on a read.
+   */
+  private async resolveOldDefaultRoleId(
+    oldStaffTypeId: string | null,
+    nextStaffTypeId: string | null | undefined,
+  ): Promise<string | null> {
+    if (!oldStaffTypeId) return null;
+    if (nextStaffTypeId === undefined) return null;
+    if (nextStaffTypeId === oldStaffTypeId) return null;
+
+    const oldStaffType =
+      await this.staffTypeRepository.findById(oldStaffTypeId);
+    return oldStaffType?.defaultRoleId ?? null;
   }
 
   /**
@@ -168,6 +227,7 @@ export class UpdateStaffUseCase {
     staff: Staff,
     input: UpdateStaffInput,
     clerkChanges: ClerkChanges,
+    oldDefaultRoleId: string | null,
     newDefaultRoleId: string | null,
     currentUser: User,
   ): Promise<Staff> {
@@ -180,6 +240,7 @@ export class UpdateStaffUseCase {
       return await this.updateDbOnly(
         staff,
         input,
+        oldDefaultRoleId,
         newDefaultRoleId,
         currentUser,
       );
@@ -247,23 +308,31 @@ export class UpdateStaffUseCase {
           updatedAt: staff.updatedAt,
         });
 
-        // Handle role update inside transaction if staffTypeId changed and new type has default role
-        if (
-          input.staffTypeId !== undefined &&
-          input.staffTypeId !== oldStaffTypeId &&
-          newDefaultRoleId
-        ) {
-          await this.assignDefaultRole(tx, staff, newDefaultRoleId);
-        }
+        // Sync tracked role grants atomically with the staff update — revoke
+        // the old type's grant, insert the new one with provenance, and
+        // surface the result for the audit payload.
+        const { rolesGranted, rolesRevoked } = await this.syncTrackedGrants(
+          tx,
+          staff,
+          oldStaffTypeId,
+          oldDefaultRoleId,
+          input.staffTypeId,
+          newDefaultRoleId,
+        );
 
         if (Object.keys(diff.after).length > 0) {
+          const context: EditStaffProfileContext = {
+            actorName: currentUser.profile?.fullName ?? null,
+            rolesGranted,
+            rolesRevoked,
+          };
           await tx.recordAudit({
             actorId: currentUser.id,
             action: "EDIT_STAFF_PROFILE",
             targetType: "staff",
             targetId: staff.id,
             campusId: staff.campusId,
-            context: { actorName: currentUser.profile?.fullName ?? null },
+            context,
             beforeValue: diff.before,
             afterValue: diff.after,
           });
@@ -302,6 +371,7 @@ export class UpdateStaffUseCase {
   private async updateDbOnly(
     staff: Staff,
     input: UpdateStaffInput,
+    oldDefaultRoleId: string | null,
     newDefaultRoleId: string | null,
     currentUser: User,
   ): Promise<Staff> {
@@ -338,23 +408,31 @@ export class UpdateStaffUseCase {
           updatedAt: staff.updatedAt,
         });
 
-        // Handle role update inside transaction if staffTypeId changed and new type has default role
-        if (
-          input.staffTypeId !== undefined &&
-          input.staffTypeId !== oldStaffTypeId &&
-          newDefaultRoleId
-        ) {
-          await this.assignDefaultRole(tx, staff, newDefaultRoleId);
-        }
+        // Sync tracked role grants atomically with the staff update — revoke
+        // the old type's grant, insert the new one with provenance, and
+        // surface the result for the audit payload.
+        const { rolesGranted, rolesRevoked } = await this.syncTrackedGrants(
+          tx,
+          staff,
+          oldStaffTypeId,
+          oldDefaultRoleId,
+          input.staffTypeId,
+          newDefaultRoleId,
+        );
 
         if (Object.keys(diff.after).length > 0) {
+          const context: EditStaffProfileContext = {
+            actorName: currentUser.profile?.fullName ?? null,
+            rolesGranted,
+            rolesRevoked,
+          };
           await tx.recordAudit({
             actorId: currentUser.id,
             action: "EDIT_STAFF_PROFILE",
             targetType: "staff",
             targetId: staff.id,
             campusId: staff.campusId,
-            context: { actorName: currentUser.profile?.fullName ?? null },
+            context,
             beforeValue: diff.before,
             afterValue: diff.after,
           });
@@ -375,35 +453,94 @@ export class UpdateStaffUseCase {
   }
 
   /**
-   * Assign default role from new staff type within transaction context
-   * Role is scoped to the staff's campus
+   * Sync tracked role grants for a staff-type swap inside the active UoW.
+   *
+   * Behavioral contract (@doc/specs/tracked-grant-revocation):
+   * - When `staff.userId` is null → no-op (spec AC-13).
+   * - When `nextStaffTypeId` is `undefined` or equals `oldStaffTypeId` → no-op
+   *   (caller didn't ask for a swap).
+   * - When `oldStaffTypeId` is non-null → delete every `user_roles` row with
+   *   provenance `oldStaffTypeId`. The row is dropped regardless of whether
+   *   we can audit-name it; `rolesRevoked` only gains an entry when
+   *   `oldDefaultRoleId` is known (the spec mirrors this conditional push).
+   * - When `nextStaffTypeId` and `newDefaultRoleId` are both non-null →
+   *   insert one tracked row, then push to `rolesGranted` only if the insert
+   *   actually committed (D5: a colliding manual grant returns count=0 and
+   *   the auto-assign stays silent).
+   *
+   * Manual grants (provenance NULL) are never touched — SQL semantics (D4).
    */
-  private async assignDefaultRole(
-    tx: Parameters<Parameters<UnitOfWorkPort["run"]>[0]>[0],
+  private async syncTrackedGrants(
+    tx: TransactionContext,
     staff: Staff,
-    newDefaultRoleId: string,
-  ): Promise<void> {
+    oldStaffTypeId: string | null,
+    oldDefaultRoleId: string | null,
+    nextStaffTypeId: string | null | undefined,
+    newDefaultRoleId: string | null,
+  ): Promise<TrackedGrantSync> {
+    const rolesGranted: RoleProvenanceEntry[] = [];
+    const rolesRevoked: RoleProvenanceEntry[] = [];
+
     if (!staff.hasUserAccount()) {
-      this.logger.log("Staff has no user account, skipping role assignment");
-      return;
+      return { rolesGranted, rolesRevoked };
     }
 
-    // Verify new role exists
-    const newRole = await this.roleRepository.findById(newDefaultRoleId);
-    if (!newRole) {
-      this.logger.warn(
-        `Default role ${newDefaultRoleId} not found, skipping role assignment`,
+    if (
+      nextStaffTypeId === undefined ||
+      nextStaffTypeId === oldStaffTypeId
+    ) {
+      return { rolesGranted, rolesRevoked };
+    }
+
+    const userId = staff.userId!;
+
+    if (oldStaffTypeId) {
+      await tx.revokeRolesByProvenance(userId, oldStaffTypeId);
+      if (oldDefaultRoleId) {
+        rolesRevoked.push({
+          roleId: oldDefaultRoleId,
+          viaStaffTypeId: oldStaffTypeId,
+        });
+      }
+      this.logger.log(
+        `Revoked tracked grants for user ${userId} from staffType ${oldStaffTypeId}`,
       );
-      return;
     }
 
-    // Assign new default role using transaction context, scoped to staff's campus
-    await tx.assignRoles(staff.userId!, [
-      { roleId: newDefaultRoleId, campusId: staff.campusId },
-    ]);
-    this.logger.log(
-      `Assigned default role ${newDefaultRoleId} to user ${staff.userId} in campus ${staff.campusId}`,
-    );
+    if (nextStaffTypeId && newDefaultRoleId) {
+      // Defensive: stale FK could point at a role that no longer exists.
+      const newRole = await this.roleRepository.findById(newDefaultRoleId);
+      if (!newRole) {
+        this.logger.warn(
+          `Default role ${newDefaultRoleId} not found, skipping role assignment for user ${userId}`,
+        );
+        return { rolesGranted, rolesRevoked };
+      }
+
+      const inserted = await tx.assignRoles(userId, [
+        {
+          roleId: newDefaultRoleId,
+          campusId: staff.campusId,
+          grantedViaStaffTypeId: nextStaffTypeId,
+        },
+      ]);
+      if (inserted > 0) {
+        rolesGranted.push({
+          roleId: newDefaultRoleId,
+          viaStaffTypeId: nextStaffTypeId,
+        });
+        this.logger.log(
+          `Assigned default role ${newDefaultRoleId} to user ${userId} in campus ${staff.campusId} (via staffType ${nextStaffTypeId})`,
+        );
+      } else {
+        // D5 conflict: a pre-existing manual grant kept its row.
+        this.logger.log(
+          `Tracked-grant insert skipped — manual row already holds (user ${userId}, role ${newDefaultRoleId}, campus ${staff.campusId})`,
+        );
+      }
+    }
+
+    return { rolesGranted, rolesRevoked };
   }
 
   /**

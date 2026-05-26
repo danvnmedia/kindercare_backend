@@ -46,17 +46,62 @@ export interface TransactionContext {
   ): Promise<{ id: string }>;
 
   /**
-   * Assign roles to a user with campus context
+   * Assign roles to a user with campus + provenance context.
    *
    * @param userId - The user to assign roles to
-   * @param roleAssignments - Array of role assignments with optional campusId
-   *   - campusId = undefined/null: Global assignment (role applies everywhere)
-   *   - campusId = string: Campus-specific assignment
+   * @param roleAssignments - Array of role assignments
+   *   - `campusId = undefined/null`: global assignment (role applies everywhere)
+   *   - `campusId = string`: campus-specific assignment
+   *   - `grantedViaStaffTypeId = undefined/null`: manual grant (never auto-revoked)
+   *   - `grantedViaStaffTypeId = string`: tracked grant — eligible for revoke
+   *     when the staff's staff-type changes
+   * @returns the number of rows actually inserted. When the existing
+   *   `(userId, roleId, campusId)` unique constraint already holds a row, the
+   *   insert is silently skipped (D5 manual-wins) and that row is NOT counted.
+   *   Callers use the count to decide whether to emit a `rolesGranted` audit
+   *   entry — see @doc/specs/tracked-grant-revocation#d5-conflict-mechanics-manual-wins.
    */
   assignRoles(
     userId: string,
-    roleAssignments: RoleAssignmentInput[],
-  ): Promise<void>;
+    roleAssignments: Array<
+      RoleAssignmentInput & { grantedViaStaffTypeId?: string | null }
+    >,
+  ): Promise<number>;
+
+  /**
+   * Revoke every role row whose provenance matches the given staff-type.
+   *
+   * Used by `UpdateStaffUseCase` when a staff's `staffTypeId` changes — only
+   * rows whose `granted_via_staff_type_id` equals `grantedViaStaffTypeId` are
+   * deleted. Manual grants (`granted_via_staff_type_id IS NULL`) are never
+   * matched by definition, preserving the D4 "manual rows untouched" invariant.
+   *
+   * @returns the number of rows deleted (0 when no tracked grant exists).
+   */
+  revokeRolesByProvenance(
+    userId: string,
+    grantedViaStaffTypeId: string,
+  ): Promise<number>;
+
+  /**
+   * Revoke role rows that match exact `(userId, roleId, campusId)` tuples,
+   * regardless of provenance.
+   *
+   * Used by admin direct-revoke endpoints (`DELETE /roles/:id/users`) to remove
+   * either manual or tracked rows by their natural key. Distinct from
+   * `revokeRolesByProvenance`, which filters by `granted_via_staff_type_id`
+   * and is the staff-type-driven auto-revoke path — see Scenario 9 of
+   * @doc/specs/direct-role-assignment-via-uow for the boundary contract:
+   * manual revoke deletes BOTH NULL- and non-NULL-provenance rows whose
+   * natural key matches, because the filter never mentions provenance.
+   *
+   * @returns the number of rows actually deleted; 0 when the user holds none
+   *   of the specified pairs (idempotent — no throw on no-match).
+   */
+  revokeRoles(
+    userId: string,
+    removals: Array<{ roleId: string; campusId: string | null }>,
+  ): Promise<number>;
 
   /**
    * Execute a raw create operation for Guardian entity

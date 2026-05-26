@@ -174,6 +174,9 @@ model StaffType {
   defaultRole Role?   @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
   staff       Staff[]
 
+  // Reverse side of UserRole.grantedViaStaffType — see @doc/specs/tracked-grant-revocation.
+  userRoleProvenance UserRole[] @relation("UserRoleProvenance")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -244,12 +247,20 @@ model UserRole {
   campus   Campus? @relation(fields: [campusId], references: [id], onDelete: Cascade)
   campusId String? @map("campus_id") @db.Uuid
 
+  // Provenance: NULL = manual grant (never auto-revoked).
+  // Non-NULL = grant created by staff-type default-role assignment; eligible
+  // for tracked-grant revocation when staff.staffTypeId changes.
+  // See @doc/specs/tracked-grant-revocation#schema-delta.
+  grantedViaStaffTypeId String?    @map("granted_via_staff_type_id") @db.Uuid
+  grantedViaStaffType   StaffType? @relation("UserRoleProvenance", fields: [grantedViaStaffTypeId], references: [id], onDelete: SetNull)
+
   assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
 
   @@unique([userId, roleId, campusId])
   @@index([userId])
   @@index([roleId])
   @@index([campusId])
+  @@index([grantedViaStaffTypeId])
   @@map("user_roles")
 }
 

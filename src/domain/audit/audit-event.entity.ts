@@ -7,8 +7,12 @@ import { AuditVisibility } from "./audit-visibility.enum";
 /**
  * Discriminator for the audited entity. Mirrors the union exposed by
  * `AuditEventRecorderPort` so reads and writes share one vocabulary.
+ *
+ * `"user"` covers RBAC role grants (`GRANT_ROLE` / `REVOKE_ROLE` from
+ * @doc/specs/direct-role-assignment-via-uow D1) — the target is the `User`
+ * row receiving or losing the role-campus pair.
  */
-export type AuditTargetType = "student" | "guardian" | "staff";
+export type AuditTargetType = "student" | "guardian" | "staff" | "user";
 
 /**
  * AuditEvent — read-only projection of the `audit_event` table.

@@ -473,6 +473,70 @@ describe("Staff Entity", () => {
     });
   });
 
+  describe("staffType snapshot", () => {
+    it("defaults staffType snapshot to null when not provided", () => {
+      const staff = Staff.create({
+        campusId: validCampusId,
+        staffCode: validStaffCode,
+        fullName: "Test Staff",
+        email: validEmail,
+        phoneNumber: validPhoneNumber,
+        address: null,
+        dateOfBirth: null,
+        gender: null,
+        startDate: null,
+      });
+
+      expect(staff.staffType).toBeNull();
+    });
+
+    it("preserves the staffType snapshot when supplied at construction", () => {
+      const snapshot = { id: validStaffTypeId, name: "Teacher" };
+      const staff = Staff.create({
+        campusId: validCampusId,
+        staffCode: validStaffCode,
+        fullName: "Test Staff",
+        email: validEmail,
+        phoneNumber: validPhoneNumber,
+        staffTypeId: validStaffTypeId,
+        staffType: snapshot,
+        address: null,
+        dateOfBirth: null,
+        gender: null,
+        startDate: null,
+      });
+
+      expect(staff.staffType).toEqual(snapshot);
+      expect(staff.staffTypeId).toBe(validStaffTypeId);
+    });
+
+    it("does not mutate the staffType snapshot when changeStaffType updates the FK", () => {
+      // Snapshot is a read-side projection — it stays as last-loaded until
+      // the entity is re-read from the repository. Writers update only the FK.
+      const snapshot = { id: validStaffTypeId, name: "Teacher" };
+      const staff = Staff.create({
+        campusId: validCampusId,
+        staffCode: validStaffCode,
+        fullName: "Test Staff",
+        email: validEmail,
+        phoneNumber: validPhoneNumber,
+        staffTypeId: validStaffTypeId,
+        staffType: snapshot,
+        address: null,
+        dateOfBirth: null,
+        gender: null,
+        startDate: null,
+      });
+
+      staff.changeStaffType("new-staff-type-id");
+
+      expect(staff.staffTypeId).toBe("new-staff-type-id");
+      // Snapshot is intentionally not touched — see entity comment on
+      // StaffTypeSnapshot. Caller must re-read after persisting.
+      expect(staff.staffType).toEqual(snapshot);
+    });
+  });
+
   describe("changeStaffType", () => {
     it("should change staff type", () => {
       const staff = Staff.create({

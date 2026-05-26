@@ -25,3 +25,19 @@ describe("ACTION_VISIBILITY", () => {
     }
   });
 });
+
+describe("GRANT_ROLE / REVOKE_ROLE vocab additions (direct-role-assignment-via-uow)", () => {
+  it("registers both actions in AUDIT_ACTIONS", () => {
+    // Lockdown by name. The parameterized "one entry per AuditAction" test
+    // above already covers these universally — this guards against accidental
+    // removal of these two specific named members, which the FE action-list
+    // export and the AuditEventRecorder literal-union both depend on.
+    expect(AUDIT_ACTIONS).toContain("GRANT_ROLE");
+    expect(AUDIT_ACTIONS).toContain("REVOKE_ROLE");
+  });
+
+  it("maps both to ADMIN visibility (D2 of direct-role-assignment-via-uow)", () => {
+    expect(ACTION_VISIBILITY.GRANT_ROLE).toBe("ADMIN");
+    expect(ACTION_VISIBILITY.REVOKE_ROLE).toBe("ADMIN");
+  });
+});

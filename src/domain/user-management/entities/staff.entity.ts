@@ -6,6 +6,17 @@ import { Gender } from "../enums/gender.enum";
 // Format for staff code: ST-YYYY-XXXXXX (e.g., ST-2025-000001)
 const STAFF_CODE_PATTERN = /^ST-\d{4}-\d{6}$/;
 
+/**
+ * Read-side denormalized projection of the related StaffType row. Hydrated by
+ * the mapper when the relation is eager-loaded; never persisted from the
+ * entity. The write path always goes through `staffTypeId` — the snapshot may
+ * be stale between a mutation and the next read.
+ */
+export interface StaffTypeSnapshot {
+  id: string;
+  name: string;
+}
+
 // Properties of the Staff entity
 export interface StaffProps {
   campusId: string;
@@ -14,6 +25,7 @@ export interface StaffProps {
   email: string;
   phoneNumber: string;
   staffTypeId: string | null;
+  staffType: StaffTypeSnapshot | null;
   address: string | null;
   dateOfBirth: Date | null;
   gender: Gender | null;
@@ -51,6 +63,9 @@ export class Staff extends Entity<StaffProps> {
   }
   get staffTypeId(): string | null {
     return this.props.staffTypeId;
+  }
+  get staffType(): StaffTypeSnapshot | null {
+    return this.props.staffType;
   }
   get address(): string | null {
     return this.props.address;
@@ -174,7 +189,12 @@ export class Staff extends Entity<StaffProps> {
   public static create(
     props: Optional<
       StaffProps,
-      "createdAt" | "updatedAt" | "isArchived" | "userId" | "staffTypeId"
+      | "createdAt"
+      | "updatedAt"
+      | "isArchived"
+      | "userId"
+      | "staffTypeId"
+      | "staffType"
     >,
     id?: string,
   ): Staff {
@@ -204,6 +224,7 @@ export class Staff extends Entity<StaffProps> {
     const staffProps: StaffProps = {
       ...props,
       staffTypeId: props.staffTypeId ?? null,
+      staffType: props.staffType ?? null,
       userId: props.userId ?? null,
       isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),

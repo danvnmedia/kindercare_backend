@@ -21,6 +21,15 @@ export class PrismaStaffMapper {
       email: prismaStaff.email,
       phoneNumber: prismaStaff.phoneNumber,
       staffTypeId: prismaStaff.staffTypeId,
+      // Snapshot the loaded StaffType row to a minimal { id, name } projection
+      // so the read-side wire shape stays stable regardless of whether richer
+      // StaffType fields are added later.
+      staffType: prismaStaff.staffType
+        ? {
+            id: prismaStaff.staffType.id,
+            name: prismaStaff.staffType.name,
+          }
+        : null,
       address: prismaStaff.address,
       dateOfBirth: prismaStaff.dateOfBirth,
       gender: prismaStaff.gender as Gender | null,

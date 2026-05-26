@@ -148,4 +148,66 @@ describe("CreateStaffUseCase", () => {
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });
+
+  // Provenance is what lets a later staff-type change selectively revoke the
+  // auto-granted role row without touching manual grants — see
+  // @doc/specs/tracked-grant-revocation (D5 manual-wins, Scenario 1).
+  describe("provenance on auto-granted default role", () => {
+    const STAFF_TYPE_ID = "stype-1";
+    const DEFAULT_ROLE_ID = "role-X";
+
+    it("passes grantedViaStaffTypeId on the role row when staffType has a defaultRoleId", async () => {
+      staffTypeRepo.findById.mockResolvedValueOnce({
+        id: STAFF_TYPE_ID,
+        campusId: CAMPUS_ID,
+        name: "Teacher",
+        defaultRoleId: DEFAULT_ROLE_ID,
+        isArchived: false,
+      } as never);
+
+      await useCase.execute(
+        { ...validInput, staffTypeId: STAFF_TYPE_ID },
+        actor,
+      );
+
+      expect(mockTx.assignRoles).toHaveBeenCalledTimes(1);
+      expect(mockTx.assignRoles).toHaveBeenCalledWith("user-1", [
+        {
+          roleId: DEFAULT_ROLE_ID,
+          campusId: CAMPUS_ID,
+          grantedViaStaffTypeId: STAFF_TYPE_ID,
+        },
+      ]);
+    });
+
+    it("does not call assignRoles when staffType has a null defaultRoleId", async () => {
+      staffTypeRepo.findById.mockResolvedValueOnce({
+        id: STAFF_TYPE_ID,
+        campusId: CAMPUS_ID,
+        name: "AdminAssistant",
+        defaultRoleId: null,
+        isArchived: false,
+      } as never);
+
+      await useCase.execute(
+        { ...validInput, staffTypeId: STAFF_TYPE_ID },
+        actor,
+      );
+
+      // No auto-grant row is inserted at all — preserves the D2 "no historical
+      // reconstruction" invariant: nothing implicit, nothing to clean up later.
+      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      // Staff + user + audit still committed in the same UoW.
+      expect(mockTx.createStaff).toHaveBeenCalledTimes(1);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not call assignRoles when no staffTypeId is supplied", async () => {
+      await useCase.execute(validInput, actor);
+
+      // StaffType validation step is skipped entirely; no role row.
+      expect(staffTypeRepo.findById).not.toHaveBeenCalled();
+      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+    });
+  });
 });

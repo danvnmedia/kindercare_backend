@@ -2,6 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+import { StaffTypeSummaryDto } from "@/infra/http/dtos/user-management/staff-type/staff-type-summary.dto";
 
 export class ClassStaffClassInfo {
   @Expose()
@@ -27,8 +28,14 @@ export class ClassStaffStaffInfo {
   email: string;
 
   @Expose()
-  @ApiProperty({ example: "TEACHER" })
-  staffType: string;
+  @Type(() => StaffTypeSummaryDto)
+  @ApiProperty({
+    type: StaffTypeSummaryDto,
+    nullable: true,
+    description:
+      "Read-only snapshot of the staff member's staff type (id + name). Null when the staff has no staffTypeId.",
+  })
+  staffType: StaffTypeSummaryDto | null;
 }
 
 export class ClassStaffResponse {

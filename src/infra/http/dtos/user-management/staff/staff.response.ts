@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Expose } from "class-transformer";
+import { Expose, Type } from "class-transformer";
+
+import { StaffTypeSummaryDto } from "../staff-type/staff-type-summary.dto";
 
 export class StaffResponse {
   @Expose()
@@ -36,6 +38,16 @@ export class StaffResponse {
     nullable: true,
   })
   staffTypeId: string | null;
+
+  @Expose()
+  @Type(() => StaffTypeSummaryDto)
+  @ApiProperty({
+    type: StaffTypeSummaryDto,
+    nullable: true,
+    description:
+      "Read-only snapshot of the related staff type (id + name). Null when the staff has no staffTypeId. Write path is staffTypeId.",
+  })
+  staffType: StaffTypeSummaryDto | null;
 
   @Expose()
   @ApiProperty({ example: "123 Đường ABC, Quận 1, TP.HCM", nullable: true })

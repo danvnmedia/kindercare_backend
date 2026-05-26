@@ -16,10 +16,14 @@ export type AuditTransactionClient = Prisma.TransactionClient;
 
 /**
  * Discriminator for the audited entity. Free-form `string` in the DB column
- * (FR-2) so v2 can add new types without schema migration; the recorder
- * adapter validates the v1 vocabulary at runtime.
+ * (FR-2) so new types can be added without schema migration; the recorder
+ * adapter validates the current vocabulary at runtime.
+ *
+ * `"user"` covers RBAC role grants (`GRANT_ROLE` / `REVOKE_ROLE` from
+ * @doc/specs/direct-role-assignment-via-uow D1) — the target is the `User`
+ * row receiving or losing the role-campus pair.
  */
-export type AuditTargetType = "student" | "guardian" | "staff";
+export type AuditTargetType = "student" | "guardian" | "staff" | "user";
 
 /**
  * Input payload for a single audit-event write.

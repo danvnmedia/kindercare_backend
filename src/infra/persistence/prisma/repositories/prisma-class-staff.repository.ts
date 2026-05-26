@@ -19,7 +19,7 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       },
       include: {
         class: true,
-        staff: true,
+        staff: { include: { staffType: true } },
       },
     });
     return prismaClassStaff
@@ -32,7 +32,7 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       where: { classId, role: ClassStaffRole.HOMEROOM },
       include: {
         class: true,
-        staff: true,
+        staff: { include: { staffType: true } },
       },
     });
     return prismaClassStaff
@@ -45,7 +45,7 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       where: { classId },
       include: {
         class: true,
-        staff: true,
+        staff: { include: { staffType: true } },
       },
     });
     return PrismaClassStaffMapper.toDomainArray(prismaClassStaffs);
@@ -56,7 +56,7 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       where: { staffId },
       include: {
         class: true,
-        staff: true,
+        staff: { include: { staffType: true } },
       },
     });
     return PrismaClassStaffMapper.toDomainArray(prismaClassStaffs);
@@ -68,7 +68,7 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       data: prismaData,
       include: {
         class: true,
-        staff: true,
+        staff: { include: { staffType: true } },
       },
     });
     return PrismaClassStaffMapper.toDomain(created);
@@ -86,7 +86,7 @@ export class PrismaClassStaffRepository implements ClassStaffRepository {
       data: updateData,
       include: {
         class: true,
-        staff: true,
+        staff: { include: { staffType: true } },
       },
     });
     return PrismaClassStaffMapper.toDomain(updated);

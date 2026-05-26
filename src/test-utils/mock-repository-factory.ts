@@ -132,8 +132,6 @@ export function createMockRoleRepository(): jest.Mocked<RoleRepository> {
     assignPermissions: jest.fn(),
     removePermissions: jest.fn(),
     getPermissions: jest.fn(),
-    assignUsers: jest.fn(),
-    removeUsers: jest.fn(),
     getRoleUsers: jest.fn(),
   } as jest.Mocked<RoleRepository>;
 }

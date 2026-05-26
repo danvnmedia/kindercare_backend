@@ -189,6 +189,43 @@ describe("PrismaAuditEventRecorder", () => {
       expect(data.afterValue).toEqual({ phoneNumber: "555-2222" });
     });
 
+    it("returns a null targetName for targetType='user' (GRANT_ROLE/REVOKE_ROLE — no profile lookup)", async () => {
+      // D1 of @doc/specs/direct-role-assignment-via-uow puts the human-readable
+      // identity in `context.actorName`, not `targetName`. The User row has no
+      // name field — it lives on the linked Guardian/Staff profile. The
+      // recorder MUST NOT touch student/guardian/staff delegates for this
+      // targetType, and MUST emit `targetName: null`.
+      tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });
+
+      await recorder.record(
+        baseInput({
+          action: "GRANT_ROLE",
+          targetType: "user",
+          targetId: "user-1",
+          context: {
+            roleId: "role-1",
+            campusId: "campus-1",
+            actorName: "Alice Nguyen",
+          },
+        }),
+        txAsClient(),
+      );
+
+      expect(tx.student.findUnique).not.toHaveBeenCalled();
+      expect(tx.guardian.findUnique).not.toHaveBeenCalled();
+      expect(tx.staff.findUnique).not.toHaveBeenCalled();
+
+      const data = tx.auditEvent.create.mock.calls[0][0].data;
+      expect(data.targetType).toBe("user");
+      expect(data.targetId).toBe("user-1");
+      expect(data.context).toMatchObject({
+        targetName: null,
+        roleId: "role-1",
+        campusId: "campus-1",
+        actorName: "Alice Nguyen",
+      });
+    });
+
     it("falls back to a null targetName snapshot when the target row is missing", async () => {
       tx.student.findUnique.mockResolvedValue(null);
       tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });

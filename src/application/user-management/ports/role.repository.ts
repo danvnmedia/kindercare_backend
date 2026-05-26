@@ -73,16 +73,6 @@ export interface RoleRepository {
   getPermissions(roleId: string): Promise<Permission[]>;
 
   /**
-   * Assign users to role
-   */
-  assignUsers(roleId: string, userIds: string[]): Promise<void>;
-
-  /**
-   * Remove users from role
-   */
-  removeUsers(roleId: string, userIds: string[]): Promise<void>;
-
-  /**
    * Get role users (paginated)
    */
   getRoleUsers(roleId: string, page: number, limit: number): Promise<any>;

@@ -137,14 +137,21 @@ export class CreateStaffUseCase {
 
         this.logger.log(`Staff created in transaction: ${createdStaff.id}`);
 
-        // Auto-assign role from staffType.defaultRoleId if available
-        // Role is scoped to the staff's campus
+        // Auto-assign role from staffType.defaultRoleId if available.
+        // Role is scoped to the staff's campus, and provenance
+        // (`grantedViaStaffTypeId`) is recorded so a later staff-type change
+        // can revoke this row without touching manual grants
+        // (@doc/specs/tracked-grant-revocation, D5 manual-wins).
         if (defaultRoleId) {
           await tx.assignRoles(user.id, [
-            { roleId: defaultRoleId, campusId: input.campusId },
+            {
+              roleId: defaultRoleId,
+              campusId: input.campusId,
+              grantedViaStaffTypeId: input.staffTypeId,
+            },
           ]);
           this.logger.log(
-            `Auto-assigned default role ${defaultRoleId} to user ${user.id} in campus ${input.campusId}`,
+            `Auto-assigned default role ${defaultRoleId} to user ${user.id} in campus ${input.campusId} (via staffType ${input.staffTypeId})`,
           );
         }
 

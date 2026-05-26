@@ -36,10 +36,12 @@ describe("buildAuditActionsExport", () => {
   // Locked count — bump deliberately when adding a new action so the FE
   // template registry change-log stays auditable. v1 shipped 19 (admin-audit-log);
   // class-staff lifecycle (assign/remove/change-role) added 3 in
-  // @doc/specs/subject-removal-classstaff-role-refactor.
-  it("emits exactly 22 actions (19 v1 + 3 class-staff lifecycle)", () => {
+  // @doc/specs/subject-removal-classstaff-role-refactor; direct role
+  // assignment (grant/revoke) added 2 in
+  // @doc/specs/direct-role-assignment-via-uow.
+  it("emits exactly 24 actions (19 v1 + 3 class-staff lifecycle + 2 RBAC)", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(22);
+    expect(result.actions).toHaveLength(24);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {

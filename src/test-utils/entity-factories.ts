@@ -60,6 +60,7 @@ export function createStaff(
     email: string;
     phoneNumber: string;
     staffTypeId: string | null;
+    staffType: { id: string; name: string } | null;
     address: string | null;
     dateOfBirth: Date | null;
     gender: Gender | null;
@@ -83,6 +84,7 @@ export function createStaff(
         overrides.phoneNumber ??
         `+8490${Math.floor(1000000 + Math.random() * 9000000)}`,
       staffTypeId: overrides.staffTypeId ?? null,
+      staffType: overrides.staffType ?? null,
       address: overrides.address ?? null,
       dateOfBirth: overrides.dateOfBirth ?? null,
       gender: overrides.gender ?? null,

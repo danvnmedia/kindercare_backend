@@ -45,6 +45,10 @@ export const AUDIT_ACTIONS = [
   "ASSIGN_STAFF_TO_CLASS",
   "REMOVE_STAFF_FROM_CLASS",
   "CHANGE_STAFF_ROLE",
+
+  // RBAC role grants (2)
+  "GRANT_ROLE",
+  "REVOKE_ROLE",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
