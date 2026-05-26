@@ -60,7 +60,6 @@ async function main() {
       campusId: null, // Global role (not campus-scoped)
       isSystemDefault: true, // Cannot be modified
       isSystemRole: true, // Grants global admin bypass
-      permissions: {},
     },
   });
 

@@ -132,7 +132,6 @@ model Role {
   description     String?
   isSystemDefault Boolean @default(false) @map("is_system_default")
   isSystemRole    Boolean @default(false) @map("is_system_role") // Grants global admin bypass, can only be set via seeds/migrations
-  permissions     Json    @default("{}") // Deprecated: Use RolePermission instead
 
   campus          Campus?          @relation(fields: [campusId], references: [id], onDelete: Restrict)
   userRoles       UserRole[]

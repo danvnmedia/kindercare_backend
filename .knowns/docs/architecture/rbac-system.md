@@ -2,7 +2,7 @@
 title: RBAC System
 description: Permissions, Roles, UserRole assignments with campus scoping, system-role bypass, and StaffType default-role auto-assignment
 createdAt: '2026-05-05T17:46:08.624Z'
-updatedAt: '2026-05-05T17:46:08.624Z'
+updatedAt: '2026-05-26T01:14:18.024Z'
 tags:
   - architecture
   - rbac
@@ -49,7 +49,6 @@ model Role {
   description     String?
   isSystemDefault Boolean @default(false) @map("is_system_default")
   isSystemRole    Boolean @default(false) @map("is_system_role")  // ⚠ grants global admin bypass
-  permissions     Json    @default("{}")                        // Deprecated; use RolePermission
   campus          Campus?          @relation(fields: [campusId], references: [id], onDelete: Restrict)
   userRoles       UserRole[]
   rolePermissions RolePermission[]
@@ -79,6 +78,7 @@ model UserRole {
 }
 ```
 
+> **Note:** Earlier schema versions carried a `permissions Json @default("{}")` column on `Role` that was never read or written by application code. It was dropped in migration `20260526011129_drop_deprecated_role_permissions_jsonb`. Permissions are resolved exclusively through the `RolePermission` join.
 ## Permission ID Format
 
 `module.action`, lowercase, snake-case for multi-word modules:
@@ -304,7 +304,7 @@ When extending the system, **always check campus ownership** at use case boundar
 | Checking `roleAssignments[0]` directly | First assignment is not "the role" — iterate all |
 | Cascading `RolePermission` deletes when removing a permission | Done correctly in schema (`onDelete: Cascade`) — don't change |
 | Allowing duplicate role names in different campuses | Don't — the unique constraint `[campusId, name]` already permits this; it's by design |
-
+| Reading from a JSONB `role.permissions` column | Column was dropped in migration `20260526011129_drop_deprecated_role_permissions_jsonb`. Resolve permissions via the `RolePermission` join only |
 ## Reference
 
 | File | Notes |
