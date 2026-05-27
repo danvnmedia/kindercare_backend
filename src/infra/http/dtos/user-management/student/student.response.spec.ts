@@ -10,14 +10,19 @@ import { StudentResponse } from "./student.response";
  * `phase` field and the orthogonal `isArchived` flag survive that transform
  * for every value from the D6 taxonomy.
  *
+ * Spec @doc/specs/student-current-class-surfacing AC-9: the same transform
+ * surfaces the `currentClass` snapshot (`{ id, name } | null`) projected from
+ * the student_with_phase view, and falls back to null on write-path read-back.
+ *
  * SCOPE NOTE: the test does not boot a NestJS testing module / supertest —
  * the StandardResponseInterceptor is exercised by its own module's tests.
  * Here we verify only the `@Expose()`-decorated DTO shape that the interceptor
  * feeds into class-transformer. The actual SQL CASE that derives `phase`
- * is verified manually against a dev DB after migration; the mapper-level
- * projection seam is covered in `prisma-student.repository.spec.ts`.
+ * and the LEFT JOIN LATERAL that derives currentClass are verified manually
+ * against a dev DB after migration; the mapper-level projection seam is
+ * covered in `prisma-student.repository.spec.ts`.
  */
-describe("StudentResponse (HTTP surface — Spec AC-17, AC-23)", () => {
+describe("StudentResponse (HTTP surface — Spec AC-17, AC-23, AC-9)", () => {
   const baseEntity = {
     id: "11111111-1111-4111-a111-111111111111",
     campusId: "22222222-2222-4222-a222-222222222222",
@@ -30,9 +35,6 @@ describe("StudentResponse (HTTP surface — Spec AC-17, AC-23)", () => {
     nickname: null,
     gender: null,
     isArchived: false,
-    enrollmentDate: null,
-    isOnTrack: true,
-    classId: null,
     createdAt: new Date("2026-05-16T00:00:00.000Z"),
     updatedAt: new Date("2026-05-16T00:00:00.000Z"),
   };
@@ -86,6 +88,50 @@ describe("StudentResponse (HTTP surface — Spec AC-17, AC-23)", () => {
       const response = transform({ ...baseEntity, phase: "ACTIVE" });
 
       expect(response.isArchived).toBe(false);
+    });
+  });
+
+  describe("currentClass exposure (Spec AC-9)", () => {
+    const classSnapshot = {
+      id: "33333333-3333-4333-a333-333333333333",
+      name: "Lớp Mầm 1A",
+    };
+
+    it("exposes currentClass={id,name} when the source carries an open-enrollment snapshot", () => {
+      const response = transform({
+        ...baseEntity,
+        phase: "ACTIVE",
+        currentClass: classSnapshot,
+      });
+
+      expect(response.currentClass).toEqual(classSnapshot);
+    });
+
+    it("preserves currentClass=null when the source explicitly sets null (no open enrollment)", () => {
+      const response = transform({
+        ...baseEntity,
+        phase: "WITHDRAWN",
+        currentClass: null,
+      });
+
+      expect(response.currentClass).toBeNull();
+    });
+
+    it("preserves currentClass=null alongside phase=null on the write-path read-back contract", () => {
+      // POST /students and PATCH /students/:id read back from the raw
+      // `student` table (Spec D3 — view is read-only). The T2 mapper's
+      // extractCurrentClass narrowing returns null for raw-table rows
+      // (no currentClassId column present), so the entity getter surfaces
+      // null and the DTO transform preserves it on the wire — parallel to
+      // the `phase: null` write-path contract verified above.
+      const response = transform({
+        ...baseEntity,
+        phase: null,
+        currentClass: null,
+      });
+
+      expect(response.phase).toBeNull();
+      expect(response.currentClass).toBeNull();
     });
   });
 });

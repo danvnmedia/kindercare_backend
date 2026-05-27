@@ -1,16 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { STUDENT_PHASES } from "@/domain/user-management/enums/student-phase.enum";
-
-export class ClassInfo {
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
-  id: string;
-
-  @Expose()
-  @ApiProperty({ example: "Lớp Mầm 1A" })
-  name: string;
-}
+import { ClassSummaryDto } from "../../class-management/class-summary.dto";
 
 export class GuardianInfo {
   @Expose()
@@ -98,29 +89,24 @@ export class StudentResponse {
   phase: string | null;
 
   @Expose()
-  @ApiProperty({ example: "2025-01-15T00:00:00.000Z", nullable: true })
-  enrollmentDate: Date | null;
-
-  @Expose()
-  @ApiProperty({ example: true })
-  isOnTrack: boolean;
-
-  @Expose()
-  @ApiProperty({
-    example: "123e4567-e89b-12d3-a456-426614174000",
-    nullable: true,
-  })
-  classId: string | null;
-
-  @Expose()
   @ApiProperty({ example: false })
   isArchived: boolean;
 
   // Relations
   @Expose()
-  @Type(() => ClassInfo)
-  @ApiProperty({ type: ClassInfo, nullable: true })
-  class?: ClassInfo | null;
+  @Type(() => ClassSummaryDto)
+  @ApiProperty({
+    type: ClassSummaryDto,
+    nullable: true,
+    description:
+      "Snapshot of the student's currently-open enrollment's class " +
+      "({ id, name }) projected from the student_with_phase view. " +
+      "Null when the student has no open enrollment. " +
+      "May also be null on responses to write endpoints (POST/PATCH) that " +
+      "read back from the base table; GET endpoints project currentClass " +
+      "from the student_with_phase view (parallel to the `phase` contract).",
+  })
+  currentClass: ClassSummaryDto | null;
 
   @Expose()
   @Type(() => GuardianInfo)

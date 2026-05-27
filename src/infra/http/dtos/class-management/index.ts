@@ -1,6 +1,7 @@
 export * from "./create-class.request";
 export * from "./update-class.request";
 export * from "./class.response";
+export * from "./class-summary.dto";
 export * from "./enroll-student.request";
 export * from "./register-for-school-year.request";
 export * from "./school-year-enrollment.response";

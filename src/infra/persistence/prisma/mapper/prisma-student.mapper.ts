@@ -1,25 +1,26 @@
 import {
   Student as PrismaStudent,
   StudentWithPhase as PrismaStudentWithPhase,
-  Class as PrismaClass,
   Guardian as PrismaGuardian,
   GuardianRelationship as PrismaGuardianRelationship,
   GuardianStudent as PrismaGuardianStudent,
   Prisma,
 } from "@prisma/client";
-import { Student } from "@/domain/user-management/entities/student.entity";
+import {
+  ClassSnapshot,
+  Student,
+} from "@/domain/user-management/entities/student.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { StudentPhase } from "@/domain/user-management/enums/student-phase.enum";
 
 /**
- * Mapper accepts rows from either the raw `student` table (no `phase`) or the
- * `student_with_phase` view (`phase: string`). Optional relation bags
- * (`guardians`, `class`) are loaded by callers but intentionally NOT projected
- * onto the domain entity — `StudentProps` has no `guardians` field; guardian
- * data is fetched on demand via `StudentRepository.getStudentGuardians`.
+ * Mapper accepts rows from either the raw `student` table (no derived
+ * columns) or the `student_with_phase` view (`phase`, `currentClassId`,
+ * `currentClassName`). Optional `guardians` relation bag is loaded by callers
+ * but intentionally NOT projected onto the domain entity — guardian data is
+ * fetched on demand via `StudentRepository.getStudentGuardians`.
  */
 type PrismaStudentRow = (PrismaStudent | PrismaStudentWithPhase) & {
-  class?: PrismaClass | null;
   guardians?: Array<
     PrismaGuardianStudent & {
       guardian: PrismaGuardian;
@@ -43,6 +44,7 @@ export class PrismaStudentMapper {
         gender: prismaStudent.gender as Gender | null,
         isArchived: prismaStudent.isArchived,
         phase: PrismaStudentMapper.extractPhase(prismaStudent),
+        currentClass: PrismaStudentMapper.extractCurrentClass(prismaStudent),
         createdAt: prismaStudent.createdAt,
         updatedAt: prismaStudent.updatedAt,
       },
@@ -66,6 +68,7 @@ export class PrismaStudentMapper {
         gender: prismaStudent.gender as Gender | null,
         isArchived: prismaStudent.isArchived,
         phase: PrismaStudentMapper.extractPhase(prismaStudent),
+        currentClass: PrismaStudentMapper.extractCurrentClass(prismaStudent),
         createdAt: prismaStudent.createdAt,
         updatedAt: prismaStudent.updatedAt,
       },
@@ -121,5 +124,25 @@ export class PrismaStudentMapper {
     row: PrismaStudent | PrismaStudentWithPhase,
   ): StudentPhase | undefined {
     return "phase" in row ? (row.phase as StudentPhase) : undefined;
+  }
+
+  /**
+   * Returns the view-projected currently-open enrollment's class as a
+   * read-only `{ id, name }` snapshot when reading from `student_with_phase`,
+   * or `null` for raw-table rows (post-create/update writes). The SQL view
+   * guarantees `currentClassName` is non-null whenever `currentClassId` is
+   * non-null (LEFT JOIN to `class` PK + NOT NULL on `class.name`).
+   * Spec @doc/specs/student-current-class-surfacing FR-8.
+   */
+  private static extractCurrentClass(
+    row: PrismaStudent | PrismaStudentWithPhase,
+  ): ClassSnapshot | null {
+    if ("currentClassId" in row && row.currentClassId !== null) {
+      return {
+        id: row.currentClassId,
+        name: row.currentClassName ?? "",
+      };
+    }
+    return null;
   }
 }

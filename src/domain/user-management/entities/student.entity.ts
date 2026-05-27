@@ -4,6 +4,18 @@ import { Optional } from "@/core/types/optional";
 import { Gender } from "../enums/gender.enum";
 import { StudentPhase } from "../enums/student-phase.enum";
 
+/**
+ * Read-side denormalized projection of the student's currently-open
+ * enrollment's class. Hydrated by the mapper from the `student_with_phase`
+ * view (`current_class_id` / `current_class_name`); `null` when the student
+ * has no open enrollment. Never persisted from the entity — write paths go
+ * through `Enrollment`.
+ */
+export interface ClassSnapshot {
+  id: string;
+  name: string;
+}
+
 // Properties of the Student entity
 export interface StudentProps {
   campusId: string;
@@ -18,15 +30,23 @@ export interface StudentProps {
   isArchived: boolean;
   /** Derived from the `student_with_phase` view; undefined on raw-table reads. */
   phase?: StudentPhase;
+  /** Derived from the `student_with_phase` view; null when no open enrollment. */
+  currentClass: ClassSnapshot | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Data for updating a student (campusId is immutable)
+// Data for updating a student (campusId is immutable; derived fields are read-only)
 export type UpdateStudentData = Partial<
   Omit<
     StudentProps,
-    "id" | "campusId" | "createdAt" | "updatedAt" | "isArchived" | "phase"
+    | "id"
+    | "campusId"
+    | "createdAt"
+    | "updatedAt"
+    | "isArchived"
+    | "phase"
+    | "currentClass"
   >
 >;
 
@@ -63,6 +83,9 @@ export class Student extends Entity<StudentProps> {
   }
   get phase(): StudentPhase | undefined {
     return this.props.phase;
+  }
+  get currentClass(): ClassSnapshot | null {
+    return this.props.currentClass;
   }
   get createdAt(): Date {
     return this.props.createdAt;
@@ -123,7 +146,10 @@ export class Student extends Entity<StudentProps> {
    * @returns A new Student instance.
    */
   public static create(
-    props: Optional<StudentProps, "createdAt" | "updatedAt" | "isArchived">,
+    props: Optional<
+      StudentProps,
+      "createdAt" | "updatedAt" | "isArchived" | "currentClass"
+    >,
     id?: string,
   ): Student {
     // Campus validation
@@ -143,6 +169,7 @@ export class Student extends Entity<StudentProps> {
     const studentProps: StudentProps = {
       ...props,
       isArchived: props.isArchived ?? false,
+      currentClass: props.currentClass ?? null,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

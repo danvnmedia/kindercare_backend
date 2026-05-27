@@ -323,6 +323,12 @@ view StudentWithPhase {
   campusId    String    @map("campus_id") @db.Uuid
   phase       String
 
+  // Derived projection of the student's currently-open enrollment's class
+  // (`enrollment.end_date IS NULL`). Hydrated by `LEFT JOIN LATERAL` inside
+  // the view; nullable when the student has no open enrollment.
+  currentClassId   String? @map("current_class_id") @db.Uuid
+  currentClassName String? @map("current_class_name")
+
   createdAt DateTime @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @map("updated_at") @db.Timestamptz(6)
 
