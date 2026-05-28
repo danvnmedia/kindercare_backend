@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  ArrayMinSize,
+  IsArray,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -59,13 +61,22 @@ export class CreateStaffRequest {
   gender: Gender;
 
   @ApiProperty({
-    description: "Staff type ID (references staff_type table)",
-    example: "123e4567-e89b-12d3-a456-426614174001",
-    required: false,
+    description:
+      "Staff type IDs (references staff_type table). Min 1, no max (per D3 of @doc/specs/staff-multi-type-refactor). A staff can hold multiple concurrent types.",
+    type: String,
+    isArray: true,
+    example: [
+      "123e4567-e89b-12d3-a456-426614174001",
+      "123e4567-e89b-12d3-a456-426614174002",
+    ],
   })
-  @IsOptional()
-  @IsUUID("4", { message: "Staff type ID must be a valid UUID" })
-  staffTypeId?: string;
+  @IsArray()
+  @ArrayMinSize(1, { message: "Staff must have at least one staff type" })
+  @IsUUID("4", {
+    each: true,
+    message: "Each staff type ID must be a valid UUID",
+  })
+  staffTypeIds: string[];
 
   // ========== Optional Information ==========
 

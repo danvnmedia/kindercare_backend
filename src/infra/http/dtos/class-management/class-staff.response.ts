@@ -31,11 +31,11 @@ export class ClassStaffStaffInfo {
   @Type(() => StaffTypeSummaryDto)
   @ApiProperty({
     type: StaffTypeSummaryDto,
-    nullable: true,
+    isArray: true,
     description:
-      "Read-only snapshot of the staff member's staff type (id + name). Null when the staff has no staffTypeId.",
+      "Read-only snapshots of the staff member's staff types (id + name), sorted by StaffType.order ASC. Empty when the staff has no types — see @doc/specs/staff-multi-type-refactor (D1).",
   })
-  staffType: StaffTypeSummaryDto | null;
+  staffTypes: StaffTypeSummaryDto[];
 }
 
 /**

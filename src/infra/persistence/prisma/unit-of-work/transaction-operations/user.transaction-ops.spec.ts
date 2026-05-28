@@ -107,55 +107,111 @@ describe("UserTransactionOps", () => {
   });
 
   describe("revokeRolesByProvenance", () => {
-    it("deletes only rows matching (userId, grantedViaStaffTypeId)", async () => {
+    // Signature widened from (userId, string) to (userId, string[]) per
+    // D-extra-2 of @doc/specs/staff-multi-type-refactor. All deletions for a
+    // staff-type swap now batch into ONE SQL round-trip via `IN (...)`.
+
+    it("deletes by (userId, grantedViaStaffTypeId IN (...)) — single-element form matches the legacy single-ID behavior", async () => {
       tx.userRole.deleteMany.mockResolvedValue({ count: 1 });
 
-      await ops.revokeRolesByProvenance("user-1", "stype-1");
+      await ops.revokeRolesByProvenance("user-1", ["stype-1"]);
 
       expect(tx.userRole.deleteMany).toHaveBeenCalledTimes(1);
-      // Exact-shape assertion: the filter MUST NOT include NULL coercion or
-      // campusId — that would risk widening the delete to manual grants.
+      // Exact-shape lock: the filter MUST be `IN (...)` and MUST NOT include
+      // campusId or any NULL coercion — that would risk widening the delete
+      // to manual grants. The single-element array is the migration target
+      // for the old single-string call sites.
       expect(tx.userRole.deleteMany).toHaveBeenCalledWith({
-        where: { userId: "user-1", grantedViaStaffTypeId: "stype-1" },
+        where: {
+          userId: "user-1",
+          grantedViaStaffTypeId: { in: ["stype-1"] },
+        },
       });
     });
 
-    it("returns the deleted count from deleteMany", async () => {
+    it("batches multi-element revokes into ONE deleteMany call (D-extra-2 — single SQL round-trip)", async () => {
+      // The whole point of the array signature: a staff swap that removes
+      // N types issues exactly ONE deleteMany, not N. Lock that shape down
+      // so a future regression to per-element looping is caught here.
+      tx.userRole.deleteMany.mockResolvedValue({ count: 4 });
+
+      const deleted = await ops.revokeRolesByProvenance("user-1", [
+        "stype-1",
+        "stype-2",
+        "stype-3",
+      ]);
+
+      expect(tx.userRole.deleteMany).toHaveBeenCalledTimes(1);
+      expect(tx.userRole.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: "user-1",
+          grantedViaStaffTypeId: { in: ["stype-1", "stype-2", "stype-3"] },
+        },
+      });
+      expect(deleted).toBe(4);
+    });
+
+    it("accepts an empty array — Prisma compiles `{ in: [] }` to a `false` predicate and returns 0", async () => {
+      // Defensive contract: callers may skip the empty-array case for
+      // efficiency (see use-case set-diff snippet), but this op must not
+      // throw if invoked with [] — the SQL semantics already short-circuit.
+      tx.userRole.deleteMany.mockResolvedValue({ count: 0 });
+
+      const deleted = await ops.revokeRolesByProvenance("user-1", []);
+
+      expect(tx.userRole.deleteMany).toHaveBeenCalledTimes(1);
+      expect(tx.userRole.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: "user-1",
+          grantedViaStaffTypeId: { in: [] },
+        },
+      });
+      expect(deleted).toBe(0);
+    });
+
+    it("returns the deleted count reported by deleteMany", async () => {
       tx.userRole.deleteMany.mockResolvedValue({ count: 3 });
 
-      const deleted = await ops.revokeRolesByProvenance("user-1", "stype-1");
+      const deleted = await ops.revokeRolesByProvenance("user-1", ["stype-1"]);
 
       expect(deleted).toBe(3);
     });
 
-    it("returns 0 when no tracked grant exists for this pair", async () => {
+    it("returns 0 when no tracked grant matches any of the supplied provenance IDs", async () => {
       tx.userRole.deleteMany.mockResolvedValue({ count: 0 });
 
       const deleted = await ops.revokeRolesByProvenance(
         "user-with-no-grant",
-        "stype-1",
+        ["stype-1", "stype-2"],
       );
 
       expect(deleted).toBe(0);
     });
 
-    it("never widens to NULL-provenance rows (SQL semantics — string ≠ NULL)", async () => {
-      // We can't actually exercise the DB here, but the structural guarantee
-      // is the where shape — a non-nullable string param in `where` means
-      // Prisma compiles to `WHERE granted_via_staff_type_id = $1`, which
-      // never matches NULL rows. Lock that shape down.
+    it("never widens to NULL-provenance rows (SQL semantics — non-null UUID ≠ NULL inside IN(...))", async () => {
+      // Structural guarantee: a `{ in: [...] }` of non-null UUIDs compiles to
+      // `WHERE granted_via_staff_type_id IN ($1, $2, ...)`, which by SQL
+      // semantics never matches a row where the column IS NULL. Lock that
+      // shape down — no OR, no AND, no nullable coercion in the filter.
       tx.userRole.deleteMany.mockResolvedValue({ count: 0 });
 
-      await ops.revokeRolesByProvenance("user-1", "stype-1");
+      await ops.revokeRolesByProvenance("user-1", ["stype-1", "stype-2"]);
 
       const arg = tx.userRole.deleteMany.mock.calls[0][0];
       expect(arg.where).toEqual({
         userId: "user-1",
-        grantedViaStaffTypeId: "stype-1",
+        grantedViaStaffTypeId: { in: ["stype-1", "stype-2"] },
       });
-      // Negative assertion: no "OR" / nullable matcher leaked into the filter.
+      // Negative assertions: no OR / no AND / no bare NULL leaked into the
+      // provenance clause.
       expect(arg.where).not.toHaveProperty("OR");
+      expect(arg.where).not.toHaveProperty("AND");
       expect(arg.where.grantedViaStaffTypeId).not.toBeNull();
+      // The provenance clause must remain a typed `{ in: string[] }` —
+      // anything else would change the SQL emission.
+      expect(arg.where.grantedViaStaffTypeId).toEqual({
+        in: ["stype-1", "stype-2"],
+      });
     });
   });
 

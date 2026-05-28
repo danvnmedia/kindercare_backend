@@ -30,7 +30,7 @@ describe("Staff Entity", () => {
       expect(staff.dateOfBirth).toBeNull();
       expect(staff.gender).toBeNull();
       expect(staff.startDate).toBeNull();
-      expect(staff.staffTypeId).toBeNull();
+      expect(staff.staffTypes).toEqual([]);
       expect(staff.userId).toBeNull();
       expect(staff.isArchived).toBe(false);
       expect(staff.id).toBeDefined();
@@ -41,13 +41,14 @@ describe("Staff Entity", () => {
     it("should create a staff with all fields", () => {
       const dateOfBirth = new Date("1985-03-15");
       const startDate = new Date("2023-01-01");
+      const staffTypes = [{ id: validStaffTypeId, name: "Teacher" }];
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Jane Smith",
         email: validEmail,
         phoneNumber: validPhoneNumber,
-        staffTypeId: validStaffTypeId,
+        staffTypes,
         address: "123 Main Street",
         dateOfBirth: dateOfBirth,
         gender: Gender.FEMALE,
@@ -58,7 +59,7 @@ describe("Staff Entity", () => {
 
       expect(staff.fullName).toBe("Jane Smith");
       expect(staff.email).toBe(validEmail);
-      expect(staff.staffTypeId).toBe(validStaffTypeId);
+      expect(staff.staffTypes).toEqual(staffTypes);
       expect(staff.address).toBe("123 Main Street");
       expect(staff.dateOfBirth).toEqual(dateOfBirth);
       expect(staff.gender).toBe(Gender.FEMALE);
@@ -321,7 +322,6 @@ describe("Staff Entity", () => {
         fullName: "Original Name",
         email: validEmail,
         phoneNumber: validPhoneNumber,
-        staffTypeId: validStaffTypeId,
         address: "Original Address",
         dateOfBirth: new Date("1990-01-01"),
         gender: Gender.MALE,
@@ -345,19 +345,6 @@ describe("Staff Entity", () => {
       staff.updateProfile({ phoneNumber: "+84987654321" });
 
       expect(staff.phoneNumber).toBe("+84987654321");
-    });
-
-    it("should update staffTypeId", () => {
-      const newStaffTypeId = "789e0123-e89b-12d3-a456-426614174000";
-      staff.updateProfile({ staffTypeId: newStaffTypeId });
-
-      expect(staff.staffTypeId).toBe(newStaffTypeId);
-    });
-
-    it("should set staffTypeId to null", () => {
-      staff.updateProfile({ staffTypeId: null });
-
-      expect(staff.staffTypeId).toBeNull();
     });
 
     it("should update address", () => {
@@ -473,8 +460,8 @@ describe("Staff Entity", () => {
     });
   });
 
-  describe("staffType snapshot", () => {
-    it("defaults staffType snapshot to null when not provided", () => {
+  describe("staffTypes collection", () => {
+    it("defaults staffTypes to an empty array when not provided (factory tolerance)", () => {
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
@@ -487,102 +474,101 @@ describe("Staff Entity", () => {
         startDate: null,
       });
 
-      expect(staff.staffType).toBeNull();
+      expect(staff.staffTypes).toEqual([]);
     });
 
-    it("preserves the staffType snapshot when supplied at construction", () => {
-      const snapshot = { id: validStaffTypeId, name: "Teacher" };
+    it("preserves the staffTypes collection when supplied at construction", () => {
+      const snapshots = [
+        { id: validStaffTypeId, name: "Teacher" },
+        { id: "789e0123-e89b-12d3-a456-426614174000", name: "Vice President" },
+      ];
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
-        staffTypeId: validStaffTypeId,
-        staffType: snapshot,
+        staffTypes: snapshots,
         address: null,
         dateOfBirth: null,
         gender: null,
         startDate: null,
       });
 
-      expect(staff.staffType).toEqual(snapshot);
-      expect(staff.staffTypeId).toBe(validStaffTypeId);
-    });
-
-    it("does not mutate the staffType snapshot when changeStaffType updates the FK", () => {
-      // Snapshot is a read-side projection — it stays as last-loaded until
-      // the entity is re-read from the repository. Writers update only the FK.
-      const snapshot = { id: validStaffTypeId, name: "Teacher" };
-      const staff = Staff.create({
-        campusId: validCampusId,
-        staffCode: validStaffCode,
-        fullName: "Test Staff",
-        email: validEmail,
-        phoneNumber: validPhoneNumber,
-        staffTypeId: validStaffTypeId,
-        staffType: snapshot,
-        address: null,
-        dateOfBirth: null,
-        gender: null,
-        startDate: null,
-      });
-
-      staff.changeStaffType("new-staff-type-id");
-
-      expect(staff.staffTypeId).toBe("new-staff-type-id");
-      // Snapshot is intentionally not touched — see entity comment on
-      // StaffTypeSnapshot. Caller must re-read after persisting.
-      expect(staff.staffType).toEqual(snapshot);
+      expect(staff.staffTypes).toEqual(snapshots);
     });
   });
 
-  describe("changeStaffType", () => {
-    it("should change staff type", () => {
+  describe("setStaffTypes", () => {
+    it("replaces the staffTypes collection with the provided snapshots", () => {
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
-        staffTypeId: null,
+        staffTypes: [{ id: validStaffTypeId, name: "Teacher" }],
         address: null,
         dateOfBirth: null,
         gender: null,
         startDate: null,
       });
 
-      staff.changeStaffType(validStaffTypeId);
+      const newSnapshots = [
+        { id: "789e0123-e89b-12d3-a456-426614174000", name: "Vice President" },
+        { id: "abc12345-e89b-12d3-a456-426614174000", name: "Subject Teacher" },
+      ];
+      staff.setStaffTypes(newSnapshots);
 
-      expect(staff.staffTypeId).toBe(validStaffTypeId);
+      expect(staff.staffTypes).toEqual(newSnapshots);
     });
 
-    it("should clear staff type when set to null", () => {
+    it("throws when called with an empty array (min-1 invariant)", () => {
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
-        staffTypeId: validStaffTypeId,
+        staffTypes: [{ id: validStaffTypeId, name: "Teacher" }],
         address: null,
         dateOfBirth: null,
         gender: null,
         startDate: null,
       });
 
-      staff.changeStaffType(null);
-
-      expect(staff.staffTypeId).toBeNull();
+      expect(() => staff.setStaffTypes([])).toThrow(
+        "Staff must have at least one staff type.",
+      );
     });
 
-    it("should update updatedAt timestamp", () => {
+    it("does not mutate state when the empty-array invariant fires", () => {
+      const original = [{ id: validStaffTypeId, name: "Teacher" }];
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
+        staffTypes: original,
+        address: null,
+        dateOfBirth: null,
+        gender: null,
+        startDate: null,
+      });
+
+      expect(() => staff.setStaffTypes([])).toThrow();
+      expect(staff.staffTypes).toEqual(original);
+    });
+
+    it("updates updatedAt timestamp on a successful replace", () => {
+      const staff = Staff.create({
+        campusId: validCampusId,
+        staffCode: validStaffCode,
+        fullName: "Test Staff",
+        email: validEmail,
+        phoneNumber: validPhoneNumber,
+        staffTypes: [{ id: validStaffTypeId, name: "Teacher" }],
         address: null,
         dateOfBirth: null,
         gender: null,
@@ -593,7 +579,9 @@ describe("Staff Entity", () => {
       jest.useFakeTimers();
       jest.advanceTimersByTime(1000);
 
-      staff.changeStaffType(validStaffTypeId);
+      staff.setStaffTypes([
+        { id: "789e0123-e89b-12d3-a456-426614174000", name: "Vice President" },
+      ]);
 
       expect(staff.updatedAt.getTime()).toBeGreaterThan(
         originalUpdatedAt.getTime(),
@@ -603,38 +591,45 @@ describe("Staff Entity", () => {
     });
   });
 
-  describe("hasStaffType", () => {
-    it("should return true when staffTypeId is set", () => {
+  describe("factory/invariant asymmetry (D4)", () => {
+    // The factory tolerates empty staffTypes so the mapper can hydrate legacy
+    // migrated rows (staff_staff_type backfilled to zero entries when the old
+    // staff.staff_type_id was NULL). The next edit then forces the operator to
+    // supply at least one type through setStaffTypes, which enforces min-1.
+    it("Staff.create accepts no staffTypes and yields []", () => {
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
-        staffTypeId: validStaffTypeId,
+        staffTypes: [],
         address: null,
         dateOfBirth: null,
         gender: null,
         startDate: null,
       });
 
-      expect(staff.hasStaffType()).toBe(true);
+      expect(staff.staffTypes).toEqual([]);
     });
 
-    it("should return false when staffTypeId is null", () => {
+    it("setStaffTypes rejects the same empty input the factory accepts", () => {
       const staff = Staff.create({
         campusId: validCampusId,
         staffCode: validStaffCode,
         fullName: "Test Staff",
         email: validEmail,
         phoneNumber: validPhoneNumber,
+        staffTypes: [],
         address: null,
         dateOfBirth: null,
         gender: null,
         startDate: null,
       });
 
-      expect(staff.hasStaffType()).toBe(false);
+      expect(() => staff.setStaffTypes([])).toThrow(
+        "Staff must have at least one staff type.",
+      );
     });
   });
 

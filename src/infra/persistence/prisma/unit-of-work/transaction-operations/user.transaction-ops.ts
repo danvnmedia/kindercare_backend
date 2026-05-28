@@ -72,20 +72,35 @@ export class UserTransactionOps {
   }
 
   /**
-   * Delete every `user_roles` row whose provenance matches the given staff-type.
+   * Delete every `user_roles` row whose provenance matches ANY staff-type in
+   * the supplied set.
    *
-   * Manual grants (`granted_via_staff_type_id IS NULL`) are never matched —
-   * a `string` parameter cannot equal `NULL` in SQL — so the D4 "manual rows
-   * untouched" invariant is upheld by SQL semantics, not by extra guards.
+   * Batched into one SQL round-trip via `deleteMany` + `IN (...)` — see
+   * D-extra-2 of @doc/specs/staff-multi-type-refactor. Callers (the staff
+   * set-diff path in `UpdateStaffUseCase`) compute the `removed` set outside
+   * the UoW and pass it here once.
    *
-   * @returns rows deleted (0 when no tracked grant exists for this pair).
+   * Manual grants (`granted_via_staff_type_id IS NULL`) are never matched
+   * by SQL semantics — non-null UUIDs in `IN (...)` cannot equal `NULL` —
+   * so the D4 "manual rows untouched" invariant of
+   * @doc/specs/tracked-grant-revocation is upheld without extra guards.
+   *
+   * An empty input array is permitted: Prisma compiles `{ in: [] }` to a
+   * `false` predicate and returns `count: 0`. The caller-side
+   * `if (removed.length > 0)` guard in the spec's set-diff snippet avoids
+   * the unnecessary round-trip; this op stays defensive on its own.
+   *
+   * @returns rows deleted; 0 when no tracked grant matches.
    */
   async revokeRolesByProvenance(
     userId: string,
-    grantedViaStaffTypeId: string,
+    grantedViaStaffTypeIds: string[],
   ): Promise<number> {
     const result = await this.tx.userRole.deleteMany({
-      where: { userId, grantedViaStaffTypeId },
+      where: {
+        userId,
+        grantedViaStaffTypeId: { in: grantedViaStaffTypeIds },
+      },
     });
     return result.count;
   }

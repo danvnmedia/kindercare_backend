@@ -2,6 +2,7 @@ import {
   ClassStaff as PrismaClassStaff,
   Class as PrismaClass,
   Staff as PrismaStaff,
+  StaffStaffType as PrismaStaffStaffType,
   StaffType as PrismaStaffType,
   Prisma,
 } from "@prisma/client";
@@ -12,9 +13,16 @@ import { PrismaStaffMapper } from "./prisma-staff.mapper";
 
 type PrismaClassStaffWithRelations = PrismaClassStaff & {
   class?: PrismaClass | null;
-  // staff arrives with its staffType relation eager-loaded so the snapshot
-  // makes it onto the domain entity (see prisma-class-staff.repository.ts).
-  staff?: (PrismaStaff & { staffType?: PrismaStaffType | null }) | null;
+  // Staff arrives with the `staff_staff_type` junction eager-loaded so the
+  // multi-type snapshot reaches the domain entity. Shape matches
+  // `PrismaStaffWithRelations` in prisma-staff.mapper.ts — the inner
+  // `staffType` row is what the mapper projects to `StaffTypeSnapshot`.
+  // See @doc/specs/staff-multi-type-refactor (D1) and prisma-class-staff.repository.ts.
+  staff?:
+    | (PrismaStaff & {
+        staffTypes?: Array<PrismaStaffStaffType & { staffType: PrismaStaffType }>;
+      })
+    | null;
 };
 
 export class PrismaClassStaffMapper {

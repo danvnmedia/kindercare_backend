@@ -69,18 +69,29 @@ export interface TransactionContext {
   ): Promise<number>;
 
   /**
-   * Revoke every role row whose provenance matches the given staff-type.
+   * Revoke every role row whose provenance matches ANY staff-type in the
+   * supplied set.
    *
-   * Used by `UpdateStaffUseCase` when a staff's `staffTypeId` changes — only
-   * rows whose `granted_via_staff_type_id` equals `grantedViaStaffTypeId` are
-   * deleted. Manual grants (`granted_via_staff_type_id IS NULL`) are never
-   * matched by definition, preserving the D4 "manual rows untouched" invariant.
+   * Used by `UpdateStaffUseCase` when the staff's `staffTypes` collection
+   * changes — the use case computes the `removed` set via set-diff and passes
+   * it here in one SQL round-trip via `deleteMany` with `IN (...)` (D-extra-2
+   * of @doc/specs/staff-multi-type-refactor).
    *
-   * @returns the number of rows deleted (0 when no tracked grant exists).
+   * Manual grants (`granted_via_staff_type_id IS NULL`) are never matched by
+   * SQL semantics — a non-null string in an `IN (...)` predicate cannot equal
+   * `NULL`, so the D4 "manual rows untouched" invariant of
+   * @doc/specs/tracked-grant-revocation holds without explicit guards.
+   *
+   * Empty input is permitted (Prisma compiles `{ in: [] }` to a `false`
+   * predicate and returns 0), but callers are expected to short-circuit
+   * before calling — see the use-case set-diff snippet in
+   * @doc/specs/staff-multi-type-refactor#technical-notes.
+   *
+   * @returns the number of rows deleted (0 when no tracked grant matches).
    */
   revokeRolesByProvenance(
     userId: string,
-    grantedViaStaffTypeId: string,
+    grantedViaStaffTypeIds: string[],
   ): Promise<number>;
 
   /**
@@ -143,7 +154,12 @@ export interface TransactionContext {
   ): Promise<{ id: string }>;
 
   /**
-   * Execute a raw create operation for Staff entity
+   * Execute a raw create operation for Staff entity.
+   *
+   * Scalar columns only — the staff-type set lives in `staff_staff_type`
+   * and is written via `replaceStaffTypes` immediately after this call.
+   * The legacy `staff_type_id` column was removed by
+   * @doc/specs/staff-multi-type-refactor (D5).
    */
   createStaff(data: {
     id: string;
@@ -152,7 +168,6 @@ export interface TransactionContext {
     fullName: string;
     email: string;
     phoneNumber: string;
-    staffTypeId: string | null;
     address: string | null;
     dateOfBirth: Date | null;
     gender: string | null;
@@ -164,7 +179,12 @@ export interface TransactionContext {
   }): Promise<{ id: string }>;
 
   /**
-   * Execute a raw update operation for Staff entity
+   * Execute a raw update operation for Staff entity.
+   *
+   * Scalar columns only — the staff-type set lives in `staff_staff_type`
+   * and is written via `replaceStaffTypes` in the same transaction. The
+   * legacy `staff_type_id` column was removed by
+   * @doc/specs/staff-multi-type-refactor (D5).
    */
   updateStaff(
     id: string,
@@ -172,7 +192,6 @@ export interface TransactionContext {
       fullName?: string;
       email?: string;
       phoneNumber?: string;
-      staffTypeId?: string | null;
       address?: string | null;
       dateOfBirth?: Date | null;
       gender?: string | null;
@@ -182,6 +201,32 @@ export interface TransactionContext {
       updatedAt?: Date;
     },
   ): Promise<{ id: string }>;
+
+  /**
+   * Replace the full `staff_staff_type` set for a staff inside the active tx.
+   *
+   * Semantics: full-set replacement — `deleteMany({ where: { staffId } })`
+   * clears every existing join row, then `createMany` inserts one row per
+   * supplied `staffTypeId`. Idempotent for the same set: the resulting rows
+   * are equivalent (the `createdAt` column is the only field that resets,
+   * which audit code does not rely on).
+   *
+   * Called by both `CreateStaffUseCase` (initial set) and `UpdateStaffUseCase`
+   * (set-diff swap — see @doc/specs/staff-multi-type-refactor §Use-case
+   * set-diff). The min-1 invariant (D4) is enforced upstream by the DTO
+   * (`@ArrayMinSize(1)`) and the domain entity (`setStaffTypes`); this op
+   * does not re-validate so legacy NULL-orphan rows (D5) can be migrated to
+   * empty sets if a future workflow ever requires it.
+   *
+   * Atomic with surrounding UoW writes — a failure here rolls back the
+   * parent `tx.updateStaff`/`tx.createStaff` mutation by transaction
+   * boundary.
+   *
+   * @param staffId - The staff whose join set is replaced.
+   * @param staffTypeIds - The full target set. Duplicates surface as `P2002`
+   *   (PK collision) by Prisma — caller responsibility to dedupe.
+   */
+  replaceStaffTypes(staffId: string, staffTypeIds: string[]): Promise<void>;
 
   /**
    * Execute a raw create operation for Student entity

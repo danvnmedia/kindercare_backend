@@ -1,30 +1,32 @@
 /**
- * Tracked-grant atomicity — integration coverage for
- * @doc/specs/tracked-grant-revocation AC-15.
+ * Staff-type swap atomicity — integration coverage for
+ * @doc/specs/staff-multi-type-refactor §Scenario 8 (and the legacy
+ * @doc/specs/tracked-grant-revocation AC-15 it supersedes).
  *
- * What this locks down: when the role-mutation step inside the UoW throws,
- * the whole transaction closure aborts — so the staff update, the audit row,
- * and any `user_roles` mutation all roll back at the DB layer.
+ * What this locks down: when the role-mutation step inside the UoW throws
+ * mid-swap, the whole transaction closure aborts — so the staff write, the
+ * join-table swap, the provenance revoke, and the audit row all roll back
+ * at the DB layer.
  *
- * The existing `audit-atomicity.integration.spec.ts` covers the
- * `recordAudit`-throws variant of this invariant. This file covers the
- * `tx.assignRoles`-throws variant for `UpdateStaffUseCase` — the specific
- * failure point the tracked-grant spec calls out, where a real PG would
- * raise on the new `(userId, roleId, campusId)` insert (e.g. FK violation,
- * deadlock).
+ * Sibling coverage:
+ *   - `audit-atomicity.integration.spec.ts` covers the `recordAudit`-throws
+ *     variant of this invariant.
+ *   - This file covers the `tx.assignRoles`-throws variant — the specific
+ *     failure point Scenario 8 calls out, where a real PG would raise on
+ *     the new `(userId, roleId, campusId, grantedViaStaffTypeId)` insert
+ *     (e.g. FK violation, deadlock, unique-constraint anomaly).
  *
  * Pattern mirrors the audit-atomicity suite: stub the UoW's `run` to invoke
  * the closure synchronously against a fake `tx`, force the failing op to
- * throw, then assert (a) the use case rejects, (b) `tx.updateStaff` ran
- * before the throw — i.e. it lived inside the closure that ultimately
- * aborted — and (c) `tx.recordAudit` did NOT run.
+ * throw, then assert (a) the use case rejects, (b) every op preceding the
+ * throw ran inside the same closure that ultimately aborted, and (c)
+ * `tx.recordAudit` did NOT run.
  */
 
 import { UpdateStaffUseCase } from "./update-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { UserRepository } from "../../ports/user.repository";
-import { RoleRepository } from "../../ports/role.repository";
 import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
@@ -35,12 +37,16 @@ import {
   createStaff,
   createMockStaffRepository,
   createMockUserRepository,
-  createMockRoleRepository,
 } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
 const USER_ID = "user-1";
+
+const TYPE_OLD = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+const TYPE_NEW = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
+const ROLE_OLD = "role-old";
+const ROLE_NEW = "role-new";
 
 function buildActor(): User {
   return User.reconstitute(
@@ -63,52 +69,52 @@ function buildActor(): User {
   );
 }
 
-describe("UpdateStaffUseCase — tracked-grant atomicity (tracked-grant-revocation AC-15)", () => {
-  it("assignRoles failure inside the UoW propagates and the staff write ran in the same closure (audit + downstream calls did not)", async () => {
+describe("UpdateStaffUseCase — staff-type swap atomicity (Scenario 8)", () => {
+  it("assignRoles failure inside the UoW propagates and the staff write + join swap + revoke ran in the same closure (audit did not)", async () => {
     const staffRepo = createMockStaffRepository();
     staffRepo.findById.mockResolvedValue(
       createStaff({
         id: "staff-1",
         campusId: CAMPUS_ID,
-        staffTypeId: "type-old",
         userId: USER_ID,
+        staffTypes: [{ id: TYPE_OLD, name: "Old" }],
       }),
     );
 
     const staffTypeRepo = {
       findById: jest.fn().mockImplementation((id: string) =>
         Promise.resolve(
-          id === "type-old"
-            ? ({
-                id: "type-old",
+          (id === TYPE_OLD
+            ? {
+                id: TYPE_OLD,
                 name: "Old",
                 campusId: CAMPUS_ID,
                 isArchived: false,
-                defaultRoleId: "role-old",
-              } as never)
-            : ({
-                id: "type-new",
+                defaultRoleId: ROLE_OLD,
+              }
+            : {
+                id: TYPE_NEW,
                 name: "New",
                 campusId: CAMPUS_ID,
                 isArchived: false,
-                defaultRoleId: "role-new",
-              } as never),
+                defaultRoleId: ROLE_NEW,
+              }) as never,
         ),
       ),
     } as unknown as jest.Mocked<StaffTypeRepository>;
 
     const userRepo = createMockUserRepository();
-    const roleRepo = createMockRoleRepository();
-    roleRepo.findById.mockResolvedValue({ id: "role-new" } as never);
 
     const ROLE_ERROR = new Error("assignRoles failure (rollback probe)");
 
     const updateStaffSpy = jest.fn().mockResolvedValue({ id: "staff-1" });
+    const replaceStaffTypesSpy = jest.fn().mockResolvedValue(undefined);
     const revokeSpy = jest.fn().mockResolvedValue(0);
     const assignSpy = jest.fn().mockRejectedValue(ROLE_ERROR);
     const recordAuditSpy = jest.fn().mockResolvedValue(undefined);
     const mockTx = {
       updateStaff: updateStaffSpy,
+      replaceStaffTypes: replaceStaffTypesSpy,
       revokeRolesByProvenance: revokeSpy,
       assignRoles: assignSpy,
       recordAudit: recordAuditSpy,
@@ -127,7 +133,6 @@ describe("UpdateStaffUseCase — tracked-grant atomicity (tracked-grant-revocati
       staffRepo,
       staffTypeRepo,
       userRepo,
-      roleRepo,
       unitOfWork,
       identityPort,
     );
@@ -135,19 +140,19 @@ describe("UpdateStaffUseCase — tracked-grant atomicity (tracked-grant-revocati
     await expect(
       useCase.execute(
         "staff-1",
-        { campusId: CAMPUS_ID, staffTypeId: "type-new" },
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_NEW] },
         buildActor(),
       ),
     ).rejects.toThrow(ROLE_ERROR.message);
 
     // The UoW closure was entered exactly once.
     expect(runSpy).toHaveBeenCalledTimes(1);
-    // The staff write was issued inside the closure (a real DB would roll
-    // this back; the unit-level proof is that it lived inside the same
-    // closure that ultimately threw).
+    // The staff scalar write was issued inside the closure.
     expect(updateStaffSpy).toHaveBeenCalledTimes(1);
-    // The revoke step ran (it precedes assign in the helper).
-    expect(revokeSpy).toHaveBeenCalledWith(USER_ID, "type-old");
+    // The join-table swap ran (precedes role mutations in the helper).
+    expect(replaceStaffTypesSpy).toHaveBeenCalledWith("staff-1", [TYPE_NEW]);
+    // The revoke step ran (precedes assign in the helper).
+    expect(revokeSpy).toHaveBeenCalledWith(USER_ID, [TYPE_OLD]);
     // The failure point.
     expect(assignSpy).toHaveBeenCalledTimes(1);
     // Audit never reached — anything after `assignRoles` in the closure was

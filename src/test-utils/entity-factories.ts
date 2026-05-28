@@ -5,7 +5,10 @@
  */
 
 import { Campus } from "@/domain/campus/entities/campus.entity";
-import { Staff } from "@/domain/user-management/entities/staff.entity";
+import {
+  Staff,
+  StaffTypeSnapshot,
+} from "@/domain/user-management/entities/staff.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { Class } from "@/domain/class-management/entities/class.entity";
@@ -59,8 +62,7 @@ export function createStaff(
     fullName: string;
     email: string;
     phoneNumber: string;
-    staffTypeId: string | null;
-    staffType: { id: string; name: string } | null;
+    staffTypes: StaffTypeSnapshot[];
     address: string | null;
     dateOfBirth: Date | null;
     gender: Gender | null;
@@ -83,8 +85,7 @@ export function createStaff(
       phoneNumber:
         overrides.phoneNumber ??
         `+8490${Math.floor(1000000 + Math.random() * 9000000)}`,
-      staffTypeId: overrides.staffTypeId ?? null,
-      staffType: overrides.staffType ?? null,
+      staffTypes: overrides.staffTypes ?? [],
       address: overrides.address ?? null,
       dateOfBirth: overrides.dateOfBirth ?? null,
       gender: overrides.gender ?? null,

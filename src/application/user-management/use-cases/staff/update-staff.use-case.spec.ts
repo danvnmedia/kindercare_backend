@@ -1,10 +1,13 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { UpdateStaffUseCase } from "./update-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { UserRepository } from "../../ports/user.repository";
-import { RoleRepository } from "../../ports/role.repository";
 import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
@@ -15,10 +18,21 @@ import {
   createStaff,
   createMockStaffRepository,
   createMockUserRepository,
-  createMockRoleRepository,
 } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
+const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
+
+// UUID-lex-stable type ids so audit assertions about sort order are
+// deterministic regardless of caller-supplied input order. All three lex
+// ASC as: TYPE_A < TYPE_B < TYPE_C.
+const TYPE_A = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+const TYPE_B = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
+const TYPE_C = "cccccccc-cccc-4ccc-cccc-cccccccccccc";
+
+const ROLE_A = "role-a";
+const ROLE_B = "role-b";
+const ROLE_C = "role-c";
 
 function buildActor(): User {
   return User.reconstitute(
@@ -41,18 +55,37 @@ function buildActor(): User {
   );
 }
 
+/**
+ * Build a StaffType fixture for `staffTypeRepository.findById` returns.
+ * Returned as `unknown` so callers cast inside `mockImplementation` with
+ * `as never`, matching the pattern used in `create-staff.use-case.spec.ts`.
+ */
+function stype(overrides: {
+  id: string;
+  name?: string;
+  defaultRoleId?: string | null;
+  isArchived?: boolean;
+  campusId?: string;
+}): unknown {
+  return {
+    id: overrides.id,
+    campusId: overrides.campusId ?? CAMPUS_ID,
+    name: overrides.name ?? `StaffType-${overrides.id}`,
+    defaultRoleId:
+      overrides.defaultRoleId === undefined ? null : overrides.defaultRoleId,
+    isArchived: overrides.isArchived ?? false,
+  };
+}
+
 describe("UpdateStaffUseCase", () => {
   let useCase: UpdateStaffUseCase;
   let staffRepo: jest.Mocked<StaffRepository>;
   let staffTypeRepo: jest.Mocked<StaffTypeRepository>;
   let userRepo: jest.Mocked<UserRepository>;
-  let roleRepo: jest.Mocked<RoleRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
   let identityPort: jest.Mocked<IdentityPort>;
   let actor: User;
-
-  const campusId = "11111111-1111-4111-a111-111111111111";
 
   beforeEach(() => {
     staffRepo = createMockStaffRepository();
@@ -71,9 +104,9 @@ describe("UpdateStaffUseCase", () => {
       unarchive: jest.fn(),
     } as unknown as jest.Mocked<StaffTypeRepository>;
     userRepo = createMockUserRepository();
-    roleRepo = createMockRoleRepository();
     mockTx = {
       updateStaff: jest.fn().mockResolvedValue({ id: "staff-1" }),
+      replaceStaffTypes: jest.fn().mockResolvedValue(undefined),
       assignRoles: jest.fn().mockResolvedValue(1),
       revokeRolesByProvenance: jest.fn().mockResolvedValue(0),
       recordAudit: jest.fn().mockResolvedValue(undefined),
@@ -92,7 +125,6 @@ describe("UpdateStaffUseCase", () => {
       staffRepo,
       staffTypeRepo,
       userRepo,
-      roleRepo,
       unitOfWork,
       identityPort,
     );
@@ -102,28 +134,30 @@ describe("UpdateStaffUseCase", () => {
     it("AC-3 — emits EDIT_STAFF_PROFILE with only changed fields", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
+        campusId: CAMPUS_ID,
         fullName: "Dan Le",
         address: null,
         userId: null,
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
 
       await useCase.execute(
         "staff-1",
-        { campusId, address: "12 Pine St" },
+        { campusId: CAMPUS_ID, address: "12 Pine St" },
         actor,
       );
 
       expect(identityPort.updateUser).not.toHaveBeenCalled();
       expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
+      expect(mockTx.replaceStaffTypes).not.toHaveBeenCalled();
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
 
       const payload = mockTx.recordAudit.mock.calls[0]![0];
       expect(payload.action).toBe("EDIT_STAFF_PROFILE");
       expect(payload.targetType).toBe("staff");
       expect(payload.targetId).toBe("staff-1");
-      expect(payload.campusId).toBe(campusId);
+      expect(payload.campusId).toBe(CAMPUS_ID);
       expect(payload.actorId).toBe(ACTOR_ID);
       expect(payload.context).toEqual({
         actorName: "Alice Nguyen",
@@ -137,82 +171,44 @@ describe("UpdateStaffUseCase", () => {
     it("no-op edit does NOT emit an audit row", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
+        campusId: CAMPUS_ID,
         address: "12 Pine St",
         userId: null,
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
 
       await useCase.execute(
         "staff-1",
-        { campusId, address: "12 Pine St" },
+        { campusId: CAMPUS_ID, address: "12 Pine St" },
         actor,
       );
 
       expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
+      expect(mockTx.replaceStaffTypes).not.toHaveBeenCalled();
       expect(mockTx.recordAudit).not.toHaveBeenCalled();
     });
 
-    it("staffType change records staffTypeId in the diff and runs assignRoles", async () => {
+    it("omitted staffTypeIds: no replaceStaffTypes / no role mutation", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
-        staffTypeId: "type-old",
+        campusId: CAMPUS_ID,
+        address: null,
         userId: "user-1",
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
-      // Two lookups now: one for the OLD type (pre-UoW, for `oldDefaultRoleId`)
-      // and one for the NEW type (existing validation). Mock by id.
-      staffTypeRepo.findById.mockImplementation((id: string) =>
-        Promise.resolve(
-          id === "type-old"
-            ? ({
-                id: "type-old",
-                name: "OldType",
-                campusId,
-                isArchived: false,
-                defaultRoleId: "role-old",
-              } as never)
-            : ({
-                id: "type-new",
-                name: "Teacher",
-                campusId,
-                isArchived: false,
-                defaultRoleId: "role-1",
-              } as never),
-        ),
-      );
-      roleRepo.findById.mockResolvedValue({ id: "role-1" } as never);
 
       await useCase.execute(
         "staff-1",
-        { campusId, staffTypeId: "type-new" },
+        { campusId: CAMPUS_ID, address: "9 Oak St" },
         actor,
       );
 
-      // Tracked-grant pipeline: revoke old provenance, assign new provenance.
-      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(
-        "user-1",
-        "type-old",
-      );
-      expect(mockTx.assignRoles).toHaveBeenCalledWith("user-1", [
-        {
-          roleId: "role-1",
-          campusId,
-          grantedViaStaffTypeId: "type-new",
-        },
-      ]);
-
-      // Audit row carries the role-flip arrays alongside the profile diff.
-      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
-      const payload = mockTx.recordAudit.mock.calls[0]![0];
-      expect(payload.beforeValue).toEqual({ staffTypeId: "type-old" });
-      expect(payload.afterValue).toEqual({ staffTypeId: "type-new" });
-      expect(payload.context).toEqual({
-        actorName: "Alice Nguyen",
-        rolesGranted: [{ roleId: "role-1", viaStaffTypeId: "type-new" }],
-        rolesRevoked: [{ roleId: "role-old", viaStaffTypeId: "type-old" }],
-      });
+      expect(staffTypeRepo.findById).not.toHaveBeenCalled();
+      expect(mockTx.replaceStaffTypes).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
+      expect(mockTx.assignRoles).not.toHaveBeenCalled();
     });
   });
 
@@ -220,10 +216,11 @@ describe("UpdateStaffUseCase", () => {
     it("emits audit AFTER Clerk + updateStaff succeed", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
+        campusId: CAMPUS_ID,
         fullName: "Dan Le",
         email: "dan@example.com",
         userId: "user-1",
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
       userRepo.findById.mockResolvedValue(
@@ -240,7 +237,7 @@ describe("UpdateStaffUseCase", () => {
 
       await useCase.execute(
         "staff-1",
-        { campusId, email: "dan.new@example.com" },
+        { campusId: CAMPUS_ID, email: "dan.new@example.com" },
         actor,
       );
 
@@ -255,9 +252,10 @@ describe("UpdateStaffUseCase", () => {
     it("AC-4 — recorder failure triggers Clerk revert", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
+        campusId: CAMPUS_ID,
         email: "dan@example.com",
         userId: "user-1",
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
       userRepo.findById.mockResolvedValue(
@@ -276,7 +274,7 @@ describe("UpdateStaffUseCase", () => {
       await expect(
         useCase.execute(
           "staff-1",
-          { campusId, email: "dan.new@example.com" },
+          { campusId: CAMPUS_ID, email: "dan.new@example.com" },
           actor,
         ),
       ).rejects.toThrow(BadRequestException);
@@ -292,15 +290,20 @@ describe("UpdateStaffUseCase", () => {
     it("propagates recorder error and ran updateStaff inside the UoW", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
+        campusId: CAMPUS_ID,
         address: null,
         userId: null,
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
       mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
 
       await expect(
-        useCase.execute("staff-1", { campusId, address: "12 Pine St" }, actor),
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, address: "12 Pine St" },
+          actor,
+        ),
       ).rejects.toThrow("audit fail");
 
       expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
@@ -313,7 +316,7 @@ describe("UpdateStaffUseCase", () => {
       staffRepo.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("missing", { campusId, fullName: "X" }, actor),
+        useCase.execute("missing", { campusId: CAMPUS_ID, fullName: "X" }, actor),
       ).rejects.toThrow(NotFoundException);
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
@@ -322,202 +325,161 @@ describe("UpdateStaffUseCase", () => {
       const staff = createStaff({
         id: "staff-1",
         campusId: "22222222-2222-4222-a222-222222222222",
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
 
       await expect(
-        useCase.execute("staff-1", { campusId, fullName: "X" }, actor),
+        useCase.execute("staff-1", { campusId: CAMPUS_ID, fullName: "X" }, actor),
       ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws ConflictException on duplicate email within the same campus", async () => {
+      const staff = createStaff({
+        id: "staff-1",
+        campusId: CAMPUS_ID,
+        email: "old@example.com",
+        userId: null,
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
+      });
+      const conflicting = createStaff({
+        id: "staff-2",
+        campusId: CAMPUS_ID,
+        email: "new@example.com",
+        userId: null,
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
+      });
+      staffRepo.findById.mockResolvedValue(staff);
+      staffRepo.findByEmailInCampus.mockResolvedValue(conflicting);
+
+      await expect(
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, email: "new@example.com" },
+          actor,
+        ),
+      ).rejects.toThrow(ConflictException);
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });
 
-  // Provenance-aware role swap inside EDIT_STAFF_PROFILE — manual grants
-  // (provenance NULL) must never be touched; tracked grants must be revoked
-  // by `(userId, oldStaffTypeId)` and reissued under the new type's
-  // provenance. See @doc/specs/tracked-grant-revocation.
-  describe("tracked-grant revocation", () => {
+  // Set-diff staff-type swap inside EDIT_STAFF_PROFILE. Manual grants
+  // (provenance NULL) must never be touched; tracked grants are revoked by
+  // `(userId, removed)` and reissued under each added type's provenance.
+  // See @doc/specs/staff-multi-type-refactor §Scenarios 2/3/7 and D-extra-3.
+  describe("set-diff staff-type swap", () => {
     const USER_ID = "user-1";
-    const OLD_TYPE = "type-old";
-    const NEW_TYPE = "type-new";
-    const OLD_ROLE = "role-old";
-    const NEW_ROLE = "role-new";
 
-    function mockStaffTypes(opts: {
-      oldDefaultRoleId?: string | null;
-      newDefaultRoleId?: string | null;
-    }) {
-      staffTypeRepo.findById.mockImplementation((id: string) =>
-        Promise.resolve(
-          id === OLD_TYPE
-            ? ({
-                id: OLD_TYPE,
-                name: "Old",
-                campusId,
-                isArchived: false,
-                defaultRoleId: opts.oldDefaultRoleId ?? null,
-              } as never)
-            : id === NEW_TYPE
-              ? ({
-                  id: NEW_TYPE,
-                  name: "New",
-                  campusId,
-                  isArchived: false,
-                  defaultRoleId: opts.newDefaultRoleId ?? null,
-                } as never)
-              : null,
-        ),
-      );
+    function makeStaff(staffTypes: { id: string; name: string }[]) {
+      return createStaff({
+        id: "staff-1",
+        campusId: CAMPUS_ID,
+        staffTypes,
+        userId: USER_ID,
+      });
     }
 
-    it("A→B: revokes old provenance and inserts new (both arrays populated)", async () => {
-      const staff = createStaff({
-        id: "staff-1",
-        campusId,
-        staffTypeId: OLD_TYPE,
-        userId: USER_ID,
-      });
+    it("Scenario 2 — [A,B] → [A,C]: revokes B-provenance, assigns C-provenance, UUID-lex audit", async () => {
+      const staff = makeStaff([
+        { id: TYPE_A, name: "Teacher" },
+        { id: TYPE_B, name: "Nurse" },
+      ]);
       staffRepo.findById.mockResolvedValue(staff);
-      mockStaffTypes({
-        oldDefaultRoleId: OLD_ROLE,
-        newDefaultRoleId: NEW_ROLE,
-      });
-      roleRepo.findById.mockResolvedValue({ id: NEW_ROLE } as never);
-      mockTx.assignRoles.mockResolvedValueOnce(1);
+      staffTypeRepo.findById.mockImplementation(
+        async (id: string) =>
+          (id === TYPE_C
+            ? stype({ id: TYPE_C, name: "VicePresident", defaultRoleId: ROLE_C })
+            : id === TYPE_B
+              ? stype({ id: TYPE_B, name: "Nurse", defaultRoleId: ROLE_B })
+              : null) as never,
+      );
 
+      // Caller submits the new set in arbitrary order — pre-sort guarantees
+      // the audit's `staffTypeIds` array is UUID-lex sorted regardless.
       await useCase.execute(
         "staff-1",
-        { campusId, staffTypeId: NEW_TYPE },
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_C, TYPE_A] },
         actor,
       );
 
-      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(
-        USER_ID,
-        OLD_TYPE,
-      );
+      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith("staff-1", [
+        TYPE_C,
+        TYPE_A,
+      ]);
+      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(USER_ID, [
+        TYPE_B,
+      ]);
       expect(mockTx.assignRoles).toHaveBeenCalledWith(USER_ID, [
         {
-          roleId: NEW_ROLE,
-          campusId,
-          grantedViaStaffTypeId: NEW_TYPE,
+          roleId: ROLE_C,
+          campusId: CAMPUS_ID,
+          grantedViaStaffTypeId: TYPE_C,
         },
       ]);
+
       const payload = mockTx.recordAudit.mock.calls[0]![0];
+      expect(payload.beforeValue).toEqual({ staffTypeIds: [TYPE_A, TYPE_B] });
+      expect(payload.afterValue).toEqual({ staffTypeIds: [TYPE_A, TYPE_C] });
       expect(payload.context).toEqual({
         actorName: "Alice Nguyen",
-        rolesGranted: [{ roleId: NEW_ROLE, viaStaffTypeId: NEW_TYPE }],
-        rolesRevoked: [{ roleId: OLD_ROLE, viaStaffTypeId: OLD_TYPE }],
+        rolesGranted: [{ roleId: ROLE_C, viaStaffTypeId: TYPE_C }],
+        rolesRevoked: [{ roleId: ROLE_B, viaStaffTypeId: TYPE_B }],
       });
     });
 
-    it("A→null: revokes old, no assign (spec AC-6)", async () => {
-      const staff = createStaff({
-        id: "staff-1",
-        campusId,
-        staffTypeId: OLD_TYPE,
-        userId: USER_ID,
-      });
-      staffRepo.findById.mockResolvedValue(staff);
-      mockStaffTypes({ oldDefaultRoleId: OLD_ROLE });
-
-      await useCase.execute(
-        "staff-1",
-        { campusId, staffTypeId: null },
-        actor,
-      );
-
-      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(
-        USER_ID,
-        OLD_TYPE,
-      );
-      expect(mockTx.assignRoles).not.toHaveBeenCalled();
-      const payload = mockTx.recordAudit.mock.calls[0]![0];
-      expect(payload.context).toEqual({
-        actorName: "Alice Nguyen",
-        rolesGranted: [],
-        rolesRevoked: [{ roleId: OLD_ROLE, viaStaffTypeId: OLD_TYPE }],
-      });
-    });
-
-    it("null→A: no revoke, assigns new with provenance (spec AC-7)", async () => {
-      const staff = createStaff({
-        id: "staff-1",
-        campusId,
-        staffTypeId: null,
-        userId: USER_ID,
-      });
-      staffRepo.findById.mockResolvedValue(staff);
-      mockStaffTypes({ newDefaultRoleId: NEW_ROLE });
-      roleRepo.findById.mockResolvedValue({ id: NEW_ROLE } as never);
-      mockTx.assignRoles.mockResolvedValueOnce(1);
-
-      await useCase.execute(
-        "staff-1",
-        { campusId, staffTypeId: NEW_TYPE },
-        actor,
-      );
-
-      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
-      expect(mockTx.assignRoles).toHaveBeenCalledWith(USER_ID, [
-        {
-          roleId: NEW_ROLE,
-          campusId,
-          grantedViaStaffTypeId: NEW_TYPE,
-        },
+    it("Scenario 3 — same set in different order: replaceStaffTypes runs, no role mutation, no audit", async () => {
+      const staff = makeStaff([
+        { id: TYPE_A, name: "Teacher" },
+        { id: TYPE_B, name: "Nurse" },
       ]);
-      const payload = mockTx.recordAudit.mock.calls[0]![0];
-      expect(payload.context).toEqual({
-        actorName: "Alice Nguyen",
-        rolesGranted: [{ roleId: NEW_ROLE, viaStaffTypeId: NEW_TYPE }],
-        rolesRevoked: [],
-      });
-    });
-
-    it("A→A (same value supplied): no role mutation; no audit row at all", async () => {
-      // input.staffTypeId equals current value → the staffType-change guard
-      // never fires; nothing reaches the diff; nothing reaches the role swap.
-      const staff = createStaff({
-        id: "staff-1",
-        campusId,
-        staffTypeId: OLD_TYPE,
-        userId: USER_ID,
-      });
       staffRepo.findById.mockResolvedValue(staff);
 
       await useCase.execute(
         "staff-1",
-        { campusId, staffTypeId: OLD_TYPE },
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_B, TYPE_A] },
         actor,
       );
 
+      // Idempotent delete+recreate at the table level still fires.
+      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith("staff-1", [
+        TYPE_B,
+        TYPE_A,
+      ]);
+      // No diff in either set → no per-type validation needed.
       expect(staffTypeRepo.findById).not.toHaveBeenCalled();
       expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
       expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      // computeDiff sees identical UUID-lex-sorted arrays → no audit emit.
       expect(mockTx.recordAudit).not.toHaveBeenCalled();
     });
 
-    it("staff.userId = null: skips revoke + assign entirely (spec AC-13)", async () => {
+    it("Scenario 7 — staff.userId = null: replaceStaffTypes runs, role arrays empty, audit emits", async () => {
       const staff = createStaff({
         id: "staff-1",
-        campusId,
-        staffTypeId: OLD_TYPE,
+        campusId: CAMPUS_ID,
         userId: null,
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
-      mockStaffTypes({
-        oldDefaultRoleId: OLD_ROLE,
-        newDefaultRoleId: NEW_ROLE,
-      });
+      staffTypeRepo.findById.mockImplementation(
+        async (id: string) =>
+          stype({ id, name: "Nurse", defaultRoleId: ROLE_B }) as never,
+      );
 
       await useCase.execute(
         "staff-1",
-        { campusId, staffTypeId: NEW_TYPE },
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_B] },
         actor,
       );
 
+      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith("staff-1", [TYPE_B]);
       expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
       expect(mockTx.assignRoles).not.toHaveBeenCalled();
+
       const payload = mockTx.recordAudit.mock.calls[0]![0];
+      expect(payload.beforeValue).toEqual({ staffTypeIds: [TYPE_A] });
+      expect(payload.afterValue).toEqual({ staffTypeIds: [TYPE_B] });
       expect(payload.context).toEqual({
         actorName: "Alice Nguyen",
         rolesGranted: [],
@@ -525,66 +487,192 @@ describe("UpdateStaffUseCase", () => {
       });
     });
 
-    it("new type has no defaultRoleId: revokes old, no insert (spec AC-16)", async () => {
-      const staff = createStaff({
-        id: "staff-1",
-        campusId,
-        staffTypeId: OLD_TYPE,
-        userId: USER_ID,
-      });
+    it("D-extra-3 — two added types sharing the same defaultRoleId produce two assignRoles entries", async () => {
+      const staff = makeStaff([{ id: TYPE_A, name: "Existing" }]);
       staffRepo.findById.mockResolvedValue(staff);
-      mockStaffTypes({
-        oldDefaultRoleId: OLD_ROLE,
-        newDefaultRoleId: null,
-      });
+      staffTypeRepo.findById.mockImplementation(
+        async (id: string) =>
+          stype({ id, defaultRoleId: ROLE_B }) as never,
+      );
 
       await useCase.execute(
         "staff-1",
-        { campusId, staffTypeId: NEW_TYPE },
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B, TYPE_C] },
         actor,
       );
 
-      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(
-        USER_ID,
-        OLD_TYPE,
-      );
-      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      expect(mockTx.assignRoles).toHaveBeenCalledTimes(1);
+      const [userIdArg, assignments] = mockTx.assignRoles.mock.calls[0]!;
+      expect(userIdArg).toBe(USER_ID);
+      expect(assignments).toEqual([
+        { roleId: ROLE_B, campusId: CAMPUS_ID, grantedViaStaffTypeId: TYPE_B },
+        { roleId: ROLE_B, campusId: CAMPUS_ID, grantedViaStaffTypeId: TYPE_C },
+      ]);
       const payload = mockTx.recordAudit.mock.calls[0]![0];
       expect(payload.context).toEqual({
         actorName: "Alice Nguyen",
-        rolesGranted: [],
-        rolesRevoked: [{ roleId: OLD_ROLE, viaStaffTypeId: OLD_TYPE }],
+        rolesGranted: [
+          { roleId: ROLE_B, viaStaffTypeId: TYPE_B },
+          { roleId: ROLE_B, viaStaffTypeId: TYPE_C },
+        ],
+        rolesRevoked: [],
       });
     });
 
-    it("manual-grant conflict (D5): inserted=0 keeps rolesGranted empty (spec AC-14)", async () => {
-      // Simulates an existing manual `user_roles` row with the same
-      // (userId, roleId, campusId) — the createMany skipDuplicates returns 0
-      // and the use case must NOT advertise the row as granted.
-      const staff = createStaff({
-        id: "staff-1",
-        campusId,
-        staffTypeId: null,
-        userId: USER_ID,
-      });
+    it("D5 retired — assignRoles returns 0, rolesGranted is STILL populated (count guard removed)", async () => {
+      // Under the 4-col NULLS NOT DISTINCT unique key, the only way an
+      // insert can be silently skipped is a duplicate `(userId, roleId,
+      // campusId, grantedViaStaffTypeId)` tuple — which the set-diff
+      // mathematically excludes. But we still drop the count guard so the
+      // audit row stays faithful to the IDs the caller asked us to grant
+      // regardless of the count returned.
+      const staff = makeStaff([{ id: TYPE_A, name: "Teacher" }]);
       staffRepo.findById.mockResolvedValue(staff);
-      mockStaffTypes({ newDefaultRoleId: NEW_ROLE });
-      roleRepo.findById.mockResolvedValue({ id: NEW_ROLE } as never);
+      staffTypeRepo.findById.mockImplementation(
+        async (id: string) =>
+          stype({ id, defaultRoleId: ROLE_B }) as never,
+      );
       mockTx.assignRoles.mockResolvedValueOnce(0);
 
       await useCase.execute(
         "staff-1",
-        { campusId, staffTypeId: NEW_TYPE },
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B] },
         actor,
       );
 
       expect(mockTx.assignRoles).toHaveBeenCalledTimes(1);
       const payload = mockTx.recordAudit.mock.calls[0]![0];
-      expect(payload.context).toEqual({
-        actorName: "Alice Nguyen",
-        rolesGranted: [],
-        rolesRevoked: [],
+      expect(payload.context.rolesGranted).toEqual([
+        { roleId: ROLE_B, viaStaffTypeId: TYPE_B },
+      ]);
+    });
+
+    it("added type with defaultRoleId=null: no insert", async () => {
+      const staff = makeStaff([{ id: TYPE_A, name: "Teacher" }]);
+      staffRepo.findById.mockResolvedValue(staff);
+      staffTypeRepo.findById.mockImplementation(
+        async (id: string) => stype({ id, defaultRoleId: null }) as never,
+      );
+
+      await useCase.execute(
+        "staff-1",
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B] },
+        actor,
+      );
+
+      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith("staff-1", [
+        TYPE_A,
+        TYPE_B,
+      ]);
+      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      const payload = mockTx.recordAudit.mock.calls[0]![0];
+      expect(payload.context.rolesGranted).toEqual([]);
+    });
+
+    it("removed type with defaultRoleId=null: revoke fires by id, audit entry omitted", async () => {
+      const staff = makeStaff([
+        { id: TYPE_A, name: "Teacher" },
+        { id: TYPE_B, name: "Nurse" },
+      ]);
+      staffRepo.findById.mockResolvedValue(staff);
+      staffTypeRepo.findById.mockImplementation(
+        async (id: string) =>
+          (id === TYPE_B
+            ? stype({ id: TYPE_B, defaultRoleId: null })
+            : null) as never,
+      );
+
+      await useCase.execute(
+        "staff-1",
+        { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A] },
+        actor,
+      );
+
+      // The join row + tracked grant are cleaned up by id regardless of
+      // whether we can audit-name the role.
+      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(USER_ID, [
+        TYPE_B,
+      ]);
+      const payload = mockTx.recordAudit.mock.calls[0]![0];
+      expect(payload.context.rolesRevoked).toEqual([]);
+    });
+  });
+
+  describe("pre-UoW validation (added side only)", () => {
+    function staffWithType(typeId: string) {
+      return createStaff({
+        id: "staff-1",
+        campusId: CAMPUS_ID,
+        userId: "user-1",
+        staffTypes: [{ id: typeId, name: "Existing" }],
       });
+    }
+
+    it("throws NotFoundException when an added type does not exist", async () => {
+      staffRepo.findById.mockResolvedValue(staffWithType(TYPE_A));
+      staffTypeRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B] },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws BadRequestException when an added type is archived", async () => {
+      staffRepo.findById.mockResolvedValue(staffWithType(TYPE_A));
+      staffTypeRepo.findById.mockResolvedValue(
+        stype({ id: TYPE_B, isArchived: true }) as never,
+      );
+
+      await expect(
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B] },
+          actor,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws BadRequestException when an added type belongs to a different campus", async () => {
+      staffRepo.findById.mockResolvedValue(staffWithType(TYPE_A));
+      staffTypeRepo.findById.mockResolvedValue(
+        stype({
+          id: TYPE_B,
+          campusId: "22222222-2222-4222-a222-222222222222",
+        }) as never,
+      );
+
+      await expect(
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B] },
+          actor,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("second-of-many added type invalid still throws (loop iterates all)", async () => {
+      staffRepo.findById.mockResolvedValue(staffWithType(TYPE_A));
+      staffTypeRepo.findById.mockImplementation(async (id: string) =>
+        id === TYPE_B
+          ? (stype({ id: TYPE_B, defaultRoleId: ROLE_B }) as never)
+          : (null as never),
+      );
+
+      await expect(
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, staffTypeIds: [TYPE_A, TYPE_B, TYPE_C] },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });
 });

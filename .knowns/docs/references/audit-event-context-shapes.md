@@ -2,7 +2,7 @@
 title: Audit Event Context Shapes
 description: 'Per-action JSONB context shape for `audit_event.context`. Source of truth for what each use case writes and what the FE display-template registry consumes.'
 createdAt: '2026-05-19T20:14:31.630Z'
-updatedAt: '2026-05-25T15:58:25.647Z'
+updatedAt: '2026-05-27T23:00:26.209Z'
 tags:
   - audit
   - reference
@@ -227,14 +227,14 @@ When the guardian has a linked `User` and the patch touches `email` / `phoneNumb
 |---|---|---|
 | `actorName` | caller | as above |
 | `targetName` | recorder | snapshot of `staff.fullName` |
-| `rolesGranted` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when the edit had no role impact. Populated based on **actual** inserts — a D5 manual-grant conflict (count = 0) keeps it `[]`. |
-| `rolesRevoked` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when no tracked grant was revoked. Populated only when `oldStaffType.defaultRoleId` is known at audit time — the row is still deleted regardless, but cannot be audit-named without it. |
-| `before_value` | caller | `computeDiff` over `fullName, email, phoneNumber, staffTypeId, address, dateOfBirth, gender, startDate` |
+| `rolesGranted` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when the edit had no role impact. Under the multi-type 4-col `user_roles` unique with `NULLS NOT DISTINCT`, every per-type tracked insert produces a distinct row, so this array is **always populated on insert success** — the prior D5 "count = 0 keeps it `[]`" caveat is retired (see Superseded sections in @doc/specs/tracked-grant-revocation). |
+| `rolesRevoked` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when no tracked grant was revoked. One entry per removed staff-type whose pre-resolved `defaultRoleId` is non-null. |
+| `before_value` | caller | `computeDiff` over `fullName, email, phoneNumber, staffTypeIds, address, dateOfBirth, gender, startDate` |
 | `after_value` | caller | same field set |
 
 Display template: `"Staff {{actorName}} updated profile of Staff {{targetName}}"`. Timeline renderers should surface a secondary line beneath the profile diff when either role array is non-empty — e.g. `"Granted role {{roleId}} (via Type {{viaStaffTypeId}})"` / `"Revoked role {{roleId}} (via Type {{viaStaffTypeId}})"`.
 
-`staffTypeId` changes appear in the diff as `before_value.staffTypeId` / `after_value.staffTypeId`. Unlike v1, the default-role flip that accompanies a staff-type change is no longer a silent sibling of the diff: its outcome is now visible in `rolesGranted` / `rolesRevoked` per @doc/specs/tracked-grant-revocation (D3 single audit event, D5 manual-wins). Clerk-saga semantics mirror Guardian.
+`staffTypeIds` is a string array of staff-type UUIDs sorted lex ASC, NOT by `StaffType.order`. Sort stability is the reason: `StaffType.order` is admin-mutable, so sorting by it would let an unrelated order edit surface as a false `before_value` / `after_value` diff inside `computeDiff`'s JSON-fallback comparison. UUIDs are immutable, so an identical set under a different insertion order serializes to the same string and produces no diff entry — preserving the existing zero-diff audit-suppression behavior (see @doc/specs/staff-multi-type-refactor §Scenario 3). The default-role flips that accompany a multi-type swap are surfaced in `rolesGranted` / `rolesRevoked` per @doc/specs/tracked-grant-revocation (D3 single audit event). Clerk-saga semantics mirror Guardian.
 ### Archive / restore (6 actions — @task-2c5xq3)
 
 Soft-delete lifecycle. Six actions emitted by `archive-*.use-case.ts` and `restore-*.use-case.ts`. All six share the same context + diff shape; only the action code and direction of the `isArchived` flip differ.

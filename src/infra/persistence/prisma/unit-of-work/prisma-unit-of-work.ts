@@ -74,6 +74,7 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       // Staff operations
       createStaff: staffOps.createStaff.bind(staffOps),
       updateStaff: staffOps.updateStaff.bind(staffOps),
+      replaceStaffTypes: staffOps.replaceStaffTypes.bind(staffOps),
 
       // Student operations
       createStudent: studentOps.createStudent.bind(studentOps),

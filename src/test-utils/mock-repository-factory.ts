@@ -29,7 +29,17 @@ export function createMockCampusRepository(): jest.Mocked<CampusRepository> {
 }
 
 /**
- * Create a mock StaffRepository
+ * Create a mock StaffRepository.
+ *
+ * The factory returns bare `jest.fn()` stubs — tests configure behavior per
+ * call. Two notes on `findByStaffTypeId` under the multi-type schema (see
+ * @doc/specs/staff-multi-type-refactor AC-5):
+ *
+ *   1. The signature is unchanged: `(staffTypeId: string) => Promise<Staff[]>`.
+ *   2. The semantic moved from a scalar `staff.staff_type_id` equality to a
+ *      relation `some` predicate over `staff_staff_type`. When a test supplies
+ *      a `mockImplementation`, filter by `staff.staffTypes.some(t => t.id ===
+ *      staffTypeId)` — not by a removed scalar field.
  */
 export function createMockStaffRepository(): jest.Mocked<StaffRepository> {
   return {

@@ -2,7 +2,7 @@
 title: Tracked-Grant Revocation
 description: Backend refactor that adds provenance tracking to user_roles via a nullable granted_via_staff_type_id FK, switches staff-type-driven role grants from additive-only to revoke-then-assign within the existing UoW, preserves manual grants (null provenance) from auto-revocation, and extends EDIT_STAFF_PROFILE audit context with rolesGranted/rolesRevoked arrays. Prerequisite for the planned staff-multi-type-refactor.
 createdAt: '2026-05-25T00:51:39.321Z'
-updatedAt: '2026-05-25T14:24:58.425Z'
+updatedAt: '2026-05-27T23:00:55.031Z'
 tags:
   - spec
   - approved
@@ -277,3 +277,8 @@ None — all gray areas resolved during exploration.
 
 - **`staff-type-resync-endpoint`** — Add `POST /staff-types/:id/resync` that, for the given type, finds `user_roles` rows where `granted_via_staff_type_id = :id` AND `role_id != currentDefaultRoleId`, then revokes and re-assigns to match current config. Admin-triggered; emits a `RESYNC_STAFF_TYPE_ROLES` audit event. Pre-condition for D1's "decoupled now, propagation later" to be reachable.
 - **`staff-multi-type-refactor`** — The original feature this spec unblocks. Becomes mostly a data-shape change once tracked-grant primitives exist.
+
+
+## Superseded sections
+
+- **D5 (Manual grant wins on conflict) — retired by @doc/specs/staff-multi-type-refactor (D2).** The new `user_roles` unique key is 4-column (`userId, roleId, campusId, grantedViaStaffTypeId`) with `NULLS NOT DISTINCT`. Manual rows carry `grantedViaStaffTypeId = NULL`; tracked rows carry the staff-type UUID. The two are now distinct natural keys, so a tracked auto-grant against a pre-existing manual row no longer collides on the unique — both rows coexist by construction. `Prisma.skipDuplicates` and the "optimistic insert / catch P2002 / swallow" mechanic described in §D5 conflict mechanics no longer fire on the tracked-vs-manual path; permission resolution dedupes by role at read-time so the user still holds the role exactly once. The original D5 also forced `rolesGranted` to stay `[]` on a count-0 conflict — that caveat is dropped, and `rolesGranted` is now always populated on insert success (see Scenario 4 of @doc/specs/staff-multi-type-refactor and the matching note in @doc/references/audit-event-context-shapes `EDIT_STAFF_PROFILE`). Two manual rows for the same `(user, role, campus, NULL)` still collide identically to the pre-multi-type behavior (Scenario 5 of @doc/specs/staff-multi-type-refactor) — the constraint only loosens across the manual/tracked boundary.

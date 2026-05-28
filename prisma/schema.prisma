@@ -169,9 +169,12 @@ model StaffType {
   isArchived    Boolean @default(false) @map("is_archived")
   order         Int
 
-  campus      Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
-  defaultRole Role?   @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
-  staff       Staff[]
+  campus      Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  defaultRole Role?  @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
+
+  // Many-to-many to Staff via `staff_staff_type` join model — see
+  // @doc/specs/staff-multi-type-refactor. Replaces the prior 1:N reverse side.
+  staff StaffStaffType[]
 
   // Reverse side of UserRole.grantedViaStaffType — see @doc/specs/tracked-grant-revocation.
   userRoleProvenance UserRole[] @relation("UserRoleProvenance")
@@ -185,6 +188,28 @@ model StaffType {
   @@index([defaultRoleId])
   @@index([order])
   @@map("staff_type")
+}
+
+/// Join model: a Staff member can hold 1..N concurrent StaffTypes (e.g.
+/// Teacher + Vice President). PK is the natural pair, so the same staff
+/// cannot hold the same type twice. See @doc/specs/staff-multi-type-refactor.
+///
+/// - `onDelete: Cascade` on the Staff side: hard-deleting a staff cleans up
+///   its type links (standard join-table convention).
+/// - `onDelete: Restrict` on the StaffType side: mirrors the existing
+///   `Campus → StaffType` rule — a StaffType in use cannot be hard-deleted.
+///   `StaffType.archive()` is the production removal path.
+model StaffStaffType {
+  staff       Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String    @map("staff_id") @db.Uuid
+  staffType   StaffType @relation(fields: [staffTypeId], references: [id], onDelete: Restrict)
+  staffTypeId String    @map("staff_type_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([staffId, staffTypeId])
+  @@index([staffTypeId])
+  @@map("staff_staff_type")
 }
 
 // ==========================================
@@ -247,15 +272,22 @@ model UserRole {
   campusId String? @map("campus_id") @db.Uuid
 
   // Provenance: NULL = manual grant (never auto-revoked).
-  // Non-NULL = grant created by staff-type default-role assignment; eligible
-  // for tracked-grant revocation when staff.staffTypeId changes.
-  // See @doc/specs/tracked-grant-revocation#schema-delta.
+  // Non-NULL = grant created by a StaffType default-role assignment; eligible
+  // for tracked-grant revocation when the staff's StaffType set changes (a
+  // type is removed from `staff_staff_type`). See
+  // @doc/specs/tracked-grant-revocation#schema-delta and
+  // @doc/specs/staff-multi-type-refactor.
   grantedViaStaffTypeId String?    @map("granted_via_staff_type_id") @db.Uuid
   grantedViaStaffType   StaffType? @relation("UserRoleProvenance", fields: [grantedViaStaffTypeId], references: [id], onDelete: SetNull)
 
   assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
 
-  @@unique([userId, roleId, campusId])
+  // 4-col natural key — provenance widens the unique so multiple tracked rows
+  // (one per StaffType that defaults to the same role) can coexist alongside
+  // a single manual row (provenance NULL). Prisma's `@@unique` attribute does
+  // not express `NULLS NOT DISTINCT`; the migration applies it via raw SQL
+  // (Postgres 15+). See @doc/specs/staff-multi-type-refactor D2.
+  @@unique([userId, roleId, campusId, grantedViaStaffTypeId])
   @@index([userId])
   @@index([roleId])
   @@index([campusId])
@@ -351,9 +383,11 @@ model Staff {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  // Staff type (replaces staffType text field)
-  staffTypeId String?    @map("staff_type_id") @db.Uuid
-  staffType   StaffType? @relation(fields: [staffTypeId], references: [id], onDelete: SetNull)
+  // Staff types — many-to-many via `staff_staff_type` join table.
+  // A staff can hold 1..N concurrent types (e.g., Teacher + Vice President).
+  // See @doc/specs/staff-multi-type-refactor — replaces the prior single
+  // `staff_type_id` scalar; join writes go through `tx.replaceStaffTypes`.
+  staffTypes StaffStaffType[]
 
   // User relationship
   userId String? @map("user_id") @db.Uuid
@@ -372,7 +406,6 @@ model Staff {
   @@unique([campusId, userId])
   // Indexes
   @@index([campusId])
-  @@index([staffTypeId])
   @@index([isArchived])
   @@map("staff")
 }

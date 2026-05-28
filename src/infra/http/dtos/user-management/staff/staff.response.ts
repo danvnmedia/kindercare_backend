@@ -32,22 +32,14 @@ export class StaffResponse {
   phoneNumber: string;
 
   @Expose()
-  @ApiProperty({
-    example: "123e4567-e89b-12d3-a456-426614174002",
-    description: "Staff type ID (references staff_type table)",
-    nullable: true,
-  })
-  staffTypeId: string | null;
-
-  @Expose()
   @Type(() => StaffTypeSummaryDto)
   @ApiProperty({
     type: StaffTypeSummaryDto,
-    nullable: true,
+    isArray: true,
     description:
-      "Read-only snapshot of the related staff type (id + name). Null when the staff has no staffTypeId. Write path is staffTypeId.",
+      "Read-only snapshots of the staff member's staff types (id + name), sorted by StaffType.order ASC. The write path is `staffTypeIds: string[]` on the request DTOs — see @doc/specs/staff-multi-type-refactor (D1).",
   })
-  staffType: StaffTypeSummaryDto | null;
+  staffTypes: StaffTypeSummaryDto[];
 
   @Expose()
   @ApiProperty({ example: "123 Đường ABC, Quận 1, TP.HCM", nullable: true })
