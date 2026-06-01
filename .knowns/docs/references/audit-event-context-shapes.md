@@ -2,7 +2,7 @@
 title: Audit Event Context Shapes
 description: 'Per-action JSONB context shape for `audit_event.context`. Source of truth for what each use case writes and what the FE display-template registry consumes.'
 createdAt: '2026-05-19T20:14:31.630Z'
-updatedAt: '2026-05-27T23:00:26.209Z'
+updatedAt: '2026-05-30T15:15:09.570Z'
 tags:
   - audit
   - reference
@@ -538,3 +538,58 @@ If a use case writes a context field that no display template references, the FE
 - Add a new field → update this doc and the FE i18n registry in the same PR.
 - Remove a field → write a migration of historical rows (or accept the FE fallback).
 - Rename a field → never; treat field names as wire-compatible after first deploy.
+
+
+### Meal menu lifecycle (6 actions — @doc/specs/meal-menu-backend)
+
+#### Shared menu shape
+
+Actions: `CREATE_MEAL_MENU`, `COPY_MEAL_MENU`, `UPDATE_MEAL_MENU`, `ARCHIVE_MEAL_MENU`, `RESTORE_MEAL_MENU`.
+
+`targetType`: `meal_menu`
+`targetId`: meal menu UUID
+`context` shape:
+
+```json
+{
+  "actorName": "Alice Nguyen",
+  "title": "Week 1 Menu",
+  "weekStartDate": "2026-06-01T00:00:00.000Z",
+  "gradeLevelId": null,
+  "gradeLevelName": null,
+  "days": [1, 2, 3, 4, 5],
+  "mealSlots": ["Breakfast", "Lunch", "Afternoon"],
+  "entryCount": 12,
+  "isArchived": false
+}
+```
+
+`COPY_MEAL_MENU` adds source snapshots:
+
+```json
+{
+  "sourceMealMenuId": "source-menu-id",
+  "sourceWeekStartDate": "2026-06-01T00:00:00.000Z",
+  "sourceGradeLevelId": null
+}
+```
+
+For `UPDATE_MEAL_MENU`, `ARCHIVE_MEAL_MENU`, and `RESTORE_MEAL_MENU`, `beforeValue` and `afterValue` use the same flat menu snapshot fields excluding `actorName`. `CREATE_MEAL_MENU` and `COPY_MEAL_MENU` set only `afterValue`.
+
+#### Config shape
+
+Action: `UPDATE_MEAL_MENU_CONFIG`.
+
+`targetType`: `meal_menu_config`
+`targetId`: meal menu config UUID
+`context` shape:
+
+```json
+{
+  "actorName": "Alice Nguyen",
+  "operatingDays": [1, 2, 3, 4, 5],
+  "defaultMealSlots": ["Breakfast", "Lunch", "Afternoon"]
+}
+```
+
+`beforeValue` is `null` when no config row existed before the upsert; otherwise it uses the same flat config snapshot fields excluding `actorName`. `afterValue` always uses the flat config snapshot.

@@ -47,6 +47,8 @@ export class PermissionEntity {
     "staff_type",
     "report",
     "setting",
+    "meal_menu",
+    "meal_menu_config",
   ] as const;
 
   /**

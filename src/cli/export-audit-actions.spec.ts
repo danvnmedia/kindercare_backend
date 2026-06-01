@@ -38,10 +38,11 @@ describe("buildAuditActionsExport", () => {
   // class-staff lifecycle (assign/remove/change-role) added 3 in
   // @doc/specs/subject-removal-classstaff-role-refactor; direct role
   // assignment (grant/revoke) added 2 in
-  // @doc/specs/direct-role-assignment-via-uow.
-  it("emits exactly 24 actions (19 v1 + 3 class-staff lifecycle + 2 RBAC)", () => {
+  // @doc/specs/direct-role-assignment-via-uow; meal-menu lifecycle added 6 in
+  // @doc/specs/meal-menu-backend.
+  it("emits exactly 30 actions (24 existing + 6 meal-menu)", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(24);
+    expect(result.actions).toHaveLength(30);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {

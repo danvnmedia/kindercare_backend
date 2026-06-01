@@ -1,5 +1,6 @@
 import { AuditEventInput } from "@/application/audit";
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -71,23 +72,6 @@ export interface TransactionContext {
   /**
    * Revoke every role row whose provenance matches ANY staff-type in the
    * supplied set.
-   *
-   * Used by `UpdateStaffUseCase` when the staff's `staffTypes` collection
-   * changes — the use case computes the `removed` set via set-diff and passes
-   * it here in one SQL round-trip via `deleteMany` with `IN (...)` (D-extra-2
-   * of @doc/specs/staff-multi-type-refactor).
-   *
-   * Manual grants (`granted_via_staff_type_id IS NULL`) are never matched by
-   * SQL semantics — a non-null string in an `IN (...)` predicate cannot equal
-   * `NULL`, so the D4 "manual rows untouched" invariant of
-   * @doc/specs/tracked-grant-revocation holds without explicit guards.
-   *
-   * Empty input is permitted (Prisma compiles `{ in: [] }` to a `false`
-   * predicate and returns 0), but callers are expected to short-circuit
-   * before calling — see the use-case set-diff snippet in
-   * @doc/specs/staff-multi-type-refactor#technical-notes.
-   *
-   * @returns the number of rows deleted (0 when no tracked grant matches).
    */
   revokeRolesByProvenance(
     userId: string,
@@ -97,17 +81,6 @@ export interface TransactionContext {
   /**
    * Revoke role rows that match exact `(userId, roleId, campusId)` tuples,
    * regardless of provenance.
-   *
-   * Used by admin direct-revoke endpoints (`DELETE /roles/:id/users`) to remove
-   * either manual or tracked rows by their natural key. Distinct from
-   * `revokeRolesByProvenance`, which filters by `granted_via_staff_type_id`
-   * and is the staff-type-driven auto-revoke path — see Scenario 9 of
-   * @doc/specs/direct-role-assignment-via-uow for the boundary contract:
-   * manual revoke deletes BOTH NULL- and non-NULL-provenance rows whose
-   * natural key matches, because the filter never mentions provenance.
-   *
-   * @returns the number of rows actually deleted; 0 when the user holds none
-   *   of the specified pairs (idempotent — no throw on no-match).
    */
   revokeRoles(
     userId: string,
@@ -155,11 +128,6 @@ export interface TransactionContext {
 
   /**
    * Execute a raw create operation for Staff entity.
-   *
-   * Scalar columns only — the staff-type set lives in `staff_staff_type`
-   * and is written via `replaceStaffTypes` immediately after this call.
-   * The legacy `staff_type_id` column was removed by
-   * @doc/specs/staff-multi-type-refactor (D5).
    */
   createStaff(data: {
     id: string;
@@ -180,11 +148,6 @@ export interface TransactionContext {
 
   /**
    * Execute a raw update operation for Staff entity.
-   *
-   * Scalar columns only — the staff-type set lives in `staff_staff_type`
-   * and is written via `replaceStaffTypes` in the same transaction. The
-   * legacy `staff_type_id` column was removed by
-   * @doc/specs/staff-multi-type-refactor (D5).
    */
   updateStaff(
     id: string,
@@ -204,27 +167,6 @@ export interface TransactionContext {
 
   /**
    * Replace the full `staff_staff_type` set for a staff inside the active tx.
-   *
-   * Semantics: full-set replacement — `deleteMany({ where: { staffId } })`
-   * clears every existing join row, then `createMany` inserts one row per
-   * supplied `staffTypeId`. Idempotent for the same set: the resulting rows
-   * are equivalent (the `createdAt` column is the only field that resets,
-   * which audit code does not rely on).
-   *
-   * Called by both `CreateStaffUseCase` (initial set) and `UpdateStaffUseCase`
-   * (set-diff swap — see @doc/specs/staff-multi-type-refactor §Use-case
-   * set-diff). The min-1 invariant (D4) is enforced upstream by the DTO
-   * (`@ArrayMinSize(1)`) and the domain entity (`setStaffTypes`); this op
-   * does not re-validate so legacy NULL-orphan rows (D5) can be migrated to
-   * empty sets if a future workflow ever requires it.
-   *
-   * Atomic with surrounding UoW writes — a failure here rolls back the
-   * parent `tx.updateStaff`/`tx.createStaff` mutation by transaction
-   * boundary.
-   *
-   * @param staffId - The staff whose join set is replaced.
-   * @param staffTypeIds - The full target set. Duplicates surface as `P2002`
-   *   (PK collision) by Prisma — caller responsibility to dedupe.
    */
   replaceStaffTypes(staffId: string, staffTypeIds: string[]): Promise<void>;
 
@@ -270,9 +212,6 @@ export interface TransactionContext {
 
   /**
    * Assign guardians to a student within the transaction.
-   *
-   * Mirrors `StudentRepository.assignGuardians`; called by the link use case
-   * so the audit row + relationship insert atomically commit together (D4).
    */
   assignGuardians(
     studentId: string,
@@ -281,19 +220,11 @@ export interface TransactionContext {
 
   /**
    * Remove guardians from a student within the transaction.
-   *
-   * Mirrors `StudentRepository.removeGuardians`. Used by the unlink use case;
-   * callers must pre-resolve any relationship snapshot for `context` BEFORE
-   * invoking this op (the row is gone by audit time).
    */
   removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
 
   /**
    * Create a class-staff assignment within the transaction.
-   *
-   * Used by `AssignStaffToClassUseCase` so the new row and its
-   * `ASSIGN_STAFF_TO_CLASS` audit event commit atomically (D4 of
-   * `@doc/specs/admin-audit-log`).
    */
   createClassStaff(data: {
     classId: string;
@@ -305,27 +236,42 @@ export interface TransactionContext {
 
   /**
    * Delete a class-staff assignment within the transaction.
-   *
-   * Used by `RemoveStaffFromClassUseCase` so the row deletion and its
-   * `REMOVE_STAFF_FROM_CLASS` audit event commit atomically. Callers must
-   * pre-resolve the role for the audit `context` BEFORE invoking this op —
-   * the row is gone by audit time.
    */
   deleteClassStaff(classId: string, staffId: string): Promise<void>;
 
   /**
    * Update a class-staff assignment's role within the transaction.
-   *
-   * Used by `ChangeClassStaffRoleUseCase` so the role update and its
-   * `CHANGE_STAFF_ROLE` audit event commit atomically (D4 of
-   * `@doc/specs/admin-audit-log`). Identity `(classId, staffId)` is immutable
-   * — only mutable fields (`role`, `updatedAt`) are accepted.
    */
   updateClassStaff(
     classId: string,
     staffId: string,
     data: { role: ClassStaffRole; updatedAt: Date },
   ): Promise<{ classId: string; staffId: string }>;
+
+  /**
+   * Create a meal menu and its entry rows within the current transaction.
+   */
+  createMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Update a meal menu and replace its entry rows within the current transaction.
+   */
+  updateMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Soft-archive a meal menu within the current transaction.
+   */
+  archiveMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Restore a meal menu within the current transaction.
+   */
+  restoreMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Upsert meal-menu config defaults within the current transaction.
+   */
+  upsertMealMenuConfig(config: MealMenuConfig): Promise<MealMenuConfig>;
 
   /**
    * Record an audit event inside the current transaction.

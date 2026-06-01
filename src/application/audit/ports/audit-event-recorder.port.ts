@@ -23,21 +23,27 @@ export type AuditTransactionClient = Prisma.TransactionClient;
  * @doc/specs/direct-role-assignment-via-uow D1) — the target is the `User`
  * row receiving or losing the role-campus pair.
  */
-export type AuditTargetType = "student" | "guardian" | "staff" | "user";
+export type AuditTargetType =
+  | "student"
+  | "guardian"
+  | "staff"
+  | "user"
+  | "meal_menu"
+  | "meal_menu_config";
 
 /**
  * Input payload for a single audit-event write.
  *
  * The caller supplies:
  *   - identity refs (`actorId`, `targetId`, `campusId`) — all NOT NULL in the DB
- *   - the action code (`AuditAction` is the curated 19-entry vocabulary)
+ *   - the action code (`AuditAction` is the curated vocabulary)
  *   - `context` jsonb — domain-specific snapshots the caller already has
  *     loaded (e.g. `fromClassName`, `toClassName`, `transferDate`). Required
  *     name snapshots like `actorName` should be added here too: the recorder
  *     does not auto-resolve `actorName` because the `User` aggregate has no
  *     name field — it lives on the linked Guardian / Staff profile.
- *   - `beforeValue` / `afterValue` — only the changed-field diff for the
- *     `EDIT_*` actions (Scenario 3). Null otherwise.
+ *   - `beforeValue` / `afterValue` — only the changed-field diff/snapshot for
+ *     update-like actions. Null otherwise.
  *
  * The recorder enriches `context` with a `targetName` snapshot resolved from
  * the supplied `tx` (Technical Notes — Snapshot resolution). Caller-provided

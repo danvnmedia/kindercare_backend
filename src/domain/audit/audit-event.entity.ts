@@ -12,7 +12,13 @@ import { AuditVisibility } from "./audit-visibility.enum";
  * @doc/specs/direct-role-assignment-via-uow D1) — the target is the `User`
  * row receiving or losing the role-campus pair.
  */
-export type AuditTargetType = "student" | "guardian" | "staff" | "user";
+export type AuditTargetType =
+  | "student"
+  | "guardian"
+  | "staff"
+  | "user"
+  | "meal_menu"
+  | "meal_menu_config";
 
 /**
  * AuditEvent — read-only projection of the `audit_event` table.

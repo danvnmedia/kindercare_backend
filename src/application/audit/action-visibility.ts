@@ -54,6 +54,14 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   // RBAC role grants (2)
   GRANT_ROLE: "ADMIN",
   REVOKE_ROLE: "ADMIN",
+
+  // Meal-menu lifecycle (6)
+  CREATE_MEAL_MENU: "ADMIN",
+  COPY_MEAL_MENU: "ADMIN",
+  UPDATE_MEAL_MENU: "ADMIN",
+  ARCHIVE_MEAL_MENU: "ADMIN",
+  RESTORE_MEAL_MENU: "ADMIN",
+  UPDATE_MEAL_MENU_CONFIG: "ADMIN",
 };
 
 // Runtime self-check — keeps the map covering every AuditAction even if the

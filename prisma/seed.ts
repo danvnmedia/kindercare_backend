@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { SYSTEM_PERMISSIONS } from "../src/application/rbac/use-cases/seed-permissions.use-case";
 
 const prisma = new PrismaClient();
 
@@ -67,6 +68,34 @@ async function main() {
   console.log(`  - ${superAdminRole.name} (${superAdminRole.id})`);
   console.log(`    isSystemRole: ${superAdminRole.isSystemRole}`);
   console.log(`    isSystemDefault: ${superAdminRole.isSystemDefault}`);
+
+  // Seed system permissions and grant Super Admin every permission.
+  // This keeps local/dev bootstrap aligned with the RBAC permission catalog.
+  const permissions = await Promise.all(
+    SYSTEM_PERMISSIONS.map((permission) =>
+      prisma.permission.upsert({
+        where: { id: permission.id },
+        update: {
+          module: permission.module,
+          description: permission.description,
+        },
+        create: permission,
+      }),
+    ),
+  );
+
+  const rolePermissionResult = await prisma.rolePermission.createMany({
+    data: permissions.map((permission) => ({
+      roleId: superAdminRole.id,
+      permissionId: permission.id,
+    })),
+    skipDuplicates: true,
+  });
+
+  console.log(`Seeded ${permissions.length} permissions.`);
+  console.log(
+    `Assigned ${rolePermissionResult.count} new permissions to Super Admin.`,
+  );
 
   console.log("Seeding completed.");
 }

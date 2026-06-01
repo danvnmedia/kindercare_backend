@@ -12,6 +12,10 @@ import { RoleRepository } from "@/application/user-management/ports/role.reposit
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { SchoolYearRepository } from "@/application/class-management/ports/school-year.repository";
+import {
+  MealMenuConfigRepository,
+  MealMenuRepository,
+} from "@/application/meal-menu";
 
 /**
  * Create a mock CampusRepository
@@ -202,4 +206,33 @@ export function createMockSchoolYearRepository(): jest.Mocked<SchoolYearReposito
     archive: jest.fn(),
     unarchive: jest.fn(),
   } as jest.Mocked<SchoolYearRepository>;
+}
+
+/**
+ * Create a mock MealMenuRepository
+ */
+export function createMockMealMenuRepository(): jest.Mocked<MealMenuRepository> {
+  return {
+    findById: jest.fn(),
+    findByIdInCampus: jest.fn(),
+    findByCampusId: jest.fn(),
+    findActiveByNaturalKey: jest.fn(),
+    findAnyByNaturalKey: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    archive: jest.fn(),
+    restore: jest.fn(),
+  } as jest.Mocked<MealMenuRepository>;
+}
+
+/**
+ * Create a mock MealMenuConfigRepository
+ */
+export function createMockMealMenuConfigRepository(): jest.Mocked<MealMenuConfigRepository> {
+  return {
+    findByCampusId: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+  } as jest.Mocked<MealMenuConfigRepository>;
 }

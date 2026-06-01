@@ -2,7 +2,7 @@
 title: Saga Pattern
 description: Compensating transactions for orchestrating Clerk + database writes that span systems Prisma cannot roll back
 createdAt: '2026-05-05T17:42:40.080Z'
-updatedAt: '2026-05-05T17:42:40.080Z'
+updatedAt: '2026-05-31T02:16:09.897Z'
 tags:
   - patterns
   - saga
@@ -94,9 +94,20 @@ The forward action is the **most likely to fail** (external HTTP). Do it first, 
 
 ### Variant B — Update-with-revert
 
-For updates, save the **original values** before calling the external service so compensation can restore them.
+For identity-linked updates, detect Clerk-relevant changes first, then save the original values before calling the external service so compensation can restore them.
+
+Canonical flow:
+
+1. Detect changes into a `ClerkChanges` object, usually email, phone number, and full name.
+2. If the entity has no linked `userId` or no Clerk-relevant changes, skip the saga branch entirely and run the normal DB update.
+3. Snapshot original Clerk values before the external call.
+4. Update Clerk first through `identityPort.updateUser(...)`.
+5. Run the DB transaction through `UnitOfWorkPort.run(...)`.
+6. If the DB transaction fails, call a best-effort revert helper that restores only the fields that were actually applied.
+7. Re-throw the original DB-facing failure after compensation.
 
 ```typescript
+const clerkChanges = this.detectClerkChanges(guardian, input);
 const originalValues: ClerkOriginalValues = {
   email: guardian.email,
   phoneNumber: guardian.phoneNumber,
@@ -105,15 +116,18 @@ const originalValues: ClerkOriginalValues = {
 
 await this.identityPort.updateUser(user.clerkUid, clerkChanges);
 try {
-  // … DB transaction
+  return await this.unitOfWork.run(async (tx) => {
+    // ... DB update and audit/event writes
+  });
 } catch (dbError) {
   await this.revertClerkChanges(user.clerkUid, originalValues, clerkChanges);
   throw new BadRequestException(`Failed to update guardian: ${dbError.message}`);
 }
 ```
 
-See `UpdateGuardianUseCase.revertClerkChanges` for the canonical implementation.
+`IdentityService.updateUser` already owns primary-email and primary-phone replacement, so new identity-linked entities following this pattern should not need infrastructure-layer Clerk changes.
 
+See `UpdateGuardianUseCase.revertClerkChanges` and `UpdateStaffUseCase` for the canonical implementations.
 ### Variant C — Lock-then-DB-then-(no compensation)
 
 For archive (soft delete), the forward action is `lockIdentity`. If the DB fails, we **don't unlock** — the lock is reversible by an operator and is far less harmful than an inconsistent archived state. The `archive` use cases call `lockIdentity` *before* the DB transaction without try/catch around it; the lock is "best-effort up-front".
@@ -151,8 +165,9 @@ await this.unitOfWork.run(async (tx) => { … });  // DB write
 
 ## Future Direction
 
-When more sagas appear (or compensation needs to retry), introduce a saga library or a "dead-letter compensation" queue. Today, manual cleanup from logs is the recovery path. See [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob) for the queueing primitives that would back a future saga state machine.
+When more sagas appear or compensation needs to retry, introduce a saga library or a dead-letter compensation queue. Today, manual cleanup from logs is the recovery path.
 
+Queueing primitives for a future saga state machine are documented in @doc/architecture/queue-and-cronjob.
 ## Reference
 
 | File | Notes |

@@ -2,7 +2,7 @@
 title: Repository Pattern
 description: Repository ports (application layer) and Prisma implementations (infra layer) with campus-scoped query patterns
 createdAt: '2026-01-03T19:52:13.114Z'
-updatedAt: '2026-05-05T17:39:49.992Z'
+updatedAt: '2026-05-31T02:16:30.017Z'
 tags:
   - patterns
   - repository
@@ -145,18 +145,42 @@ async findBySchoolYearGradeAndName(
 
 ### Pattern 3 — Paginated queries with `scope`
 
-The `scope` argument to `PrismaQueryService.executeQuery` is **system-enforced**: it merges into `where` last and overrides any user-supplied filter on the same field. This is the **only** correct way to scope a list endpoint by campus.
+The `scope` argument to `PrismaQueryService.executeQuery` is system-enforced: it merges into `where` last and overrides any user-supplied filter on the same field. This is the correct way to scope a list endpoint by campus.
 
 ```typescript
 return this.queryService.executeQuery<Post>(
-  this.prisma, "post", params,
+  this.prisma,
+  "post",
+  params,
   { scope: { campusId, isDeleted: false } },
   PrismaPostMapper,
 );
 ```
 
-> Don't add `campusId` to `allowedFilterFields`. The user-supplied `?filter=...` query parameter is expected to be untrusted; `scope` is the trust boundary.
+Do not add `campusId` to `allowedFilterFields`. The user-supplied `?filter=...` query parameter is untrusted; `scope` is the trust boundary.
 
+### Default archive filters with user-controlled `isArchived`
+
+If an endpoint hides archived rows by default but also exposes `isArchived` in the standard filter grammar, do not keep `isArchived: false` in `scope` when the caller supplied an explicit `isArchived` filter. Because `scope` wins last, it would override the user's archive filter.
+
+Instead:
+
+1. Detect whether the standard request filter includes `isArchived`.
+2. Always keep the trusted campus/tenant scope.
+3. Apply the default active-only scope only when `isArchived` is absent.
+
+Example shape:
+
+```typescript
+const includeArchived = hasStandardFilter(params, "isArchived");
+
+return this.repository.findAll(params, {
+  campusId,
+  ...(includeArchived ? {} : { isArchived: false }),
+});
+```
+
+This preserves secure campus scoping while allowing archive views such as `isArchived=true`.
 ### Pattern 4 — Global vs campus-scoped entities
 
 A few entities are global or hybrid:
@@ -179,18 +203,17 @@ For these, the repository should not assume a campus filter. Use case logic deci
 
 ## Repository ↔ UnitOfWork
 
-When a use case must write to multiple tables atomically, **don't** chain repository calls. Use the Unit of Work, which exposes per-domain transaction operations:
+When a use case must write to multiple tables atomically, do not chain repository calls. Use the Unit of Work, which exposes per-domain transaction operations:
 
 ```typescript
 await this.unitOfWork.run(async (tx) => {
   const user = await tx.createUser({ clerkUid, isActive: true });
-  await tx.createStaff({ id, campusId, userId: user.id, /* … */ });
+  await tx.createStaff({ id, campusId, userId: user.id, /* ... */ });
   await tx.assignRoles(user.id, [{ roleId, campusId }]);
 });
 ```
 
-See [@doc/patterns/unit-of-work-pattern](patterns/unit-of-work-pattern). The repository's normal `save`/`update` methods stay non-transactional and are used outside the UoW path.
-
+See @doc/patterns/unit-of-work-pattern. The repository's normal `save`/`update` methods stay non-transactional and are used outside the UoW path.
 ## Reference
 
 | File | Notable |

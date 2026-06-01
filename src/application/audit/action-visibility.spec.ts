@@ -41,3 +41,24 @@ describe("GRANT_ROLE / REVOKE_ROLE vocab additions (direct-role-assignment-via-u
     expect(ACTION_VISIBILITY.REVOKE_ROLE).toBe("ADMIN");
   });
 });
+
+describe("meal-menu audit vocab additions", () => {
+  const mealMenuActions = [
+    "CREATE_MEAL_MENU",
+    "COPY_MEAL_MENU",
+    "UPDATE_MEAL_MENU",
+    "ARCHIVE_MEAL_MENU",
+    "RESTORE_MEAL_MENU",
+    "UPDATE_MEAL_MENU_CONFIG",
+  ] as const;
+
+  it("registers every meal-menu audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(expect.arrayContaining([...mealMenuActions]));
+  });
+
+  it("maps every meal-menu action to ADMIN visibility", () => {
+    for (const action of mealMenuActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});

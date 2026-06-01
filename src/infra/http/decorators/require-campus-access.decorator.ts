@@ -3,7 +3,8 @@
  * Method/Class decorator that applies CampusGuard with configuration options
  */
 
-import { applyDecorators, SetMetadata, UseGuards } from "@nestjs/common";
+import { applyDecorators, SetMetadata } from "@nestjs/common";
+import { GUARDS_METADATA } from "@nestjs/common/constants";
 import { CampusGuard } from "../guards/campus.guard";
 
 export const REQUIRE_CAMPUS_ACCESS_KEY = "requireCampusAccess";
@@ -36,6 +37,24 @@ export interface RequireCampusAccessOptions {
    * @default true
    */
   allowGlobalAdmin?: boolean;
+}
+
+function UseCampusGuardFirst(): MethodDecorator & ClassDecorator {
+  return (
+    target: object,
+    _propertyKey?: string | symbol,
+    descriptor?: PropertyDescriptor,
+  ): void => {
+    const metadataTarget = descriptor?.value ?? target;
+    const previousGuards =
+      Reflect.getMetadata(GUARDS_METADATA, metadataTarget) ?? [];
+    const guards = [
+      CampusGuard,
+      ...previousGuards.filter((guard: unknown) => guard !== CampusGuard),
+    ];
+
+    Reflect.defineMetadata(GUARDS_METADATA, guards, metadataTarget);
+  };
 }
 
 /**
@@ -83,7 +102,7 @@ export function RequireCampusAccess(
 ): MethodDecorator & ClassDecorator {
   return applyDecorators(
     SetMetadata(REQUIRE_CAMPUS_ACCESS_KEY, options),
-    UseGuards(CampusGuard),
+    UseCampusGuardFirst(),
   );
 }
 

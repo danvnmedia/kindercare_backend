@@ -17,6 +17,7 @@ type RootClientMock = {
   student: { findUnique: jest.Mock };
   guardian: { findUnique: jest.Mock };
   staff: { findUnique: jest.Mock };
+  mealMenu: { findUnique: jest.Mock };
 };
 
 describe("PrismaAuditEventRecorder", () => {
@@ -26,6 +27,7 @@ describe("PrismaAuditEventRecorder", () => {
     student: DelegateMock;
     guardian: DelegateMock;
     staff: DelegateMock;
+    mealMenu: DelegateMock;
   };
   // A "root client" stand-in. The recorder must never touch this — every
   // call should target the supplied `tx`. Sharing the same shape makes the
@@ -50,12 +52,14 @@ describe("PrismaAuditEventRecorder", () => {
       student: { findUnique: jest.fn(), create: jest.fn() },
       guardian: { findUnique: jest.fn(), create: jest.fn() },
       staff: { findUnique: jest.fn(), create: jest.fn() },
+      mealMenu: { findUnique: jest.fn(), create: jest.fn() },
     };
     rootClient = {
       auditEvent: { create: jest.fn() },
       student: { findUnique: jest.fn() },
       guardian: { findUnique: jest.fn() },
       staff: { findUnique: jest.fn() },
+      mealMenu: { findUnique: jest.fn() },
     };
     recorder = new PrismaAuditEventRecorder();
   });
@@ -122,6 +126,7 @@ describe("PrismaAuditEventRecorder", () => {
       // caller's transaction.
       expect(rootClient.auditEvent.create).not.toHaveBeenCalled();
       expect(rootClient.student.findUnique).not.toHaveBeenCalled();
+      expect(rootClient.mealMenu.findUnique).not.toHaveBeenCalled();
     });
 
     it("picks visibility from ACTION_VISIBILITY map", async () => {
@@ -180,6 +185,7 @@ describe("PrismaAuditEventRecorder", () => {
       // Other targetType delegates untouched.
       expect(tx.student.findUnique).not.toHaveBeenCalled();
       expect(tx.guardian.findUnique).not.toHaveBeenCalled();
+      expect(tx.mealMenu.findUnique).not.toHaveBeenCalled();
 
       const data = tx.auditEvent.create.mock.calls[0][0].data;
       expect(data.context).toMatchObject({ targetName: "Carol Pham" });
@@ -223,6 +229,48 @@ describe("PrismaAuditEventRecorder", () => {
         roleId: "role-1",
         campusId: "campus-1",
         actorName: "Alice Nguyen",
+      });
+    });
+
+    it("resolves a meal menu title snapshot for targetType='meal_menu'", async () => {
+      tx.mealMenu.findUnique.mockResolvedValue({ title: "Week 1 Menu" });
+      tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });
+
+      await recorder.record(
+        baseInput({
+          action: "CREATE_MEAL_MENU",
+          targetType: "meal_menu",
+          targetId: "menu-1",
+          context: {},
+        }),
+        txAsClient(),
+      );
+
+      expect(tx.mealMenu.findUnique).toHaveBeenCalledWith({
+        where: { id: "menu-1" },
+        select: { title: true },
+      });
+      expect(tx.auditEvent.create.mock.calls[0][0].data.context).toMatchObject({
+        targetName: "Week 1 Menu",
+      });
+    });
+
+    it("does not resolve a targetName for targetType='meal_menu_config'", async () => {
+      tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });
+
+      await recorder.record(
+        baseInput({
+          action: "UPDATE_MEAL_MENU_CONFIG",
+          targetType: "meal_menu_config",
+          targetId: "config-1",
+          context: {},
+        }),
+        txAsClient(),
+      );
+
+      expect(tx.mealMenu.findUnique).not.toHaveBeenCalled();
+      expect(tx.auditEvent.create.mock.calls[0][0].data.context).toMatchObject({
+        targetName: null,
       });
     });
 

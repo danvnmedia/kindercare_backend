@@ -1,7 +1,8 @@
 /**
- * AuditAction — string-union of the 19 v1 audit action codes.
+ * AuditAction — string-union of the v1 audit action codes.
  *
- * Source of truth: @doc/specs/admin-audit-log FR-1.
+ * Source of truth: @doc/specs/admin-audit-log FR-1 plus feature-specific
+ * audit extensions documented in their specs.
  *
  * Modelled as a `const` tuple + literal-union (not a TS `enum`) because the
  * FE action-list export needs to iterate the values at runtime (@task-9cx0ob),
@@ -49,6 +50,14 @@ export const AUDIT_ACTIONS = [
   // RBAC role grants (2)
   "GRANT_ROLE",
   "REVOKE_ROLE",
+
+  // Meal-menu lifecycle (6)
+  "CREATE_MEAL_MENU",
+  "COPY_MEAL_MENU",
+  "UPDATE_MEAL_MENU",
+  "ARCHIVE_MEAL_MENU",
+  "RESTORE_MEAL_MENU",
+  "UPDATE_MEAL_MENU_CONFIG",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

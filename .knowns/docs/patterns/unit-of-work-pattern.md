@@ -2,7 +2,7 @@
 title: Unit of Work Pattern
 description: Transaction management via UnitOfWorkPort + TransactionContext, with modular per-domain TransactionOps classes
 createdAt: '2026-01-03T19:52:40.012Z'
-updatedAt: '2026-05-20T00:54:31.570Z'
+updatedAt: '2026-05-31T02:17:02.479Z'
 tags:
   - patterns
   - transaction
@@ -48,26 +48,25 @@ export interface TransactionContext {
 ```
 ## Implementation: Modular Transaction Ops
 
-The Prisma implementation composes the `TransactionContext` from per-domain operation classes, each of which receives the active Prisma transaction client.
+The Prisma implementation composes the `TransactionContext` from per-domain operation classes. Each operation class receives the active Prisma transaction client, and `recordAudit` delegates to the audit recorder using that same transaction client.
 
-```
+```text
 src/infra/persistence/prisma/unit-of-work/
 ├── prisma-unit-of-work.ts            # exposes UoW; composes the context
 ├── transaction-operations/
 │   ├── base.transaction-ops.ts       # PrismaTransactionClient type alias
-│   ├── user.transaction-ops.ts       # createUser, updateUser, assignRoles
+│   ├── user.transaction-ops.ts       # createUser, updateUser, assign/revoke roles
 │   ├── guardian.transaction-ops.ts   # createGuardian, updateGuardian
-│   ├── staff.transaction-ops.ts      # createStaff, updateStaff
-│   ├── student.transaction-ops.ts    # updateStudent
+│   ├── staff.transaction-ops.ts      # createStaff, updateStaff, replaceStaffTypes
+│   ├── student.transaction-ops.ts    # create/update student, guardian assignments
+│   ├── class-staff.transaction-ops.ts
+│   ├── meal-menu.transaction-ops.ts  # menu CRUD/config writes
 │   └── index.ts
 ```
 
 ```typescript
-// prisma-unit-of-work.ts
 @Injectable()
 export class PrismaUnitOfWork extends UnitOfWorkPort {
-  constructor(private readonly prisma: PrismaService) { super(); }
-
   async run<T>(task: (tx: TransactionContext) => Promise<T>): Promise<T> {
     return this.prisma.$transaction(async (prismaTx) => {
       return task(this.createTransactionContext(prismaTx));
@@ -79,33 +78,43 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const guardianOps = new GuardianTransactionOps(tx);
     const staffOps = new StaffTransactionOps(tx);
     const studentOps = new StudentTransactionOps(tx);
+    const classStaffOps = new ClassStaffTransactionOps(tx);
+    const mealMenuOps = new MealMenuTransactionOps(tx);
 
     return {
       createUser: userOps.createUser.bind(userOps),
       assignRoles: userOps.assignRoles.bind(userOps),
-      // …
-      updateStudent: studentOps.updateStudent.bind(studentOps),
+      createMealMenu: mealMenuOps.createMealMenu.bind(mealMenuOps),
+      updateMealMenu: mealMenuOps.updateMealMenu.bind(mealMenuOps),
+      recordAudit: (input) => this.auditRecorder.record(input, tx),
+      // ...other domain operations
     };
   }
 }
 ```
 
-Each `*TransactionOps` class is a thin wrapper over a single Prisma model, scoped to the transaction client:
+Each `*TransactionOps` class should stay thin: it maps a domain operation to Prisma writes using the transaction client. Business validation remains in the use case/domain layer; audit payload construction remains in the use case or a dedicated application helper.
 
 ```typescript
-export class UserTransactionOps {
+export class MealMenuTransactionOps {
   constructor(private readonly tx: PrismaTransactionClient) {}
 
-  async createUser(data: { clerkUid: string; isActive: boolean }) {
-    const user = await this.tx.user.create({ data });
-    return { id: user.id, clerkUid: user.clerkUid };
-  }
-
-  async assignRoles(userId: string, assignments: RoleAssignmentInput[]): Promise<void> {
-    await this.tx.userRole.createMany({
-      data: assignments.map(a => ({ userId, roleId: a.roleId, campusId: a.campusId ?? null })),
-      skipDuplicates: true,
+  async updateMealMenu(mealMenu: MealMenu): Promise<MealMenu> {
+    const updated = await this.tx.mealMenu.update({
+      where: { id: mealMenu.id },
+      data: {
+        ...PrismaMealMenuMapper.toPrismaUpdate(mealMenu),
+        entries: {
+          deleteMany: {},
+          create: mealMenu.entries.map((entry) =>
+            PrismaMealMenuMapper.toPrismaEntryCreate(entry),
+          ),
+        },
+      },
+      include: PrismaMealMenuMapper.include,
     });
+
+    return PrismaMealMenuMapper.toDomain(updated);
   }
 }
 ```
@@ -113,16 +122,16 @@ export class UserTransactionOps {
 
 ```typescript
 async execute(input: CreateStaffInput): Promise<Staff> {
-  // 1. Stuff that must happen first (external-service call, code generation)
+  // 1. Work that must happen first, such as external-service calls or code generation.
   const clerkUser = await this.identityPort.provisionUser({ ... });
   const staffCode = await this.staffCodeGenerator.generateNextCode(input.campusId);
 
   try {
-    // 2. Atomic DB writes inside a single transaction
+    // 2. Atomic DB writes inside a single transaction.
     const staff = await this.unitOfWork.run(async (tx) => {
       const user = await tx.createUser({ clerkUid: clerkUser.clerkUid, isActive: true });
       const staffEntity = Staff.create({ ...input, staffCode, userId: user.id });
-      await tx.createStaff({ id: staffEntity.id, /* … all fields */ });
+      await tx.createStaff({ id: staffEntity.id, /* ... all fields */ });
       if (defaultRoleId) {
         await tx.assignRoles(user.id, [{ roleId: defaultRoleId, campusId: input.campusId }]);
       }
@@ -130,34 +139,33 @@ async execute(input: CreateStaffInput): Promise<Staff> {
     });
     return staff;
   } catch (error) {
-    // 3. Compensation for the external service (saga pattern)
+    // 3. Compensation for the external service.
     await this.compensateClerkUser(clerkUser.clerkUid);
     throw error;
   }
 }
 ```
 
-The Clerk call sits **outside** the transaction because Prisma can't roll it back. The pairing of "external call + UoW + compensation" is the **saga pattern** — see [@doc/patterns/saga-pattern](patterns/saga-pattern).
-
+The Clerk call sits outside the transaction because Prisma cannot roll it back. The pairing of external call + UoW + compensation is the saga pattern. See @doc/patterns/saga-pattern.
 ## When to Use UoW
 
 | Scenario | UoW? |
 |----------|------|
-| Any mutation that emits audit / domain events | **Yes** — `tx` must wrap the mutation + the audit/event write |
-| Multi-row writes that must be atomic (User + Staff + UserRole) | Yes |
+| Any mutation that emits audit / domain events | Yes — `tx` must wrap the mutation plus the audit/event write |
+| Multi-row writes that must be atomic, such as User + Staff + UserRole | Yes |
 | Read-only operations | No — use the repository directly |
 | External call + DB write | Saga pattern: external call outside, UoW inside, compensation on failure |
-| Bulk operations with their own internal `$transaction` (e.g. `repo.saveMany`) | No — the repo owns its own atomicity boundary |
+| Bulk operations with their own internal `$transaction`, such as `repo.saveMany` | No — the repo owns its own atomicity boundary |
 
 ### Rationale
 
-With `@doc/specs/admin-audit-log` D4 (same-tx audit emission), single-row mutations no longer exist in practice — every business mutation is at least a 2-row write (mutation + `audit_event`). Making both atomic requires the mutation to participate in the caller's transaction, which means going through `unitOfWork.run((tx) => …)`. The previous "single-row → repo directly" rule pre-dated the audit layer and is no longer the recommended default.
+With @doc/specs/admin-audit-log D4, same-transaction audit emission means every audited business mutation is at least a two-row write: the mutation plus `audit_event`. Making both atomic requires the mutation to participate in the caller's transaction, which means using `unitOfWork.run((tx) => ...)`.
 
-This aligns with the industry-standard pattern: Spring's `@Transactional` everywhere, EF Core's `DbContext`-as-UoW, Rails' `transaction` blocks. New mutations and refactored use cases follow the new rule by default.
+New mutations and refactored use cases follow this rule by default.
 
 ### Migration note
 
-Existing repo-direct callers — e.g. `archive-student`, `restore-student`, `update-student-guardian-relationship`, and single-row updates in `class-management/`, `campus/`, `grade-level/`, `school-year/` — **still use `repo.update()` directly** and continue to be valid. They migrate to UoW as their own audit-wiring tasks land (e.g. `@task-2c5xq3`, `@task-7ah3pb`). The decision table above is the **forward-looking convention**, not a hard cutover; do not bulk-rewrite legacy callers without an accompanying audit-wiring scope.
+Existing repo-direct callers can remain valid until their own audit-wiring scope lands. Do not bulk-rewrite legacy callers without an accompanying audit or transaction-boundary reason. The decision table above is the forward-looking convention, not a hard cutover.
 ## Adding a New Domain
 
 To extend the `TransactionContext` with another domain:
@@ -184,7 +192,9 @@ The whole point of the modular approach is that step 3 is short — adding a dom
 | File | Notes |
 |------|-------|
 | `src/application/ports/unit-of-work.port.ts` | The port and `TransactionContext` shape |
-| `src/infra/persistence/prisma/unit-of-work/prisma-unit-of-work.ts` | Composition |
+| `src/infra/persistence/prisma/unit-of-work/prisma-unit-of-work.ts` | Composition and `recordAudit` transaction binding |
 | `src/infra/persistence/prisma/unit-of-work/transaction-operations/*.ts` | Per-domain ops |
+| `src/infra/persistence/prisma/unit-of-work/transaction-operations/meal-menu.transaction-ops.ts` | Current example of aggregate + child-row writes inside UoW |
+| `src/application/meal-menu/use-cases/**` | Current examples of mutation + `tx.recordAudit(...)` in one transaction |
 | `src/application/user-management/use-cases/staff/create-staff.use-case.ts` | Saga + UoW example |
 | `src/application/user-management/use-cases/guardian/archive-guardian.use-case.ts` | UoW + Clerk lock |

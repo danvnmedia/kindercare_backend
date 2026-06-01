@@ -14,6 +14,11 @@ import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
+import {
+  MealMenu,
+  MealMenuConfig,
+  MealMenuEntryInput,
+} from "@/domain/meal-menu";
 import { User, UserRoleAssignment } from "@/domain/user-management/user.entity";
 import { Role } from "@/domain/user-management/role.entity";
 import {
@@ -395,5 +400,64 @@ export function createUserWithCampusRoles(
       updatedAt: new Date(),
     },
     userId,
+  );
+}
+
+/**
+ * Create a MealMenu entity with defaults
+ */
+export function createMealMenu(
+  overrides: Partial<{
+    id: string;
+    campusId: string;
+    gradeLevelId: string | null;
+    weekStartDate: Date;
+    title: string | null;
+    days: number[];
+    mealSlots: string[];
+    entries: MealMenuEntryInput[];
+    isArchived: boolean;
+  }> = {},
+): MealMenu {
+  return MealMenu.create(
+    {
+      campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
+      gradeLevelId: overrides.gradeLevelId ?? null,
+      weekStartDate:
+        overrides.weekStartDate ?? new Date("2026-06-01T00:00:00.000Z"),
+      title: overrides.title ?? "Weekly Menu",
+      days: overrides.days ?? [1, 2, 3, 4, 5],
+      mealSlots: overrides.mealSlots ?? ["Breakfast", "Lunch", "Afternoon"],
+      entries: overrides.entries ?? [
+        { dayOfWeek: 1, slot: "Breakfast", description: "Oatmeal" },
+      ],
+      isArchived: overrides.isArchived ?? false,
+    },
+    overrides.id ?? uuidv4(),
+  );
+}
+
+/**
+ * Create a MealMenuConfig entity with defaults
+ */
+export function createMealMenuConfig(
+  overrides: Partial<{
+    id: string;
+    campusId: string;
+    operatingDays: number[];
+    defaultMealSlots: string[];
+  }> = {},
+): MealMenuConfig {
+  return MealMenuConfig.create(
+    {
+      campusId: overrides.campusId ?? DEFAULT_CAMPUS_ID_A,
+      operatingDays: overrides.operatingDays ?? [1, 2, 3, 4, 5],
+      defaultMealSlots: overrides.defaultMealSlots ?? [
+        "Breakfast",
+        "Lunch",
+        "Afternoon",
+      ],
+    },
+    overrides.id ?? uuidv4(),
   );
 }
