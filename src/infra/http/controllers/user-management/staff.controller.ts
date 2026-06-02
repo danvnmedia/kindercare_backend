@@ -81,7 +81,6 @@ export class StaffController {
         address: dto.address,
         dateOfBirth: dto.dateOfBirth,
         gender: dto.gender as Gender | undefined,
-        startDate: dto.startDate,
       },
       currentUser,
     );
@@ -177,7 +176,6 @@ export class StaffController {
         address: dto.address,
         dateOfBirth: dto.dateOfBirth,
         gender: dto.gender as Gender | undefined,
-        startDate: dto.startDate,
       },
       currentUser,
     );

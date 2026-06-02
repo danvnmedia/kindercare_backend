@@ -65,7 +65,6 @@ function createMockStaff(id: string, belongsToCampusId: string): Staff {
       address: null,
       dateOfBirth: null,
       gender: null,
-      startDate: null,
     },
     id,
   );

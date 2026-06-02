@@ -34,7 +34,6 @@ describe("StaffResponse (HTTP surface — Spec AC-6 + D1, D3, D4, D6)", () => {
     address: null,
     dateOfBirth: null,
     gender: null,
-    startDate: null,
     userId: null,
     isArchived: false,
     createdAt: new Date("2026-05-27T00:00:00.000Z"),
@@ -147,7 +146,6 @@ describe("StaffResponse (HTTP surface — Spec AC-6 + D1, D3, D4, D6)", () => {
         address: "123 Đường ABC",
         dateOfBirth: new Date("1990-01-15T00:00:00.000Z"),
         gender: "MALE",
-        startDate: new Date("2024-01-01T00:00:00.000Z"),
         userId: "44444444-4444-4444-a444-444444444444",
         isArchived: true,
       });
@@ -163,11 +161,11 @@ describe("StaffResponse (HTTP surface — Spec AC-6 + D1, D3, D4, D6)", () => {
         new Date("1990-01-15T00:00:00.000Z"),
       );
       expect(response.gender).toBe("MALE");
-      expect(response.startDate).toEqual(new Date("2024-01-01T00:00:00.000Z"));
       expect(response.userId).toBe("44444444-4444-4444-a444-444444444444");
       expect(response.isArchived).toBe(true);
       expect(response.createdAt).toEqual(baseEntity.createdAt);
       expect(response.updatedAt).toEqual(baseEntity.updatedAt);
+      expect(response).not.toHaveProperty("startDate");
     });
   });
 });

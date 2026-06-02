@@ -18,7 +18,6 @@ const baseRow = (): PrismaStaff => ({
   address: null,
   dateOfBirth: null,
   gender: null,
-  startDate: null,
   userId: null,
   isArchived: false,
   createdAt: new Date("2025-01-01T00:00:00.000Z"),

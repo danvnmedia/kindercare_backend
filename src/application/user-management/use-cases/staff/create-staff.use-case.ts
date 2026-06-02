@@ -34,7 +34,6 @@ export interface CreateStaffInput {
   address?: string;
   dateOfBirth?: Date;
   gender?: Gender;
-  startDate?: Date;
 }
 
 interface ClerkUserResult {
@@ -114,7 +113,6 @@ export class CreateStaffUseCase {
           address: input.address ?? null,
           dateOfBirth: input.dateOfBirth ?? null,
           gender: input.gender ?? null,
-          startDate: input.startDate ?? null,
           userId: user.id,
         });
 
@@ -128,7 +126,6 @@ export class CreateStaffUseCase {
           address: staffEntity.address,
           dateOfBirth: staffEntity.dateOfBirth,
           gender: staffEntity.gender,
-          startDate: staffEntity.startDate,
           userId: staffEntity.userId,
           isArchived: staffEntity.isArchived,
           createdAt: staffEntity.createdAt,

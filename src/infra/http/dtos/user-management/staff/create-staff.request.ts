@@ -16,7 +16,6 @@ import {
   IsE164Phone,
   IsAdultDateOfBirth,
   TransformToUTCDate,
-  IsISO8601Date,
 } from "@/core/validators";
 
 export class CreateStaffRequest {
@@ -101,13 +100,4 @@ export class CreateStaffRequest {
   @IsAdultDateOfBirth()
   dateOfBirth?: Date;
 
-  @ApiProperty({
-    description: "Staff start date in ISO 8601 format (employment start)",
-    example: "2024-01-01T00:00:00.000Z",
-    required: false,
-  })
-  @IsOptional()
-  @TransformToUTCDate()
-  @IsISO8601Date()
-  startDate?: Date;
 }

@@ -2,7 +2,6 @@ import { ApiProperty } from "@nestjs/swagger";
 import {
   ArrayMinSize,
   IsArray,
-  IsDateString,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -98,12 +97,4 @@ export class UpdateStaffRequest {
   @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
   gender?: Gender;
 
-  @ApiProperty({
-    description: "Staff start date (employment start)",
-    example: "2024-01-01",
-    required: false,
-  })
-  @IsOptional()
-  @IsDateString()
-  startDate?: Date;
 }

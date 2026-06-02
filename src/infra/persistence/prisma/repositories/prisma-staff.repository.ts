@@ -165,7 +165,6 @@ export class PrismaStaffRepository implements StaffRepository {
       "staffCode",
       "fullName",
       "email",
-      "startDate",
     ];
 
     // Ensure filterInfo.filters is populated so we can extract before
@@ -226,7 +225,6 @@ export class PrismaStaffRepository implements StaffRepository {
       "fullName",
       "staffCode",
       "createdAt",
-      "startDate",
     ];
 
     return await this.queryService.executeQuery<Staff>(

@@ -280,7 +280,6 @@ describe("PrismaStaffRepository", () => {
         "fullName",
         "staffCode",
         "createdAt",
-        "startDate",
       ]);
     });
   });

@@ -434,7 +434,6 @@ export class UpdateStaffUseCase {
         address: staff.address,
         dateOfBirth: staff.dateOfBirth,
         gender: staff.gender,
-        startDate: staff.startDate,
         userId: staff.userId,
         isArchived: staff.isArchived,
         updatedAt: staff.updatedAt,
@@ -652,6 +651,5 @@ function pickStaffAuditFields(s: Staff) {
     address: s.address,
     dateOfBirth: s.dateOfBirth,
     gender: s.gender,
-    startDate: s.startDate,
   };
 }

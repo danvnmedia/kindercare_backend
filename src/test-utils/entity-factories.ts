@@ -71,7 +71,6 @@ export function createStaff(
     address: string | null;
     dateOfBirth: Date | null;
     gender: Gender | null;
-    startDate: Date | null;
     userId: string | null;
     isArchived: boolean;
   }> = {},
@@ -94,7 +93,6 @@ export function createStaff(
       address: overrides.address ?? null,
       dateOfBirth: overrides.dateOfBirth ?? null,
       gender: overrides.gender ?? null,
-      startDate: overrides.startDate ?? null,
       userId: overrides.userId ?? null,
       isArchived: overrides.isArchived ?? false,
     },

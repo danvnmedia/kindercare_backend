@@ -26,7 +26,6 @@ export class StaffTransactionOps {
     address: string | null;
     dateOfBirth: Date | null;
     gender: string | null;
-    startDate: Date | null;
     userId: string | null;
     isArchived: boolean;
     createdAt: Date;
@@ -43,7 +42,6 @@ export class StaffTransactionOps {
         address: data.address,
         dateOfBirth: data.dateOfBirth,
         gender: data.gender,
-        startDate: data.startDate,
         userId: data.userId,
         isArchived: data.isArchived,
         createdAt: data.createdAt,
@@ -70,7 +68,6 @@ export class StaffTransactionOps {
       address?: string | null;
       dateOfBirth?: Date | null;
       gender?: string | null;
-      startDate?: Date | null;
       userId?: string | null;
       isArchived?: boolean;
       updatedAt?: Date;
@@ -85,7 +82,6 @@ export class StaffTransactionOps {
         address: data.address,
         dateOfBirth: data.dateOfBirth,
         gender: data.gender,
-        startDate: data.startDate,
         userId: data.userId,
         isArchived: data.isArchived,
         updatedAt: data.updatedAt,

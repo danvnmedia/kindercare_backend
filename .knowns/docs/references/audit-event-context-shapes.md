@@ -2,7 +2,7 @@
 title: Audit Event Context Shapes
 description: 'Per-action JSONB context shape for `audit_event.context`. Source of truth for what each use case writes and what the FE display-template registry consumes.'
 createdAt: '2026-05-19T20:14:31.630Z'
-updatedAt: '2026-05-30T15:15:09.570Z'
+updatedAt: '2026-06-02T18:07:22.386Z'
 tags:
   - audit
   - reference
@@ -229,7 +229,7 @@ When the guardian has a linked `User` and the patch touches `email` / `phoneNumb
 | `targetName` | recorder | snapshot of `staff.fullName` |
 | `rolesGranted` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when the edit had no role impact. Under the multi-type 4-col `user_roles` unique with `NULLS NOT DISTINCT`, every per-type tracked insert produces a distinct row, so this array is **always populated on insert success** — the prior D5 "count = 0 keeps it `[]`" caveat is retired (see Superseded sections in @doc/specs/tracked-grant-revocation). |
 | `rolesRevoked` | caller | `Array<{roleId, viaStaffTypeId}>`. Always present; `[]` when no tracked grant was revoked. One entry per removed staff-type whose pre-resolved `defaultRoleId` is non-null. |
-| `before_value` | caller | `computeDiff` over `fullName, email, phoneNumber, staffTypeIds, address, dateOfBirth, gender, startDate` |
+| `before_value` | caller | `computeDiff` over `fullName, email, phoneNumber, staffTypeIds, address, dateOfBirth, gender` |
 | `after_value` | caller | same field set |
 
 Display template: `"Staff {{actorName}} updated profile of Staff {{targetName}}"`. Timeline renderers should surface a secondary line beneath the profile diff when either role array is non-empty — e.g. `"Granted role {{roleId}} (via Type {{viaStaffTypeId}})"` / `"Revoked role {{roleId}} (via Type {{viaStaffTypeId}})"`.

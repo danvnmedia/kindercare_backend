@@ -139,7 +139,6 @@ export interface TransactionContext {
     address: string | null;
     dateOfBirth: Date | null;
     gender: string | null;
-    startDate: Date | null;
     userId: string | null;
     isArchived: boolean;
     createdAt: Date;
@@ -158,7 +157,6 @@ export interface TransactionContext {
       address?: string | null;
       dateOfBirth?: Date | null;
       gender?: string | null;
-      startDate?: Date | null;
       userId?: string | null;
       isArchived?: boolean;
       updatedAt?: Date;

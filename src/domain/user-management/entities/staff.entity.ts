@@ -29,7 +29,6 @@ export interface StaffProps {
   address: string | null;
   dateOfBirth: Date | null;
   gender: Gender | null;
-  startDate: Date | null;
   userId: string | null;
   isArchived: boolean;
   createdAt: Date;
@@ -73,9 +72,6 @@ export class Staff extends Entity<StaffProps> {
   get gender(): Gender | null {
     return this.props.gender;
   }
-  get startDate(): Date | null {
-    return this.props.startDate;
-  }
   get userId(): string | null {
     return this.props.userId;
   }
@@ -104,8 +100,6 @@ export class Staff extends Entity<StaffProps> {
     if (updates.dateOfBirth !== undefined)
       this.props.dateOfBirth = updates.dateOfBirth;
     if (updates.gender !== undefined) this.props.gender = updates.gender;
-    if (updates.startDate !== undefined)
-      this.props.startDate = updates.startDate;
     if (updates.userId !== undefined) this.props.userId = updates.userId;
     this.touch();
   }

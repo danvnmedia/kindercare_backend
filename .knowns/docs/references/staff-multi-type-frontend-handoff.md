@@ -2,7 +2,7 @@
 title: Staff Multi-Type Frontend Handoff
 description: 'Backend-authored handoff for the frontend team covering the v1 staff multi-type refactor shipped in @doc/specs/staff-multi-type-refactor. Documents the new wire shapes (request `staffTypeIds: string[]`, response `staffTypes: StaffTypeSummaryDto[]`), the filter contract (`filter[staffTypeIds]: { in: [...] }` with relation-`some` semantics), the audit `EDIT_STAFF_PROFILE` shape change, the cutover model (atomic switch, no compat shim), the seven decisions the backend locked from the FE brief (D1–D7), error codes, UX implications, and what''s not in this release.'
 createdAt: '2026-05-27T23:44:08.501Z'
-updatedAt: '2026-05-27T23:44:08.501Z'
+updatedAt: '2026-06-02T18:07:22.354Z'
 tags:
   - reference
   - handoff
@@ -79,12 +79,11 @@ type StaffResponse = {
   fullName: string;
   email: string;
   phoneNumber: string;           // E.164
-  staffTypes: StaffTypeSummaryDto[];   // ← NEW, sorted by StaffType.order ASC
+  staffTypes: StaffTypeSummaryDto[];   // sorted by StaffType.order ASC
   // staffTypeId, staffType — REMOVED in v2
   address: string | null;
   dateOfBirth: string | null;    // ISO-8601
   gender: "MALE" | "FEMALE" | "OTHER" | null;
-  startDate: string | null;      // ISO-8601
   userId: string | null;
   isArchived: boolean;
   createdAt: string;
@@ -102,10 +101,9 @@ type CreateStaffRequest = {
   email: string;                 // unique within campus
   phoneNumber: string;           // E.164, unique within campus
   gender: "MALE" | "FEMALE" | "OTHER";
-  staffTypeIds: string[];        // ← NEW, min 1, no max, all UUIDs
+  staffTypeIds: string[];        // min 1, no max, all UUIDs
   address?: string;
   dateOfBirth?: string;          // ISO-8601, 18+
-  startDate?: string;            // ISO-8601
 };
 ```
 
@@ -116,11 +114,10 @@ type UpdateStaffRequest = {
   fullName?: string;
   email?: string;
   phoneNumber?: string;
-  staffTypeIds?: string[];       // ← NEW, full-set replacement (see semantics below)
+  staffTypeIds?: string[];       // full-set replacement (see semantics below)
   address?: string;
   dateOfBirth?: string;
   gender?: "MALE" | "FEMALE" | "OTHER";
-  startDate?: string;
 };
 ```
 
@@ -131,7 +128,7 @@ type UpdateStaffRequest = {
 | `staffTypeIds` **omitted**       | Types left unchanged. Other fields update normally. No role mutation. No audit on this key. |
 | `staffTypeIds: []`               | 400 `ARRAY_TOO_SHORT` (`"Staff must have at least one staff type"`). No DB write.            |
 | `staffTypeIds: [same set, different order]` | Set-diff is empty. Join table refreshed in-place (delete+recreate); no role mutation; no audit (zero-diff suppression). |
-| `staffTypeIds: [...different]`   | Full-set replacement. Diff is `added = newSet \ oldSet`, `removed = oldSet \ newSet`. Tracked role grants follow the diff per @doc/specs/tracked-grant-revocation. Audit emitted with sorted UUID arrays. |
+| `staffTypeIds: [...different]`   | Full-set replacement. Diff is `added = newSet \\ oldSet`, `removed = oldSet \\ newSet`. Tracked role grants follow the diff per @doc/specs/tracked-grant-revocation. Audit emitted with sorted UUID arrays. |
 
 **The PATCH never accepts a "patch" of types** (add this one, remove that one). It's always a full-set replacement. FE forms should hydrate the current set on edit-mode open, then submit the resulting set on save.
 
@@ -145,12 +142,11 @@ type ClassStaffStaffInfo = {
   fullName: string;
   staffCode: string;
   email: string;
-  staffTypes: StaffTypeSummaryDto[];   // ← NEW
+  staffTypes: StaffTypeSummaryDto[];   // NEW
 };
 ```
 
 The list-row variant (`ClassStaffStaffInfoLite`) intentionally drops `email` AND `staffTypes` — list rows render only ID + name + code. The detail view fetches the full embed.
-
 ## Endpoint behavior summary
 
 ### Endpoints whose request/response shape changed (no path change)

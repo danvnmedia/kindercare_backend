@@ -380,7 +380,6 @@ model Staff {
   address     String?
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
-  startDate   DateTime? @map("start_date") @db.Date
   isArchived  Boolean   @default(false) @map("is_archived")
 
   // Campus scoping
