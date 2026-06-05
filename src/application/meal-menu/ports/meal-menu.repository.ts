@@ -1,13 +1,12 @@
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
-import { MealMenu } from "@/domain/meal-menu";
+import { MealMenu, MealMenuTargetIdentity } from "@/domain/meal-menu";
 
-export interface MealMenuNaturalKey {
+export type MealMenuNaturalKey = MealMenuTargetIdentity & {
   campusId: string;
-  gradeLevelId: string | null;
   weekStartDate: Date;
-}
+};
 
 export interface MealMenuFindManyOptions {
   includeArchived?: boolean;

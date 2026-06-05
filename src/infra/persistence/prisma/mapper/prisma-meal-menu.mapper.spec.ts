@@ -1,4 +1,5 @@
 import {
+  Class as PrismaClass,
   GradeLevel as PrismaGradeLevel,
   MealMenu as PrismaMealMenu,
   MealMenuEntry as PrismaMealMenuEntry,
@@ -10,7 +11,9 @@ import { PrismaMealMenuConfigMapper } from "./prisma-meal-menu-config.mapper";
 const baseMenuRow = (): PrismaMealMenu => ({
   id: "33333333-3333-4333-a333-333333333333",
   campusId: "11111111-1111-4111-a111-111111111111",
+  targetType: "campus",
   gradeLevelId: null,
+  classId: null,
   weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
   title: null,
   days: [1, 2, 3, 4, 5],
@@ -43,11 +46,23 @@ const gradeLevelRow = (): PrismaGradeLevel => ({
   updatedAt: new Date("2026-05-30T00:00:00.000Z"),
 });
 
+const classRow = (): PrismaClass => ({
+  id: "77777777-7777-4777-a777-777777777777",
+  campusId: "11111111-1111-4111-a111-111111111111",
+  gradeLevelId: "55555555-5555-4555-a555-555555555555",
+  schoolYearId: "88888888-8888-4888-a888-888888888888",
+  name: "Room 101",
+  description: null,
+  createdAt: new Date("2026-05-30T00:00:00.000Z"),
+  updatedAt: new Date("2026-05-30T00:00:00.000Z"),
+});
+
 describe("PrismaMealMenuMapper", () => {
   it("hydrates entries and grade-level snapshot", () => {
     const gradeLevel = gradeLevelRow();
     const menu = PrismaMealMenuMapper.toDomain({
       ...baseMenuRow(),
+      targetType: "grade",
       gradeLevelId: gradeLevel.id,
       entries: [entryRow()],
       gradeLevel,
@@ -62,10 +77,32 @@ describe("PrismaMealMenuMapper", () => {
     });
   });
 
+  it("hydrates class target identity and snapshot", () => {
+    const classroom = classRow();
+    const menu = PrismaMealMenuMapper.toDomain({
+      ...baseMenuRow(),
+      targetType: "class",
+      classId: classroom.id,
+      class: classroom,
+    });
+
+    expect(menu.targetIdentity).toEqual({
+      targetType: "class",
+      gradeLevelId: null,
+      classId: classroom.id,
+    });
+    expect(menu.classroom).toEqual({
+      id: classroom.id,
+      name: classroom.name,
+      gradeLevelId: classroom.gradeLevelId,
+    });
+  });
+
   it("uses UncheckedUpdateInput shape for mutable FK fields", () => {
     const menu = MealMenu.create(
       {
         campusId: "11111111-1111-4111-a111-111111111111",
+        targetType: "grade",
         gradeLevelId: "55555555-5555-4555-a555-555555555555",
         weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
         title: "Menu",
@@ -76,9 +113,11 @@ describe("PrismaMealMenuMapper", () => {
 
     const updateData = PrismaMealMenuMapper.toPrismaUpdate(menu);
 
+    expect(updateData.targetType).toBe("grade");
     expect(updateData.gradeLevelId).toBe(
       "55555555-5555-4555-a555-555555555555",
     );
+    expect(updateData.classId).toBeNull();
     expect(updateData).not.toHaveProperty("id");
     expect(updateData).not.toHaveProperty("campusId");
     expect(updateData).not.toHaveProperty("createdAt");

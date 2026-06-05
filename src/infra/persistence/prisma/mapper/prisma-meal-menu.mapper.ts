@@ -1,14 +1,20 @@
 import {
+  Class as PrismaClass,
   GradeLevel as PrismaGradeLevel,
   MealMenu as PrismaMealMenu,
   MealMenuEntry as PrismaMealMenuEntry,
   Prisma,
 } from "@prisma/client";
-import { MealMenu, MealMenuEntry } from "@/domain/meal-menu";
+import {
+  MealMenu,
+  MealMenuEntry,
+  MealMenuTargetType,
+} from "@/domain/meal-menu";
 
 type PrismaMealMenuWithRelations = PrismaMealMenu & {
   entries?: PrismaMealMenuEntry[];
   gradeLevel?: PrismaGradeLevel | null;
+  class?: PrismaClass | null;
 };
 
 export class PrismaMealMenuMapper {
@@ -16,9 +22,18 @@ export class PrismaMealMenuMapper {
     return MealMenu.create(
       {
         campusId: row.campusId,
+        targetType: row.targetType as MealMenuTargetType,
         gradeLevelId: row.gradeLevelId,
+        classId: row.classId,
         gradeLevel: row.gradeLevel
           ? { id: row.gradeLevel.id, name: row.gradeLevel.name }
+          : null,
+        classroom: row.class
+          ? {
+              id: row.class.id,
+              name: row.class.name,
+              gradeLevelId: row.class.gradeLevelId,
+            }
           : null,
         weekStartDate: row.weekStartDate,
         title: row.title,
@@ -41,7 +56,9 @@ export class PrismaMealMenuMapper {
     return MealMenu.create(
       {
         campusId: row.campusId,
+        targetType: row.targetType as MealMenuTargetType,
         gradeLevelId: row.gradeLevelId,
+        classId: row.classId,
         weekStartDate: row.weekStartDate,
         title: row.title,
         days: row.days,
@@ -59,7 +76,9 @@ export class PrismaMealMenuMapper {
     return {
       id: menu.id,
       campusId: menu.campusId,
+      targetType: menu.targetType,
       gradeLevelId: menu.gradeLevelId,
+      classId: menu.classId,
       weekStartDate: menu.weekStartDate,
       title: menu.title,
       days: menu.days,
@@ -72,7 +91,9 @@ export class PrismaMealMenuMapper {
 
   static toPrismaUpdate(menu: MealMenu): Prisma.MealMenuUncheckedUpdateInput {
     return {
+      targetType: menu.targetType,
       gradeLevelId: menu.gradeLevelId,
+      classId: menu.classId,
       weekStartDate: menu.weekStartDate,
       title: menu.title,
       days: menu.days,

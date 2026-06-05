@@ -5,6 +5,7 @@ import {
   ArrayUnique,
   IsArray,
   IsDateString,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -14,6 +15,8 @@ import {
   Min,
   ValidateNested,
 } from "class-validator";
+
+import { MEAL_MENU_TARGET_TYPES, MealMenuTargetType } from "@/domain/meal-menu";
 
 import { MealMenuEntryRequest } from "./meal-menu-entry.request";
 
@@ -27,8 +30,16 @@ export class CreateMealMenuRequest {
   weekStartDate: string;
 
   @ApiProperty({
+    description: "Explicit menu target type.",
+    enum: MEAL_MENU_TARGET_TYPES,
+    example: "class",
+  })
+  @IsIn([...MEAL_MENU_TARGET_TYPES])
+  targetType: MealMenuTargetType;
+
+  @ApiProperty({
     description:
-      "Grade level target. Use null or omit for a whole-campus menu.",
+      "Grade level target. Required only when targetType=grade. Do not send for campus or class targets.",
     example: "123e4567-e89b-12d3-a456-426614174001",
     nullable: true,
     required: false,
@@ -36,6 +47,17 @@ export class CreateMealMenuRequest {
   @IsOptional()
   @IsUUID()
   gradeLevelId?: string | null;
+
+  @ApiProperty({
+    description:
+      "Class target. Required only when targetType=class. Do not send for campus or grade targets.",
+    example: "123e4567-e89b-12d3-a456-426614174002",
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  classId?: string | null;
 
   @ApiProperty({
     description: "Optional menu title",

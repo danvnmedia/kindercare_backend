@@ -1,0 +1,83 @@
+{
+  "name": "backend",
+  "id": "backend",
+  "createdAt": "2026-01-03T19:36:40.613Z",
+  "settings": {
+    "defaultPriority": "medium",
+    "timeFormat": "24h",
+    "gitTrackingMode": "git-ignored",
+    "statuses": [
+      "todo",
+      "in-progress",
+      "in-review",
+      "done",
+      "blocked",
+      "on-hold",
+      "urgent"
+    ],
+    "statusColors": {
+      "blocked": "red",
+      "done": "green",
+      "in-progress": "blue",
+      "in-review": "purple",
+      "on-hold": "yellow",
+      "todo": "gray",
+      "urgent": "orange"
+    },
+    "visibleColumns": [
+      "todo",
+      "in-progress",
+      "done",
+      "on-hold"
+    ],
+    "semanticSearch": {
+      "enabled": true,
+      "model": "qwen3-embedding:0.6b",
+      "provider": "ollama",
+      "huggingFaceId": "Xenova/gte-small",
+      "dimensions": 384,
+      "maxTokens": 512
+    },
+    "serverPort": 6420,
+    "platforms": [
+      "claude-code",
+      "codex",
+      "agents"
+    ],
+    "lsp": {
+      "enabled": true,
+      "languages": {
+        "c_cpp": {
+          "enabled": true
+        },
+        "csharp": {
+          "enabled": true
+        },
+        "go": {
+          "enabled": true
+        },
+        "java": {
+          "enabled": true
+        },
+        "javascript": {
+          "enabled": true
+        },
+        "php": {
+          "enabled": true
+        },
+        "python": {
+          "enabled": true
+        },
+        "ruby": {
+          "enabled": true
+        },
+        "rust": {
+          "enabled": true
+        },
+        "typescript": {
+          "enabled": true
+        }
+      }
+    }
+  }
+}

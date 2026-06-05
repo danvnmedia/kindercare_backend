@@ -1,13 +1,14 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
   IsDateString,
-  IsDefined,
+  IsIn,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
-  ValidateIf,
 } from "class-validator";
+
+import { MEAL_MENU_TARGET_TYPES, MealMenuTargetType } from "@/domain/meal-menu";
 
 export class CopyMealMenuRequest {
   @ApiProperty({
@@ -19,15 +20,34 @@ export class CopyMealMenuRequest {
   weekStartDate: string;
 
   @ApiProperty({
+    description: "Explicit destination menu target type.",
+    enum: MEAL_MENU_TARGET_TYPES,
+    example: "campus",
+  })
+  @IsIn([...MEAL_MENU_TARGET_TYPES])
+  targetType: MealMenuTargetType;
+
+  @ApiProperty({
     description:
-      "Destination grade level target. Use explicit null for a whole-campus copy destination.",
+      "Destination grade level target. Required only when targetType=grade. Do not send for campus or class targets.",
     example: "123e4567-e89b-12d3-a456-426614174001",
     nullable: true,
+    required: false,
   })
-  @IsDefined()
-  @ValidateIf((_, value) => value !== null)
+  @IsOptional()
   @IsUUID()
-  gradeLevelId: string | null;
+  gradeLevelId?: string | null;
+
+  @ApiProperty({
+    description:
+      "Destination class target. Required only when targetType=class. Do not send for campus or grade targets.",
+    example: "123e4567-e89b-12d3-a456-426614174002",
+    nullable: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  classId?: string | null;
 
   @ApiProperty({
     description:

@@ -29,6 +29,8 @@ import {
   CopyMealMenuUseCase,
   CreateMealMenuInput,
   CreateMealMenuUseCase,
+  EffectiveClassMealMenuResult,
+  GetEffectiveClassMealMenuUseCase,
   GetMealMenuByIdUseCase,
   GetMealMenusInput,
   GetMealMenusUseCase,
@@ -51,6 +53,8 @@ import { Permissions } from "../decorators/permissions.decorator";
 import {
   CopyMealMenuRequest,
   CreateMealMenuRequest,
+  EffectiveClassMealMenuQuery,
+  EffectiveClassMealMenuResponse,
   ListMealMenusQuery,
   MealMenuResponse,
   UpdateMealMenuRequest,
@@ -78,6 +82,7 @@ const MEAL_MENU_ALLOWED_FILTER_FIELDS = [
 export class MealMenuController {
   constructor(
     private readonly getMealMenusUseCase: GetMealMenusUseCase,
+    private readonly getEffectiveClassMealMenuUseCase: GetEffectiveClassMealMenuUseCase,
     private readonly getMealMenuByIdUseCase: GetMealMenuByIdUseCase,
     private readonly archiveMealMenuUseCase: ArchiveMealMenuUseCase,
     private readonly copyMealMenuUseCase: CopyMealMenuUseCase,
@@ -100,18 +105,18 @@ export class MealMenuController {
   @ApiOperation({
     summary: "List meal menus",
     description:
-      "Lists campus-scoped meal menus with standard pagination, sorting, and filtering. Requires meal_menu.list permission. Archived menus are excluded by default unless the standard isArchived filter is supplied. Allowed filter fields are weekStartDate, isArchived, createdAt, and updatedAt. Default sort is weekStartDate descending. Target filtering uses dedicated query params, not campusId in the request body. target=campus rejects a supplied gradeLevelId.",
+      "Lists campus-scoped meal menus with standard pagination, sorting, and filtering. Requires meal_menu.list permission. Archived menus are excluded by default unless the standard isArchived filter is supplied. Allowed filter fields are weekStartDate, isArchived, createdAt, and updatedAt. Default sort is weekStartDate descending. Target filtering uses dedicated query params, not campusId in the request body. Target filters are exact and do not perform fallback lookup.",
   })
   @ApiBadRequestResponse({
     description:
-      "Invalid target query, target=grade without gradeLevelId, or gradeLevelId supplied with target=campus/all.",
+      "Invalid target query, missing required target id, or target id supplied with the wrong target.",
   })
   @ApiForbiddenResponse({
     description: "Requires campus access and meal_menu.list permission.",
   })
   @ApiNotFoundResponse({
     description:
-      "The requested gradeLevelId was not found in the active campus.",
+      "The requested gradeLevelId or classId was not found in the active campus.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -121,21 +126,76 @@ export class MealMenuController {
   @ApiQuery({
     name: "target",
     required: false,
-    enum: ["all", "campus", "grade"],
+    enum: ["all", "campus", "grade", "class"],
     description:
-      "Target scope: omit/all returns all targets, campus returns whole-campus menus, grade requires gradeLevelId. target=campus rejects gradeLevelId.",
+      "Target scope: omit/all returns all targets, campus returns whole-campus menus, grade requires gradeLevelId, class requires classId.",
   })
   @ApiQuery({
     name: "gradeLevelId",
     required: false,
     description:
-      "Grade level UUID used only when target=grade. Supplying it with target=campus or target=all is rejected.",
+      "Grade level UUID used only when target=grade. Supplying it with target=campus, target=class, or target=all is rejected.",
+  })
+  @ApiQuery({
+    name: "classId",
+    required: false,
+    description:
+      "Class UUID used only when target=class. Supplying it with target=campus, target=grade, or target=all is rejected.",
   })
   async findAll(
     @CampusContext() campusId: string,
     @Query() query: ListMealMenusQuery,
   ): Promise<PaginatedResult<MealMenu>> {
     return this.getMealMenusUseCase.execute(this.toListInput(campusId, query));
+  }
+
+  @Get("effective")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("meal_menu.read")
+  @StandardResponse({
+    message: "Effective meal menu retrieved successfully",
+    type: EffectiveClassMealMenuResponse,
+  })
+  @ApiOperation({
+    summary: "Get effective meal menu for a class and week",
+    description:
+      "Resolves the active effective meal menu for a class and week by checking an exact class menu first, then the class grade menu, then the whole-campus menu. Requires meal_menu.read permission. Returns menu: null when the class is valid but no applicable menu exists.",
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid classId or weekStartDate query.",
+  })
+  @ApiForbiddenResponse({
+    description: "Requires campus access and meal_menu.read permission.",
+  })
+  @ApiNotFoundResponse({
+    description: "The requested class was not found in the active campus.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID — system-enforced scope, NOT a user filter.",
+  })
+  @ApiQuery({
+    name: "classId",
+    required: true,
+    description: "Class UUID used to derive class, grade, and campus fallback.",
+  })
+  @ApiQuery({
+    name: "weekStartDate",
+    required: true,
+    description:
+      "Monday calendar anchor for the weekly menu. Date-only strings or ISO datetimes are accepted.",
+  })
+  async findEffectiveForClass(
+    @CampusContext() campusId: string,
+    @Query() query: EffectiveClassMealMenuQuery,
+  ): Promise<EffectiveClassMealMenuResult> {
+    return this.getEffectiveClassMealMenuUseCase.execute({
+      campusId,
+      classId: query.classId,
+      weekStartDate: new Date(query.weekStartDate),
+    });
   }
 
   @Get(":id")
@@ -268,7 +328,7 @@ export class MealMenuController {
   @ApiBody({ type: CopyMealMenuRequest })
   @ApiBadRequestResponse({
     description:
-      "Invalid destination weekStartDate, missing destination gradeLevelId, or archived source menu.",
+      "Invalid destination target, invalid destination weekStartDate, or archived source menu.",
   })
   @ApiConflictResponse({
     description:
@@ -279,7 +339,7 @@ export class MealMenuController {
   })
   @ApiNotFoundResponse({
     description:
-      "Source menu or destination grade level was not found in the active campus.",
+      "Source menu, destination grade level, or destination class was not found in the active campus.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -314,12 +374,12 @@ export class MealMenuController {
   @ApiOperation({
     summary: "Create meal menu",
     description:
-      "Creates a campus-scoped weekly meal menu. Requires meal_menu.create permission. When days or mealSlots are omitted, the backend snapshots saved config defaults or virtual defaults. campusId is resolved from campus context, never from the request body.",
+      "Creates a campus-scoped weekly meal menu for an explicit targetType. Requires meal_menu.create permission. When days or mealSlots are omitted, the backend snapshots saved config defaults or virtual defaults. campusId is resolved from campus context, never from the request body.",
   })
   @ApiBody({ type: CreateMealMenuRequest })
   @ApiBadRequestResponse({
     description:
-      "Invalid/non-Monday weekStartDate, invalid days/mealSlots, duplicate cells, or entries outside enabled days/slots.",
+      "Invalid target shape, invalid/non-Monday weekStartDate, invalid days/mealSlots, duplicate cells, or entries outside enabled days/slots.",
   })
   @ApiConflictResponse({
     description:
@@ -329,7 +389,8 @@ export class MealMenuController {
     description: "Requires campus access and meal_menu.create permission.",
   })
   @ApiNotFoundResponse({
-    description: "Grade level target was not found in the active campus.",
+    description:
+      "Grade level or class target was not found in the active campus.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -363,7 +424,7 @@ export class MealMenuController {
   @ApiBody({ type: UpdateMealMenuRequest })
   @ApiBadRequestResponse({
     description:
-      "Archived menu mutation, invalid/non-Monday weekStartDate, invalid days/mealSlots, duplicate cells, or entries outside enabled days/slots.",
+      "Invalid target shape, archived menu mutation, invalid/non-Monday weekStartDate, invalid days/mealSlots, duplicate cells, or entries outside enabled days/slots.",
   })
   @ApiConflictResponse({
     description:
@@ -374,7 +435,7 @@ export class MealMenuController {
   })
   @ApiNotFoundResponse({
     description:
-      "Meal menu or grade level target was not found in the active campus.",
+      "Meal menu, grade level target, or class target was not found in the active campus.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -407,6 +468,7 @@ export class MealMenuController {
       params: query,
       target: query.target,
       gradeLevelId: query.gradeLevelId,
+      classId: query.classId,
     };
   }
 
@@ -417,7 +479,9 @@ export class MealMenuController {
     return {
       campusId,
       weekStartDate: new Date(dto.weekStartDate),
+      targetType: dto.targetType,
       gradeLevelId: dto.gradeLevelId,
+      classId: dto.classId,
       title: dto.title,
       days: dto.days,
       mealSlots: dto.mealSlots,
@@ -432,7 +496,9 @@ export class MealMenuController {
     return {
       campusId,
       weekStartDate: new Date(dto.weekStartDate),
+      targetType: dto.targetType,
       gradeLevelId: dto.gradeLevelId,
+      classId: dto.classId,
       title: dto.title,
     };
   }
@@ -446,9 +512,11 @@ export class MealMenuController {
       ...(dto.weekStartDate !== undefined
         ? { weekStartDate: new Date(dto.weekStartDate) }
         : {}),
+      targetType: dto.targetType,
       ...(dto.gradeLevelId !== undefined
         ? { gradeLevelId: dto.gradeLevelId }
         : {}),
+      ...(dto.classId !== undefined ? { classId: dto.classId } : {}),
       ...(dto.title !== undefined ? { title: dto.title } : {}),
       ...(dto.days !== undefined ? { days: dto.days } : {}),
       ...(dto.mealSlots !== undefined ? { mealSlots: dto.mealSlots } : {}),

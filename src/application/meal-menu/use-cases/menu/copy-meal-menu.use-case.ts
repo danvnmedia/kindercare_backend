@@ -6,10 +6,11 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { MealMenuRepository } from "@/application/meal-menu/ports";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
-import { MealMenu, MealMenuGradeLevelSnapshot } from "@/domain/meal-menu";
+import { MealMenu, MealMenuTargetType } from "@/domain/meal-menu";
 import { User } from "@/domain/user-management/user.entity";
 
 import {
@@ -17,11 +18,14 @@ import {
   buildMealMenuAuditSnapshot,
   getMealMenuAuditActorId,
 } from "../meal-menu-audit";
+import { resolveMealMenuWriteTarget } from "./meal-menu-target.resolver";
 
 export interface CopyMealMenuInput {
   campusId: string;
   weekStartDate: Date;
+  targetType: MealMenuTargetType;
   gradeLevelId?: string | null;
+  classId?: string | null;
   title?: string | null;
 }
 
@@ -35,6 +39,8 @@ export class CopyMealMenuUseCase {
     private readonly mealMenuRepository: MealMenuRepository,
     @Inject("GRADE_LEVEL_REPOSITORY")
     private readonly gradeLevelRepository: GradeLevelRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
     private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
@@ -43,12 +49,6 @@ export class CopyMealMenuUseCase {
     input: CopyMealMenuInput,
     currentUser?: User,
   ): Promise<MealMenu> {
-    if (input.gradeLevelId === undefined) {
-      throw new BadRequestException(
-        "gradeLevelId is required for copy destination",
-      );
-    }
-
     const source = await this.mealMenuRepository.findByIdInCampus(
       input.campusId,
       sourceId,
@@ -62,18 +62,24 @@ export class CopyMealMenuUseCase {
       throw new BadRequestException("Archived meal menus cannot be copied");
     }
 
-    const gradeLevelId = input.gradeLevelId;
-    const gradeLevel = await this.resolveGradeLevelSnapshot(
-      input.campusId,
-      gradeLevelId,
-    );
+    const target = await resolveMealMenuWriteTarget({
+      campusId: input.campusId,
+      targetType: input.targetType,
+      gradeLevelId: input.gradeLevelId,
+      classId: input.classId,
+      gradeLevelRepository: this.gradeLevelRepository,
+      classRepository: this.classRepository,
+    });
 
     let copy: MealMenu;
     try {
       copy = MealMenu.create({
         campusId: input.campusId,
-        gradeLevelId,
-        gradeLevel,
+        targetType: target.targetType,
+        gradeLevelId: target.gradeLevelId,
+        classId: target.classId,
+        gradeLevel: target.gradeLevel,
+        classroom: target.classroom,
         weekStartDate: input.weekStartDate,
         title: input.title === undefined ? source.title : input.title,
         days: source.days,
@@ -88,7 +94,7 @@ export class CopyMealMenuUseCase {
 
     const existing = await this.mealMenuRepository.findActiveByNaturalKey({
       campusId: copy.campusId,
-      gradeLevelId: copy.gradeLevelId,
+      ...copy.targetIdentity,
       weekStartDate: copy.weekStartDate,
     });
     if (existing) {
@@ -107,7 +113,9 @@ export class CopyMealMenuUseCase {
           context: buildMealMenuAuditContext(saved, currentUser, {
             sourceMealMenuId: source.id,
             sourceWeekStartDate: source.weekStartDate.toISOString(),
+            sourceTargetType: source.targetType,
             sourceGradeLevelId: source.gradeLevelId,
+            sourceClassId: source.classId,
           }),
           afterValue: buildMealMenuAuditSnapshot(saved),
         });
@@ -119,27 +127,6 @@ export class CopyMealMenuUseCase {
       }
       throw error;
     }
-  }
-
-  private async resolveGradeLevelSnapshot(
-    campusId: string,
-    gradeLevelId: string | null,
-  ): Promise<MealMenuGradeLevelSnapshot | null> {
-    if (gradeLevelId === null) {
-      return null;
-    }
-
-    const gradeLevel = await this.gradeLevelRepository.findById(gradeLevelId);
-    if (!gradeLevel || gradeLevel.campusId !== campusId) {
-      throw new NotFoundException(
-        `Grade level with ID ${gradeLevelId} not found`,
-      );
-    }
-
-    return {
-      id: gradeLevel.id,
-      name: gradeLevel.name,
-    };
   }
 
   private isUniqueConstraintError(error: unknown): boolean {

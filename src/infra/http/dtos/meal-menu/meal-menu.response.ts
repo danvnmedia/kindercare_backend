@@ -1,6 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 
+import { MEAL_MENU_TARGET_TYPES, MealMenuTargetType } from "@/domain/meal-menu";
+
 export class MealMenuEntryResponse {
   @Expose()
   @ApiProperty({ example: 1, description: "Day of week, where 1=Monday" })
@@ -25,6 +27,20 @@ export class MealMenuGradeLevelSummaryResponse {
   name: string;
 }
 
+export class MealMenuClassSummaryResponse {
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
+  id: string;
+
+  @Expose()
+  @ApiProperty({ example: "K1 Room A" })
+  name: string;
+
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
+  gradeLevelId: string;
+}
+
 export class MealMenuResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
@@ -36,10 +52,24 @@ export class MealMenuResponse {
 
   @Expose()
   @ApiProperty({
+    enum: MEAL_MENU_TARGET_TYPES,
+    example: "class",
+  })
+  targetType: MealMenuTargetType;
+
+  @Expose()
+  @ApiProperty({
     example: "123e4567-e89b-12d3-a456-426614174001",
     nullable: true,
   })
   gradeLevelId: string | null;
+
+  @Expose()
+  @ApiProperty({
+    example: "123e4567-e89b-12d3-a456-426614174002",
+    nullable: true,
+  })
+  classId: string | null;
 
   @Expose()
   @Type(() => MealMenuGradeLevelSummaryResponse)
@@ -49,6 +79,15 @@ export class MealMenuResponse {
     required: false,
   })
   gradeLevel: MealMenuGradeLevelSummaryResponse | null;
+
+  @Expose()
+  @Type(() => MealMenuClassSummaryResponse)
+  @ApiProperty({
+    type: MealMenuClassSummaryResponse,
+    nullable: true,
+    required: false,
+  })
+  classroom: MealMenuClassSummaryResponse | null;
 
   @Expose()
   @ApiProperty({

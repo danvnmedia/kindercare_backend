@@ -13,8 +13,11 @@ export function buildMealMenuAuditSnapshot(
   return {
     title: menu.title,
     weekStartDate: menu.weekStartDate.toISOString(),
+    targetType: menu.targetType,
     gradeLevelId: menu.gradeLevelId,
     gradeLevelName: menu.gradeLevel?.name ?? null,
+    classId: menu.classId,
+    className: menu.classroom?.name ?? null,
     days: menu.days,
     mealSlots: menu.mealSlots,
     entryCount: menu.entries.length,

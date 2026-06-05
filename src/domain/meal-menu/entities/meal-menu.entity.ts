@@ -20,10 +20,40 @@ export interface MealMenuGradeLevelSnapshot {
   name: string;
 }
 
+export interface MealMenuClassSnapshot {
+  id: string;
+  name: string;
+  gradeLevelId: string;
+}
+
+export const MEAL_MENU_TARGET_TYPES = ["campus", "grade", "class"] as const;
+
+export type MealMenuTargetType = (typeof MEAL_MENU_TARGET_TYPES)[number];
+
+export type MealMenuTargetIdentity =
+  | {
+      targetType: "campus";
+      gradeLevelId: null;
+      classId: null;
+    }
+  | {
+      targetType: "grade";
+      gradeLevelId: string;
+      classId: null;
+    }
+  | {
+      targetType: "class";
+      gradeLevelId: null;
+      classId: string;
+    };
+
 export interface MealMenuProps {
   campusId: string;
+  targetType: MealMenuTargetType;
   gradeLevelId: string | null;
+  classId: string | null;
   gradeLevel: MealMenuGradeLevelSnapshot | null;
+  classroom: MealMenuClassSnapshot | null;
   weekStartDate: Date;
   title: string | null;
   days: MealMenuDayOfWeek[];
@@ -35,8 +65,11 @@ export interface MealMenuProps {
 }
 
 export interface UpdateMealMenuData {
+  targetType?: MealMenuTargetType;
   gradeLevelId?: string | null;
+  classId?: string | null;
   gradeLevel?: MealMenuGradeLevelSnapshot | null;
+  classroom?: MealMenuClassSnapshot | null;
   weekStartDate?: Date;
   title?: string | null;
   days?: number[];
@@ -56,8 +89,11 @@ export type CreateMealMenuData = Optional<
   | "days"
   | "mealSlots"
   | "title"
+  | "targetType"
   | "gradeLevel"
   | "gradeLevelId"
+  | "classroom"
+  | "classId"
 >;
 
 export class MealMenu extends Entity<MealMenuProps> {
@@ -69,8 +105,39 @@ export class MealMenu extends Entity<MealMenuProps> {
     return this.props.gradeLevelId;
   }
 
+  get classId(): string | null {
+    return this.props.classId;
+  }
+
+  get targetType(): MealMenuTargetType {
+    return this.props.targetType;
+  }
+
+  get targetIdentity(): MealMenuTargetIdentity {
+    switch (this.props.targetType) {
+      case "campus":
+        return { targetType: "campus", gradeLevelId: null, classId: null };
+      case "grade":
+        return {
+          targetType: "grade",
+          gradeLevelId: this.props.gradeLevelId as string,
+          classId: null,
+        };
+      case "class":
+        return {
+          targetType: "class",
+          gradeLevelId: null,
+          classId: this.props.classId as string,
+        };
+    }
+  }
+
   get gradeLevel(): MealMenuGradeLevelSnapshot | null {
     return this.props.gradeLevel ? { ...this.props.gradeLevel } : null;
+  }
+
+  get classroom(): MealMenuClassSnapshot | null {
+    return this.props.classroom ? { ...this.props.classroom } : null;
   }
 
   get weekStartDate(): Date {
@@ -123,21 +190,10 @@ export class MealMenu extends Entity<MealMenuProps> {
           )
         : this.props.entries;
 
+    this.updateTarget(data);
+
     if (data.weekStartDate !== undefined) {
       this.props.weekStartDate = normalizeWeekStartDate(data.weekStartDate);
-    }
-    if (data.gradeLevelId !== undefined) {
-      this.props.gradeLevelId = data.gradeLevelId;
-      if (data.gradeLevelId === null) {
-        this.props.gradeLevel = null;
-      }
-    }
-    if (data.gradeLevel !== undefined) {
-      MealMenu.assertGradeLevelSnapshotMatchesTarget(
-        this.props.gradeLevelId,
-        data.gradeLevel,
-      );
-      this.props.gradeLevel = data.gradeLevel ? { ...data.gradeLevel } : null;
     }
     if (data.title !== undefined) {
       this.props.title = normalizeOptionalTitle(data.title);
@@ -192,9 +248,16 @@ export class MealMenu extends Entity<MealMenuProps> {
     }
 
     const gradeLevelId = props.gradeLevelId ?? null;
-    MealMenu.assertGradeLevelSnapshotMatchesTarget(
+    const classId = props.classId ?? null;
+    const targetType =
+      props.targetType ?? MealMenu.inferTargetType(gradeLevelId, classId);
+
+    MealMenu.assertTargetIdentity(
+      targetType,
       gradeLevelId,
+      classId,
       props.gradeLevel ?? null,
+      props.classroom ?? null,
     );
 
     const days = normalizeDays(
@@ -206,8 +269,11 @@ export class MealMenu extends Entity<MealMenuProps> {
 
     const mealMenuProps: MealMenuProps = {
       campusId: props.campusId,
+      targetType,
       gradeLevelId,
+      classId,
       gradeLevel: props.gradeLevel ? { ...props.gradeLevel } : null,
+      classroom: props.classroom ? { ...props.classroom } : null,
       weekStartDate: normalizeWeekStartDate(props.weekStartDate),
       title: normalizeOptionalTitle(props.title),
       days,
@@ -221,15 +287,99 @@ export class MealMenu extends Entity<MealMenuProps> {
     return new MealMenu(mealMenuProps, id ? new UniqueEntityID(id) : undefined);
   }
 
-  private static assertGradeLevelSnapshotMatchesTarget(
-    gradeLevelId: string | null,
-    gradeLevel: MealMenuGradeLevelSnapshot | null,
-  ): void {
-    if (gradeLevelId === null && gradeLevel !== null) {
-      throw new Error("Whole-campus meal menus cannot include a grade level");
+  private updateTarget(data: UpdateMealMenuData): void {
+    if (
+      data.targetType === undefined &&
+      data.gradeLevelId === undefined &&
+      data.classId === undefined &&
+      data.gradeLevel === undefined &&
+      data.classroom === undefined
+    ) {
+      return;
     }
-    if (gradeLevelId !== null && gradeLevel && gradeLevel.id !== gradeLevelId) {
-      throw new Error("Meal menu grade level snapshot must match gradeLevelId");
+
+    const gradeLevelId =
+      data.gradeLevelId !== undefined
+        ? data.gradeLevelId
+        : this.props.gradeLevelId;
+    const classId =
+      data.classId !== undefined ? data.classId : this.props.classId;
+    const targetType =
+      data.targetType ?? MealMenu.inferTargetType(gradeLevelId, classId);
+    const gradeLevel =
+      data.gradeLevel !== undefined ? data.gradeLevel : this.props.gradeLevel;
+    const classroom =
+      data.classroom !== undefined ? data.classroom : this.props.classroom;
+
+    MealMenu.assertTargetIdentity(
+      targetType,
+      gradeLevelId,
+      classId,
+      gradeLevel,
+      classroom,
+    );
+
+    this.props.targetType = targetType;
+    this.props.gradeLevelId = gradeLevelId;
+    this.props.classId = classId;
+    this.props.gradeLevel = gradeLevel ? { ...gradeLevel } : null;
+    this.props.classroom = classroom ? { ...classroom } : null;
+  }
+
+  private static inferTargetType(
+    gradeLevelId: string | null,
+    classId: string | null,
+  ): MealMenuTargetType {
+    if (classId !== null) return "class";
+    if (gradeLevelId !== null) return "grade";
+    return "campus";
+  }
+
+  private static assertTargetIdentity(
+    targetType: MealMenuTargetType,
+    gradeLevelId: string | null,
+    classId: string | null,
+    gradeLevel: MealMenuGradeLevelSnapshot | null,
+    classroom: MealMenuClassSnapshot | null,
+  ): void {
+    if (targetType === "campus") {
+      if (gradeLevelId !== null || classId !== null) {
+        throw new Error(
+          "Campus meal menus cannot include gradeLevelId or classId",
+        );
+      }
+      if (gradeLevel !== null || classroom !== null) {
+        throw new Error("Campus meal menus cannot include target snapshots");
+      }
+      return;
+    }
+
+    if (targetType === "grade") {
+      if (gradeLevelId === null) {
+        throw new Error("Grade meal menus require gradeLevelId");
+      }
+      if (classId !== null || classroom !== null) {
+        throw new Error("Grade meal menus cannot include classId");
+      }
+      if (gradeLevel && gradeLevel.id !== gradeLevelId) {
+        throw new Error(
+          "Meal menu grade level snapshot must match gradeLevelId",
+        );
+      }
+      return;
+    }
+
+    if (targetType === "class") {
+      if (classId === null) {
+        throw new Error("Class meal menus require classId");
+      }
+      if (gradeLevelId !== null || gradeLevel !== null) {
+        throw new Error("Class meal menus cannot include gradeLevelId");
+      }
+      if (classroom && classroom.id !== classId) {
+        throw new Error("Meal menu class snapshot must match classId");
+      }
+      return;
     }
   }
 }

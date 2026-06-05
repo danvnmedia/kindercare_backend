@@ -2,6 +2,7 @@ import {
   ArchiveMealMenuUseCase,
   CopyMealMenuUseCase,
   CreateMealMenuUseCase,
+  GetEffectiveClassMealMenuUseCase,
   GetMealMenuByIdUseCase,
   GetMealMenusUseCase,
   RestoreMealMenuUseCase,
@@ -16,6 +17,7 @@ const MONDAY_STRING = "2026-06-01";
 const MONDAY_DATE = new Date(MONDAY_STRING);
 const MENU_ID = "33333333-3333-4333-a333-333333333333";
 const GRADE_LEVEL_ID = "55555555-5555-4555-a555-555555555555";
+const CLASS_ID = "66666666-6666-4666-a666-666666666666";
 const CURRENT_USER = { id: "99999999-9999-4999-a999-999999999999" } as User;
 const PAGINATION = {
   count: 1,
@@ -29,6 +31,7 @@ const PAGINATION = {
 
 describe("MealMenuController", () => {
   let getListUseCase: jest.Mocked<GetMealMenusUseCase>;
+  let getEffectiveUseCase: jest.Mocked<GetEffectiveClassMealMenuUseCase>;
   let getByIdUseCase: jest.Mocked<GetMealMenuByIdUseCase>;
   let archiveUseCase: jest.Mocked<ArchiveMealMenuUseCase>;
   let copyUseCase: jest.Mocked<CopyMealMenuUseCase>;
@@ -41,6 +44,9 @@ describe("MealMenuController", () => {
     getListUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<GetMealMenusUseCase>;
+    getEffectiveUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<GetEffectiveClassMealMenuUseCase>;
     getByIdUseCase = {
       execute: jest.fn(),
     } as unknown as jest.Mocked<GetMealMenuByIdUseCase>;
@@ -61,6 +67,7 @@ describe("MealMenuController", () => {
     } as unknown as jest.Mocked<UpdateMealMenuUseCase>;
     controller = new MealMenuController(
       getListUseCase,
+      getEffectiveUseCase,
       getByIdUseCase,
       archiveUseCase,
       copyUseCase,
@@ -90,8 +97,57 @@ describe("MealMenuController", () => {
       params: query,
       target: query.target,
       gradeLevelId: query.gradeLevelId,
+      classId: undefined,
     });
     expect(result).toBe(paginatedResult);
+  });
+
+  it("threads class target query into GET /meal-menus", async () => {
+    const query = {
+      target: "class" as const,
+      classId: CLASS_ID,
+      limit: 10,
+      offset: 0,
+    };
+    const menu = createMealMenu();
+    const paginatedResult = { data: [menu], pagination: PAGINATION };
+    getListUseCase.execute.mockResolvedValue(paginatedResult);
+
+    const result = await controller.findAll(DEFAULT_CAMPUS_ID_A, query);
+
+    expect(getListUseCase.execute).toHaveBeenCalledWith({
+      campusId: DEFAULT_CAMPUS_ID_A,
+      params: query,
+      target: query.target,
+      gradeLevelId: undefined,
+      classId: query.classId,
+    });
+    expect(result).toBe(paginatedResult);
+  });
+
+  it("threads campus context and query into GET /meal-menus/effective", async () => {
+    const query = {
+      classId: CLASS_ID,
+      weekStartDate: MONDAY_STRING,
+    };
+    const menu = createMealMenu();
+    const effectiveResult = {
+      resolvedTargetType: "campus" as const,
+      menu,
+    };
+    getEffectiveUseCase.execute.mockResolvedValue(effectiveResult);
+
+    const result = await controller.findEffectiveForClass(
+      DEFAULT_CAMPUS_ID_A,
+      query,
+    );
+
+    expect(getEffectiveUseCase.execute).toHaveBeenCalledWith({
+      campusId: DEFAULT_CAMPUS_ID_A,
+      classId: CLASS_ID,
+      weekStartDate: MONDAY_DATE,
+    });
+    expect(result).toBe(effectiveResult);
   });
 
   it("threads campus context and id into GET /meal-menus/:id", async () => {
@@ -146,7 +202,8 @@ describe("MealMenuController", () => {
   it("threads campus context, source id, body, and actor into POST /meal-menus/:id/copy", async () => {
     const dto = {
       weekStartDate: "2026-06-08",
-      gradeLevelId: GRADE_LEVEL_ID,
+      targetType: "class" as const,
+      classId: CLASS_ID,
       title: "Copied Menu",
     };
     const menu = createMealMenu({ title: dto.title });
@@ -164,7 +221,9 @@ describe("MealMenuController", () => {
       {
         campusId: DEFAULT_CAMPUS_ID_A,
         weekStartDate: new Date("2026-06-08"),
-        gradeLevelId: dto.gradeLevelId,
+        targetType: dto.targetType,
+        gradeLevelId: undefined,
+        classId: dto.classId,
         title: dto.title,
       },
       CURRENT_USER,
@@ -175,7 +234,7 @@ describe("MealMenuController", () => {
   it("threads campus context, body, and actor into POST /meal-menus", async () => {
     const dto = {
       weekStartDate: MONDAY_STRING,
-      gradeLevelId: null,
+      targetType: "campus" as const,
       title: "Weekly Menu",
       entries: [{ dayOfWeek: 1, slot: "Breakfast", description: "Oatmeal" }],
     };
@@ -192,7 +251,9 @@ describe("MealMenuController", () => {
       {
         campusId: DEFAULT_CAMPUS_ID_A,
         weekStartDate: MONDAY_DATE,
-        gradeLevelId: null,
+        targetType: "campus",
+        gradeLevelId: undefined,
+        classId: undefined,
         title: "Weekly Menu",
         days: undefined,
         mealSlots: undefined,
@@ -206,6 +267,7 @@ describe("MealMenuController", () => {
   it("threads campus context, id, body, and actor into PATCH /meal-menus/:id", async () => {
     const dto = {
       weekStartDate: "2026-06-08",
+      targetType: "grade" as const,
       gradeLevelId: GRADE_LEVEL_ID,
       title: "Updated Menu",
       days: [2, 3],
@@ -232,7 +294,9 @@ describe("MealMenuController", () => {
       {
         campusId: DEFAULT_CAMPUS_ID_A,
         weekStartDate: new Date("2026-06-08"),
+        targetType: dto.targetType,
         gradeLevelId: dto.gradeLevelId,
+        classId: undefined,
         title: dto.title,
         days: dto.days,
         mealSlots: dto.mealSlots,

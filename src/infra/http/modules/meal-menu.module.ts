@@ -4,6 +4,7 @@ import {
   ArchiveMealMenuUseCase,
   CopyMealMenuUseCase,
   CreateMealMenuUseCase,
+  GetEffectiveClassMealMenuUseCase,
   GetMealMenuByIdUseCase,
   GetMealMenuConfigUseCase,
   GetMealMenusUseCase,
@@ -14,6 +15,7 @@ import {
 import { StandardResponseModule } from "@/core/modules/standard-response";
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import {
+  PrismaClassRepository,
   PrismaGradeLevelRepository,
   PrismaMealMenuConfigRepository,
   PrismaMealMenuRepository,
@@ -39,6 +41,7 @@ import { CampusModule } from "./campus.module";
     ArchiveMealMenuUseCase,
     CopyMealMenuUseCase,
     CreateMealMenuUseCase,
+    GetEffectiveClassMealMenuUseCase,
     GetMealMenuByIdUseCase,
     GetMealMenuConfigUseCase,
     GetMealMenusUseCase,
@@ -60,11 +63,16 @@ import { CampusModule } from "./campus.module";
       provide: "GRADE_LEVEL_REPOSITORY",
       useClass: PrismaGradeLevelRepository,
     },
+    {
+      provide: "CLASS_REPOSITORY",
+      useClass: PrismaClassRepository,
+    },
   ],
   exports: [
     "MEAL_MENU_REPOSITORY",
     "MEAL_MENU_CONFIG_REPOSITORY",
     "GRADE_LEVEL_REPOSITORY",
+    "CLASS_REPOSITORY",
   ],
 })
 export class MealMenuModule {}

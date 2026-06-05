@@ -46,7 +46,7 @@ export class RestoreMealMenuUseCase {
     const conflicting = await this.mealMenuRepository.findActiveByNaturalKey(
       {
         campusId: menu.campusId,
-        gradeLevelId: menu.gradeLevelId,
+        ...menu.targetIdentity,
         weekStartDate: menu.weekStartDate,
       },
       menu.id,

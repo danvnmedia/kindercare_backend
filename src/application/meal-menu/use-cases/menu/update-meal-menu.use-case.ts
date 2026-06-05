@@ -6,13 +6,14 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { MealMenuRepository } from "@/application/meal-menu/ports";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
   MealMenu,
   MealMenuEntryInput,
-  MealMenuGradeLevelSnapshot,
+  MealMenuTargetType,
   UpdateMealMenuData,
 } from "@/domain/meal-menu";
 import { User } from "@/domain/user-management/user.entity";
@@ -22,11 +23,17 @@ import {
   buildMealMenuAuditSnapshot,
   getMealMenuAuditActorId,
 } from "../meal-menu-audit";
+import {
+  resolveMealMenuWriteTarget,
+  ResolvedMealMenuWriteTarget,
+} from "./meal-menu-target.resolver";
 
 export interface UpdateMealMenuInput {
   campusId: string;
   weekStartDate?: Date;
+  targetType: MealMenuTargetType;
   gradeLevelId?: string | null;
+  classId?: string | null;
   title?: string | null;
   days?: number[];
   mealSlots?: string[];
@@ -43,6 +50,8 @@ export class UpdateMealMenuUseCase {
     private readonly mealMenuRepository: MealMenuRepository,
     @Inject("GRADE_LEVEL_REPOSITORY")
     private readonly gradeLevelRepository: GradeLevelRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
     private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
@@ -69,16 +78,17 @@ export class UpdateMealMenuUseCase {
 
     const beforeValue = buildMealMenuAuditSnapshot(menu);
 
-    let gradeLevel: MealMenuGradeLevelSnapshot | null | undefined;
-    if (input.gradeLevelId !== undefined) {
-      gradeLevel = await this.resolveGradeLevelSnapshot(
-        input.campusId,
-        input.gradeLevelId,
-      );
-    }
+    const target = await resolveMealMenuWriteTarget({
+      campusId: input.campusId,
+      targetType: input.targetType,
+      gradeLevelId: input.gradeLevelId,
+      classId: input.classId,
+      gradeLevelRepository: this.gradeLevelRepository,
+      classRepository: this.classRepository,
+    });
 
     try {
-      menu.update(this.toUpdateData(input, gradeLevel));
+      menu.update(this.toUpdateData(input, target));
     } catch (error) {
       throw new BadRequestException(
         error instanceof Error ? error.message : "Invalid meal menu",
@@ -88,7 +98,7 @@ export class UpdateMealMenuUseCase {
     const conflicting = await this.mealMenuRepository.findActiveByNaturalKey(
       {
         campusId: menu.campusId,
-        gradeLevelId: menu.gradeLevelId,
+        ...menu.targetIdentity,
         weekStartDate: menu.weekStartDate,
       },
       menu.id,
@@ -122,40 +132,21 @@ export class UpdateMealMenuUseCase {
 
   private toUpdateData(
     input: UpdateMealMenuInput,
-    gradeLevel: MealMenuGradeLevelSnapshot | null | undefined,
+    target: ResolvedMealMenuWriteTarget,
   ): UpdateMealMenuData {
     return {
+      targetType: target.targetType,
+      gradeLevelId: target.gradeLevelId,
+      classId: target.classId,
+      gradeLevel: target.gradeLevel,
+      classroom: target.classroom,
       ...(input.weekStartDate !== undefined
         ? { weekStartDate: input.weekStartDate }
-        : {}),
-      ...(input.gradeLevelId !== undefined
-        ? { gradeLevelId: input.gradeLevelId, gradeLevel }
         : {}),
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.days !== undefined ? { days: input.days } : {}),
       ...(input.mealSlots !== undefined ? { mealSlots: input.mealSlots } : {}),
       ...(input.entries !== undefined ? { entries: input.entries } : {}),
-    };
-  }
-
-  private async resolveGradeLevelSnapshot(
-    campusId: string,
-    gradeLevelId: string | null,
-  ): Promise<MealMenuGradeLevelSnapshot | null> {
-    if (gradeLevelId === null) {
-      return null;
-    }
-
-    const gradeLevel = await this.gradeLevelRepository.findById(gradeLevelId);
-    if (!gradeLevel || gradeLevel.campusId !== campusId) {
-      throw new NotFoundException(
-        `Grade level with ID ${gradeLevelId} not found`,
-      );
-    }
-
-    return {
-      id: gradeLevel.id,
-      name: gradeLevel.name,
     };
   }
 

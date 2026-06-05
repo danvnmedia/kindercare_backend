@@ -17,6 +17,7 @@ const MEAL_MENU_INCLUDE = {
     orderBy: [{ dayOfWeek: "asc" as const }, { slot: "asc" as const }],
   },
   gradeLevel: true,
+  class: true,
 };
 
 @Injectable()
@@ -166,7 +167,7 @@ export class PrismaMealMenuRepository implements MealMenuRepository {
     const row = await client.mealMenu.findFirst({
       where: {
         campusId: key.campusId,
-        gradeLevelId: key.gradeLevelId,
+        ...this.buildTargetWhere(key),
         weekStartDate: key.weekStartDate,
         ...extraWhere,
         ...(excludeId ? { id: { not: excludeId } } : {}),
@@ -174,5 +175,24 @@ export class PrismaMealMenuRepository implements MealMenuRepository {
       include: MEAL_MENU_INCLUDE,
     });
     return row ? PrismaMealMenuMapper.toDomain(row) : null;
+  }
+
+  private buildTargetWhere(key: MealMenuNaturalKey): Record<string, unknown> {
+    switch (key.targetType) {
+      case "campus":
+        return { targetType: "campus", gradeLevelId: null, classId: null };
+      case "grade":
+        return {
+          targetType: "grade",
+          gradeLevelId: key.gradeLevelId,
+          classId: null,
+        };
+      case "class":
+        return {
+          targetType: "class",
+          gradeLevelId: null,
+          classId: key.classId,
+        };
+    }
   }
 }

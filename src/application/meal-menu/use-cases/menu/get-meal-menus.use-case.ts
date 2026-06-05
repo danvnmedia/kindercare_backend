@@ -5,19 +5,21 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { MealMenuRepository } from "@/application/meal-menu/ports";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { MealMenu } from "@/domain/meal-menu";
 
-export type MealMenuListTarget = "all" | "campus" | "grade";
+export type MealMenuListTarget = "all" | "campus" | "grade" | "class";
 
 export interface GetMealMenusInput {
   campusId: string;
   params: StandardRequest;
   target?: MealMenuListTarget;
   gradeLevelId?: string;
+  classId?: string;
 }
 
 @Injectable()
@@ -27,6 +29,8 @@ export class GetMealMenusUseCase {
     private readonly mealMenuRepository: MealMenuRepository,
     @Inject("GRADE_LEVEL_REPOSITORY")
     private readonly gradeLevelRepository: GradeLevelRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
   ) {}
 
   async execute(input: GetMealMenusInput): Promise<PaginatedResult<MealMenu>> {
@@ -35,6 +39,7 @@ export class GetMealMenusUseCase {
       input.campusId,
       target,
       input.gradeLevelId,
+      input.classId,
     );
 
     return this.mealMenuRepository.findByCampusId(
@@ -51,18 +56,25 @@ export class GetMealMenusUseCase {
     campusId: string,
     target: MealMenuListTarget,
     gradeLevelId?: string,
+    classId?: string,
   ): Promise<Record<string, unknown>> {
     if (target === "campus") {
-      if (gradeLevelId) {
+      if (gradeLevelId !== undefined || classId !== undefined) {
         throw new BadRequestException(
-          "gradeLevelId is only supported when target=grade",
+          "Target ids are not supported when target=campus",
         );
       }
 
-      return { gradeLevelId: null };
+      return { targetType: "campus", gradeLevelId: null, classId: null };
     }
 
     if (target === "grade") {
+      if (classId !== undefined) {
+        throw new BadRequestException(
+          "classId is only supported when target=class",
+        );
+      }
+
       if (!gradeLevelId) {
         throw new BadRequestException(
           "gradeLevelId is required when target=grade",
@@ -70,16 +82,33 @@ export class GetMealMenusUseCase {
       }
 
       await this.ensureGradeLevelBelongsToCampus(campusId, gradeLevelId);
-      return { gradeLevelId };
+      return { targetType: "grade", gradeLevelId, classId: null };
+    }
+
+    if (target === "class") {
+      if (gradeLevelId !== undefined) {
+        throw new BadRequestException(
+          "gradeLevelId is only supported when target=grade",
+        );
+      }
+
+      if (!classId) {
+        throw new BadRequestException("classId is required when target=class");
+      }
+
+      await this.ensureClassBelongsToCampus(campusId, classId);
+      return { targetType: "class", gradeLevelId: null, classId };
     }
 
     if (target !== "all") {
-      throw new BadRequestException("target must be one of all, campus, grade");
+      throw new BadRequestException(
+        "target must be one of all, campus, grade, class",
+      );
     }
 
-    if (gradeLevelId) {
+    if (gradeLevelId !== undefined || classId !== undefined) {
       throw new BadRequestException(
-        "gradeLevelId is only supported when target=grade",
+        "Target ids require target=grade or target=class",
       );
     }
 
@@ -96,6 +125,17 @@ export class GetMealMenusUseCase {
       throw new NotFoundException(
         `Grade level with ID ${gradeLevelId} not found`,
       );
+    }
+  }
+
+  private async ensureClassBelongsToCampus(
+    campusId: string,
+    classId: string,
+  ): Promise<void> {
+    const classroom = await this.classRepository.findById(classId);
+
+    if (!classroom || classroom.campusId !== campusId) {
+      throw new NotFoundException(`Class with ID ${classId} not found`);
     }
   }
 

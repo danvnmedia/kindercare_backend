@@ -1,5 +1,7 @@
 export * from "./copy-meal-menu.request";
 export * from "./create-meal-menu.request";
+export * from "./effective-class-meal-menu.query";
+export * from "./effective-class-meal-menu.response";
 export * from "./list-meal-menus.query";
 export * from "./meal-menu-config.response";
 export * from "./meal-menu-entry.request";

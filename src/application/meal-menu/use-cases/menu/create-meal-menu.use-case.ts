@@ -3,9 +3,9 @@ import {
   ConflictException,
   Inject,
   Injectable,
-  NotFoundException,
 } from "@nestjs/common";
 
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import {
   MealMenuConfigRepository,
@@ -14,9 +14,9 @@ import {
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
   MealMenu,
-  MealMenuEntryInput,
-  MealMenuGradeLevelSnapshot,
   MealMenuConfig,
+  MealMenuEntryInput,
+  MealMenuTargetType,
 } from "@/domain/meal-menu";
 import { User } from "@/domain/user-management/user.entity";
 
@@ -25,11 +25,14 @@ import {
   buildMealMenuAuditSnapshot,
   getMealMenuAuditActorId,
 } from "../meal-menu-audit";
+import { resolveMealMenuWriteTarget } from "./meal-menu-target.resolver";
 
 export interface CreateMealMenuInput {
   campusId: string;
   weekStartDate: Date;
+  targetType: MealMenuTargetType;
   gradeLevelId?: string | null;
+  classId?: string | null;
   title?: string | null;
   days?: number[];
   mealSlots?: string[];
@@ -48,6 +51,8 @@ export class CreateMealMenuUseCase {
     private readonly mealMenuConfigRepository: MealMenuConfigRepository,
     @Inject("GRADE_LEVEL_REPOSITORY")
     private readonly gradeLevelRepository: GradeLevelRepository,
+    @Inject("CLASS_REPOSITORY")
+    private readonly classRepository: ClassRepository,
     private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
@@ -55,19 +60,25 @@ export class CreateMealMenuUseCase {
     input: CreateMealMenuInput,
     currentUser?: User,
   ): Promise<MealMenu> {
-    const gradeLevelId = input.gradeLevelId ?? null;
-    const gradeLevel = await this.resolveGradeLevelSnapshot(
-      input.campusId,
-      gradeLevelId,
-    );
+    const target = await resolveMealMenuWriteTarget({
+      campusId: input.campusId,
+      targetType: input.targetType,
+      gradeLevelId: input.gradeLevelId,
+      classId: input.classId,
+      gradeLevelRepository: this.gradeLevelRepository,
+      classRepository: this.classRepository,
+    });
     const config = await this.getConfigDefaults(input.campusId);
 
     let menu: MealMenu;
     try {
       menu = MealMenu.create({
         campusId: input.campusId,
-        gradeLevelId,
-        gradeLevel,
+        targetType: target.targetType,
+        gradeLevelId: target.gradeLevelId,
+        classId: target.classId,
+        gradeLevel: target.gradeLevel,
+        classroom: target.classroom,
         weekStartDate: input.weekStartDate,
         title: input.title,
         days: input.days ?? config.operatingDays,
@@ -82,7 +93,7 @@ export class CreateMealMenuUseCase {
 
     const existing = await this.mealMenuRepository.findActiveByNaturalKey({
       campusId: menu.campusId,
-      gradeLevelId: menu.gradeLevelId,
+      ...menu.targetIdentity,
       weekStartDate: menu.weekStartDate,
     });
     if (existing) {
@@ -114,27 +125,6 @@ export class CreateMealMenuUseCase {
   private async getConfigDefaults(campusId: string): Promise<MealMenuConfig> {
     const config = await this.mealMenuConfigRepository.findByCampusId(campusId);
     return config ?? MealMenuConfig.create({ campusId });
-  }
-
-  private async resolveGradeLevelSnapshot(
-    campusId: string,
-    gradeLevelId: string | null,
-  ): Promise<MealMenuGradeLevelSnapshot | null> {
-    if (gradeLevelId === null) {
-      return null;
-    }
-
-    const gradeLevel = await this.gradeLevelRepository.findById(gradeLevelId);
-    if (!gradeLevel || gradeLevel.campusId !== campusId) {
-      throw new NotFoundException(
-        `Grade level with ID ${gradeLevelId} not found`,
-      );
-    }
-
-    return {
-      id: gradeLevel.id,
-      name: gradeLevel.name,
-    };
   }
 
   private isUniqueConstraintError(error: unknown): boolean {

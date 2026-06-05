@@ -7,6 +7,7 @@ const MEAL_MENU_INCLUDE = {
     orderBy: [{ dayOfWeek: "asc" as const }, { slot: "asc" as const }],
   },
   gradeLevel: true,
+  class: true,
 };
 
 /**

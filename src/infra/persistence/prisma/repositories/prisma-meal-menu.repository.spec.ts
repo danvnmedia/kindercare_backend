@@ -22,7 +22,9 @@ type MealMenuConfigDelegateMock = {
 const mealMenuRowFactory = (overrides: Record<string, unknown> = {}) => ({
   id: "33333333-3333-4333-a333-333333333333",
   campusId: "11111111-1111-4111-a111-111111111111",
+  targetType: "campus",
   gradeLevelId: null,
+  classId: null,
   weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
   title: null,
   days: [1, 2, 3, 4, 5],
@@ -42,6 +44,7 @@ const mealMenuRowFactory = (overrides: Record<string, unknown> = {}) => ({
     },
   ],
   gradeLevel: null,
+  class: null,
   ...overrides,
 });
 
@@ -97,6 +100,7 @@ describe("PrismaMealMenuRepository", () => {
       expect.arrayContaining(["weekStartDate", "isArchived"]),
     );
     expect(passedParams.allowedFilterFields).not.toContain("gradeLevelId");
+    expect(passedParams.allowedFilterFields).not.toContain("classId");
     expect(queryOptions.scope).toEqual({
       campusId: "11111111-1111-4111-a111-111111111111",
       isArchived: false,
@@ -111,24 +115,31 @@ describe("PrismaMealMenuRepository", () => {
     await repository.findByCampusId(
       "11111111-1111-4111-a111-111111111111",
       params,
-      { includeArchived: true, scope: { gradeLevelId: null } },
+      {
+        includeArchived: true,
+        scope: { targetType: "campus", gradeLevelId: null, classId: null },
+      },
     );
 
     const [, , , options] = queryService.executeQuery.mock.calls[0];
     const queryOptions = options as Record<string, any>;
 
     expect(queryOptions.scope).toEqual({
+      targetType: "campus",
       gradeLevelId: null,
+      classId: null,
       campusId: "11111111-1111-4111-a111-111111111111",
     });
   });
 
-  it("findActiveByNaturalKey supports whole-campus gradeLevelId=null", async () => {
+  it("findActiveByNaturalKey supports exact campus targets", async () => {
     mealMenuDelegate.findFirst.mockResolvedValue(mealMenuRowFactory());
 
     await repository.findActiveByNaturalKey({
       campusId: "11111111-1111-4111-a111-111111111111",
+      targetType: "campus",
       gradeLevelId: null,
+      classId: null,
       weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
     });
 
@@ -136,9 +147,51 @@ describe("PrismaMealMenuRepository", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           campusId: "11111111-1111-4111-a111-111111111111",
+          targetType: "campus",
           gradeLevelId: null,
+          classId: null,
           weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
           isArchived: false,
+        }),
+      }),
+    );
+  });
+
+  it("findActiveByNaturalKey supports exact grade and class targets", async () => {
+    mealMenuDelegate.findFirst.mockResolvedValue(null);
+
+    await repository.findActiveByNaturalKey({
+      campusId: "11111111-1111-4111-a111-111111111111",
+      targetType: "grade",
+      gradeLevelId: "55555555-5555-4555-a555-555555555555",
+      classId: null,
+      weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
+    });
+    await repository.findActiveByNaturalKey({
+      campusId: "11111111-1111-4111-a111-111111111111",
+      targetType: "class",
+      gradeLevelId: null,
+      classId: "77777777-7777-4777-a777-777777777777",
+      weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
+    });
+
+    expect(mealMenuDelegate.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          targetType: "grade",
+          gradeLevelId: "55555555-5555-4555-a555-555555555555",
+          classId: null,
+        }),
+      }),
+    );
+    expect(mealMenuDelegate.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          targetType: "class",
+          gradeLevelId: null,
+          classId: "77777777-7777-4777-a777-777777777777",
         }),
       }),
     );
@@ -163,9 +216,37 @@ describe("PrismaMealMenuRepository", () => {
     expect(createArg.data.campusId).toBe(
       "11111111-1111-4111-a111-111111111111",
     );
+    expect(createArg.data.targetType).toBe("campus");
+    expect(createArg.data.gradeLevelId).toBeNull();
+    expect(createArg.data.classId).toBeNull();
     expect(createArg.data.entries.create).toEqual([
       { dayOfWeek: 1, slot: "Breakfast", description: "Oatmeal" },
     ]);
+  });
+
+  it("save persists class target identity independently from grade target identity", async () => {
+    const menu = MealMenu.create(
+      {
+        campusId: "11111111-1111-4111-a111-111111111111",
+        targetType: "class",
+        classId: "77777777-7777-4777-a777-777777777777",
+        weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
+      },
+      "33333333-3333-4333-a333-333333333333",
+    );
+    mealMenuDelegate.create.mockResolvedValue(
+      mealMenuRowFactory({
+        targetType: "class",
+        classId: menu.classId,
+      }),
+    );
+
+    await repository.save(menu);
+
+    const createArg = mealMenuDelegate.create.mock.calls[0][0];
+    expect(createArg.data.targetType).toBe("class");
+    expect(createArg.data.gradeLevelId).toBeNull();
+    expect(createArg.data.classId).toBe("77777777-7777-4777-a777-777777777777");
   });
 
   it("archive marks the menu archived without hard deleting it", async () => {
@@ -219,6 +300,7 @@ describe("PrismaMealMenuRepository", () => {
     const menu = MealMenu.create(
       {
         campusId: "11111111-1111-4111-a111-111111111111",
+        targetType: "grade",
         gradeLevelId: "55555555-5555-4555-a555-555555555555",
         weekStartDate: new Date("2026-06-01T00:00:00.000Z"),
         entries: [{ dayOfWeek: 1, slot: "Breakfast", description: "Oatmeal" }],
@@ -226,7 +308,10 @@ describe("PrismaMealMenuRepository", () => {
       "33333333-3333-4333-a333-333333333333",
     );
     mealMenuDelegate.update.mockResolvedValue(
-      mealMenuRowFactory({ gradeLevelId: menu.gradeLevelId }),
+      mealMenuRowFactory({
+        targetType: "grade",
+        gradeLevelId: menu.gradeLevelId,
+      }),
     );
 
     await repository.update(menu);
@@ -236,6 +321,8 @@ describe("PrismaMealMenuRepository", () => {
     expect(updateArg.data.gradeLevelId).toBe(
       "55555555-5555-4555-a555-555555555555",
     );
+    expect(updateArg.data.targetType).toBe("grade");
+    expect(updateArg.data.classId).toBeNull();
     expect(updateArg.data.entries).toEqual({
       deleteMany: {},
       create: [{ dayOfWeek: 1, slot: "Breakfast", description: "Oatmeal" }],

@@ -10,12 +10,56 @@ describe("MealMenu Entity", () => {
         weekStartDate: monday,
       });
 
+      expect(menu.targetType).toBe("campus");
       expect(menu.gradeLevelId).toBeNull();
+      expect(menu.classId).toBeNull();
+      expect(menu.targetIdentity).toEqual({
+        targetType: "campus",
+        gradeLevelId: null,
+        classId: null,
+      });
       expect(menu.weekStartDate.toISOString()).toBe("2026-06-01T00:00:00.000Z");
       expect(menu.days).toEqual([1, 2, 3, 4, 5]);
       expect(menu.mealSlots).toEqual(["Breakfast", "Lunch", "Afternoon"]);
       expect(menu.entries).toEqual([]);
       expect(menu.isArchived).toBe(false);
+    });
+
+    it("creates grade and class targets with explicit target identities", () => {
+      const gradeMenu = MealMenu.create({
+        campusId: "campus-1",
+        targetType: "grade",
+        gradeLevelId: "grade-1",
+        gradeLevel: { id: "grade-1", name: "Kindergarten" },
+        weekStartDate: monday,
+      });
+      const classMenu = MealMenu.create({
+        campusId: "campus-1",
+        targetType: "class",
+        classId: "class-1",
+        classroom: {
+          id: "class-1",
+          name: "Room 101",
+          gradeLevelId: "grade-1",
+        },
+        weekStartDate: monday,
+      });
+
+      expect(gradeMenu.targetIdentity).toEqual({
+        targetType: "grade",
+        gradeLevelId: "grade-1",
+        classId: null,
+      });
+      expect(classMenu.targetIdentity).toEqual({
+        targetType: "class",
+        gradeLevelId: null,
+        classId: "class-1",
+      });
+      expect(classMenu.classroom).toEqual({
+        id: "class-1",
+        name: "Room 101",
+        gradeLevelId: "grade-1",
+      });
     });
 
     it("trims entry descriptions and omits blank entries", () => {
@@ -92,6 +136,49 @@ describe("MealMenu Entity", () => {
         }),
       ).toThrow("Meal menu grade level snapshot must match gradeLevelId");
     });
+
+    it("rejects invalid target identity combinations", () => {
+      expect(() =>
+        MealMenu.create({
+          campusId: "campus-1",
+          targetType: "campus",
+          gradeLevelId: "grade-1",
+          weekStartDate: monday,
+        }),
+      ).toThrow("Campus meal menus cannot include gradeLevelId or classId");
+
+      expect(() =>
+        MealMenu.create({
+          campusId: "campus-1",
+          targetType: "grade",
+          weekStartDate: monday,
+        }),
+      ).toThrow("Grade meal menus require gradeLevelId");
+
+      expect(() =>
+        MealMenu.create({
+          campusId: "campus-1",
+          targetType: "class",
+          classId: "class-1",
+          gradeLevelId: "grade-1",
+          weekStartDate: monday,
+        }),
+      ).toThrow("Class meal menus cannot include gradeLevelId");
+
+      expect(() =>
+        MealMenu.create({
+          campusId: "campus-1",
+          targetType: "class",
+          classId: "class-1",
+          classroom: {
+            id: "class-2",
+            name: "Room 102",
+            gradeLevelId: "grade-1",
+          },
+          weekStartDate: monday,
+        }),
+      ).toThrow("Meal menu class snapshot must match classId");
+    });
   });
 
   describe("domain methods", () => {
@@ -111,6 +198,12 @@ describe("MealMenu Entity", () => {
       });
 
       expect(menu.title).toBe("New title");
+      expect(menu.targetType).toBe("grade");
+      expect(menu.targetIdentity).toEqual({
+        targetType: "grade",
+        gradeLevelId: "grade-1",
+        classId: null,
+      });
       expect(menu.gradeLevel).toEqual({ id: "grade-1", name: "Kindergarten" });
       expect(menu.days).toEqual([2, 3]);
       expect(menu.mealSlots).toEqual(["Snack"]);

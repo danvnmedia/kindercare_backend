@@ -546,6 +546,7 @@ model Class {
   enrollments         Enrollment[]
   attendanceSummaries StudentAttendanceSummary[]
   postAudiences       PostAudience[]
+  mealMenus           MealMenu[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -988,7 +989,9 @@ model CampusSetting {
 model MealMenu {
   id            String   @id @default(uuid()) @db.Uuid
   campusId      String   @map("campus_id") @db.Uuid
+  targetType    String   @map("target_type")
   gradeLevelId  String?  @map("grade_level_id") @db.Uuid
+  classId       String?  @map("class_id") @db.Uuid
   weekStartDate DateTime @map("week_start_date") @db.Date
   title         String?
   days          Int[]    @default([1, 2, 3, 4, 5])
@@ -997,16 +1000,19 @@ model MealMenu {
 
   campus     Campus          @relation(fields: [campusId], references: [id], onDelete: Restrict)
   gradeLevel GradeLevel?     @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  class      Class?          @relation(fields: [classId], references: [id], onDelete: Restrict)
   entries    MealMenuEntry[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  // Prisma cannot express the active-only `NULLS NOT DISTINCT` uniqueness; the
-  // migration owns the real SQL-level active natural key for nullable targets.
-  @@index([campusId, gradeLevelId, weekStartDate], map: "meal_menu_natural_key_lookup")
+  // Prisma cannot express the active-only exact-target uniqueness; migrations
+  // own the real SQL-level partial unique indexes for campus, grade, and class.
+  @@index([campusId, targetType, gradeLevelId, classId, weekStartDate], map: "meal_menu_target_lookup")
   @@index([campusId])
+  @@index([targetType])
   @@index([gradeLevelId])
+  @@index([classId])
   @@index([weekStartDate])
   @@index([isArchived])
   @@map("meal_menu")
