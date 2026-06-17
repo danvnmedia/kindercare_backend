@@ -2,7 +2,7 @@
 title: README
 description: Documentation index — start here. Map of every doc with one-line summaries grouped by topic.
 createdAt: '2026-01-03T19:51:45.975Z'
-updatedAt: '2026-05-05T17:56:41.538Z'
+updatedAt: '2026-06-13T16:03:34.943Z'
 tags:
   - index
   - overview
@@ -75,12 +75,12 @@ tags:
 
 | Doc | What it covers |
 |-----|----------------|
+| @doc/guides/backend-dev-deployment | Developer deployment and first-run setup: env, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap |
 | @doc/guides/working-with-campuses | Practical patterns for campus-aware features |
 | @doc/guides/pagination-and-filtering | Query operators, sort grammar, allowed-fields per endpoint |
 | @doc/guides/code-generation-pattern | Sequential codes (Student, Staff) — atomic counter tables, immutability across four layers |
 
 ---
-
 ## Conventions
 
 | Doc | What it covers |
