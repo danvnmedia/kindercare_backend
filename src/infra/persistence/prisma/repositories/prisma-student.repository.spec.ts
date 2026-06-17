@@ -23,6 +23,59 @@ describe("PrismaStudentRepository", () => {
     );
   });
 
+  describe("findById (current-class projection routing)", () => {
+    // findById bypasses PrismaQueryService and queries the view directly,
+    // so we stub `prisma.studentWithPhase.findUnique`. This block locks the
+    // routing — findById MUST hit the `studentWithPhase` view (the model
+    // exposing `currentClassId`+`currentClassName`) and NOT the raw
+    // `student` table, otherwise the current-class projection silently
+    // drops on every GET /students/:id payload.
+    const baseRow = {
+      id: "student-1",
+      campusId: "campus-1",
+      studentCode: "STU-001",
+      fullName: "Test Student",
+      email: null,
+      phoneNumber: null,
+      address: null,
+      dateOfBirth: null,
+      nickname: null,
+      gender: null,
+      isArchived: false,
+      createdAt: new Date("2026-05-16T00:00:00.000Z"),
+      updatedAt: new Date("2026-05-16T00:00:00.000Z"),
+    };
+
+    it("queries the studentWithPhase view so currentClass projects into the entity (Spec FR-1, FR-2)", async () => {
+      const viewRow = {
+        ...baseRow,
+        phase: "ACTIVE",
+        currentClassId: "class-1",
+        currentClassName: "Lớp Mầm 1A",
+      };
+      const findUnique = jest.fn().mockResolvedValue(viewRow);
+      prisma.studentWithPhase = { findUnique };
+
+      const student = await repository.findById("student-1");
+
+      expect(findUnique).toHaveBeenCalledTimes(1);
+      expect(findUnique).toHaveBeenCalledWith({ where: { id: "student-1" } });
+      expect(student?.currentClass).toEqual({
+        id: "class-1",
+        name: "Lớp Mầm 1A",
+      });
+    });
+
+    it("returns null when the student is not found (no error, no entity)", async () => {
+      const findUnique = jest.fn().mockResolvedValue(null);
+      prisma.studentWithPhase = { findUnique };
+
+      const student = await repository.findById("missing");
+
+      expect(student).toBeNull();
+    });
+  });
+
   describe("findEligibleForClass", () => {
     // Each test calls the repo, then inspects the args we passed to
     // PrismaQueryService.executeQuery. executeQuery itself is exercised by
@@ -201,6 +254,16 @@ describe("PrismaStudentRepository", () => {
       expect(modelName).toBe("studentWithPhase");
       expect(mapper).toBe(PrismaStudentMapper);
     });
+
+    it("makes a single executeQuery call across the full page — no N+1 follow-ups (Spec NFR-1)", async () => {
+      // The view eagerly projects currentClassId + currentClassName via
+      // its LEFT JOIN LATERAL, so no per-row follow-up is needed to
+      // surface the currentClass snapshot on each row of the paginated
+      // result. This locks the contract: one query per page, always.
+      await repository.findAll({});
+
+      expect(queryService.executeQuery).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("PrismaStudentMapper.toDomain (phase projection — AC-14, AC-15, AC-18..AC-23)", () => {
@@ -284,6 +347,157 @@ describe("PrismaStudentRepository", () => {
 
       expect(student.isArchived).toBe(true);
       expect(student.phase).toBe("ACTIVE");
+    });
+  });
+
+  describe("PrismaStudentMapper.toDomain (currentClass projection — Spec AC-1..AC-7, AC-10 mapper seam)", () => {
+    // Co-located with the phase projection block above. This block proves
+    // the MAPPER SEAM that converts a view row's currentClassId +
+    // currentClassName columns into the domain `currentClass` snapshot.
+    // The SQL view that PRODUCES those columns (LEFT JOIN LATERAL against
+    // the partial-unique-open-enrollment row) is verified manually
+    // against a dev DB after migration — this codebase has no
+    // testcontainers / test-schema setup that would let us drive real
+    // fixtures through real SQL. Same constraint as the phase projection
+    // block; same convention.
+    //
+    // SCOPE — mapper seam coverage here:
+    //   - Column extraction + null fallback (raw row vs view row).
+    //   - Write-path read-back (raw table → currentClass=null).
+    //   - Phase ↔ currentClass invariant projection given the row shape.
+    //   - Archive overlay travels alongside (does not suppress) the
+    //     snapshot.
+    //
+    // SCOPE — deferred to manual dev-DB verification:
+    //   - The view's LEFT JOIN LATERAL semantics (Spec FR-7) generating
+    //     currentClassId + currentClassName from the open Enrollment row.
+    //   - The SQL-level phase=ACTIVE ⇔ currentClass non-null invariant
+    //     produced by the view (Spec AC-6 at the SQL level — the
+    //     mapper-seam contrapositive is asserted below).
+    //   - Cross-campus isolation (Spec AC-8) — flows from the
+    //     `Class.campusId = Student.campusId` FK that the view's JOIN
+    //     respects, not from any mapper code path.
+    const baseRow = {
+      id: "student-1",
+      campusId: "campus-1",
+      studentCode: "STU-001",
+      fullName: "Test Student",
+      email: null,
+      phoneNumber: null,
+      address: null,
+      dateOfBirth: null,
+      nickname: null,
+      gender: null,
+      isArchived: false,
+      createdAt: new Date("2026-05-16T00:00:00.000Z"),
+      updatedAt: new Date("2026-05-16T00:00:00.000Z"),
+    };
+
+    it("projects currentClass={id,name} from a view row with non-null currentClassId (Spec AC-1)", () => {
+      const viewRow = {
+        ...baseRow,
+        phase: "ACTIVE",
+        currentClassId: "class-1",
+        currentClassName: "Lớp Mầm 1A",
+      } as any;
+
+      const student = PrismaStudentMapper.toDomain(viewRow);
+
+      expect(student.currentClass).toEqual({
+        id: "class-1",
+        name: "Lớp Mầm 1A",
+      });
+    });
+
+    it("projects currentClass=null from a view row whose currentClassId is null (Spec AC-2)", () => {
+      // WITHDRAWN, WAITING, GRADUATED, DEFERRED, or any other
+      // no-open-enrollment state: the view's LEFT JOIN LATERAL produces
+      // NULL columns and the mapper short-circuits to null. No error,
+      // no missing key.
+      const viewRow = {
+        ...baseRow,
+        phase: "WITHDRAWN",
+        currentClassId: null,
+        currentClassName: null,
+      } as any;
+
+      const student = PrismaStudentMapper.toDomain(viewRow);
+
+      expect(student.currentClass).toBeNull();
+    });
+
+    it("returns currentClass=null for a raw-table row with no currentClassId column (Spec AC-4 — write read-back)", () => {
+      // POST /students and PATCH /students/:id read back from
+      // `prisma.student.create` / `prisma.student.update`, which return
+      // rows WITHOUT the view's derived columns. The mapper's
+      // `"currentClassId" in row` narrowing returns null in that case —
+      // parallel to the phase=undefined contract for the same scenario.
+      const rawRow = { ...baseRow } as any;
+
+      const student = PrismaStudentMapper.toDomain(rawRow);
+
+      expect(student.currentClass).toBeNull();
+    });
+
+    it.each([["WAITING"], ["DEFERRED"], ["GRADUATED"], ["WITHDRAWN"]])(
+      "enforces phase=%s ⇒ currentClass=null at the mapper seam (Spec AC-6 — non-ACTIVE branches)",
+      (phase) => {
+        // The SQL view's LEFT JOIN LATERAL is what makes currentClassId
+        // non-null only for ACTIVE rows; here we prove the mapper
+        // preserves null for every non-ACTIVE phase, which is the
+        // invariant's contrapositive at the projection seam.
+        const viewRow = {
+          ...baseRow,
+          phase,
+          currentClassId: null,
+          currentClassName: null,
+        } as any;
+
+        const student = PrismaStudentMapper.toDomain(viewRow);
+
+        expect(student.phase).toBe(phase);
+        expect(student.currentClass).toBeNull();
+      },
+    );
+
+    it("enforces phase=ACTIVE ⇒ currentClass non-null at the mapper seam (Spec AC-6 — ACTIVE branch)", () => {
+      const viewRow = {
+        ...baseRow,
+        phase: "ACTIVE",
+        currentClassId: "class-1",
+        currentClassName: "Lớp Mầm 1A",
+      } as any;
+
+      const student = PrismaStudentMapper.toDomain(viewRow);
+
+      expect(student.phase).toBe("ACTIVE");
+      expect(student.currentClass).toEqual({
+        id: "class-1",
+        name: "Lớp Mầm 1A",
+      });
+    });
+
+    it("preserves the archive overlay alongside currentClass for an archived ACTIVE student (Spec AC-7)", () => {
+      // Mirrors the AC-23 archive-overlay test in the phase block above:
+      // archive is orthogonal to the open-enrollment state, so an
+      // archived student with an open Enrollment surfaces all three —
+      // isArchived=true AND phase=ACTIVE AND currentClass={id,name}.
+      const viewRow = {
+        ...baseRow,
+        isArchived: true,
+        phase: "ACTIVE",
+        currentClassId: "class-1",
+        currentClassName: "Lớp Mầm 1A",
+      } as any;
+
+      const student = PrismaStudentMapper.toDomain(viewRow);
+
+      expect(student.isArchived).toBe(true);
+      expect(student.phase).toBe("ACTIVE");
+      expect(student.currentClass).toEqual({
+        id: "class-1",
+        name: "Lớp Mầm 1A",
+      });
     });
   });
 });

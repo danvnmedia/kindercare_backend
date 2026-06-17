@@ -9,6 +9,7 @@ import { StaffTypeModule } from "./modules/staff-type.module";
 import { GuardianRelationshipTypeModule } from "./modules/guardian-relationship-type.module";
 import { ContentManagementModule } from "./modules/content-management.module";
 import { AttendanceModule } from "./modules/attendance.module";
+import { MealMenuModule } from "./modules/meal-menu.module";
 import { AuthMiddleware } from "./middleware/auth.middleware";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
 
@@ -37,6 +38,7 @@ import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
     GuardianRelationshipTypeModule, // Guardian relationship type management
     ContentManagementModule, // Post/CMS management
     AttendanceModule, // Student attendance management
+    MealMenuModule, // Meal-menu management
     AuditModule, // Admin audit-log read endpoints (@doc/specs/admin-audit-log)
   ],
   controllers: [],

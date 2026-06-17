@@ -215,23 +215,6 @@ export class PrismaRoleRepository implements RoleRepository {
     );
   }
 
-  async assignUsers(roleId: string, userIds: string[]): Promise<void> {
-    if (!userIds.length) return;
-
-    await this.prisma.userRole.createMany({
-      data: userIds.map((userId) => ({ userId, roleId })),
-      skipDuplicates: true,
-    });
-  }
-
-  async removeUsers(roleId: string, userIds: string[]): Promise<void> {
-    if (!userIds.length) return;
-
-    await this.prisma.userRole.deleteMany({
-      where: { roleId, userId: { in: userIds } },
-    });
-  }
-
   async getRoleUsers(
     roleId: string,
     page: number,

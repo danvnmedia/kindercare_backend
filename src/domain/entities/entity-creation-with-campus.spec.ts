@@ -8,7 +8,6 @@ import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { Class } from "@/domain/class-management/entities/class.entity";
-import { Subject } from "@/domain/class-management/entities/subject.entity";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
 import { DEFAULT_CAMPUS_ID_A } from "@/test-utils";
@@ -222,29 +221,6 @@ describe("Entity Creation with Campus Validation", () => {
           name: "",
         }),
       ).toThrow();
-    });
-  });
-
-  describe("Subject Entity", () => {
-    const validSubjectProps = {
-      campusId: validCampusId,
-      name: "Mathematics",
-    };
-
-    it("should require campusId for subject creation", () => {
-      expect(() =>
-        Subject.create({
-          ...validSubjectProps,
-          campusId: "", // Empty campusId
-        }),
-      ).toThrow("Campus ID is required");
-    });
-
-    it("should create subject with valid campusId", () => {
-      const subject = Subject.create(validSubjectProps);
-
-      expect(subject.campusId).toBe(validCampusId);
-      expect(subject.name).toBe("Mathematics");
     });
   });
 

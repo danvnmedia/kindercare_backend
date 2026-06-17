@@ -6,7 +6,7 @@ import { PermissionRepository } from "../ports/permission.repository";
  * Predefined system permissions
  * These are seeded during system initialization
  */
-const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
+export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
   // Campus permissions
   { id: "campus.create", module: "campus", description: "Create a new campus" },
   { id: "campus.read", module: "campus", description: "View campus details" },
@@ -116,25 +116,6 @@ const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     module: "grade_level",
     description: "List all grade levels",
   },
-
-  // Subject permissions
-  {
-    id: "subject.create",
-    module: "subject",
-    description: "Create a new subject",
-  },
-  {
-    id: "subject.read",
-    module: "subject",
-    description: "View subject details",
-  },
-  {
-    id: "subject.update",
-    module: "subject",
-    description: "Update subject information",
-  },
-  { id: "subject.delete", module: "subject", description: "Delete a subject" },
-  { id: "subject.list", module: "subject", description: "List all subjects" },
 
   // School Year permissions
   {
@@ -259,6 +240,45 @@ const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     id: "setting.update",
     module: "setting",
     description: "Update system settings",
+  },
+
+  // Meal menu permissions
+  {
+    id: "meal_menu.list",
+    module: "meal_menu",
+    description: "List meal menus",
+  },
+  {
+    id: "meal_menu.read",
+    module: "meal_menu",
+    description: "View meal menu details",
+  },
+  {
+    id: "meal_menu.create",
+    module: "meal_menu",
+    description: "Create or copy meal menus",
+  },
+  {
+    id: "meal_menu.update",
+    module: "meal_menu",
+    description: "Update or restore meal menus",
+  },
+  {
+    id: "meal_menu.delete",
+    module: "meal_menu",
+    description: "Archive meal menus",
+  },
+
+  // Meal menu config permissions
+  {
+    id: "meal_menu_config.read",
+    module: "meal_menu_config",
+    description: "View meal menu configuration",
+  },
+  {
+    id: "meal_menu_config.update",
+    module: "meal_menu_config",
+    description: "Update meal menu configuration",
   },
 ];
 

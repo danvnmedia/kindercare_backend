@@ -9,9 +9,21 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiBearerAuth } from "@nestjs/swagger";
+import {
+  ApiOperation,
+  ApiTags,
+  ApiBearerAuth,
+  ApiHeader,
+} from "@nestjs/swagger";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import {
+  CampusContext,
+  CurrentUser,
+  RequireCampusAccess,
+  CAMPUS_ID_HEADER,
+} from "../../decorators";
+import { User } from "@/domain/user-management/user.entity";
 
 // DTOs
 import {
@@ -127,36 +139,62 @@ export class RoleController {
   }
 
   @Post(":id/users")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Users assigned successfully",
     type: RoleResponse,
   })
   @ApiOperation({
     summary: "Assign users to role",
-    description: "Assign multiple users to a role",
+    description:
+      "Grant a campus-scoped role to one or more users. Emits a GRANT_ROLE audit event per (userId, roleId, campusId) pair that actually changes state. System roles cannot be granted via this endpoint.",
   })
-  async assignUsers(@Param("id") id: string, @Body() dto: AssignUsersRequest) {
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID — the role must belong to this campus",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async assignUsers(
+    @Param("id") id: string,
+    @CampusContext() campusId: string,
+    @Body() dto: AssignUsersRequest,
+    @CurrentUser() currentUser: User,
+  ) {
     const normalizedId = id.toLowerCase();
-    return await this.assignUsersToRoleUseCase.execute(
-      normalizedId,
-      dto.userIds,
+    await this.assignUsersToRoleUseCase.execute(
+      { roleId: normalizedId, userIds: dto.userIds, campusId },
+      currentUser,
     );
   }
 
   @Delete(":id/users")
+  @RequireCampusAccess()
   @StandardResponse({
     message: "Users removed successfully",
     type: RoleResponse,
   })
   @ApiOperation({
     summary: "Remove users from role",
-    description: "Remove multiple users from a role",
+    description:
+      "Revoke a campus-scoped role from one or more users. Emits a REVOKE_ROLE audit event per (userId, roleId, campusId) pair that actually changes state (D4 no-op suppression: a user who never held the role produces no audit row). System roles cannot be revoked via this endpoint. Admin revoke deletes both manual and staff-type-tracked rows by natural key (Scenario 9 — admin override).",
   })
-  async removeUsers(@Param("id") id: string, @Body() dto: AssignUsersRequest) {
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID — the role must belong to this campus",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async removeUsers(
+    @Param("id") id: string,
+    @CampusContext() campusId: string,
+    @Body() dto: AssignUsersRequest,
+    @CurrentUser() currentUser: User,
+  ) {
     const normalizedId = id.toLowerCase();
-    return await this.removeUsersFromRoleUseCase.execute(
-      normalizedId,
-      dto.userIds,
+    await this.removeUsersFromRoleUseCase.execute(
+      { roleId: normalizedId, userIds: dto.userIds, campusId },
+      currentUser,
     );
   }
 

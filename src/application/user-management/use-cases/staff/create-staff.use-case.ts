@@ -21,15 +21,32 @@ export interface CreateStaffInput {
   fullName: string;
   email: string;
   phoneNumber: string;
-  staffTypeId?: string;
+  /**
+   * Staff types to assign at creation (full-set). Min 1 invariant enforced
+   * upstream by the DTO (`@ArrayMinSize(1)`) and downstream by the entity
+   * (`Staff.setStaffTypes`). Each entry is validated for existence + active
+   * + campus-match before the UoW opens. Two entries sharing the same
+   * `defaultRoleId` produce two `user_roles` rows under D-extra-3 of
+   * @doc/specs/staff-multi-type-refactor (per-provenance materialization).
+   */
+  staffTypeIds: string[];
   address?: string;
   dateOfBirth?: Date;
   gender?: Gender;
-  startDate?: Date;
 }
 
 interface ClerkUserResult {
   clerkUid: string;
+}
+
+/**
+ * Pre-resolved staff-type snapshot built outside the UoW. Carries the bits
+ * needed both to hydrate the domain entity's read-side `staffTypes` array
+ * and to emit per-type role grants with the correct provenance.
+ */
+interface ResolvedStaffType {
+  defaultRoleId: string | null;
+  name: string;
 }
 
 @Injectable()
@@ -51,33 +68,12 @@ export class CreateStaffUseCase {
       `Creating staff: ${input.fullName} in campus ${input.campusId}`,
     );
 
-    // Step 1: Validate staffTypeId if provided (must exist and be active)
-    let defaultRoleId: string | null = null;
-    if (input.staffTypeId) {
-      const staffType = await this.staffTypeRepository.findById(
-        input.staffTypeId,
-      );
-      if (!staffType) {
-        throw new NotFoundException(
-          `Staff type with ID ${input.staffTypeId} not found`,
-        );
-      }
-      if (staffType.isArchived) {
-        throw new BadRequestException(
-          `Staff type ${staffType.name} is archived`,
-        );
-      }
-      if (staffType.campusId !== input.campusId) {
-        throw new BadRequestException(
-          `Staff type ${staffType.name} does not belong to the specified campus`,
-        );
-      }
-      // Get default role for auto-assignment
-      defaultRoleId = staffType.defaultRoleId;
-      this.logger.log(
-        `Staff type validated: ${staffType.name}, defaultRoleId: ${defaultRoleId}`,
-      );
-    }
+    // Step 1: Validate each staff type (exists, not archived, same campus)
+    // and pre-resolve defaultRoleId + name for the inside-UoW phase.
+    const resolvedTypes = await this.resolveStaffTypes(
+      input.campusId,
+      input.staffTypeIds,
+    );
 
     // Step 2: Check Staff uniqueness (email/phone within campus)
     await this.checkStaffUniqueness(input);
@@ -91,59 +87,76 @@ export class CreateStaffUseCase {
         input.campusId,
       );
 
-      // Step 5: DB Transaction - Create User + Staff + Role assignment atomically using UnitOfWork
+      // Step 5: DB Transaction — User + Staff + join rows + role grants
+      // commit atomically (@xo1byz UoW convention for audit-emitting flows).
       const staff = await this.unitOfWork.run(async (tx) => {
-        // Create User entity with clerkUid
         const user = await tx.createUser({
           clerkUid: clerkUser.clerkUid,
           isActive: true,
         });
         this.logger.log(`User created in transaction: ${user.id}`);
 
-        // Create Staff domain entity with userId already linked
+        // Hydrate the domain entity with valid {id, name} snapshots so the
+        // returned Staff already satisfies the D4 min-1 invariant by the
+        // time the response interceptor projects `staffTypes`.
         const staffEntity = Staff.create({
           campusId: input.campusId,
           staffCode,
           fullName: input.fullName,
           email: input.email,
           phoneNumber: input.phoneNumber,
-          staffTypeId: input.staffTypeId || null,
-          address: input.address || null,
-          dateOfBirth: input.dateOfBirth || null,
-          gender: input.gender || null,
-          startDate: input.startDate || null,
-          userId: user.id, // Link immediately - no separate update needed
+          staffTypes: input.staffTypeIds.map((typeId) => ({
+            id: typeId,
+            name: resolvedTypes.get(typeId)!.name,
+          })),
+          address: input.address ?? null,
+          dateOfBirth: input.dateOfBirth ?? null,
+          gender: input.gender ?? null,
+          userId: user.id,
         });
 
-        // Persist Staff using transaction context
-        const createdStaff = await tx.createStaff({
+        await tx.createStaff({
           id: staffEntity.id,
           campusId: staffEntity.campusId,
           staffCode: staffEntity.staffCode,
           fullName: staffEntity.fullName,
           email: staffEntity.email,
           phoneNumber: staffEntity.phoneNumber,
-          staffTypeId: staffEntity.staffTypeId,
           address: staffEntity.address,
           dateOfBirth: staffEntity.dateOfBirth,
           gender: staffEntity.gender,
-          startDate: staffEntity.startDate,
           userId: staffEntity.userId,
           isArchived: staffEntity.isArchived,
           createdAt: staffEntity.createdAt,
           updatedAt: staffEntity.updatedAt,
         });
+        await tx.replaceStaffTypes(staffEntity.id, input.staffTypeIds);
 
-        this.logger.log(`Staff created in transaction: ${createdStaff.id}`);
+        this.logger.log(`Staff created in transaction: ${staffEntity.id}`);
 
-        // Auto-assign role from staffType.defaultRoleId if available
-        // Role is scoped to the staff's campus
-        if (defaultRoleId) {
-          await tx.assignRoles(user.id, [
-            { roleId: defaultRoleId, campusId: input.campusId },
-          ]);
+        // Per-type default-role grants. D-extra-3 mandates one
+        // `user_roles` row per (type, role) pair — two types sharing the
+        // same `defaultRoleId` produce two rows with distinct provenance so
+        // a later staff-type swap can revoke each row independently
+        // (@doc/specs/tracked-grant-revocation, D5 manual-wins; retired
+        // under D2 of @doc/specs/staff-multi-type-refactor — manual rows
+        // still ignored by SQL NULL semantics on the IN-list filter).
+        const roleAssignments = input.staffTypeIds.flatMap((typeId) => {
+          const roleId = resolvedTypes.get(typeId)!.defaultRoleId;
+          return roleId
+            ? [
+                {
+                  roleId,
+                  campusId: input.campusId,
+                  grantedViaStaffTypeId: typeId,
+                },
+              ]
+            : [];
+        });
+        if (roleAssignments.length > 0) {
+          await tx.assignRoles(user.id, roleAssignments);
           this.logger.log(
-            `Auto-assigned default role ${defaultRoleId} to user ${user.id} in campus ${input.campusId}`,
+            `Auto-assigned ${roleAssignments.length} default role grant(s) to user ${user.id} in campus ${input.campusId}`,
           );
         }
 
@@ -168,7 +181,9 @@ export class CreateStaffUseCase {
       );
       return staff;
     } catch (error) {
-      // Step 6: Compensation - Delete Clerk user if DB transaction fails
+      // Step 6: Compensation — Delete Clerk user if DB transaction fails
+      // (@9aa6hm Clerk saga). One Clerk user per staff, so a single
+      // compensation call regardless of staff-type cardinality.
       this.logger.error(
         `DB transaction failed, compensating by deleting Clerk user: ${clerkUser.clerkUid}`,
       );
@@ -180,6 +195,34 @@ export class CreateStaffUseCase {
       );
       throw new BadRequestException(`Failed to create staff: ${error.message}`);
     }
+  }
+
+  private async resolveStaffTypes(
+    campusId: string,
+    staffTypeIds: string[],
+  ): Promise<Map<string, ResolvedStaffType>> {
+    const resolved = new Map<string, ResolvedStaffType>();
+    for (const typeId of staffTypeIds) {
+      const staffType = await this.staffTypeRepository.findById(typeId);
+      if (!staffType) {
+        throw new NotFoundException(`Staff type with ID ${typeId} not found`);
+      }
+      if (staffType.isArchived) {
+        throw new BadRequestException(
+          `Staff type ${staffType.name} is archived`,
+        );
+      }
+      if (staffType.campusId !== campusId) {
+        throw new BadRequestException(
+          `Staff type ${staffType.name} does not belong to the specified campus`,
+        );
+      }
+      resolved.set(typeId, {
+        defaultRoleId: staffType.defaultRoleId,
+        name: staffType.name,
+      });
+    }
+    return resolved;
   }
 
   private async checkStaffUniqueness(input: CreateStaffInput): Promise<void> {

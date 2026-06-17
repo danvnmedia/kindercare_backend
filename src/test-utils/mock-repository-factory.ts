@@ -10,9 +10,12 @@ import { GuardianRepository } from "@/application/user-management/ports/guardian
 import { UserRepository } from "@/application/user-management/ports/user.repository";
 import { RoleRepository } from "@/application/user-management/ports/role.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
-import { SubjectRepository } from "@/application/class-management/ports/subject.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { SchoolYearRepository } from "@/application/class-management/ports/school-year.repository";
+import {
+  MealMenuConfigRepository,
+  MealMenuRepository,
+} from "@/application/meal-menu";
 
 /**
  * Create a mock CampusRepository
@@ -30,7 +33,17 @@ export function createMockCampusRepository(): jest.Mocked<CampusRepository> {
 }
 
 /**
- * Create a mock StaffRepository
+ * Create a mock StaffRepository.
+ *
+ * The factory returns bare `jest.fn()` stubs — tests configure behavior per
+ * call. Two notes on `findByStaffTypeId` under the multi-type schema (see
+ * @doc/specs/staff-multi-type-refactor AC-5):
+ *
+ *   1. The signature is unchanged: `(staffTypeId: string) => Promise<Staff[]>`.
+ *   2. The semantic moved from a scalar `staff.staff_type_id` equality to a
+ *      relation `some` predicate over `staff_staff_type`. When a test supplies
+ *      a `mockImplementation`, filter by `staff.staffTypes.some(t => t.id ===
+ *      staffTypeId)` — not by a removed scalar field.
  */
 export function createMockStaffRepository(): jest.Mocked<StaffRepository> {
   return {
@@ -44,6 +57,7 @@ export function createMockStaffRepository(): jest.Mocked<StaffRepository> {
     findByCampusId: jest.fn(),
     findByIds: jest.fn(),
     findAll: jest.fn(),
+    findEligibleForClass: jest.fn(),
     save: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -132,8 +146,6 @@ export function createMockRoleRepository(): jest.Mocked<RoleRepository> {
     assignPermissions: jest.fn(),
     removePermissions: jest.fn(),
     getPermissions: jest.fn(),
-    assignUsers: jest.fn(),
-    removeUsers: jest.fn(),
     getRoleUsers: jest.fn(),
   } as jest.Mocked<RoleRepository>;
 }
@@ -154,20 +166,6 @@ export function createMockClassRepository(): jest.Mocked<ClassRepository> {
     update: jest.fn(),
     delete: jest.fn(),
   } as jest.Mocked<ClassRepository>;
-}
-
-/**
- * Create a mock SubjectRepository
- */
-export function createMockSubjectRepository(): jest.Mocked<SubjectRepository> {
-  return {
-    findById: jest.fn(),
-    findByNameAndCampus: jest.fn(),
-    findAll: jest.fn(),
-    save: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  } as jest.Mocked<SubjectRepository>;
 }
 
 /**
@@ -208,4 +206,33 @@ export function createMockSchoolYearRepository(): jest.Mocked<SchoolYearReposito
     archive: jest.fn(),
     unarchive: jest.fn(),
   } as jest.Mocked<SchoolYearRepository>;
+}
+
+/**
+ * Create a mock MealMenuRepository
+ */
+export function createMockMealMenuRepository(): jest.Mocked<MealMenuRepository> {
+  return {
+    findById: jest.fn(),
+    findByIdInCampus: jest.fn(),
+    findByCampusId: jest.fn(),
+    findActiveByNaturalKey: jest.fn(),
+    findAnyByNaturalKey: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    archive: jest.fn(),
+    restore: jest.fn(),
+  } as jest.Mocked<MealMenuRepository>;
+}
+
+/**
+ * Create a mock MealMenuConfigRepository
+ */
+export function createMockMealMenuConfigRepository(): jest.Mocked<MealMenuConfigRepository> {
+  return {
+    findByCampusId: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    upsert: jest.fn(),
+  } as jest.Mocked<MealMenuConfigRepository>;
 }

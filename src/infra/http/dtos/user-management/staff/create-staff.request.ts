@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
+  ArrayMinSize,
+  IsArray,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -14,7 +16,6 @@ import {
   IsE164Phone,
   IsAdultDateOfBirth,
   TransformToUTCDate,
-  IsISO8601Date,
 } from "@/core/validators";
 
 export class CreateStaffRequest {
@@ -59,13 +60,22 @@ export class CreateStaffRequest {
   gender: Gender;
 
   @ApiProperty({
-    description: "Staff type ID (references staff_type table)",
-    example: "123e4567-e89b-12d3-a456-426614174001",
-    required: false,
+    description:
+      "Staff type IDs (references staff_type table). Min 1, no max (per D3 of @doc/specs/staff-multi-type-refactor). A staff can hold multiple concurrent types.",
+    type: String,
+    isArray: true,
+    example: [
+      "123e4567-e89b-12d3-a456-426614174001",
+      "123e4567-e89b-12d3-a456-426614174002",
+    ],
   })
-  @IsOptional()
-  @IsUUID("4", { message: "Staff type ID must be a valid UUID" })
-  staffTypeId?: string;
+  @IsArray()
+  @ArrayMinSize(1, { message: "Staff must have at least one staff type" })
+  @IsUUID("4", {
+    each: true,
+    message: "Each staff type ID must be a valid UUID",
+  })
+  staffTypeIds: string[];
 
   // ========== Optional Information ==========
 
@@ -90,13 +100,4 @@ export class CreateStaffRequest {
   @IsAdultDateOfBirth()
   dateOfBirth?: Date;
 
-  @ApiProperty({
-    description: "Staff start date in ISO 8601 format (employment start)",
-    example: "2024-01-01T00:00:00.000Z",
-    required: false,
-  })
-  @IsOptional()
-  @TransformToUTCDate()
-  @IsISO8601Date()
-  startDate?: Date;
 }

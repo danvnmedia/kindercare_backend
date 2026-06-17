@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import {
-  IsDateString,
+  ArrayMinSize,
+  IsArray,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -48,14 +49,24 @@ export class UpdateStaffRequest {
   phoneNumber?: string;
 
   @ApiProperty({
-    description: "Staff type ID (references staff_type table)",
-    example: "123e4567-e89b-12d3-a456-426614174001",
+    description:
+      "Staff type IDs — when present, performs a full-set replacement of the staff's types (min 1, no max). Omit the field entirely to leave types unchanged. See @doc/specs/staff-multi-type-refactor (D1, D3, D4).",
+    type: String,
+    isArray: true,
+    example: [
+      "123e4567-e89b-12d3-a456-426614174001",
+      "123e4567-e89b-12d3-a456-426614174002",
+    ],
     required: false,
-    nullable: true,
   })
   @IsOptional()
-  @IsUUID("4", { message: "Staff type ID must be a valid UUID" })
-  staffTypeId?: string | null;
+  @IsArray()
+  @ArrayMinSize(1, { message: "Staff must have at least one staff type" })
+  @IsUUID("4", {
+    each: true,
+    message: "Each staff type ID must be a valid UUID",
+  })
+  staffTypeIds?: string[];
 
   @ApiProperty({
     description: "Staff address",
@@ -86,12 +97,4 @@ export class UpdateStaffRequest {
   @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
   gender?: Gender;
 
-  @ApiProperty({
-    description: "Staff start date (employment start)",
-    example: "2024-01-01",
-    required: false,
-  })
-  @IsOptional()
-  @IsDateString()
-  startDate?: Date;
 }

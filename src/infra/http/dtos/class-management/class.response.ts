@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
+import { ClassStaffPreview } from "./class-staff.response";
 
 export class ClassSummaryResponse {
   @Expose()
@@ -63,20 +64,6 @@ export class SchoolYearResponse {
   isArchived: boolean;
 }
 
-export class SubjectResponse {
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
-  id: string;
-
-  @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
-  campusId: string;
-
-  @Expose()
-  @ApiProperty({ example: "Toán" })
-  name: string;
-}
-
 export class ClassResponse {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
@@ -119,4 +106,36 @@ export class ClassResponse {
   @Expose()
   @ApiProperty({ example: "2025-01-01T00:00:00.000Z" })
   updatedAt: Date;
+}
+
+/**
+ * One row in the paginated class list. Extends `ClassResponse` with two
+ * list-only aggregates the FE needs to render the `/dashboard/classes`
+ * student-count column and staff `AvatarGroup`:
+ *
+ *  - `studentCount` — number of currently active enrollments
+ *    (`enrollment.classId = class.id AND enrollment.endDate IS NULL`).
+ *  - `staff` — compact preview of every staff row attached to the class,
+ *    ordered HOMEROOM first then by assignment time.
+ *
+ * Drives `GET /classes`. Per the frontend handoff, neither field is sortable
+ * or filterable — both are read-side projections only.
+ */
+export class ClassListItemResponse extends ClassResponse {
+  @Expose()
+  @ApiProperty({
+    example: 12,
+    description:
+      "Count of currently active enrollments (endDate IS NULL) attached to this class.",
+  })
+  studentCount: number;
+
+  @Expose()
+  @Type(() => ClassStaffPreview)
+  @ApiProperty({
+    type: [ClassStaffPreview],
+    description:
+      "Compact preview of all staff assigned to this class, ordered HOMEROOM first then by assignment createdAt asc.",
+  })
+  staff: ClassStaffPreview[];
 }

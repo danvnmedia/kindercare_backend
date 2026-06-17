@@ -1,11 +1,33 @@
 import { Injectable } from "@nestjs/common";
+import {
+  Class as PrismaClass,
+  GradeLevel as PrismaGradeLevel,
+  SchoolYear as PrismaSchoolYear,
+} from "@prisma/client";
 import { PrismaService } from "../prisma.service";
-import { ClassRepository } from "@/application/class-management/ports/class.repository";
+import {
+  ClassListItemView,
+  ClassRepository,
+} from "@/application/class-management/ports/class.repository";
 import { Class } from "@/domain/class-management/entities/class.entity";
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { PrismaClassMapper } from "../mapper/prisma-class.mapper";
+import { PrismaGradeLevelMapper } from "../mapper/prisma-grade-level.mapper";
+import { PrismaSchoolYearMapper } from "../mapper/prisma-school-year.mapper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+
+type PrismaClassListRow = PrismaClass & {
+  gradeLevel: PrismaGradeLevel | null;
+  schoolYear: PrismaSchoolYear | null;
+  _count: { enrollments: number };
+  staff: Array<{
+    role: ClassStaffRole;
+    createdAt: Date;
+    staff: { id: string; fullName: string };
+  }>;
+};
 
 @Injectable()
 export class PrismaClassRepository implements ClassRepository {
@@ -117,7 +139,7 @@ export class PrismaClassRepository implements ClassRepository {
   async findAll(
     campusId: string,
     params: StandardRequest,
-  ): Promise<PaginatedResult<Class>> {
+  ): Promise<PaginatedResult<ClassListItemView>> {
     params.allowedFilterFields = [
       "name",
       "description",
@@ -126,7 +148,12 @@ export class PrismaClassRepository implements ClassRepository {
     ];
     params.allowedSortFields = ["createdAt", "updatedAt", "name"];
 
-    return await this.queryService.executeQuery<Class>(
+    // Pass `null` MapperClass so executeQuery returns raw Prisma rows and we
+    // post-map them to the flat `ClassListItemView` shape below. This keeps
+    // the pagination math centralised in `PrismaQueryService` while letting
+    // us project the `_count` + nested `staff` joins without polluting the
+    // `Class` domain entity.
+    const result = await this.queryService.executeQuery<PrismaClassListRow>(
       this.prisma,
       "class",
       params,
@@ -135,10 +162,40 @@ export class PrismaClassRepository implements ClassRepository {
         include: {
           gradeLevel: true,
           schoolYear: true,
+          _count: { select: { enrollments: { where: { endDate: null } } } },
+          staff: {
+            include: { staff: { select: { id: true, fullName: true } } },
+            orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+          },
         },
       },
-      PrismaClassMapper,
+      null,
     );
+
+    const data: ClassListItemView[] = result.data.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      campusId: row.campusId,
+      gradeLevelId: row.gradeLevelId,
+      schoolYearId: row.schoolYearId,
+      gradeLevel: row.gradeLevel
+        ? PrismaGradeLevelMapper.toDomain(row.gradeLevel)
+        : null,
+      schoolYear: row.schoolYear
+        ? PrismaSchoolYearMapper.toDomain(row.schoolYear)
+        : null,
+      studentCount: row._count.enrollments,
+      staff: row.staff.map((cs) => ({
+        id: cs.staff.id,
+        fullName: cs.staff.fullName,
+        role: cs.role,
+      })),
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+
+    return { data, pagination: result.pagination };
   }
 
   async save(classEntity: Class): Promise<Class> {

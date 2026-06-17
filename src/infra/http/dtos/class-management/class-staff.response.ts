@@ -1,6 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+import { StaffTypeSummaryDto } from "@/infra/http/dtos/user-management/staff-type/staff-type-summary.dto";
+
 export class ClassStaffClassInfo {
   @Expose()
   @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
@@ -25,18 +28,41 @@ export class ClassStaffStaffInfo {
   email: string;
 
   @Expose()
-  @ApiProperty({ example: "TEACHER" })
-  staffType: string;
+  @Type(() => StaffTypeSummaryDto)
+  @ApiProperty({
+    type: StaffTypeSummaryDto,
+    isArray: true,
+    description:
+      "Read-only snapshots of the staff member's staff types (id + name), sorted by StaffType.order ASC. Empty when the staff has no types — see @doc/specs/staff-multi-type-refactor (D1).",
+  })
+  staffTypes: StaffTypeSummaryDto[];
 }
 
-export class ClassStaffSubjectInfo {
+/**
+ * Compact projection of a staff row attached to a class, used by the
+ * `GET /classes` list endpoint so the FE can render a staff `AvatarGroup`
+ * without a second round-trip to `GET /classes/:id/staff`.
+ *
+ * Strict subset of `ClassStaffStaffInfo` — intentionally drops `email` and
+ * `staffType` to keep the list-row payload small.
+ */
+export class ClassStaffPreview {
   @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174001" })
   id: string;
 
   @Expose()
-  @ApiProperty({ example: "Toán" })
-  name: string;
+  @ApiProperty({ example: "Nguyễn Văn A" })
+  fullName: string;
+
+  @Expose()
+  @ApiProperty({
+    enum: ClassStaffRole,
+    example: ClassStaffRole.HOMEROOM,
+    description:
+      "Role assigned to the staff in this class (HOMEROOM / ASSISTANT / BOARDING).",
+  })
+  role: ClassStaffRole;
 }
 
 export class ClassStaffResponse {
@@ -49,8 +75,13 @@ export class ClassStaffResponse {
   staffId: string;
 
   @Expose()
-  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174002" })
-  subjectId: string;
+  @ApiProperty({
+    enum: ClassStaffRole,
+    example: ClassStaffRole.HOMEROOM,
+    description:
+      "Role assigned to the staff in this class (HOMEROOM / ASSISTANT / BOARDING).",
+  })
+  role: ClassStaffRole;
 
   @Expose()
   @Type(() => ClassStaffClassInfo)
@@ -61,11 +92,6 @@ export class ClassStaffResponse {
   @Type(() => ClassStaffStaffInfo)
   @ApiProperty({ type: ClassStaffStaffInfo, required: false })
   staff?: ClassStaffStaffInfo;
-
-  @Expose()
-  @Type(() => ClassStaffSubjectInfo)
-  @ApiProperty({ type: ClassStaffSubjectInfo, required: false })
-  subject?: ClassStaffSubjectInfo;
 
   @Expose()
   @ApiProperty({ example: "2025-01-01T00:00:00.000Z" })

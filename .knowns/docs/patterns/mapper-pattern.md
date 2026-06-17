@@ -2,7 +2,7 @@
 title: Mapper Pattern
 description: Prisma ↔ Domain conversion. Includes the critical UncheckedUpdateInput escape hatch for FK fields.
 createdAt: '2026-01-03T19:52:08.384Z'
-updatedAt: '2026-05-05T17:35:07.330Z'
+updatedAt: '2026-05-31T02:12:58.918Z'
 tags:
   - patterns
   - prisma
@@ -116,7 +116,7 @@ See `prisma-class.mapper.ts` for the canonical example. If your update only touc
 
 ## Immutability — Omit, Don't Send `undefined`
 
-For fields that must never change (`id`, `campusId`, `studentCode`, `staffCode`, `createdAt`), **omit them from the return object entirely**. Don't send `undefined` — Prisma treats `undefined` as "skip", but the type system won't catch a typo.
+For fields that must never change (`id`, `campusId`, generated codes such as `studentCode`/`staffCode`, `createdAt`), omit them from update shapes entirely. Do not send `undefined`; Prisma treats `undefined` as skip, but the type system will not catch accidental inclusion.
 
 ```typescript
 // Good — code field cannot be sent at all
@@ -129,6 +129,16 @@ static toPrismaUpdate(s: Staff): Prisma.StaffUpdateInput {
 }
 ```
 
+For generated codes, enforce immutability at all four layers:
+
+1. Domain entity: require the code on creation, expose a read-only getter, and omit it from `UpdateXxxData`.
+2. Factory method: validate the code format in `create(...)` so invalid data cannot be reconstituted silently.
+3. Prisma mapper: include the code in `toDomain` and `toPrisma`, but omit it from `toPrismaUpdate` with a short explanatory comment.
+4. Unit of Work port: update operation input types must not accept the generated code field.
+
+Skipping any layer leaves a bypass path. For example, if the entity update type omits the field but the mapper writes `staff.staffCode` in `toPrismaUpdate`, repository updates can still mutate the code.
+
+Reference examples: `prisma-staff.mapper.ts` for `toPrismaUpdate` omission and `UnitOfWorkPort.updateStaff` / `UnitOfWorkPort.updateStudent` for update-input exclusion.
 ## Enum Casting
 
 Prisma enums are stored as strings. Cast them explicitly:

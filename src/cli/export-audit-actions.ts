@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Export the 19 v1 audit-action codes as a checked-in JSON artifact for the
+ * Export the audit-action codes as a checked-in JSON artifact for the
  * frontend template registry (AC-11 BE side of @doc/specs/admin-audit-log).
  *
  * The FE template registry (per FR-7) keys its locale-resolvable display
@@ -25,7 +25,7 @@
  *     "generatedAt": "<ISO 8601 timestamp>",
  *     "source": "src/domain/audit/audit-action.enum.ts",
  *     "spec": "@doc/specs/admin-audit-log",
- *     "actions": [/* 19 action codes in spec FR-1 order *\/]
+ *     "actions": [/* action codes in spec FR-1 order *\/]
  *   }
  *
  * See @doc/references/admin-audit-log-frontend-handoff for the FE import

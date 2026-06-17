@@ -45,6 +45,23 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   // Guardian ↔ Student (2)
   LINK_GUARDIAN_TO_STUDENT: "ADMIN",
   UNLINK_GUARDIAN_FROM_STUDENT: "ADMIN",
+
+  // Class-staff lifecycle (3)
+  ASSIGN_STAFF_TO_CLASS: "ADMIN",
+  REMOVE_STAFF_FROM_CLASS: "ADMIN",
+  CHANGE_STAFF_ROLE: "ADMIN",
+
+  // RBAC role grants (2)
+  GRANT_ROLE: "ADMIN",
+  REVOKE_ROLE: "ADMIN",
+
+  // Meal-menu lifecycle (6)
+  CREATE_MEAL_MENU: "ADMIN",
+  COPY_MEAL_MENU: "ADMIN",
+  UPDATE_MEAL_MENU: "ADMIN",
+  ARCHIVE_MEAL_MENU: "ADMIN",
+  RESTORE_MEAL_MENU: "ADMIN",
+  UPDATE_MEAL_MENU_CONFIG: "ADMIN",
 };
 
 // Runtime self-check — keeps the map covering every AuditAction even if the

@@ -35,7 +35,6 @@ model Campus {
 
   // Relations - Academic
   gradeLevels           GradeLevel[]
-  subjects              Subject[]
   schoolYears           SchoolYear[]
   classes               Class[]
   schoolYearEnrollments SchoolYearEnrollment[]
@@ -46,6 +45,10 @@ model Campus {
   postAudiences  PostAudience[]
   postCategories PostCategory[]
   files          File[]
+
+  // Relations - Meal Menu
+  mealMenus      MealMenu[]
+  mealMenuConfig MealMenuConfig?
 
   // Settings (one-to-one)
   campusSetting CampusSetting?
@@ -133,7 +136,6 @@ model Role {
   description     String?
   isSystemDefault Boolean @default(false) @map("is_system_default")
   isSystemRole    Boolean @default(false) @map("is_system_role") // Grants global admin bypass, can only be set via seeds/migrations
-  permissions     Json    @default("{}") // Deprecated: Use RolePermission instead
 
   campus          Campus?          @relation(fields: [campusId], references: [id], onDelete: Restrict)
   userRoles       UserRole[]
@@ -171,9 +173,15 @@ model StaffType {
   isArchived    Boolean @default(false) @map("is_archived")
   order         Int
 
-  campus      Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
-  defaultRole Role?   @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
-  staff       Staff[]
+  campus      Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  defaultRole Role?  @relation(fields: [defaultRoleId], references: [id], onDelete: SetNull)
+
+  // Many-to-many to Staff via `staff_staff_type` join model — see
+  // @doc/specs/staff-multi-type-refactor. Replaces the prior 1:N reverse side.
+  staff StaffStaffType[]
+
+  // Reverse side of UserRole.grantedViaStaffType — see @doc/specs/tracked-grant-revocation.
+  userRoleProvenance UserRole[] @relation("UserRoleProvenance")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -184,6 +192,28 @@ model StaffType {
   @@index([defaultRoleId])
   @@index([order])
   @@map("staff_type")
+}
+
+/// Join model: a Staff member can hold 1..N concurrent StaffTypes (e.g.
+/// Teacher + Vice President). PK is the natural pair, so the same staff
+/// cannot hold the same type twice. See @doc/specs/staff-multi-type-refactor.
+///
+/// - `onDelete: Cascade` on the Staff side: hard-deleting a staff cleans up
+///   its type links (standard join-table convention).
+/// - `onDelete: Restrict` on the StaffType side: mirrors the existing
+///   `Campus → StaffType` rule — a StaffType in use cannot be hard-deleted.
+///   `StaffType.archive()` is the production removal path.
+model StaffStaffType {
+  staff       Staff     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId     String    @map("staff_id") @db.Uuid
+  staffType   StaffType @relation(fields: [staffTypeId], references: [id], onDelete: Restrict)
+  staffTypeId String    @map("staff_type_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([staffId, staffTypeId])
+  @@index([staffTypeId])
+  @@map("staff_staff_type")
 }
 
 // ==========================================
@@ -245,12 +275,27 @@ model UserRole {
   campus   Campus? @relation(fields: [campusId], references: [id], onDelete: Cascade)
   campusId String? @map("campus_id") @db.Uuid
 
+  // Provenance: NULL = manual grant (never auto-revoked).
+  // Non-NULL = grant created by a StaffType default-role assignment; eligible
+  // for tracked-grant revocation when the staff's StaffType set changes (a
+  // type is removed from `staff_staff_type`). See
+  // @doc/specs/tracked-grant-revocation#schema-delta and
+  // @doc/specs/staff-multi-type-refactor.
+  grantedViaStaffTypeId String?    @map("granted_via_staff_type_id") @db.Uuid
+  grantedViaStaffType   StaffType? @relation("UserRoleProvenance", fields: [grantedViaStaffTypeId], references: [id], onDelete: SetNull)
+
   assignedAt DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
 
-  @@unique([userId, roleId, campusId])
+  // 4-col natural key — provenance widens the unique so multiple tracked rows
+  // (one per StaffType that defaults to the same role) can coexist alongside
+  // a single manual row (provenance NULL). Prisma's `@@unique` attribute does
+  // not express `NULLS NOT DISTINCT`; the migration applies it via raw SQL
+  // (Postgres 15+). See @doc/specs/staff-multi-type-refactor D2.
+  @@unique([userId, roleId, campusId, grantedViaStaffTypeId])
   @@index([userId])
   @@index([roleId])
   @@index([campusId])
+  @@index([grantedViaStaffTypeId])
   @@map("user_roles")
 }
 
@@ -314,6 +359,12 @@ view StudentWithPhase {
   campusId    String    @map("campus_id") @db.Uuid
   phase       String
 
+  // Derived projection of the student's currently-open enrollment's class
+  // (`enrollment.end_date IS NULL`). Hydrated by `LEFT JOIN LATERAL` inside
+  // the view; nullable when the student has no open enrollment.
+  currentClassId   String? @map("current_class_id") @db.Uuid
+  currentClassName String? @map("current_class_name")
+
   createdAt DateTime @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @map("updated_at") @db.Timestamptz(6)
 
@@ -329,16 +380,17 @@ model Staff {
   address     String?
   dateOfBirth DateTime? @map("date_of_birth") @db.Date
   gender      String?
-  startDate   DateTime? @map("start_date") @db.Date
   isArchived  Boolean   @default(false) @map("is_archived")
 
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  // Staff type (replaces staffType text field)
-  staffTypeId String?    @map("staff_type_id") @db.Uuid
-  staffType   StaffType? @relation(fields: [staffTypeId], references: [id], onDelete: SetNull)
+  // Staff types — many-to-many via `staff_staff_type` join table.
+  // A staff can hold 1..N concurrent types (e.g., Teacher + Vice President).
+  // See @doc/specs/staff-multi-type-refactor — replaces the prior single
+  // `staff_type_id` scalar; join writes go through `tx.replaceStaffTypes`.
+  staffTypes StaffStaffType[]
 
   // User relationship
   userId String? @map("user_id") @db.Uuid
@@ -357,7 +409,6 @@ model Staff {
   @@unique([campusId, userId])
   // Indexes
   @@index([campusId])
-  @@index([staffTypeId])
   @@index([isArchived])
   @@map("staff")
 }
@@ -436,6 +487,7 @@ model GradeLevel {
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
   classes               Class[]
+  mealMenus             MealMenu[]
   postAudiences         PostAudience[]
   schoolYearEnrollments SchoolYearEnrollment[]
 
@@ -449,26 +501,6 @@ model GradeLevel {
   @@index([campusId])
   @@index([isArchived])
   @@map("grade_level")
-}
-
-model Subject {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
-
-  // Campus scoping
-  campusId String @map("campus_id") @db.Uuid
-  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
-
-  classes ClassStaff[]
-
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  // Campus-scoped unique constraint
-  @@unique([campusId, name])
-  // Indexes
-  @@index([campusId])
-  @@map("subject")
 }
 
 model SchoolYear {
@@ -514,6 +546,7 @@ model Class {
   enrollments         Enrollment[]
   attendanceSummaries StudentAttendanceSummary[]
   postAudiences       PostAudience[]
+  mealMenus           MealMenu[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -527,20 +560,27 @@ model Class {
   @@map("class")
 }
 
+enum ClassStaffRole {
+  HOMEROOM
+  ASSISTANT
+  BOARDING
+}
+
 model ClassStaff {
-  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
-  classId   String  @map("class_id") @db.Uuid
-  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  staffId   String  @map("staff_id") @db.Uuid
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  subjectId String  @map("subject_id") @db.Uuid
+  class   Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  classId String         @map("class_id") @db.Uuid
+  staff   Staff          @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String         @map("staff_id") @db.Uuid
+  role    ClassStaffRole
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@id([classId, staffId, subjectId])
+  // Partial unique index `class_staff_homeroom_unique` enforced via raw SQL in
+  // migration (one HOMEROOM per class). Prisma cannot model partial unique
+  // indexes natively, so it lives only in the migration SQL, not here.
+  @@id([classId, staffId])
   @@index([staffId])
-  @@index([subjectId])
   @@map("class_staff")
 }
 
@@ -940,6 +980,73 @@ model CampusSetting {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("campus_setting")
+}
+
+// ==========================================
+// MEAL MENU
+// ==========================================
+
+model MealMenu {
+  id            String   @id @default(uuid()) @db.Uuid
+  campusId      String   @map("campus_id") @db.Uuid
+  targetType    String   @map("target_type")
+  gradeLevelId  String?  @map("grade_level_id") @db.Uuid
+  classId       String?  @map("class_id") @db.Uuid
+  weekStartDate DateTime @map("week_start_date") @db.Date
+  title         String?
+  days          Int[]    @default([1, 2, 3, 4, 5])
+  mealSlots     String[] @default(["Breakfast", "Lunch", "Afternoon"]) @map("meal_slots")
+  isArchived    Boolean  @default(false) @map("is_archived")
+
+  campus     Campus          @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  gradeLevel GradeLevel?     @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  class      Class?          @relation(fields: [classId], references: [id], onDelete: Restrict)
+  entries    MealMenuEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Prisma cannot express the active-only exact-target uniqueness; migrations
+  // own the real SQL-level partial unique indexes for campus, grade, and class.
+  @@index([campusId, targetType, gradeLevelId, classId, weekStartDate], map: "meal_menu_target_lookup")
+  @@index([campusId])
+  @@index([targetType])
+  @@index([gradeLevelId])
+  @@index([classId])
+  @@index([weekStartDate])
+  @@index([isArchived])
+  @@map("meal_menu")
+}
+
+model MealMenuEntry {
+  id          String @id @default(uuid()) @db.Uuid
+  mealMenuId  String @map("meal_menu_id") @db.Uuid
+  dayOfWeek   Int    @map("day_of_week")
+  slot        String
+  description String @db.Text
+
+  mealMenu MealMenu @relation(fields: [mealMenuId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([mealMenuId, dayOfWeek, slot], map: "meal_menu_entry_cell_key")
+  @@index([mealMenuId])
+  @@map("meal_menu_entry")
+}
+
+model MealMenuConfig {
+  id               String   @id @default(uuid()) @db.Uuid
+  campusId         String   @unique(map: "meal_menu_config_campus_id_key") @map("campus_id") @db.Uuid
+  operatingDays    Int[]    @default([1, 2, 3, 4, 5]) @map("operating_days")
+  defaultMealSlots String[] @default(["Breakfast", "Lunch", "Afternoon"]) @map("default_meal_slots")
+
+  campus Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("meal_menu_config")
 }
 
 // ==========================================

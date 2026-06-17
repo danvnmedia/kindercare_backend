@@ -6,6 +6,18 @@ import { Gender } from "../enums/gender.enum";
 // Format for staff code: ST-YYYY-XXXXXX (e.g., ST-2025-000001)
 const STAFF_CODE_PATTERN = /^ST-\d{4}-\d{6}$/;
 
+/**
+ * Read-side denormalized projection of a StaffType row. Hydrated by the mapper
+ * when the `staff_staff_type` relation is eager-loaded; never persisted from
+ * the entity. Writes go through the `staff_staff_type` join set (see
+ * `tx.replaceStaffTypes`) — the snapshot collection may be stale between a
+ * mutation and the next read.
+ */
+export interface StaffTypeSnapshot {
+  id: string;
+  name: string;
+}
+
 // Properties of the Staff entity
 export interface StaffProps {
   campusId: string;
@@ -13,11 +25,10 @@ export interface StaffProps {
   fullName: string;
   email: string;
   phoneNumber: string;
-  staffTypeId: string | null;
+  staffTypes: StaffTypeSnapshot[];
   address: string | null;
   dateOfBirth: Date | null;
   gender: Gender | null;
-  startDate: Date | null;
   userId: string | null;
   isArchived: boolean;
   createdAt: Date;
@@ -49,8 +60,8 @@ export class Staff extends Entity<StaffProps> {
   get phoneNumber(): string {
     return this.props.phoneNumber;
   }
-  get staffTypeId(): string | null {
-    return this.props.staffTypeId;
+  get staffTypes(): StaffTypeSnapshot[] {
+    return this.props.staffTypes;
   }
   get address(): string | null {
     return this.props.address;
@@ -60,9 +71,6 @@ export class Staff extends Entity<StaffProps> {
   }
   get gender(): Gender | null {
     return this.props.gender;
-  }
-  get startDate(): Date | null {
-    return this.props.startDate;
   }
   get userId(): string | null {
     return this.props.userId;
@@ -88,32 +96,36 @@ export class Staff extends Entity<StaffProps> {
     if (updates.email !== undefined) this.props.email = updates.email;
     if (updates.phoneNumber !== undefined)
       this.props.phoneNumber = updates.phoneNumber;
-    if (updates.staffTypeId !== undefined)
-      this.props.staffTypeId = updates.staffTypeId;
     if (updates.address !== undefined) this.props.address = updates.address;
     if (updates.dateOfBirth !== undefined)
       this.props.dateOfBirth = updates.dateOfBirth;
     if (updates.gender !== undefined) this.props.gender = updates.gender;
-    if (updates.startDate !== undefined)
-      this.props.startDate = updates.startDate;
     if (updates.userId !== undefined) this.props.userId = updates.userId;
     this.touch();
   }
 
   /**
-   * Changes the staff's type.
-   * @param staffTypeId - The new staff type ID (or null to clear).
+   * Replaces the staff's StaffType set with the provided snapshots.
+   *
+   * Enforces the min-1 invariant at write time — matches the DTO's
+   * `@ArrayMinSize(1)` and locked decision D4 of
+   * `specs/staff-multi-type-refactor`. The factory `Staff.create` deliberately
+   * does NOT enforce this constraint so the mapper can hydrate legacy migrated
+   * rows that backfilled to zero join entries; the next edit then forces a
+   * non-empty selection through this setter.
+   *
+   * @param snapshots - The new full set of StaffType snapshots. Order is
+   *                    preserved as supplied; callers (mapper / use-case) are
+   *                    responsible for any required ordering (e.g. `order` ASC
+   *                    for display, UUID lex ASC for audit).
+   * @throws Error when `snapshots` is empty.
    */
-  public changeStaffType(staffTypeId: string | null): void {
-    this.props.staffTypeId = staffTypeId;
+  public setStaffTypes(snapshots: StaffTypeSnapshot[]): void {
+    if (snapshots.length === 0) {
+      throw new Error("Staff must have at least one staff type.");
+    }
+    this.props.staffTypes = snapshots;
     this.touch();
-  }
-
-  /**
-   * Checks if the staff has a staff type assigned.
-   */
-  public hasStaffType(): boolean {
-    return this.props.staffTypeId !== null;
   }
 
   /**
@@ -174,7 +186,11 @@ export class Staff extends Entity<StaffProps> {
   public static create(
     props: Optional<
       StaffProps,
-      "createdAt" | "updatedAt" | "isArchived" | "userId" | "staffTypeId"
+      | "createdAt"
+      | "updatedAt"
+      | "isArchived"
+      | "userId"
+      | "staffTypes"
     >,
     id?: string,
   ): Staff {
@@ -203,7 +219,7 @@ export class Staff extends Entity<StaffProps> {
 
     const staffProps: StaffProps = {
       ...props,
-      staffTypeId: props.staffTypeId ?? null,
+      staffTypes: props.staffTypes ?? [],
       userId: props.userId ?? null,
       isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),

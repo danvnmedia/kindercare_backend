@@ -1,4 +1,6 @@
 import { AuditEventInput } from "@/application/audit";
+import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -45,17 +47,45 @@ export interface TransactionContext {
   ): Promise<{ id: string }>;
 
   /**
-   * Assign roles to a user with campus context
+   * Assign roles to a user with campus + provenance context.
    *
    * @param userId - The user to assign roles to
-   * @param roleAssignments - Array of role assignments with optional campusId
-   *   - campusId = undefined/null: Global assignment (role applies everywhere)
-   *   - campusId = string: Campus-specific assignment
+   * @param roleAssignments - Array of role assignments
+   *   - `campusId = undefined/null`: global assignment (role applies everywhere)
+   *   - `campusId = string`: campus-specific assignment
+   *   - `grantedViaStaffTypeId = undefined/null`: manual grant (never auto-revoked)
+   *   - `grantedViaStaffTypeId = string`: tracked grant — eligible for revoke
+   *     when the staff's staff-type changes
+   * @returns the number of rows actually inserted. When the existing
+   *   `(userId, roleId, campusId)` unique constraint already holds a row, the
+   *   insert is silently skipped (D5 manual-wins) and that row is NOT counted.
+   *   Callers use the count to decide whether to emit a `rolesGranted` audit
+   *   entry — see @doc/specs/tracked-grant-revocation#d5-conflict-mechanics-manual-wins.
    */
   assignRoles(
     userId: string,
-    roleAssignments: RoleAssignmentInput[],
-  ): Promise<void>;
+    roleAssignments: Array<
+      RoleAssignmentInput & { grantedViaStaffTypeId?: string | null }
+    >,
+  ): Promise<number>;
+
+  /**
+   * Revoke every role row whose provenance matches ANY staff-type in the
+   * supplied set.
+   */
+  revokeRolesByProvenance(
+    userId: string,
+    grantedViaStaffTypeIds: string[],
+  ): Promise<number>;
+
+  /**
+   * Revoke role rows that match exact `(userId, roleId, campusId)` tuples,
+   * regardless of provenance.
+   */
+  revokeRoles(
+    userId: string,
+    removals: Array<{ roleId: string; campusId: string | null }>,
+  ): Promise<number>;
 
   /**
    * Execute a raw create operation for Guardian entity
@@ -97,7 +127,7 @@ export interface TransactionContext {
   ): Promise<{ id: string }>;
 
   /**
-   * Execute a raw create operation for Staff entity
+   * Execute a raw create operation for Staff entity.
    */
   createStaff(data: {
     id: string;
@@ -106,11 +136,9 @@ export interface TransactionContext {
     fullName: string;
     email: string;
     phoneNumber: string;
-    staffTypeId: string | null;
     address: string | null;
     dateOfBirth: Date | null;
     gender: string | null;
-    startDate: Date | null;
     userId: string | null;
     isArchived: boolean;
     createdAt: Date;
@@ -118,7 +146,7 @@ export interface TransactionContext {
   }): Promise<{ id: string }>;
 
   /**
-   * Execute a raw update operation for Staff entity
+   * Execute a raw update operation for Staff entity.
    */
   updateStaff(
     id: string,
@@ -126,16 +154,19 @@ export interface TransactionContext {
       fullName?: string;
       email?: string;
       phoneNumber?: string;
-      staffTypeId?: string | null;
       address?: string | null;
       dateOfBirth?: Date | null;
       gender?: string | null;
-      startDate?: Date | null;
       userId?: string | null;
       isArchived?: boolean;
       updatedAt?: Date;
     },
   ): Promise<{ id: string }>;
+
+  /**
+   * Replace the full `staff_staff_type` set for a staff inside the active tx.
+   */
+  replaceStaffTypes(staffId: string, staffTypeIds: string[]): Promise<void>;
 
   /**
    * Execute a raw create operation for Student entity
@@ -179,9 +210,6 @@ export interface TransactionContext {
 
   /**
    * Assign guardians to a student within the transaction.
-   *
-   * Mirrors `StudentRepository.assignGuardians`; called by the link use case
-   * so the audit row + relationship insert atomically commit together (D4).
    */
   assignGuardians(
     studentId: string,
@@ -190,12 +218,58 @@ export interface TransactionContext {
 
   /**
    * Remove guardians from a student within the transaction.
-   *
-   * Mirrors `StudentRepository.removeGuardians`. Used by the unlink use case;
-   * callers must pre-resolve any relationship snapshot for `context` BEFORE
-   * invoking this op (the row is gone by audit time).
    */
   removeGuardians(studentId: string, guardianIds: string[]): Promise<void>;
+
+  /**
+   * Create a class-staff assignment within the transaction.
+   */
+  createClassStaff(data: {
+    classId: string;
+    staffId: string;
+    role: ClassStaffRole;
+    createdAt: Date;
+    updatedAt: Date;
+  }): Promise<{ classId: string; staffId: string }>;
+
+  /**
+   * Delete a class-staff assignment within the transaction.
+   */
+  deleteClassStaff(classId: string, staffId: string): Promise<void>;
+
+  /**
+   * Update a class-staff assignment's role within the transaction.
+   */
+  updateClassStaff(
+    classId: string,
+    staffId: string,
+    data: { role: ClassStaffRole; updatedAt: Date },
+  ): Promise<{ classId: string; staffId: string }>;
+
+  /**
+   * Create a meal menu and its entry rows within the current transaction.
+   */
+  createMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Update a meal menu and replace its entry rows within the current transaction.
+   */
+  updateMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Soft-archive a meal menu within the current transaction.
+   */
+  archiveMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Restore a meal menu within the current transaction.
+   */
+  restoreMealMenu(mealMenu: MealMenu): Promise<MealMenu>;
+
+  /**
+   * Upsert meal-menu config defaults within the current transaction.
+   */
+  upsertMealMenuConfig(config: MealMenuConfig): Promise<MealMenuConfig>;
 
   /**
    * Record an audit event inside the current transaction.

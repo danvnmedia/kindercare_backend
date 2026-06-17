@@ -92,6 +92,29 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
         });
         return { targetName: row?.fullName ?? null };
       }
+      case "user": {
+        // GRANT_ROLE / REVOKE_ROLE audit shape (D1 of
+        // @doc/specs/direct-role-assignment-via-uow) puts the human-readable
+        // identity in `context.actorName` — not `targetName`. The User row
+        // itself has no name field (it lives on the linked Guardian/Staff
+        // profile via back-reference), so resolving here would mean a
+        // multi-join lookup that the audit shape does not consume. Return
+        // null and let callers override with a caller-supplied snapshot if
+        // they ever need one.
+        return { targetName: null };
+      }
+      case "meal_menu": {
+        const row = await tx.mealMenu.findUnique({
+          where: { id: targetId },
+          select: { title: true },
+        });
+        return { targetName: row?.title ?? null };
+      }
+      case "meal_menu_config": {
+        // Config rows do not have a display name; the campus and changed
+        // defaults are captured in context/beforeValue/afterValue by callers.
+        return { targetName: null };
+      }
       default: {
         // Exhaustiveness guard — if a new `AuditTargetType` member is added
         // to the port without updating this switch, this branch becomes

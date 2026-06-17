@@ -11,6 +11,8 @@ import {
   GuardianTransactionOps,
   StaffTransactionOps,
   StudentTransactionOps,
+  ClassStaffTransactionOps,
+  MealMenuTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -56,12 +58,16 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const guardianOps = new GuardianTransactionOps(tx);
     const staffOps = new StaffTransactionOps(tx);
     const studentOps = new StudentTransactionOps(tx);
+    const classStaffOps = new ClassStaffTransactionOps(tx);
+    const mealMenuOps = new MealMenuTransactionOps(tx);
 
     return {
       // User operations
       createUser: userOps.createUser.bind(userOps),
       updateUser: userOps.updateUser.bind(userOps),
       assignRoles: userOps.assignRoles.bind(userOps),
+      revokeRolesByProvenance: userOps.revokeRolesByProvenance.bind(userOps),
+      revokeRoles: userOps.revokeRoles.bind(userOps),
 
       // Guardian operations
       createGuardian: guardianOps.createGuardian.bind(guardianOps),
@@ -70,12 +76,25 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       // Staff operations
       createStaff: staffOps.createStaff.bind(staffOps),
       updateStaff: staffOps.updateStaff.bind(staffOps),
+      replaceStaffTypes: staffOps.replaceStaffTypes.bind(staffOps),
 
       // Student operations
       createStudent: studentOps.createStudent.bind(studentOps),
       updateStudent: studentOps.updateStudent.bind(studentOps),
       assignGuardians: studentOps.assignGuardians.bind(studentOps),
       removeGuardians: studentOps.removeGuardians.bind(studentOps),
+
+      // Class-staff operations
+      createClassStaff: classStaffOps.createClassStaff.bind(classStaffOps),
+      deleteClassStaff: classStaffOps.deleteClassStaff.bind(classStaffOps),
+      updateClassStaff: classStaffOps.updateClassStaff.bind(classStaffOps),
+
+      // Meal-menu operations
+      createMealMenu: mealMenuOps.createMealMenu.bind(mealMenuOps),
+      updateMealMenu: mealMenuOps.updateMealMenu.bind(mealMenuOps),
+      archiveMealMenu: mealMenuOps.archiveMealMenu.bind(mealMenuOps),
+      restoreMealMenu: mealMenuOps.restoreMealMenu.bind(mealMenuOps),
+      upsertMealMenuConfig: mealMenuOps.upsertMealMenuConfig.bind(mealMenuOps),
 
       // Audit operations — captures the active `prismaTransaction` so callers
       // never have to thread a raw `Prisma.TransactionClient` themselves.

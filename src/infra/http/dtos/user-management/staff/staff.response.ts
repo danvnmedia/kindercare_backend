@@ -1,5 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Expose } from "class-transformer";
+import { Expose, Type } from "class-transformer";
+
+import { StaffTypeSummaryDto } from "../staff-type/staff-type-summary.dto";
 
 export class StaffResponse {
   @Expose()
@@ -30,12 +32,14 @@ export class StaffResponse {
   phoneNumber: string;
 
   @Expose()
+  @Type(() => StaffTypeSummaryDto)
   @ApiProperty({
-    example: "123e4567-e89b-12d3-a456-426614174002",
-    description: "Staff type ID (references staff_type table)",
-    nullable: true,
+    type: StaffTypeSummaryDto,
+    isArray: true,
+    description:
+      "Read-only snapshots of the staff member's staff types (id + name), sorted by StaffType.order ASC. The write path is `staffTypeIds: string[]` on the request DTOs — see @doc/specs/staff-multi-type-refactor (D1).",
   })
-  staffTypeId: string | null;
+  staffTypes: StaffTypeSummaryDto[];
 
   @Expose()
   @ApiProperty({ example: "123 Đường ABC, Quận 1, TP.HCM", nullable: true })
@@ -48,10 +52,6 @@ export class StaffResponse {
   @Expose()
   @ApiProperty({ example: "MALE", nullable: true })
   gender: string | null;
-
-  @Expose()
-  @ApiProperty({ example: "2024-01-01T00:00:00.000Z", nullable: true })
-  startDate: Date | null;
 
   @Expose()
   @ApiProperty({
