@@ -2,7 +2,7 @@
 title: Unit of Work Pattern
 description: Transaction management via UnitOfWorkPort + TransactionContext, with modular per-domain TransactionOps classes
 createdAt: '2026-01-03T19:52:40.012Z'
-updatedAt: '2026-05-31T02:17:02.479Z'
+updatedAt: '2026-06-25T16:35:17.919Z'
 tags:
   - patterns
   - transaction
@@ -151,21 +151,22 @@ The Clerk call sits outside the transaction because Prisma cannot roll it back. 
 
 | Scenario | UoW? |
 |----------|------|
-| Any mutation that emits audit / domain events | Yes — `tx` must wrap the mutation plus the audit/event write |
+| Any mutation that emits audit / domain events | Yes - `tx` must wrap the mutation plus the audit/event write |
 | Multi-row writes that must be atomic, such as User + Staff + UserRole | Yes |
-| Read-only operations | No — use the repository directly |
+| Read-only operations | No - use the repository directly |
 | External call + DB write | Saga pattern: external call outside, UoW inside, compensation on failure |
-| Bulk operations with their own internal `$transaction`, such as `repo.saveMany` | No — the repo owns its own atomicity boundary |
+| Bulk operations with their own internal `$transaction`, such as `repo.saveMany` | No - the repo owns its own atomicity boundary |
 
 ### Rationale
 
-With @doc/specs/admin-audit-log D4, same-transaction audit emission means every audited business mutation is at least a two-row write: the mutation plus `audit_event`. Making both atomic requires the mutation to participate in the caller's transaction, which means using `unitOfWork.run((tx) => ...)`.
+Same-transaction audit emission means every audited business mutation is at least a two-row write: the mutation plus `audit_event`. Making both atomic requires the mutation to participate in the caller's transaction, which means using `unitOfWork.run((tx) => ...)`.
 
 New mutations and refactored use cases follow this rule by default.
 
 ### Migration note
 
 Existing repo-direct callers can remain valid until their own audit-wiring scope lands. Do not bulk-rewrite legacy callers without an accompanying audit or transaction-boundary reason. The decision table above is the forward-looking convention, not a hard cutover.
+
 ## Adding a New Domain
 
 To extend the `TransactionContext` with another domain:

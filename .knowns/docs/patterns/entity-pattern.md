@@ -2,7 +2,7 @@
 title: Entity Pattern
 description: 'Domain entity structure: props interface, getters, factory, invariants, soft-delete and timestamp conventions'
 createdAt: '2026-01-03T19:52:16.385Z'
-updatedAt: '2026-05-05T17:34:22.278Z'
+updatedAt: '2026-06-25T16:36:40.125Z'
 tags:
   - patterns
   - entity
@@ -143,7 +143,7 @@ The codebase uses **two distinct soft-delete patterns** depending on the entity:
 | `isArchived` | `Student`, `Staff`, `Guardian`, `GradeLevel`, `SchoolYear`, `StaffType`, `GuardianRelationship`, `PostCategory`, `Campus`, `Role` (implicit) | Hidden from default lists, recoverable via `restore()`. The entity remains queryable. |
 | `isDeleted` + `deletedAt` | `Post`, `PostComment`, `File` | Append-only audit trail. The repository typically excludes these from queries; restoration is rare. |
 
-See [@doc/architecture/audit-and-soft-delete](architecture/audit-and-soft-delete) for the full breakdown and when to use each.
+Use `isArchived` for operational records that can return to service. Use `isDeleted` plus `deletedAt` for content or engagement records where the deletion timestamp is part of moderation or audit history. The full soft-delete breakdown lives in @doc/architecture/audit-trail-soft-delete-patterns.
 
 ## Anti-Patterns
 

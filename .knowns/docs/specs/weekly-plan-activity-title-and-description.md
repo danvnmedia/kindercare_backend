@@ -2,7 +2,7 @@
 title: Weekly Plan Activity Title And Description
 description: Specification for changing Weekly Plan activities from single text entries to title plus optional description
 createdAt: '2026-06-24T13:23:18.567Z'
-updatedAt: '2026-06-24T13:54:24.102Z'
+updatedAt: '2026-06-25T16:35:55.309Z'
 tags:
   - spec
   - approved
@@ -17,7 +17,7 @@ Weekly Plan schedule block activities currently use a single `text` field. This 
 
 This is a breaking Weekly Plan API contract change. The previous activity request shape `{ text }` will no longer be accepted after this change. Existing stored activity text must be preserved by migrating it into `title` with `description: null`.
 
-This spec amends @doc/specs/weekly-plan-daily-schedule and the implemented backend contract documented in @doc/backend-handoff/weekly-plan-daily-schedule-backend-handoff.
+This change amends the existing Weekly Plan daily schedule API contract and the implemented backend contract documented in @doc/backend-handoff/weekly-plan-daily-schedule-backend-handoff.
 
 ## Locked Decisions
 

@@ -2,7 +2,7 @@
 title: Prisma Migration Patterns
 description: Prisma and PostgreSQL migration rules for hand-written SQL, raw inserts, NULL handling, soft-archive uniqueness, and non-interactive migration workflows.
 createdAt: '2026-05-31T02:11:42.340Z'
-updatedAt: '2026-05-31T02:11:42.340Z'
+updatedAt: '2026-06-25T16:35:05.447Z'
 tags:
   - patterns
   - prisma
@@ -149,6 +149,9 @@ For migrations that touch data or raw SQL, also run the relevant focused Jest sp
 
 ## References
 
-- @doc/specs/staff-multi-type-refactor
-- @doc/specs/meal-menu-backend
 - @doc/architecture/audit-trail-soft-delete-patterns
+
+Related implementation precedents:
+
+- Staff type refactors established that schema changes which split or rename persisted concepts need an explicit data-preservation path before dropping legacy columns.
+- Meal menu migrations established the active-only soft-archive uniqueness pattern: use PostgreSQL partial unique indexes for `WHERE is_archived = false` constraints that Prisma cannot express directly.

@@ -2,7 +2,7 @@
 title: Weekly Plan Daily Schedule Frontend Handoff
 description: Frontend-to-backend handoff for the Weekly Plan Daily Schedule feature
 createdAt: '2026-06-18T02:27:18.948Z'
-updatedAt: '2026-06-18T02:27:18.948Z'
+updatedAt: '2026-06-25T16:34:58.274Z'
 tags:
   - frontend-handoff
   - weekly-plan
@@ -14,7 +14,7 @@ tags:
 
 This handoff summarizes the approved frontend feature direction for Weekly Plan Daily Schedule and highlights the backend support the frontend is likely to need. It is intentionally not a backend implementation spec. Backend devs should use this as product/API context, then research the backend codebase and make their own technical decisions.
 
-Source context: approved frontend spec `specs/weekly-plan-daily-schedule` in the frontend Knowns project. The closest existing backend precedent appears to be @doc/specs/meal-menu-class-targeting, but Weekly Plans have different targeting rules and should not automatically inherit Meal Menu fallback behavior.
+Source context came from the approved frontend Weekly Plan Daily Schedule direction. The closest existing backend precedent is Meal Menu class targeting: weekly records, archive/restore, campus scoping, active-only uniqueness, and class ownership validation. Weekly Plans have different targeting rules and should not automatically inherit Meal Menu fallback behavior.
 
 ## 1. Feature Summary
 

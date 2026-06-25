@@ -2,7 +2,7 @@
 title: Weekly Plan Daily Schedule Backend Handoff
 description: Backend-to-frontend integration handoff for the implemented Weekly Plan Daily Schedule APIs, data model, validation, permissions, and known follow-ups.
 createdAt: '2026-06-18T22:33:11.290Z'
-updatedAt: '2026-06-18T22:33:11.290Z'
+updatedAt: '2026-06-25T16:34:40.896Z'
 tags:
   - backend-handoff
   - frontend
@@ -15,7 +15,8 @@ tags:
 
 ## Source References
 
-- Spec: @doc/specs/weekly-plan-daily-schedule
+This handoff is the canonical implemented backend contract for class-scoped Weekly Plan daily schedules.
+
 - Backend research: @doc/research/weekly-plan-daily-schedule-backend-research
 - Original frontend handoff: @doc/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff
 - Shared pagination/filtering contract: @doc/guides/pagination-and-filtering

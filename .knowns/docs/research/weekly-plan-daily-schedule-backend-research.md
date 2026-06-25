@@ -2,7 +2,7 @@
 title: Weekly Plan Daily Schedule Backend Research
 description: Backend research and spec-shaping notes for Weekly Plan Daily Schedule based on the frontend handoff and existing backend architecture
 createdAt: '2026-06-18T11:41:56.807Z'
-updatedAt: '2026-06-18T11:41:56.807Z'
+updatedAt: '2026-06-25T16:35:47.993Z'
 tags:
   - research
   - weekly-plan
@@ -27,7 +27,7 @@ Frontend-approved scope from the handoff:
 - Each block has `dayOfWeek`, `startTime`, `endTime`, and one or more ordered activities.
 - Backend must enforce Monday week starts, duplicate active plan prevention, campus/class ownership, non-overlapping blocks per day, non-empty activities, ordered activities, archive/restore conflict behavior, and permissions.
 
-Important correction: @doc/specs/meal-menu-class-targeting is a precedent for weekly records, archive/restore, campus scoping, active-only uniqueness, and class ownership validation, but Weekly Plans should not inherit Meal Menu target fallback. Weekly Plans are class-only and should use exact class/week semantics.
+Meal Menu class targeting is a precedent for weekly records, archive/restore, campus scoping, active-only uniqueness, and class ownership validation. Weekly Plans should not inherit Meal Menu target fallback: Weekly Plans are class-only and should use exact class/week semantics.
 
 ## Current Backend Reality
 
@@ -50,7 +50,6 @@ Reusable precedents:
 Relevant docs:
 
 - @doc/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff
-- @doc/specs/meal-menu-class-targeting
 - @doc/architecture/multi-campus-architecture
 - @doc/architecture/rbac-system
 - @doc/architecture/audit-trail-soft-delete-patterns

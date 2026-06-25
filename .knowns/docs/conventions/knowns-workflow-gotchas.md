@@ -2,7 +2,7 @@
 title: Knowns Workflow Gotchas
 description: Knowns workflow conventions and gotchas for doc references, SDD acceptance criteria state, and memory-to-doc consolidation.
 createdAt: '2026-05-31T02:12:26.575Z'
-updatedAt: '2026-05-31T02:16:01.066Z'
+updatedAt: '2026-06-25T16:34:48.574Z'
 tags:
   - conventions
   - knowns
@@ -17,12 +17,14 @@ Use this doc for Knowns-specific behaviors that affect how agents update tasks, 
 
 ## Doc Reference Syntax
 
-Use bare Knowns references in doc content:
+Use bare Knowns doc references in doc content when linking to durable documentation:
 
 ```text
 @doc/patterns/unit-of-work-pattern
-@task-7xgvdk
+@doc/guides/pagination-and-filtering
 ```
+
+Do not use spec or work-item references inside durable docs. If a doc needs information from implementation planning, write the relevant rule, decision, or behavior directly in the doc instead of pointing to transient SDD state.
 
 Do not wrap Knowns references in Markdown links or backticks when the intent is for Knowns to resolve the reference.
 
@@ -34,6 +36,7 @@ Avoid wrapping a doc reference like this:
 ```
 
 The validator parses Knowns reference tokens directly. Markdown link wrappers or trailing backticks can become part of the parsed path and produce false broken-reference notes.
+
 ## SDD Acceptance Criteria Checkboxes
 
 Marking a task done through the MCP task API does not necessarily update visible `- [ ] AC-N` checkboxes in the linked spec doc, even when the task has `fulfills: ["AC-N"]` metadata.
