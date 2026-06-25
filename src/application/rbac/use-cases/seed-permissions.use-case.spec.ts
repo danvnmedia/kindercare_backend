@@ -13,6 +13,14 @@ const MEAL_MENU_PERMISSION_IDS = [
   "meal_menu_config.update",
 ];
 
+const WEEKLY_PLAN_PERMISSION_IDS = [
+  "weekly_plan.list",
+  "weekly_plan.read",
+  "weekly_plan.create",
+  "weekly_plan.update",
+  "weekly_plan.delete",
+];
+
 describe("SeedPermissionsUseCase", () => {
   let repository: jest.Mocked<PermissionRepository>;
   let useCase: SeedPermissionsUseCase;
@@ -65,5 +73,17 @@ describe("SeedPermissionsUseCase", () => {
     expect(
       repository.save.mock.calls.map(([permission]) => permission.id),
     ).toEqual(MEAL_MENU_PERMISSION_IDS);
+  });
+
+  it("includes all weekly-plan permission IDs in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(expect.arrayContaining(WEEKLY_PLAN_PERMISSION_IDS));
+    for (const id of WEEKLY_PLAN_PERMISSION_IDS) {
+      const permission = permissions.find((item) => item.id === id);
+      expect(permission?.module).toBe("weekly_plan");
+      expect(permission?.description).toEqual(expect.any(String));
+    }
   });
 });

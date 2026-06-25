@@ -12,5 +12,6 @@ export * from "./prisma-post-approval-request.mapper";
 export * from "./prisma-campus-setting.mapper";
 export * from "./prisma-meal-menu.mapper";
 export * from "./prisma-meal-menu-config.mapper";
+export * from "./prisma-weekly-plan.mapper";
 export * from "./prisma-student-attendance-summary.mapper";
 export * from "./prisma-student-attendance-log.mapper";

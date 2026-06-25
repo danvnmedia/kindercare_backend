@@ -18,7 +18,8 @@ export type AuditTargetType =
   | "staff"
   | "user"
   | "meal_menu"
-  | "meal_menu_config";
+  | "meal_menu_config"
+  | "weekly_plan";
 
 /**
  * AuditEvent — read-only projection of the `audit_event` table.

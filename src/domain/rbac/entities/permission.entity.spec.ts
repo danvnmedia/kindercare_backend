@@ -9,6 +9,7 @@ describe("PermissionEntity", () => {
         "guardian.delete",
         "staff_type.list",
         "grade_level.update",
+        "weekly_plan.create",
       ];
 
       validIds.forEach((id) => {
@@ -64,6 +65,7 @@ describe("PermissionEntity", () => {
         "guardian",
         "staff_type",
         "grade_level",
+        "weekly_plan",
       ];
 
       validModules.forEach((module) => {

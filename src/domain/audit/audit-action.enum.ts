@@ -58,6 +58,13 @@ export const AUDIT_ACTIONS = [
   "ARCHIVE_MEAL_MENU",
   "RESTORE_MEAL_MENU",
   "UPDATE_MEAL_MENU_CONFIG",
+
+  // Weekly-plan lifecycle (5)
+  "CREATE_WEEKLY_PLAN",
+  "COPY_WEEKLY_PLAN",
+  "UPDATE_WEEKLY_PLAN",
+  "ARCHIVE_WEEKLY_PLAN",
+  "RESTORE_WEEKLY_PLAN",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

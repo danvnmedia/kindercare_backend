@@ -14,4 +14,5 @@ export * from "./prisma-post-approval-request.repository";
 export * from "./prisma-campus-setting.repository";
 export * from "./prisma-meal-menu.repository";
 export * from "./prisma-meal-menu-config.repository";
+export * from "./prisma-weekly-plan.repository";
 export * from "./prisma-student-attendance.repository";

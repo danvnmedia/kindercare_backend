@@ -269,6 +269,33 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     description: "Archive meal menus",
   },
 
+  // Weekly plan permissions
+  {
+    id: "weekly_plan.list",
+    module: "weekly_plan",
+    description: "List weekly plans",
+  },
+  {
+    id: "weekly_plan.read",
+    module: "weekly_plan",
+    description: "View weekly plan details",
+  },
+  {
+    id: "weekly_plan.create",
+    module: "weekly_plan",
+    description: "Create or copy weekly plans",
+  },
+  {
+    id: "weekly_plan.update",
+    module: "weekly_plan",
+    description: "Update or restore weekly plans",
+  },
+  {
+    id: "weekly_plan.delete",
+    module: "weekly_plan",
+    description: "Archive weekly plans",
+  },
+
   // Meal menu config permissions
   {
     id: "meal_menu_config.read",

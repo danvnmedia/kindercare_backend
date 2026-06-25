@@ -1,6 +1,7 @@
 import { AuditEventInput } from "@/application/audit";
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
+import { WeeklyPlan } from "@/domain/weekly-plan";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -270,6 +271,26 @@ export interface TransactionContext {
    * Upsert meal-menu config defaults within the current transaction.
    */
   upsertMealMenuConfig(config: MealMenuConfig): Promise<MealMenuConfig>;
+
+  /**
+   * Create a weekly plan and its block/activity rows within the current transaction.
+   */
+  createWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
+
+  /**
+   * Update a weekly plan and replace its block/activity rows within the current transaction.
+   */
+  updateWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
+
+  /**
+   * Soft-archive a weekly plan within the current transaction.
+   */
+  archiveWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
+
+  /**
+   * Restore a weekly plan within the current transaction.
+   */
+  restoreWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
 
   /**
    * Record an audit event inside the current transaction.

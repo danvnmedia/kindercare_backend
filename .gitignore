@@ -139,7 +139,8 @@ prisma/migrations/dev.db*
 dump.rdb
 
 # Generated files
-generated/
+generated/*
+!generated/audit-actions.json
 
 # Backup files
 *.backup

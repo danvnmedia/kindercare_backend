@@ -62,6 +62,13 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   ARCHIVE_MEAL_MENU: "ADMIN",
   RESTORE_MEAL_MENU: "ADMIN",
   UPDATE_MEAL_MENU_CONFIG: "ADMIN",
+
+  // Weekly-plan lifecycle (5)
+  CREATE_WEEKLY_PLAN: "ADMIN",
+  COPY_WEEKLY_PLAN: "ADMIN",
+  UPDATE_WEEKLY_PLAN: "ADMIN",
+  ARCHIVE_WEEKLY_PLAN: "ADMIN",
+  RESTORE_WEEKLY_PLAN: "ADMIN",
 };
 
 // Runtime self-check — keeps the map covering every AuditAction even if the

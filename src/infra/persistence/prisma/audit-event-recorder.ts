@@ -115,6 +115,20 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
         // defaults are captured in context/beforeValue/afterValue by callers.
         return { targetName: null };
       }
+      case "weekly_plan": {
+        const row = await tx.weeklyPlan.findUnique({
+          where: { id: targetId },
+          select: {
+            weekStartDate: true,
+            class: { select: { name: true } },
+          },
+        });
+        return {
+          targetName: row
+            ? `${row.class.name} ${row.weekStartDate.toISOString().slice(0, 10)}`
+            : null,
+        };
+      }
       default: {
         // Exhaustiveness guard — if a new `AuditTargetType` member is added
         // to the port without updating this switch, this branch becomes

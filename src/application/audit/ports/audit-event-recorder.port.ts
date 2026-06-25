@@ -29,7 +29,8 @@ export type AuditTargetType =
   | "staff"
   | "user"
   | "meal_menu"
-  | "meal_menu_config";
+  | "meal_menu_config"
+  | "weekly_plan";
 
 /**
  * Input payload for a single audit-event write.

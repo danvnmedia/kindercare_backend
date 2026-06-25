@@ -13,6 +13,7 @@ import {
   StudentTransactionOps,
   ClassStaffTransactionOps,
   MealMenuTransactionOps,
+  WeeklyPlanTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -60,6 +61,7 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const studentOps = new StudentTransactionOps(tx);
     const classStaffOps = new ClassStaffTransactionOps(tx);
     const mealMenuOps = new MealMenuTransactionOps(tx);
+    const weeklyPlanOps = new WeeklyPlanTransactionOps(tx);
 
     return {
       // User operations
@@ -95,6 +97,16 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       archiveMealMenu: mealMenuOps.archiveMealMenu.bind(mealMenuOps),
       restoreMealMenu: mealMenuOps.restoreMealMenu.bind(mealMenuOps),
       upsertMealMenuConfig: mealMenuOps.upsertMealMenuConfig.bind(mealMenuOps),
+
+      // Weekly-plan operations
+      createWeeklyPlan:
+        weeklyPlanOps.createWeeklyPlan.bind(weeklyPlanOps),
+      updateWeeklyPlan:
+        weeklyPlanOps.updateWeeklyPlan.bind(weeklyPlanOps),
+      archiveWeeklyPlan:
+        weeklyPlanOps.archiveWeeklyPlan.bind(weeklyPlanOps),
+      restoreWeeklyPlan:
+        weeklyPlanOps.restoreWeeklyPlan.bind(weeklyPlanOps),
 
       // Audit operations — captures the active `prismaTransaction` so callers
       // never have to thread a raw `Prisma.TransactionClient` themselves.

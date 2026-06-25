@@ -62,3 +62,25 @@ describe("meal-menu audit vocab additions", () => {
     }
   });
 });
+
+describe("weekly-plan audit vocab additions", () => {
+  const weeklyPlanActions = [
+    "CREATE_WEEKLY_PLAN",
+    "COPY_WEEKLY_PLAN",
+    "UPDATE_WEEKLY_PLAN",
+    "ARCHIVE_WEEKLY_PLAN",
+    "RESTORE_WEEKLY_PLAN",
+  ] as const;
+
+  it("registers every weekly-plan audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...weeklyPlanActions]),
+    );
+  });
+
+  it("maps every weekly-plan action to ADMIN visibility", () => {
+    for (const action of weeklyPlanActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
