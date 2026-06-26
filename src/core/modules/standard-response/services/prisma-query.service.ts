@@ -13,6 +13,7 @@ export class PrismaQueryService {
   buildWhereClause(
     params: StandardRequest,
     allowedFields: string[] = [],
+    dateFields: string[] = [],
   ): Record<string, any> {
     const where: Record<string, any> = {};
     const filterData = params.filterInfo?.filters;
@@ -25,10 +26,17 @@ export class PrismaQueryService {
       Object.entries(filterData).forEach(([field, conditions]) => {
         if (!allowedFields.includes(field)) return;
 
+        const shouldCoerceDate = dateFields.includes(field);
+
         if (this.isFilterValue(conditions)) {
-          where[field] = conditions;
+          where[field] = shouldCoerceDate
+            ? this.coerceDateValue(conditions)
+            : conditions;
         } else if (this.isFilterConditionDto(conditions)) {
-          where[field] = this.buildFieldConditions(conditions);
+          where[field] = this.buildFieldConditions(
+            conditions,
+            shouldCoerceDate,
+          );
         }
       });
     }
@@ -104,43 +112,78 @@ export class PrismaQueryService {
     return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 
+  private isFilterValueOrDate(value: unknown): value is FilterValue | Date {
+    return this.isFilterValue(value) || value instanceof Date;
+  }
+
+  private coerceDateValue(value: FilterValue | Date): FilterValue | Date {
+    if (value instanceof Date || typeof value !== "string") {
+      return value;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? value : date;
+  }
+
   private buildFieldConditions(
     conditions: FilterConditionDto,
+    shouldCoerceDate = false,
   ): Record<string, any> {
     const fieldConditions: Record<string, any> = {};
 
     Object.entries(conditions).forEach(([operator, value]) => {
       if (value === undefined || value === null) return;
 
+      const coerceValue = (nextValue: unknown) =>
+        shouldCoerceDate && this.isFilterValueOrDate(nextValue)
+          ? this.coerceDateValue(nextValue)
+          : nextValue;
+
       switch (operator) {
         case "eq":
-          if (this.isFilterValue(value)) {
-            fieldConditions.equals = value;
+          if (this.isFilterValueOrDate(value)) {
+            fieldConditions.equals = coerceValue(value);
           }
           break;
         case "ne":
-          if (this.isFilterValue(value)) {
-            fieldConditions.not = value;
+          if (this.isFilterValueOrDate(value)) {
+            fieldConditions.not = coerceValue(value);
           }
           break;
         case "gt":
-          if (typeof value === "number") {
-            fieldConditions.gt = value;
+          if (typeof value === "number" || shouldCoerceDate) {
+            const nextValue = coerceValue(value);
+            if (typeof nextValue === "number" || nextValue instanceof Date) {
+              fieldConditions.gt = nextValue;
+            }
           }
           break;
         case "gte":
-          if (typeof value === "number" || value instanceof Date) {
-            fieldConditions.gte = value;
+          if (
+            typeof value === "number" ||
+            value instanceof Date ||
+            shouldCoerceDate
+          ) {
+            const nextValue = coerceValue(value);
+            if (typeof nextValue === "number" || nextValue instanceof Date) {
+              fieldConditions.gte = nextValue;
+            }
           }
           break;
         case "lt":
-          if (typeof value === "number") {
-            fieldConditions.lt = value;
+          if (typeof value === "number" || shouldCoerceDate) {
+            const nextValue = coerceValue(value);
+            if (typeof nextValue === "number" || nextValue instanceof Date) {
+              fieldConditions.lt = nextValue;
+            }
           }
           break;
         case "lte":
-          if (typeof value === "number") {
-            fieldConditions.lte = value;
+          if (typeof value === "number" || shouldCoerceDate) {
+            const nextValue = coerceValue(value);
+            if (typeof nextValue === "number" || nextValue instanceof Date) {
+              fieldConditions.lte = nextValue;
+            }
           }
           break;
         case "like":
@@ -156,23 +199,27 @@ export class PrismaQueryService {
           break;
         case "in":
           if (this.isFilterArrayValue(value) && value.length > 0) {
-            fieldConditions.in = value;
+            fieldConditions.in = shouldCoerceDate
+              ? value.map((item) => coerceValue(item))
+              : value;
           }
           break;
         case "not_in":
           if (this.isFilterArrayValue(value) && value.length > 0) {
-            fieldConditions.notIn = value;
+            fieldConditions.notIn = shouldCoerceDate
+              ? value.map((item) => coerceValue(item))
+              : value;
           }
           break;
         case "between":
           if (
             Array.isArray(value) &&
             value.length === 2 &&
-            this.isFilterValue(value[0]) &&
-            this.isFilterValue(value[1])
+            this.isFilterValueOrDate(value[0]) &&
+            this.isFilterValueOrDate(value[1])
           ) {
-            fieldConditions.gte = value[0];
-            fieldConditions.lte = value[1];
+            fieldConditions.gte = coerceValue(value[0]);
+            fieldConditions.lte = coerceValue(value[1]);
           }
           break;
       }
@@ -232,7 +279,11 @@ export class PrismaQueryService {
 
     const where = {
       ...options.where,
-      ...this.buildWhereClause(params, allowedFilterFields),
+      ...this.buildWhereClause(
+        params,
+        allowedFilterFields,
+        options.dateFilterFields,
+      ),
       ...options.scope, // Scope applied LAST - always wins, cannot be overridden by user
     };
 
@@ -248,10 +299,11 @@ export class PrismaQueryService {
       skip,
     };
 
-    let [data, count] = await Promise.all([
+    const [rawData, count] = await Promise.all([
       prismaClient[modelName].findMany(queryOptions),
       prismaClient[modelName].count({ where }),
     ]);
+    let data = rawData;
 
     const limit = Math.min(
       Number(params.limit) || params.defaultLimit || 10,

@@ -70,6 +70,7 @@ export class PrismaMealMenuRepository implements MealMenuRepository {
       "mealMenu",
       params,
       {
+        dateFilterFields: ["weekStartDate", "createdAt", "updatedAt"],
         include: MEAL_MENU_INCLUDE,
         orderBy: { weekStartDate: "desc" },
         scope,

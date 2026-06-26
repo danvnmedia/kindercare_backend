@@ -50,11 +50,7 @@ export class PrismaWeeklyPlanRepository implements WeeklyPlanRepository {
       "createdAt",
       "updatedAt",
     ];
-    params.allowedSortFields = [
-      "weekStartDate",
-      "createdAt",
-      "updatedAt",
-    ];
+    params.allowedSortFields = ["weekStartDate", "createdAt", "updatedAt"];
 
     const scope = {
       ...(options.scope ?? {}),
@@ -67,6 +63,7 @@ export class PrismaWeeklyPlanRepository implements WeeklyPlanRepository {
       "weeklyPlan",
       params,
       {
+        dateFilterFields: ["weekStartDate", "createdAt", "updatedAt"],
         include: PrismaWeeklyPlanMapper.include,
         orderBy: { weekStartDate: "desc" },
         scope,
