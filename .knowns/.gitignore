@@ -13,3 +13,5 @@
 !templates/**
 !tasks/
 !tasks/**
+!decisions/
+!decisions/**
