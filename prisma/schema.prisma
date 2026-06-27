@@ -1115,11 +1115,11 @@ model WeeklyPlanBlock {
 }
 
 model WeeklyPlanActivity {
-  id                  String @id @default(uuid()) @db.Uuid
-  weeklyPlanBlockId   String @map("weekly_plan_block_id") @db.Uuid
-  order               Int
-  title               String @db.VarChar(500)
-  description         String? @db.VarChar(2000)
+  id                String  @id @default(uuid()) @db.Uuid
+  weeklyPlanBlockId String  @map("weekly_plan_block_id") @db.Uuid
+  order             Int
+  title             String  @db.VarChar(500)
+  description       String? @db.VarChar(2000)
 
   weeklyPlanBlock WeeklyPlanBlock @relation(fields: [weeklyPlanBlockId], references: [id], onDelete: Cascade)
 
