@@ -11,13 +11,18 @@ export class GetStaffTypeByIdUseCase {
     private readonly staffTypeRepository: StaffTypeRepository,
   ) {}
 
-  async execute(id: string): Promise<StaffType> {
+  async execute(id: string, campusId: string): Promise<StaffType> {
     this.logger.log(`Getting staff type by ID: ${id}`);
 
     const staffType = await this.staffTypeRepository.findById(id);
 
     if (!staffType) {
       throw new NotFoundException(`Staff type with ID "${id}" not found`);
+    }
+    if (staffType.campusId !== campusId) {
+      throw new NotFoundException(
+        `Staff type with ID "${id}" not found in this campus`,
+      );
     }
 
     return staffType;

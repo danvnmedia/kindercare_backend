@@ -9,9 +9,9 @@
  *     `user.isActive = false` blocks an archived user. Restoring is one-click
  *     — no role re-grant needed.
  *   - D1: `UpdateStaffTypeUseCase` changing `defaultRoleId` must not propagate
- *     to any existing `user_roles` row. The use case has zero role-mutation
- *     surface area today — no UoW dependency. That absence is the structural
- *     enforcement of D1, and this file pins it.
+ *     to any existing `user_roles` row. StaffType writes now use UoW for
+ *     same-transaction audit, but the invariant remains: the UoW closure must
+ *     not call role-grant or role-revoke operations.
  *
  * Pattern: mirrors `update-staff-tracked-grant.integration.spec.ts` (sibling
  * task fd2utj). This repo has no real-DB Postgres harness; every other
@@ -119,8 +119,8 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
 
       const mockTx = buildMockTx();
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 
@@ -181,8 +181,8 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
 
       const mockTx = buildMockTx();
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 
@@ -255,8 +255,8 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
       // spies, so the final assertion covers BOTH closures.
       const mockTx = buildMockTx();
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 
@@ -303,7 +303,7 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
     const STAFF_TYPE_ID = "stype-1";
     const ROLE_NEW = "role-new";
 
-    it("only persists the StaffType row; no transactional surface is reachable", async () => {
+    it("only persists and audits the StaffType row; role mutation ops are not called", async () => {
       const initial = StaffType.create(
         {
           campusId: CAMPUS_ID,
@@ -334,30 +334,69 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
       } as jest.Mocked<StaffTypeRepository>;
 
       const roleRepo = {
-        exists: jest.fn().mockResolvedValue(true),
+        findById: jest.fn().mockResolvedValue({
+          id: ROLE_NEW,
+          name: "New Role",
+          description: null,
+          campusId: CAMPUS_ID,
+          isSystemDefault: false,
+          isSystemRole: false,
+          permissions: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
       } as unknown as jest.Mocked<RoleRepository>;
 
-      const useCase = new UpdateStaffTypeUseCase(staffTypeRepo, roleRepo);
+      const mockTx = {
+        updateStaffType: jest
+          .fn()
+          .mockImplementation((staffType: StaffType) =>
+            Promise.resolve(staffType),
+          ),
+        assignRoles: jest.fn().mockResolvedValue(0),
+        revokeRolesByProvenance: jest.fn().mockResolvedValue(0),
+        recordAudit: jest.fn().mockResolvedValue(undefined),
+      } as unknown as TransactionContext & {
+        updateStaffType: jest.Mock;
+        assignRoles: jest.Mock;
+        revokeRolesByProvenance: jest.Mock;
+        recordAudit: jest.Mock;
+      };
+      const unitOfWork = {
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
+        ),
+      } as unknown as UnitOfWorkPort;
 
-      await useCase.execute(STAFF_TYPE_ID, { defaultRoleId: ROLE_NEW });
+      const useCase = new UpdateStaffTypeUseCase(
+        staffTypeRepo,
+        roleRepo,
+        unitOfWork,
+      );
 
-      // The only persistence touch is the StaffType row itself — the new
-      // defaultRoleId is set on the domain entity and saved.
-      expect(staffTypeRepo.update).toHaveBeenCalledTimes(1);
-      const persisted = staffTypeRepo.update.mock.calls[0]![0];
+      await useCase.execute(
+        STAFF_TYPE_ID,
+        { campusId: CAMPUS_ID, defaultRoleId: ROLE_NEW },
+        buildActor(),
+      );
+
+      // The only persistence touch is the StaffType row itself, plus the
+      // audit row required by staff-type-rbac-hardening.
+      expect(mockTx.updateStaffType).toHaveBeenCalledTimes(1);
+      const persisted = mockTx.updateStaffType.mock.calls[0]![0];
       expect(persisted.defaultRoleId).toBe(ROLE_NEW);
+      expect(mockTx.recordAudit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "UPDATE_STAFF_TYPE",
+          beforeValue: { defaultRoleId: "role-old" },
+          afterValue: { defaultRoleId: ROLE_NEW },
+        }),
+      );
 
-      // Validation-only port use: `exists` is a read, not a write.
-      expect(roleRepo.exists).toHaveBeenCalledWith(ROLE_NEW);
-    });
-
-    it("has no UnitOfWork dependency — structural lock on D1", () => {
-      // The use case constructor exposes only StaffTypeRepository and
-      // RoleRepository. Any future change that adds resync logic would have
-      // to inject a UnitOfWorkPort (no other path can reach user_roles) and
-      // this assertion would break — flagging the regression at both compile
-      // time (constructor arity) and test time.
-      expect(UpdateStaffTypeUseCase.length).toBe(2);
+      // Validation-only port use: `findById` is a read, not a write.
+      expect(roleRepo.findById).toHaveBeenCalledWith(ROLE_NEW);
+      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
     });
   });
 });

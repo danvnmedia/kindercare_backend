@@ -17,6 +17,7 @@ type RootClientMock = {
   student: { findUnique: jest.Mock };
   guardian: { findUnique: jest.Mock };
   staff: { findUnique: jest.Mock };
+  staffType: { findUnique: jest.Mock };
   mealMenu: { findUnique: jest.Mock };
   weeklyPlan: { findUnique: jest.Mock };
 };
@@ -28,6 +29,7 @@ describe("PrismaAuditEventRecorder", () => {
     student: DelegateMock;
     guardian: DelegateMock;
     staff: DelegateMock;
+    staffType: DelegateMock;
     mealMenu: DelegateMock;
     weeklyPlan: DelegateMock;
   };
@@ -54,6 +56,7 @@ describe("PrismaAuditEventRecorder", () => {
       student: { findUnique: jest.fn(), create: jest.fn() },
       guardian: { findUnique: jest.fn(), create: jest.fn() },
       staff: { findUnique: jest.fn(), create: jest.fn() },
+      staffType: { findUnique: jest.fn(), create: jest.fn() },
       mealMenu: { findUnique: jest.fn(), create: jest.fn() },
       weeklyPlan: { findUnique: jest.fn(), create: jest.fn() },
     };
@@ -62,6 +65,7 @@ describe("PrismaAuditEventRecorder", () => {
       student: { findUnique: jest.fn() },
       guardian: { findUnique: jest.fn() },
       staff: { findUnique: jest.fn() },
+      staffType: { findUnique: jest.fn() },
       mealMenu: { findUnique: jest.fn() },
       weeklyPlan: { findUnique: jest.fn() },
     };
@@ -130,6 +134,7 @@ describe("PrismaAuditEventRecorder", () => {
       // caller's transaction.
       expect(rootClient.auditEvent.create).not.toHaveBeenCalled();
       expect(rootClient.student.findUnique).not.toHaveBeenCalled();
+      expect(rootClient.staffType.findUnique).not.toHaveBeenCalled();
       expect(rootClient.mealMenu.findUnique).not.toHaveBeenCalled();
       expect(rootClient.weeklyPlan.findUnique).not.toHaveBeenCalled();
     });
@@ -190,6 +195,7 @@ describe("PrismaAuditEventRecorder", () => {
       // Other targetType delegates untouched.
       expect(tx.student.findUnique).not.toHaveBeenCalled();
       expect(tx.guardian.findUnique).not.toHaveBeenCalled();
+      expect(tx.staffType.findUnique).not.toHaveBeenCalled();
       expect(tx.mealMenu.findUnique).not.toHaveBeenCalled();
       expect(tx.weeklyPlan.findUnique).not.toHaveBeenCalled();
 
@@ -226,6 +232,7 @@ describe("PrismaAuditEventRecorder", () => {
       expect(tx.student.findUnique).not.toHaveBeenCalled();
       expect(tx.guardian.findUnique).not.toHaveBeenCalled();
       expect(tx.staff.findUnique).not.toHaveBeenCalled();
+      expect(tx.staffType.findUnique).not.toHaveBeenCalled();
 
       const data = tx.auditEvent.create.mock.calls[0][0].data;
       expect(data.targetType).toBe("user");
@@ -235,6 +242,29 @@ describe("PrismaAuditEventRecorder", () => {
         roleId: "role-1",
         campusId: "campus-1",
         actorName: "Alice Nguyen",
+      });
+    });
+
+    it("resolves a StaffType name snapshot for targetType='staff_type'", async () => {
+      tx.staffType.findUnique.mockResolvedValue({ name: "Lead Teacher" });
+      tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });
+
+      await recorder.record(
+        baseInput({
+          action: "CREATE_STAFF_TYPE",
+          targetType: "staff_type",
+          targetId: "staff-type-1",
+          context: {},
+        }),
+        txAsClient(),
+      );
+
+      expect(tx.staffType.findUnique).toHaveBeenCalledWith({
+        where: { id: "staff-type-1" },
+        select: { name: true },
+      });
+      expect(tx.auditEvent.create.mock.calls[0][0].data.context).toMatchObject({
+        targetName: "Lead Teacher",
       });
     });
 

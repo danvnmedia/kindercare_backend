@@ -2,6 +2,12 @@ import { AuditEventInput } from "@/application/audit";
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
 import { WeeklyPlan } from "@/domain/weekly-plan";
+import {
+  CreateRoleData,
+  Role,
+  UpdateRoleData,
+} from "@/domain/user-management/role.entity";
+import { StaffType } from "@/domain/user-management/entities/staff-type.entity";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -87,6 +93,59 @@ export interface TransactionContext {
     userId: string,
     removals: Array<{ roleId: string; campusId: string | null }>,
   ): Promise<number>;
+
+  /**
+   * Create a role and optional permission rows within the current transaction.
+   */
+  createRole(data: CreateRoleData): Promise<Role>;
+
+  /**
+   * Update a role within the current transaction.
+   */
+  updateRole(id: string, data: UpdateRoleData): Promise<Role>;
+
+  /**
+   * Delete a role within the current transaction.
+   */
+  deleteRole(id: string): Promise<void>;
+
+  /**
+   * Add permission rows to a role within the current transaction.
+   * Returns the number of rows actually inserted.
+   */
+  addRolePermissions(roleId: string, permissionIds: string[]): Promise<number>;
+
+  /**
+   * Remove permission rows from a role within the current transaction.
+   * Returns the number of rows actually deleted.
+   */
+  removeRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<number>;
+
+  /**
+   * Replace the full permission set for a role within the current transaction.
+   */
+  replaceRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<void>;
+
+  /**
+   * Create a StaffType within the current transaction.
+   */
+  createStaffType(staffType: StaffType): Promise<StaffType>;
+
+  /**
+   * Update a StaffType within the current transaction.
+   */
+  updateStaffType(staffType: StaffType): Promise<StaffType>;
+
+  /**
+   * Reorder StaffTypes within one campus inside the current transaction.
+   */
+  reorderStaffTypes(campusId: string, ids: string[]): Promise<StaffType[]>;
 
   /**
    * Execute a raw create operation for Guardian entity

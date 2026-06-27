@@ -52,7 +52,7 @@ describe("GetAuditEventsByTargetUseCase", () => {
     expect(result).toBe(emptyPage);
   });
 
-  it.each(["student", "guardian", "staff"])(
+  it.each(["student", "guardian", "staff", "staff_type", "role"])(
     "accepts targetType=%s",
     async (targetType) => {
       await useCase.execute({

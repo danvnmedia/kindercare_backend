@@ -71,14 +71,19 @@ export class PrismaRoleMapper {
    * Convert Domain entity to Prisma create input
    */
   static toPrisma(role: CreateRoleData): Prisma.RoleUncheckedCreateInput {
-    return {
-      id: role.id,
+    const data: Prisma.RoleUncheckedCreateInput = {
       name: role.name,
       description: role.description ?? null,
       campusId: role.campusId ?? null,
       isSystemDefault: role.isSystemDefault ?? false,
       isSystemRole: role.isSystemRole ?? false,
     };
+
+    if (role.id !== undefined) {
+      data.id = role.id;
+    }
+
+    return data;
   }
 
   /**

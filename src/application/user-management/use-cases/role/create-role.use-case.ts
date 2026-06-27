@@ -5,18 +5,24 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
   Role,
   CreateRoleData,
   RoleEntity,
 } from "../../../../domain/user-management/role.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { RoleRepository } from "../../ports/role.repository";
 import { CampusRepository } from "@/application/campus/ports/campus.repository";
+import {
+  buildRoleAuditContext,
+  pickRoleAuditFields,
+} from "./role-audit";
 
 export interface CreateRoleInput {
   name: string;
   description?: string;
-  campusId?: string | null; // null for system default roles
+  campusId: string;
   isSystemDefault?: boolean;
   isSystemRole?: boolean; // Should always be rejected from API - only set via seeds/migrations
   permissionIds?: string[]; // Permission IDs to assign
@@ -31,71 +37,72 @@ export class CreateRoleUseCase {
     private readonly roleRepository: RoleRepository,
     @Inject("CAMPUS_REPOSITORY")
     private readonly campusRepository: CampusRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
-  async execute(input: CreateRoleInput): Promise<Role> {
+  async execute(input: CreateRoleInput, currentUser: User): Promise<Role> {
     try {
-      // 0. Reject isSystemRole=true from API (security measure)
+      // 0. API-created roles are always campus-scoped, mutable roles.
       if (input.isSystemRole === true) {
         throw new BadRequestException(
           "Cannot create system roles via API. System roles can only be created via database seeds or migrations.",
+        );
+      }
+      if (input.isSystemDefault === true) {
+        throw new BadRequestException(
+          "Cannot create system default roles via API. System default roles can only be created via database seeds or migrations.",
         );
       }
 
       // 1. Validate role name
       RoleEntity.validateName(input.name);
       const normalizedName = input.name.trim();
-      const roleId = normalizedName
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "");
 
-      if (!roleId) {
-        throw new BadRequestException(
-          "Role name must contain alphanumeric characters",
-        );
-      }
-
-      // 2. Validate campusId if provided
-      const campusId = input.campusId ?? null;
-      if (campusId !== null) {
-        RoleEntity.validateCampusId(campusId);
-        const campusExists = await this.campusRepository.exists(campusId);
-        if (!campusExists) {
-          throw new BadRequestException(`Campus with ID ${campusId} not found`);
-        }
+      // 2. Validate campusId from the request context, not the request body.
+      const campusId = input.campusId;
+      RoleEntity.validateCampusId(campusId);
+      const campusExists = await this.campusRepository.exists(campusId);
+      if (!campusExists) {
+        throw new BadRequestException(`Campus with ID ${campusId} not found`);
       }
 
       // 3. Check name uniqueness within campus scope
       const existingRole = await this.roleRepository.findByName(
-        input.name,
+        normalizedName,
         campusId,
       );
       if (existingRole) {
-        const scopeMsg = campusId ? `campus ${campusId}` : "system defaults";
         throw new ConflictException(
-          `Role with name "${input.name}" already exists in ${scopeMsg}`,
+          `Role with name "${normalizedName}" already exists in campus ${campusId}`,
         );
       }
 
-      // 4. Check ID uniqueness
-      const existingRoleById = await this.roleRepository.findById(roleId);
-      if (existingRoleById) {
-        throw new ConflictException(`Role with id "${roleId}" already exists`);
-      }
-
-      // 5. Prepare role data
+      // 4. Prepare role data. ID is intentionally omitted so Prisma stores a
+      // database-valid UUID from the schema default.
       const roleData: CreateRoleData = {
-        id: roleId,
         name: normalizedName,
         description: input.description?.trim() || null,
         campusId,
-        isSystemDefault: input.isSystemDefault ?? false,
+        isSystemDefault: false,
+        isSystemRole: false,
         permissionIds: input.permissionIds,
       };
 
-      // 6. Save role
-      const savedRole = await this.roleRepository.save(roleData);
+      // 5. Save role and audit atomically.
+      const savedRole = await this.unitOfWork.run(async (tx) => {
+        const role = await tx.createRole(roleData);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "CREATE_ROLE",
+          targetType: "role",
+          targetId: role.id,
+          campusId,
+          context: buildRoleAuditContext(role, campusId, currentUser),
+          afterValue: pickRoleAuditFields(role),
+        });
+
+        return role;
+      });
 
       this.logger.log(
         `Created role ${savedRole.id} (campus: ${savedRole.campusId ?? "system"})`,

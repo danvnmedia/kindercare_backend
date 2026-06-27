@@ -26,6 +26,7 @@ import { UpdateRoleUseCase } from "@/application/user-management/use-cases/role/
 import { DeleteRoleUseCase } from "@/application/user-management/use-cases/role/delete-role.use-case";
 import { AssignUsersToRoleUseCase } from "@/application/user-management/use-cases/role/assign-users-to-role.use-case";
 import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-cases/role/remove-users-from-role.use-case";
+import { GetRoleMembersUseCase } from "@/application/user-management/use-cases/role/get-role-members.use-case";
 
 // Use Cases - Student
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
@@ -146,6 +147,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     DeleteRoleUseCase,
     AssignUsersToRoleUseCase,
     RemoveUsersFromRoleUseCase,
+    GetRoleMembersUseCase,
 
     // Student Use Cases
     CreateStudentUseCase,

@@ -2,7 +2,6 @@ import { ApiPropertyOptional } from "@nestjs/swagger";
 import {
   IsOptional,
   IsString,
-  IsUUID,
   MaxLength,
   MinLength,
 } from "class-validator";
@@ -29,12 +28,4 @@ export class UpdateRoleRequest {
   @MaxLength(255)
   description?: string;
 
-  @ApiPropertyOptional({
-    description: "Campus ID (null to make system-wide)",
-    example: "550e8400-e29b-41d4-a716-446655440000",
-    nullable: true,
-  })
-  @IsOptional()
-  @IsUUID(4)
-  campusId?: string | null;
 }

@@ -2,14 +2,23 @@ import {
   Injectable,
   Inject,
   Logger,
-  NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { PermissionRepository } from "../ports/permission.repository";
 import { RoleRepository } from "@/application/user-management/ports/role.repository";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  buildPermissionMutationContext,
+  getRolePermissionIds,
+  loadMutableCampusRole,
+  normalizePermissionIds,
+  validatePermissionIds,
+} from "./role-permission-mutation.helpers";
 
 export interface RemovePermissionsInput {
   roleId: string;
   permissionIds: string[];
+  campusId: string;
 }
 
 @Injectable()
@@ -19,33 +28,75 @@ export class RemovePermissionsFromRoleUseCase {
   constructor(
     @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
+    @Inject("PERMISSION_REPOSITORY")
+    private readonly permissionRepository: PermissionRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
-  async execute(input: RemovePermissionsInput): Promise<void> {
-    const { roleId, permissionIds } = input;
+  async execute(
+    input: RemovePermissionsInput,
+    currentUser: User,
+  ): Promise<void> {
+    const { roleId, campusId } = input;
+    const permissionIds = normalizePermissionIds(input.permissionIds);
 
     this.logger.log(
       `Removing ${permissionIds.length} permissions from role ${roleId}`,
     );
 
-    // Check if role exists
-    const role = await this.roleRepository.findById(roleId);
-    if (!role) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
-    }
+    const role = await loadMutableCampusRole(
+      this.roleRepository,
+      roleId,
+      campusId,
+    );
 
-    // Check if role is system default (cannot modify permissions)
-    if (role.isSystemDefault) {
-      throw new BadRequestException(
-        "Cannot modify permissions of system default roles",
+    await validatePermissionIds(this.permissionRepository, permissionIds);
+
+    const beforePermissionIds = getRolePermissionIds(role);
+    const beforeSet = new Set(beforePermissionIds);
+    const removedPermissionIds = permissionIds
+      .filter((permissionId) => beforeSet.has(permissionId))
+      .sort();
+
+    if (removedPermissionIds.length === 0) {
+      this.logger.log(
+        `No assigned permissions to remove from role ${roleId}`,
       );
+      return;
     }
 
-    // Remove permissions
-    await this.roleRepository.removePermissions(roleId, permissionIds);
+    const removedSet = new Set(removedPermissionIds);
+    const afterPermissionIds = beforePermissionIds.filter(
+      (permissionId) => !removedSet.has(permissionId),
+    );
+
+    await this.unitOfWork.run(async (tx) => {
+      const deleted = await tx.removeRolePermissions(
+        roleId,
+        removedPermissionIds,
+      );
+
+      if (deleted > 0) {
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "UPDATE_ROLE",
+          targetType: "role",
+          targetId: roleId,
+          campusId,
+          context: buildPermissionMutationContext(
+            role,
+            campusId,
+            currentUser,
+            { removedPermissionIds },
+          ),
+          beforeValue: { permissionIds: beforePermissionIds },
+          afterValue: { permissionIds: afterPermissionIds },
+        });
+      }
+    });
 
     this.logger.log(
-      `Successfully removed ${permissionIds.length} permissions from role ${roleId}`,
+      `Successfully removed ${removedPermissionIds.length} permissions from role ${roleId}`,
     );
   }
 }

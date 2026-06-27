@@ -92,6 +92,13 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
         });
         return { targetName: row?.fullName ?? null };
       }
+      case "staff_type": {
+        const row = await tx.staffType.findUnique({
+          where: { id: targetId },
+          select: { name: true },
+        });
+        return { targetName: row?.name ?? null };
+      }
       case "user": {
         // GRANT_ROLE / REVOKE_ROLE audit shape (D1 of
         // @doc/specs/direct-role-assignment-via-uow) puts the human-readable
@@ -102,6 +109,13 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
         // null and let callers override with a caller-supplied snapshot if
         // they ever need one.
         return { targetName: null };
+      }
+      case "role": {
+        const row = await tx.role.findUnique({
+          where: { id: targetId },
+          select: { name: true },
+        });
+        return { targetName: row?.name ?? null };
       }
       case "meal_menu": {
         const row = await tx.mealMenu.findUnique({

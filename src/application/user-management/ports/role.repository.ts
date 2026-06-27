@@ -9,6 +9,42 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 
 export type PaginatedRoles = PaginatedResult<Role>;
 
+export interface RoleMemberProfile {
+  type: "staff" | "guardian" | null;
+  id: string | null;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  dateOfBirth: Date | null;
+}
+
+export interface RoleMemberProvenance {
+  source: "manual" | "staff_type";
+  grantedViaStaffTypeId: string | null;
+  staffTypeName: string | null;
+  canOverride: boolean;
+  warning: string | null;
+}
+
+export interface RoleMember {
+  assignmentId: string;
+  userId: string;
+  clerkUid: string;
+  isActive: boolean;
+  campusId: string | null;
+  assignedAt: Date;
+  profile: RoleMemberProfile;
+  provenance: RoleMemberProvenance;
+}
+
+export type PaginatedRoleMembers = PaginatedResult<RoleMember>;
+
+export interface FindAllRolesOptions {
+  campusId?: string;
+  includeSystemRoles?: boolean;
+  onlySystemRoles?: boolean;
+}
+
 export interface RoleRepository {
   /**
    * Find role by ID (includes permissions)
@@ -25,7 +61,10 @@ export interface RoleRepository {
   /**
    * Find all roles with filtering, sorting, pagination
    */
-  findAll(params: StandardRequest): Promise<PaginatedRoles>;
+  findAll(
+    params: StandardRequest,
+    options?: FindAllRolesOptions,
+  ): Promise<PaginatedRoles>;
 
   /**
    * Find all roles for a specific campus
@@ -76,4 +115,13 @@ export interface RoleRepository {
    * Get role users (paginated)
    */
   getRoleUsers(roleId: string, page: number, limit: number): Promise<any>;
+
+  /**
+   * Get role members with assignment provenance (paginated)
+   */
+  getRoleMembers(
+    roleId: string,
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedRoleMembers>;
 }

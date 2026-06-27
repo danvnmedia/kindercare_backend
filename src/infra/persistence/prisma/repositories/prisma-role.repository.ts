@@ -2,7 +2,11 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import {
   RoleRepository,
+  FindAllRolesOptions,
+  RoleMember,
+  RoleMemberProfile,
   PaginatedRoles,
+  PaginatedRoleMembers,
 } from "../../../../application/user-management/ports/role.repository";
 import {
   Role,
@@ -14,6 +18,18 @@ import { PrismaRoleMapper } from "../mapper/prisma-role.mapper";
 import { PrismaPermissionMapper } from "../mapper/prisma-permission.mapper";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { Prisma } from "@prisma/client";
+
+const ROLE_WITH_PERMISSIONS_INCLUDE = {
+  rolePermissions: {
+    include: {
+      permission: true,
+    },
+  },
+} as const;
+
+const STAFF_TYPE_PROVENANCE_WARNING =
+  "This grant came from a StaffType default role. Revoking it here removes the current tracked grant, but future staff-type changes may grant it again if that StaffType still defaults to this role.";
 
 @Injectable()
 export class PrismaRoleRepository implements RoleRepository {
@@ -58,20 +74,36 @@ export class PrismaRoleRepository implements RoleRepository {
     return prismaRole ? PrismaRoleMapper.toDomain(prismaRole) : null;
   }
 
-  async findAll(params: StandardRequest): Promise<PaginatedRoles> {
+  async findAll(
+    params: StandardRequest,
+    options: FindAllRolesOptions = {},
+  ): Promise<PaginatedRoles> {
     params.allowedFilterFields = [
       "name",
       "description",
       "campusId",
       "isSystemDefault",
+      "isSystemRole",
     ];
     params.allowedSortFields = ["createdAt", "name"];
+
+    const where: Prisma.RoleWhereInput = {};
+    if (options.onlySystemRoles) {
+      where.campusId = null;
+    } else if (options.campusId) {
+      where.OR = options.includeSystemRoles
+        ? [{ campusId: options.campusId }, { campusId: null }]
+        : [{ campusId: options.campusId }];
+    }
 
     return await this.queryService.executeQuery<Role>(
       this.prisma,
       "role",
       params,
-      {},
+      {
+        where,
+        include: ROLE_WITH_PERMISSIONS_INCLUDE,
+      },
       PrismaRoleMapper,
     );
   }
@@ -215,6 +247,95 @@ export class PrismaRoleRepository implements RoleRepository {
     );
   }
 
+  async getRoleMembers(
+    roleId: string,
+    campusId: string,
+    params: StandardRequest,
+  ): Promise<PaginatedRoleMembers> {
+    const limit = Math.min(
+      Number(params.limit) || params.defaultLimit || 20,
+      params.maxLimit || 50,
+    );
+    const offset = Number(params.offset) || 0;
+    const where = { roleId, campusId };
+
+    const [rows, count] = await Promise.all([
+      this.prisma.userRole.findMany({
+        where,
+        skip: offset,
+        take: limit,
+        orderBy: { assignedAt: "desc" },
+        include: {
+          grantedViaStaffType: {
+            select: { id: true, name: true },
+          },
+          user: {
+            select: {
+              id: true,
+              clerkUid: true,
+              isActive: true,
+              guardians: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  phoneNumber: true,
+                  dateOfBirth: true,
+                },
+              },
+              staffs: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  phoneNumber: true,
+                  dateOfBirth: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.userRole.count({ where }),
+    ]);
+
+    const currentPage = Math.floor(offset / limit) + 1;
+    const totalPages = Math.ceil(count / limit);
+
+    return {
+      data: rows.map((row): RoleMember => {
+        const source = row.grantedViaStaffTypeId ? "staff_type" : "manual";
+
+        return {
+          assignmentId: row.id,
+          userId: row.userId,
+          clerkUid: row.user.clerkUid,
+          isActive: row.user.isActive,
+          campusId: row.campusId,
+          assignedAt: row.assignedAt,
+          profile: this.mapRoleMemberProfile(row.user),
+          provenance: {
+            source,
+            grantedViaStaffTypeId: row.grantedViaStaffTypeId,
+            staffTypeName: row.grantedViaStaffType?.name ?? null,
+            canOverride: source === "staff_type",
+            warning:
+              source === "staff_type" ? STAFF_TYPE_PROVENANCE_WARNING : null,
+          },
+        };
+      }),
+      pagination: {
+        count,
+        limit,
+        offset,
+        totalPages,
+        currentPage,
+        hasNext: currentPage < totalPages,
+        hasPrev: currentPage > 1,
+      },
+    };
+  }
+
   async getRoleUsers(
     roleId: string,
     page: number,
@@ -268,5 +389,41 @@ export class PrismaRoleRepository implements RoleRepository {
         totalPages: Math.ceil(total / Math.max(safeLimit, 1)),
       },
     };
+  }
+
+  private mapRoleMemberProfile(user: {
+    staffs: Array<{
+      id: string;
+      fullName: string;
+      email: string | null;
+      phoneNumber: string | null;
+      dateOfBirth: Date | null;
+    }>;
+    guardians: Array<{
+      id: string;
+      fullName: string;
+      email: string | null;
+      phoneNumber: string | null;
+      dateOfBirth: Date | null;
+    }>;
+  }): RoleMemberProfile {
+    const profile = user.staffs[0]
+      ? { type: "staff" as const, ...user.staffs[0] }
+      : user.guardians[0]
+        ? { type: "guardian" as const, ...user.guardians[0] }
+        : null;
+
+    if (!profile) {
+      return {
+        type: null,
+        id: null,
+        fullName: null,
+        email: null,
+        phoneNumber: null,
+        dateOfBirth: null,
+      };
+    }
+
+    return profile;
   }
 }

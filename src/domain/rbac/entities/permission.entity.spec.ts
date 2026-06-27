@@ -10,6 +10,7 @@ describe("PermissionEntity", () => {
         "staff_type.list",
         "grade_level.update",
         "weekly_plan.create",
+        "absence_request.list",
       ];
 
       validIds.forEach((id) => {
@@ -66,6 +67,7 @@ describe("PermissionEntity", () => {
         "staff_type",
         "grade_level",
         "weekly_plan",
+        "absence_request",
       ];
 
       validModules.forEach((module) => {

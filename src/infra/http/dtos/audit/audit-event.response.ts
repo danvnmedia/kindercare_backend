@@ -25,14 +25,14 @@ export class AuditEventResponse {
   @ApiProperty({
     example: "TRANSFER_STUDENT",
     description:
-      "Action code from the 19-entry audit-action vocabulary (see AUDIT_ACTIONS).",
+      "Action code from the audit-action vocabulary (see AUDIT_ACTIONS).",
   })
   action: string;
 
   @Expose()
   @ApiProperty({
     example: "student",
-    enum: ["student", "guardian", "staff"],
+    enum: ["student", "guardian", "staff", "role"],
     description: "Discriminator for the audited entity.",
   })
   targetType: string;

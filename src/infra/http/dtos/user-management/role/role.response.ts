@@ -1,12 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Expose, Type } from "class-transformer";
+import { Expose, Transform, Type } from "class-transformer";
 import { PermissionResponse } from "../../rbac/permission.response";
 
 export class RoleResponse {
   @Expose()
   @ApiProperty({
     description: "Role ID",
-    example: "campus_admin",
+    example: "550e8400-e29b-41d4-a716-446655440000",
   })
   id: string;
 
@@ -46,6 +46,17 @@ export class RoleResponse {
     example: false,
   })
   isSystemRole: boolean;
+
+  @Expose()
+  @Transform(
+    ({ obj }) => obj.isSystemDefault === true || obj.isSystemRole === true,
+  )
+  @ApiProperty({
+    description:
+      "Whether this role is read-only through normal management APIs.",
+    example: false,
+  })
+  isReadOnly: boolean;
 
   @Expose()
   @Type(() => PermissionResponse)
