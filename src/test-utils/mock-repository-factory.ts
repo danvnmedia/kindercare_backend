@@ -100,6 +100,7 @@ export function createMockGuardianRepository(): jest.Mocked<GuardianRepository> 
     findByPhoneNumber: jest.fn(),
     findByPhoneNumberInCampus: jest.fn(),
     findByUserId: jest.fn(),
+    findByUserIdInCampus: jest.fn(),
     findByCampusId: jest.fn(),
     findByIds: jest.fn(),
     findAll: jest.fn(),
@@ -107,6 +108,7 @@ export function createMockGuardianRepository(): jest.Mocked<GuardianRepository> 
     update: jest.fn(),
     delete: jest.fn(),
     getGuardianChildren: jest.fn(),
+    getGuardianChildrenInCampus: jest.fn(),
   } as jest.Mocked<GuardianRepository>;
 }
 

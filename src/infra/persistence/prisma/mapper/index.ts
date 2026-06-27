@@ -15,3 +15,4 @@ export * from "./prisma-meal-menu-config.mapper";
 export * from "./prisma-weekly-plan.mapper";
 export * from "./prisma-student-attendance-summary.mapper";
 export * from "./prisma-student-attendance-log.mapper";
+export * from "./prisma-absence-request.mapper";

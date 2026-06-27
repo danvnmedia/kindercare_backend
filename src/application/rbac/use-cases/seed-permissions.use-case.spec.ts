@@ -21,6 +21,14 @@ const WEEKLY_PLAN_PERMISSION_IDS = [
   "weekly_plan.delete",
 ];
 
+const ABSENCE_REQUEST_PERMISSION_IDS = [
+  "absence_request.list",
+  "absence_request.read",
+  "absence_request.create",
+  "absence_request.update",
+  "absence_request.delete",
+];
+
 describe("SeedPermissionsUseCase", () => {
   let repository: jest.Mocked<PermissionRepository>;
   let useCase: SeedPermissionsUseCase;
@@ -83,6 +91,18 @@ describe("SeedPermissionsUseCase", () => {
     for (const id of WEEKLY_PLAN_PERMISSION_IDS) {
       const permission = permissions.find((item) => item.id === id);
       expect(permission?.module).toBe("weekly_plan");
+      expect(permission?.description).toEqual(expect.any(String));
+    }
+  });
+
+  it("includes all absence-request permission IDs in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(expect.arrayContaining(ABSENCE_REQUEST_PERMISSION_IDS));
+    for (const id of ABSENCE_REQUEST_PERMISSION_IDS) {
+      const permission = permissions.find((item) => item.id === id);
+      expect(permission?.module).toBe("absence_request");
       expect(permission?.description).toEqual(expect.any(String));
     }
   });

@@ -19,6 +19,7 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { HydrateCurrentUserGuard } from "../../guards/hydrate-current-user.guard";
 import {
   CampusContext,
   CurrentUser,
@@ -27,6 +28,7 @@ import {
 } from "../../decorators";
 
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { GetCurrentGuardianStudentsUseCase } from "@/application/absence-request";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { User } from "@/domain/user-management/user.entity";
 import {
@@ -67,6 +69,7 @@ export class GuardianController {
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
     private readonly getGuardianChildrenUseCase: GetGuardianChildrenUseCase,
     private readonly updateStudentGuardianRelationshipUseCase: UpdateStudentGuardianRelationshipUseCase,
+    private readonly getCurrentGuardianStudentsUseCase: GetCurrentGuardianStudentsUseCase,
   ) {}
 
   @Post()
@@ -133,6 +136,35 @@ export class GuardianController {
       campusId,
       params: query,
     });
+  }
+
+  @Get("me/students")
+  @RequireCampusAccess({ checkUserAccess: false })
+  @UseGuards(HydrateCurrentUserGuard)
+  @StandardResponse({
+    message: "Guardian students retrieved successfully",
+    type: GuardianChildResponse,
+    isArray: true,
+  })
+  @ApiOperation({
+    summary: "Get students linked to the current guardian",
+    description:
+      "Retrieves active students linked to the authenticated guardian in the selected campus.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus ID to scope the request",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getMyStudents(
+    @CampusContext() campusId: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.getCurrentGuardianStudentsUseCase.execute(
+      campusId,
+      currentUser,
+    );
   }
 
   @Get(":id")

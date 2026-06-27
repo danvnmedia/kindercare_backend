@@ -296,6 +296,33 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     description: "Archive weekly plans",
   },
 
+  // Absence request permissions
+  {
+    id: "absence_request.list",
+    module: "absence_request",
+    description: "List absence requests",
+  },
+  {
+    id: "absence_request.read",
+    module: "absence_request",
+    description: "View absence request details",
+  },
+  {
+    id: "absence_request.create",
+    module: "absence_request",
+    description: "Create absence requests",
+  },
+  {
+    id: "absence_request.update",
+    module: "absence_request",
+    description: "Review absence requests",
+  },
+  {
+    id: "absence_request.delete",
+    module: "absence_request",
+    description: "Archive absence requests",
+  },
+
   // Meal menu config permissions
   {
     id: "meal_menu_config.read",

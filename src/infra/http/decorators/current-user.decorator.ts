@@ -10,7 +10,8 @@ import { User } from "@/domain/user-management/user.entity";
  * Preconditions:
  * - `ClerkAuthGuard` must run first (sets `clerkId` on `RequestContext`).
  * - At least one downstream guard that calls `requestContext.getUser()` must run,
- *   typically via `@RequireCampusAccess`, `@Roles`, or `@Permissions`.
+ *   typically via `@RequireCampusAccess`, `@Roles`, `@Permissions`, or
+ *   `HydrateCurrentUserGuard` on self-service routes that bypass campus role checks.
  * - For controller methods without such a guard, call
  *   `await this.requestContext.getUserOrFail()` directly instead of relying on this
  *   decorator.
