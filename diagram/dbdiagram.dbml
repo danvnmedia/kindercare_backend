@@ -1,0 +1,713 @@
+// Database schema in DBML format
+// Post and Content Management - Full Schema
+// Updated: January 09, 2026
+// Architecture: Single Instance with Federated Campus Isolation
+// Strategy: Global Identity (User), Everything else Scoped to Campus
+
+// ==========================================
+// INFRASTRUCTURE (THE ROOT)
+// ==========================================
+
+Table campus {
+  id uuid [pk]
+  name text // Ex: "Downtown Campus"
+  address text
+  phone_number text
+  is_active boolean [default: true]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+// ==========================================
+// ACCESS CONTROL (RBAC)
+// ==========================================
+
+// 1. Permissions (Static/Code-based - Global)
+Table permission {
+  id text [pk]
+  module text
+  description text
+  created_at timestamptz
+}
+
+// 2. Roles (Configurable PER CAMPUS)
+Table role {
+  id uuid [pk]
+  campus_id uuid [null]
+  name text
+  description text
+  is_system_default boolean [default: false]
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, name) [unique]
+  }
+}
+Ref: role.campus_id > campus.id
+
+// 3. Mapping Roles to Permissions
+Table role_permission {
+  role_id uuid
+  permission_id text
+  created_at timestamptz
+
+  indexes {
+    (role_id, permission_id) [pk]
+  }
+}
+Ref: role_permission.role_id > role.id
+Ref: role_permission.permission_id > permission.id
+
+// ==========================================
+// USER & IDENTITY (GLOBAL)
+// ==========================================
+
+Table user {
+  id uuid [pk]
+  clerk_uid text [unique] // Identity Provider ID
+  is_active boolean
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+// 4. Assigning Roles to Users (Scoped)
+Table user_roles {
+  user_id uuid
+  role_id uuid
+  campus_id uuid [null]
+  assigned_at timestamptz
+
+  indexes {
+    (user_id, role_id, campus_id) [pk]
+    campus_id
+  }
+}
+Ref: user_roles.user_id > user.id
+Ref: user_roles.role_id > role.id
+Ref: user_roles.campus_id > campus.id
+
+// ==========================================
+// STAFF CONFIGURATION (PER CAMPUS)
+// ==========================================
+
+Table staff_type {
+  id uuid [pk]
+  campus_id uuid
+  name text
+  description text
+  default_role_id uuid
+  is_active boolean
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, name) [unique]
+  }
+}
+Ref: staff_type.campus_id > campus.id
+Ref: staff_type.default_role_id > role.id
+
+// ==========================================
+// PROFILES (ALL CAMPUS SCOPED)
+// ==========================================
+
+Table staff {
+  id uuid [pk]
+  campus_id uuid
+  user_id uuid
+  staff_type_id uuid
+  full_name text
+  email citext
+  phone_number text
+  address text
+  date_of_birth date
+  gender text
+  start_date date
+  is_archived boolean
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, user_id) [unique] // One profile per user per campus
+    (campus_id, email) [unique]
+    (campus_id, phone_number) [unique]
+    staff_type_id
+    is_archived
+  }
+}
+Ref: staff.user_id > user.id
+Ref: staff.staff_type_id > staff_type.id
+Ref: staff.campus_id > campus.id
+
+Table student {
+  id uuid [pk]
+  campus_id uuid
+  student_code text
+  full_name text
+  email citext
+  phone_number text
+  address text
+  date_of_birth date
+  nickname text
+  gender text
+  status text
+  is_archived boolean
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, student_code) [unique]
+    (campus_id, email)
+    (campus_id, phone_number)
+    status
+    is_archived
+  }
+}
+Ref: student.campus_id > campus.id
+
+Table guardian {
+  id uuid [pk]
+  campus_id uuid
+  user_id uuid
+  full_name text
+  email citext
+  phone_number text
+  address text
+  date_of_birth date
+  gender text
+  occupation text
+  work_address text
+  is_archived boolean
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, user_id) [unique]
+    (campus_id, email) [unique]
+    (campus_id, phone_number) [unique]
+    is_archived
+  }
+}
+Ref: guardian.campus_id > campus.id
+Ref: guardian.user_id > user.id
+
+// ==========================================
+// RELATIONSHIPS / LOOKUPS
+// ==========================================
+
+Table guardian_relationship {
+  id text [pk]
+  name text [unique]
+  description text
+}
+
+Table guardian_student {
+  student_id uuid
+  guardian_id uuid
+  guardian_relationship_id text
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (student_id, guardian_id) [pk]
+    guardian_id
+    guardian_relationship_id
+  }
+}
+Ref: guardian_student.student_id > student.id
+Ref: guardian_student.guardian_id > guardian.id
+Ref: guardian_student.guardian_relationship_id > guardian_relationship.id
+
+// ==========================================
+// CLASS & ACADEMIC (PER CAMPUS)
+// ==========================================
+
+Table grade_level {
+  id uuid [pk]
+  campus_id uuid
+  name text
+  order int
+  is_archived boolean
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, name) [unique]
+    (campus_id, order) [unique]
+    is_archived
+  }
+}
+Ref: grade_level.campus_id > campus.id
+
+Table subject {
+  id uuid [pk]
+  campus_id uuid
+  name text
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, name) [unique]
+  }
+}
+Ref: subject.campus_id > campus.id
+
+Table school_year {
+  id uuid [pk]
+  campus_id uuid
+  name text
+  start_date date
+  end_date date
+  is_archived boolean
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, name) [unique]
+    is_archived
+  }
+}
+Ref: school_year.campus_id > campus.id
+
+Table class {
+  id uuid [pk]
+  campus_id uuid
+  name text
+  description text
+  grade_level_id uuid
+  school_year_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, school_year_id, grade_level_id, name) [unique]
+    grade_level_id
+    school_year_id
+  }
+}
+Ref: class.grade_level_id > grade_level.id
+Ref: class.school_year_id > school_year.id
+Ref: class.campus_id > campus.id
+
+Table class_staff {
+  class_id uuid
+  staff_id uuid
+  subject_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (class_id, staff_id, subject_id) [pk]
+    staff_id
+    subject_id
+  }
+}
+Ref: class_staff.class_id > class.id
+Ref: class_staff.staff_id > staff.id
+Ref: class_staff.subject_id > subject.id
+
+Table enrollment {
+  id uuid [pk]
+  class_id uuid
+  student_id uuid
+  enrollment_date date
+  note text
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (student_id, class_id, enrollment_date) [unique]
+    class_id
+    student_id
+    enrollment_date
+  }
+}
+Ref: enrollment.class_id > class.id
+Ref: enrollment.student_id > student.id
+
+// ==========================================
+// ATTENDANCE (MASTER-DETAIL ARCHITECTURE)
+// ==========================================
+
+// Purpose: To store the overall status of a student's attendance for a specific day.
+// Each student has only one record per day.
+Table student_attendance_summary {
+  id uuid [pk]
+  campus_id uuid
+  student_id uuid
+  class_id uuid
+  date date
+  
+  // Status of the student's attendance for the day.
+  status text [note: 'PRESENT, ABSENT, LATE, EXCUSED, LEFT_EARLY']
+  
+  // Cached field for fast query
+  // Không cần join xuống bảng Log vẫn biết bé đến lúc mấy giờ
+  first_checkin_at timestamptz [null]
+  last_checkout_at timestamptz [null]
+  total_minutes_present int [default: 0]
+
+  // Audit: Who updated the status last?
+  updated_by_id uuid [null]
+  note text [null, note: 'Summary for the day']
+
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (student_id, date) [unique, note: 'Important: 1 student can only have 1 summary per day']
+    (campus_id, date, status) [note: 'Index for reporting: eg. how many absent today for campus']
+    class_id
+  }
+}
+
+// Purpose: Log each attendance event
+// Student can have multiple logs per day
+Table student_attendance_log {
+  id uuid [pk]
+  attendance_summary_id uuid
+  
+  // Event type
+  type text [note: 'CHECK_IN, CHECK_OUT']
+  
+  // Time of event
+  timestamp timestamptz
+  
+  // How event recorded
+  method text [note: 'TEACHER_APP, MANUAL_ENTRY...']
+  
+  // Audit device, who created it.
+  device_id text [null]
+  created_by_id uuid [null]
+  
+  // Note for event if needed
+  note text [null, note: 'eg: Left early for doctor appointment']
+  
+  // Image for event
+  image_file_id uuid [null]
+
+  created_at timestamptz
+
+  indexes {
+    attendance_summary_id
+    timestamp
+    created_by_id
+  }
+}
+
+Ref: student_attendance_log.attendance_summary_id > student_attendance_summary.id [delete: cascade]
+Ref: student_attendance_summary.campus_id > campus.id
+Ref: student_attendance_summary.student_id > student.id
+Ref: student_attendance_summary.class_id > class.id
+Ref: student_attendance_summary.updated_by_id > user.id 
+Ref: student_attendance_log.created_by_id > user.id 
+Ref: student_attendance_log.image_file_id > file.id 
+
+// ==========================================
+// FILES (PER CAMPUS)
+// ==========================================
+
+Table file {
+  id uuid [pk]
+  campus_id uuid
+  
+  // Storage Details
+  key text [unique, note: 'S3 Path']
+  bucket text [note: 'S3 Bucket Name']
+  storage_provider text [note: 'S3, GCS...']
+  
+  // File Metadata
+  filename text [note: 'Original filename: trip.jpg']
+  mime_type text
+  size bigint
+  extension text [note: 'jpg, pdf, docx,...']
+  
+  // Lifecycle
+  status text [note: 'PENDING, UPLOADED, PROCESSED, ERROR']
+  uploaded_by uuid
+  
+  is_deleted boolean [default: false]
+  
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    campus_id
+    uploaded_by
+    status
+    key
+    is_deleted
+  }
+}
+Ref: file.uploaded_by > user.id
+Ref: file.campus_id > campus.id
+
+// ==========================================
+// POST & CONTENT (PER CAMPUS)
+// ==========================================
+
+Table post {
+  id uuid [pk]
+  campus_id uuid
+  author_id uuid
+  title text [note: 'Max 200 chars']
+  content jsonb [null, note: 'Tiptap/ProseMirror JSON format for rich text']
+  content_text text [null, note: 'Plain text extracted from content for full-text search']
+  content_version int [default: 1, note: 'Content schema version for future migrations']
+  status text [note: 'DRAFT, PENDING_APPROVAL, APPROVED, REJECTED, PUBLISHED, ARCHIVED']
+  publish_at timestamptz [null]
+
+  // Pin/Featured
+  is_pinned boolean [default: false]
+  pinned_until timestamptz [null]
+  pinned_by_id uuid [null]
+
+  // Approval workflow
+  requires_approval boolean [default: true]
+
+  // Soft delete
+  is_deleted boolean [default: false]
+  deleted_at timestamptz [null]
+
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    campus_id
+    author_id
+    status
+    publish_at
+    (campus_id, status, publish_at)
+    (campus_id, is_pinned)
+    is_deleted
+  }
+}
+Ref: post.author_id > user.id
+Ref: post.campus_id > campus.id
+Ref: post.pinned_by_id > user.id
+
+Table post_category {
+  id uuid [pk]
+  campus_id uuid
+  name text [note: 'Max 50 chars']
+  color text [note: 'Hex color e.g. #FF5733']
+  icon text [null, note: 'Emoji or icon name']
+  order int [default: 0]
+  is_active boolean [default: true]
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (campus_id, name) [unique]
+    (campus_id, is_active)
+    (campus_id, order)
+  }
+}
+Ref: post_category.campus_id > campus.id
+
+Table post_category_link {
+  post_id uuid
+  category_id uuid
+  created_at timestamptz
+
+  indexes {
+    (post_id, category_id) [pk]
+    category_id
+  }
+}
+Ref: post_category_link.post_id > post.id
+Ref: post_category_link.category_id > post_category.id
+
+Table post_audience {
+  id uuid [pk]
+  post_id uuid
+  type text [note: 'CAMPUS, GRADE_LEVEL, CLASS, STUDENT']
+  campus_id uuid
+  grade_level_id uuid [null]
+  class_id uuid [null]
+  student_id uuid [null]
+  created_at timestamptz
+
+  indexes {
+    post_id
+    type
+    campus_id
+    grade_level_id
+    class_id
+    student_id
+  }
+}
+Ref: post_audience.post_id > post.id
+Ref: post_audience.campus_id > campus.id
+Ref: post_audience.grade_level_id > grade_level.id
+Ref: post_audience.class_id > class.id
+Ref: post_audience.student_id > student.id
+
+Table post_reaction {
+  id uuid [pk]
+  post_id uuid
+  user_id uuid
+  created_at timestamptz
+
+  indexes {
+    (post_id, user_id) [unique, note: 'One heart per user per post']
+    post_id
+    user_id
+  }
+}
+Ref: post_reaction.post_id > post.id
+Ref: post_reaction.user_id > user.id
+
+Table post_comment {
+  id uuid [pk]
+  post_id uuid
+  user_id uuid
+  parent_comment_id uuid [null, note: 'Null for root comments, references parent for replies']
+  depth int [default: 0, note: 'Nesting level: 0=root, 1=reply, 2=reply-to-reply (max 3)']
+  content text [note: 'Max 1000 chars']
+
+  // Soft delete
+  is_deleted boolean [default: false]
+  deleted_at timestamptz [null]
+  deleted_by_id uuid [null, note: 'Who deleted: self, author, or admin']
+
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (post_id, created_at)
+    (post_id, parent_comment_id) [note: 'For fetching replies to a comment']
+    parent_comment_id
+    user_id
+    is_deleted
+    depth
+  }
+}
+Ref: post_comment.post_id > post.id
+Ref: post_comment.user_id > user.id
+Ref: post_comment.parent_comment_id > post_comment.id
+Ref: post_comment.deleted_by_id > user.id
+
+Table post_approval_request {
+  id uuid [pk]
+  post_id uuid
+
+  // Submission
+  submitted_by_id uuid
+  submitted_at timestamptz
+
+  // Review
+  status text [default: 'PENDING', note: 'PENDING, APPROVED, REJECTED']
+  reviewed_by_id uuid [null]
+  reviewed_at timestamptz [null]
+  review_note text [null, note: 'Required for rejection']
+
+  // Snapshot of post content at submission time
+  title_snapshot text
+  content_snapshot jsonb [null, note: 'Tiptap JSON snapshot']
+
+  created_at timestamptz
+
+  indexes {
+    post_id
+    (status, submitted_at) [note: 'For pending approval queue']
+    submitted_by_id
+    reviewed_by_id
+  }
+}
+Ref: post_approval_request.post_id > post.id
+Ref: post_approval_request.submitted_by_id > user.id
+Ref: post_approval_request.reviewed_by_id > user.id
+
+Table post_history {
+  id uuid [pk]
+  post_id uuid
+  edited_by_id uuid
+
+  // Snapshot
+  title text
+  content jsonb [null, note: 'Tiptap JSON snapshot']
+
+  created_at timestamptz
+
+  indexes {
+    post_id
+    edited_by_id
+    created_at
+  }
+}
+Ref: post_history.post_id > post.id
+Ref: post_history.edited_by_id > user.id
+
+Table post_history_status {
+  id uuid [pk]
+  post_id uuid
+  changed_by_id uuid
+
+  previous_status text [null]
+  new_status text
+  reason text [null]
+
+  created_at timestamptz
+
+  indexes {
+    post_id
+    changed_by_id
+    created_at
+  }
+}
+Ref: post_history_status.post_id > post.id
+Ref: post_history_status.changed_by_id > user.id
+
+Table attachment {
+  id uuid [pk]
+  post_id uuid
+  file_id uuid
+  comment text [null]
+  order int
+  created_at timestamptz
+  updated_at timestamptz
+
+  indexes {
+    (post_id, order) [unique]
+    post_id
+    file_id
+  }
+
+  Note: 'Max 50 attachments per post (enforced at application level)'
+}
+Ref: attachment.post_id > post.id
+Ref: attachment.file_id > file.id
+
+// ==========================================
+// CAMPUS SETTINGS
+// ==========================================
+
+Table campus_setting {
+  id uuid [pk]
+  campus_id uuid [unique]
+
+  // Post settings
+  require_teacher_approval boolean [default: true]
+  max_pinned_posts int [default: 3]
+  allow_parent_comments boolean [default: true]
+  allow_reactions boolean [default: true]
+
+  created_at timestamptz
+  updated_at timestamptz
+}
+Ref: campus_setting.campus_id > campus.id
+
+// ==========================================
+// UTILITY
+// ==========================================
+
+Table student_code_sequence {
+  campus_id uuid [pk]
+  year int [pk]
+  last_number int
+  updated_at timestamptz
+}
+Ref: student_code_sequence.campus_id > campus.id
+

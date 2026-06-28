@@ -1,85 +1,226 @@
-import { Injectable } from '@nestjs/common';
-import { UserRepository } from '@/application/user-management/ports/user.repository';
-import { User } from '@/domain/user-management';
-import { PrismaService } from '../prisma.service';
-import { PaginatedResult, StandardRequest, PrismaQueryService } from '@/core/modules/standard-response';
-import { PrismaUserMapper } from '../mapper/prisma-user-mapper';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../prisma.service";
+import {
+  UserRepository,
+  FindAllUsersParams,
+  PaginatedUsers,
+} from "@/application/user-management/ports/user.repository";
+import { User, RoleAssignmentInput } from "@/domain/user-management";
+import { Role } from "@/domain/user-management/role.entity";
+import { PrismaUserMapper } from "../mapper/prisma-user.mapper";
+import { PrismaRoleMapper } from "../mapper/prisma-role.mapper";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+
+/**
+ * Include object for fetching users with roles and permissions
+ * Reused across all user fetch methods
+ */
+const USER_WITH_ROLES_INCLUDE = {
+  userRoles: {
+    include: {
+      role: {
+        include: {
+          rolePermissions: {
+            include: { permission: true },
+          },
+        },
+      },
+    },
+  },
+  // Include guardian and staff profiles for /auth/me endpoint
+  guardians: {
+    where: { isArchived: false },
+    take: 1,
+  },
+  staffs: {
+    where: { isArchived: false },
+    take: 1,
+  },
+} as const;
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
-    constructor(
-        private readonly prisma: PrismaService,
-        private readonly prismaQueryService: PrismaQueryService,
-    ) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,
+  ) {}
 
-    async findById(id: string): Promise<User | null> {
-        const user = await this.prisma.user.findUnique({
-            where: { id },
-        });
+  async findById(id: string): Promise<User | null> {
+    const prismaUser = await this.prisma.user.findUnique({
+      where: { id },
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+    return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
+  }
 
-        if (!user) {
-            return null;
-        }
+  async findByEmail(email: string): Promise<User | null> {
+    // NOTE: Email is now stored in Guardian/Staff tables, not User table
+    // Find user by guardian.email or staff.email relationship
+    const prismaUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          {
+            guardians: {
+              some: { email: email },
+            },
+          },
+          {
+            staffs: {
+              some: { email: email },
+            },
+          },
+        ],
+      },
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+    return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
+  }
 
-        return PrismaUserMapper.toDomain(user);
+  async findByClerkUid(clerkUid: string): Promise<User | null> {
+    const prismaUser = await this.prisma.user.findUnique({
+      where: { clerkUid },
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+    return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
+  }
+
+  async findAll(params: FindAllUsersParams): Promise<PaginatedUsers> {
+    params.allowedFilterFields = ["isActive"];
+    params.allowedSortFields = ["createdAt"];
+
+    return await this.queryService.executeQuery<User>(
+      this.prisma,
+      "user",
+      params,
+      {
+        include: USER_WITH_ROLES_INCLUDE,
+      },
+      PrismaUserMapper,
+    );
+  }
+
+  async save(user: User): Promise<User> {
+    const prismaData = PrismaUserMapper.toPrisma(user);
+    const created = await this.prisma.user.create({
+      data: prismaData,
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+    return PrismaUserMapper.toDomain(created);
+  }
+
+  async update(user: User): Promise<User> {
+    const prismaData = PrismaUserMapper.toPrismaUpdate(user);
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: prismaData,
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+    return PrismaUserMapper.toDomain(updated);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.user.delete({
+      where: { id },
+    });
+  }
+
+  async assignRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void> {
+    await this.prisma.userRole.createMany({
+      data: roleAssignments.map((assignment) => ({
+        userId,
+        roleId: assignment.roleId,
+        campusId: assignment.campusId ?? null, // null for global assignment
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  async removeRoles(
+    userId: string,
+    roleAssignments: RoleAssignmentInput[],
+  ): Promise<void> {
+    // Delete each role assignment individually to match the exact campusId
+    // Cannot use deleteMany with OR on composite conditions reliably
+    for (const assignment of roleAssignments) {
+      await this.prisma.userRole.deleteMany({
+        where: {
+          userId,
+          roleId: assignment.roleId,
+          campusId: assignment.campusId ?? null,
+        },
+      });
     }
+  }
 
-    async findByEmail(email: string): Promise<User | null> {
-        const user = await this.prisma.user.findUnique({
-            where: { email },
+  async getUserRoles(
+    userId: string,
+    page: number,
+    limit: number,
+  ): Promise<any> {
+    const skip = (page - 1) * limit;
+
+    const [roles, total] = await Promise.all([
+      this.prisma.userRole.findMany({
+        where: {
+          userId,
+        },
+        skip,
+        take: limit,
+        include: {
+          role: {
             include: {
-                profile: true,
+              rolePermissions: {
+                include: { permission: true },
+              },
             },
-        });
+          },
+        },
+      }),
+      this.prisma.userRole.count({
+        where: { userId },
+      }),
+    ]);
 
-        if (!user) {
-            return null;
-        }
+    return {
+      data: roles.map((item) => ({
+        ...item.role,
+        assignmentCampusId: item.campusId, // Include the campus context of the assignment
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 
-        return PrismaUserMapper.toDomain(user);
-    }
+  async getUserRolesForCampus(
+    userId: string,
+    campusId: string | null,
+  ): Promise<Role[]> {
+    // Get roles that are:
+    // 1. Assigned globally (campusId = null) - these apply everywhere
+    // 2. Assigned specifically to this campus (campusId = campusId)
+    const whereCondition =
+      campusId === null
+        ? { userId, campusId: null } // Only global roles
+        : { userId, OR: [{ campusId: null }, { campusId }] }; // Global + campus-specific
 
-    async findAll(): Promise<User[]> {
-        const users = await this.prisma.user.findMany({
-            orderBy: { createdAt: 'desc' },
-        });
-
-        return users.map(user => PrismaUserMapper.toDomain(user));
-    }
-
-    async save(user: User): Promise<void> {
-        const userData = PrismaUserMapper.toPersistence(user);
-        
-        await this.prisma.user.upsert({
-            where: { id: user.id },
-            update: {
-                name: userData.name,
-                email: userData.email,
-                updatedAt: userData.updatedAt,
+    const userRoles = await this.prisma.userRole.findMany({
+      where: whereCondition,
+      include: {
+        role: {
+          include: {
+            rolePermissions: {
+              include: { permission: true },
             },
-            create: userData,
-        });
-    }
+          },
+        },
+      },
+    });
 
-    async findManyWithPagination(params: StandardRequest): Promise<PaginatedResult<User>> {
-        return this.prismaQueryService.executeQuery(
-            this.prisma,
-            'user',
-            params,
-            {
-                include: {
-                    profile: true,
-                },
-                orderBy: { createdAt: 'desc' },
-            },
-            PrismaUserMapper
-        );
-    }
-
-
-    async delete(id: string): Promise<void> {
-        await this.prisma.user.delete({
-            where: { id },
-        });
-    }
+    return userRoles.map((ur) => PrismaRoleMapper.toDomain(ur.role));
+  }
 }

@@ -1,0 +1,153 @@
+import { NotFoundException } from "@nestjs/common";
+
+import { UnlinkStudentFromGuardianUseCase } from "./unlink-student-from-guardian.use-case";
+import { StudentRepository } from "../../ports/student.repository";
+import { GuardianRepository } from "../../ports/guardian.repository";
+import {
+  TransactionContext,
+  UnitOfWorkPort,
+} from "@/application/ports/unit-of-work.port";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  createMockStudentRepository,
+  createMockGuardianRepository,
+  createStudent,
+  createGuardian,
+} from "@/test-utils";
+
+const ACTOR_ID = "actor-1";
+const STUDENT_ID = "student-1";
+const GUARDIAN_ID = "guardian-1";
+const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
+const REL_ID = "rel-mother";
+
+function buildActor(): User {
+  return User.reconstitute(
+    {
+      clerkUid: "user_audit12345",
+      isActive: true,
+      profile: {
+        type: "staff",
+        id: ACTOR_ID,
+        fullName: "Alice Nguyen",
+        email: null,
+        phoneNumber: null,
+        dateOfBirth: null,
+        gender: null,
+      },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    ACTOR_ID,
+  );
+}
+
+describe("UnlinkStudentFromGuardianUseCase (student-side)", () => {
+  let useCase: UnlinkStudentFromGuardianUseCase;
+  let studentRepo: jest.Mocked<StudentRepository>;
+  let guardianRepo: jest.Mocked<GuardianRepository>;
+  let unitOfWork: jest.Mocked<UnitOfWorkPort>;
+  let mockTx: jest.Mocked<TransactionContext>;
+  let actor: User;
+
+  beforeEach(() => {
+    studentRepo = createMockStudentRepository();
+    guardianRepo = createMockGuardianRepository();
+    mockTx = {
+      removeGuardians: jest.fn().mockResolvedValue(undefined),
+      recordAudit: jest.fn().mockResolvedValue(undefined),
+    } as unknown as jest.Mocked<TransactionContext>;
+    unitOfWork = {
+      run: jest.fn((task) => task(mockTx)),
+    } as unknown as jest.Mocked<UnitOfWorkPort>;
+    actor = buildActor();
+
+    studentRepo.findById.mockResolvedValue(
+      createStudent({
+        id: STUDENT_ID,
+        campusId: CAMPUS_ID,
+        fullName: "Eli Pham",
+      }),
+    );
+    guardianRepo.findById.mockResolvedValue(
+      createGuardian({
+        id: GUARDIAN_ID,
+        campusId: CAMPUS_ID,
+        fullName: "Carol Pham",
+      }),
+    );
+    studentRepo.getStudentGuardians.mockResolvedValue([
+      {
+        guardianId: GUARDIAN_ID,
+        fullName: "Carol Pham",
+        email: null,
+        phoneNumber: null,
+        relationship: REL_ID,
+        relationshipName: "Mother",
+      },
+    ]);
+
+    useCase = new UnlinkStudentFromGuardianUseCase(
+      studentRepo,
+      guardianRepo,
+      unitOfWork,
+    );
+  });
+
+  describe("AC-3 — happy path emits UNLINK_GUARDIAN_FROM_STUDENT inside UoW", () => {
+    it("removes the link and records audit with relationshipType snapshot", async () => {
+      await useCase.execute(
+        { studentId: STUDENT_ID, guardianId: GUARDIAN_ID },
+        actor,
+      );
+
+      expect(mockTx.removeGuardians).toHaveBeenCalledWith(STUDENT_ID, [
+        GUARDIAN_ID,
+      ]);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
+      const payload = mockTx.recordAudit.mock.calls[0]![0];
+      expect(payload.action).toBe("UNLINK_GUARDIAN_FROM_STUDENT");
+      expect(payload.targetType).toBe("student");
+      expect(payload.targetId).toBe(STUDENT_ID);
+      expect(payload.context).toEqual({
+        actorName: "Alice Nguyen",
+        studentId: STUDENT_ID,
+        studentName: "Eli Pham",
+        guardianId: GUARDIAN_ID,
+        guardianName: "Carol Pham",
+        relationshipId: REL_ID,
+        relationshipType: "Mother",
+      });
+    });
+  });
+
+  describe("AC-4 — rollback when recorder throws", () => {
+    it("propagates the error after running removeGuardians inside UoW", async () => {
+      mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
+
+      await expect(
+        useCase.execute(
+          { studentId: STUDENT_ID, guardianId: GUARDIAN_ID },
+          actor,
+        ),
+      ).rejects.toThrow("audit fail");
+
+      expect(mockTx.removeGuardians).toHaveBeenCalledTimes(1);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("existing semantics preserved", () => {
+    it("throws NotFoundException when link does not exist", async () => {
+      studentRepo.getStudentGuardians.mockResolvedValueOnce([]);
+
+      await expect(
+        useCase.execute(
+          { studentId: STUDENT_ID, guardianId: GUARDIAN_ID },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+  });
+});
