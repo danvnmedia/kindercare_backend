@@ -13,6 +13,7 @@ import {
   StudentTransactionOps,
   ClassStaffTransactionOps,
   MealMenuTransactionOps,
+  ContentManagementTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -60,6 +61,7 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     const studentOps = new StudentTransactionOps(tx);
     const classStaffOps = new ClassStaffTransactionOps(tx);
     const mealMenuOps = new MealMenuTransactionOps(tx);
+    const contentManagementOps = new ContentManagementTransactionOps(tx);
 
     return {
       // User operations
@@ -95,6 +97,31 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       archiveMealMenu: mealMenuOps.archiveMealMenu.bind(mealMenuOps),
       restoreMealMenu: mealMenuOps.restoreMealMenu.bind(mealMenuOps),
       upsertMealMenuConfig: mealMenuOps.upsertMealMenuConfig.bind(mealMenuOps),
+
+      // Content-management operations
+      createPost: contentManagementOps.createPost.bind(contentManagementOps),
+      updatePost: contentManagementOps.updatePost.bind(contentManagementOps),
+      deletePost: contentManagementOps.deletePost.bind(contentManagementOps),
+      createPostCategory:
+        contentManagementOps.createPostCategory.bind(contentManagementOps),
+      updatePostCategory:
+        contentManagementOps.updatePostCategory.bind(contentManagementOps),
+      deletePostCategory:
+        contentManagementOps.deletePostCategory.bind(contentManagementOps),
+      reorderPostCategories:
+        contentManagementOps.reorderPostCategories.bind(contentManagementOps),
+      upsertCampusSetting:
+        contentManagementOps.upsertCampusSetting.bind(contentManagementOps),
+      createPostHistoryStatus:
+        contentManagementOps.createPostHistoryStatus.bind(contentManagementOps),
+      createPostApprovalRequest:
+        contentManagementOps.createPostApprovalRequest.bind(
+          contentManagementOps,
+        ),
+      updatePostApprovalRequest:
+        contentManagementOps.updatePostApprovalRequest.bind(
+          contentManagementOps,
+        ),
 
       // Audit operations — captures the active `prismaTransaction` so callers
       // never have to thread a raw `Prisma.TransactionClient` themselves.

@@ -29,6 +29,9 @@ import {
   UpdatePostCommentUseCase,
   DeletePostCommentUseCase,
   GetPostCommentsUseCase,
+  GetManagementCommentsUseCase,
+  CreateManagementCommentUseCase,
+  DeleteManagementCommentUseCase,
 } from "@/application/content-management/use-cases/comment";
 import {
   CreatePostCategoryUseCase,
@@ -129,6 +132,9 @@ import { RequestContextModule } from "../context/request-context.module";
     UpdatePostCommentUseCase,
     DeletePostCommentUseCase,
     GetPostCommentsUseCase,
+    GetManagementCommentsUseCase,
+    CreateManagementCommentUseCase,
+    DeleteManagementCommentUseCase,
     // Approval Use Cases
     GetPendingApprovalsUseCase,
     GetPostApprovalHistoryUseCase,

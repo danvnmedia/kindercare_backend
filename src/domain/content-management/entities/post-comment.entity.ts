@@ -14,6 +14,11 @@ export const MAX_COMMENT_DEPTH = 3;
  */
 export const MAX_COMMENT_LENGTH = 1000;
 
+export enum PostCommentType {
+  PUBLIC = "PUBLIC",
+  MANAGEMENT = "MANAGEMENT",
+}
+
 /**
  * Properties of the PostComment entity.
  * Comments support nesting via parentCommentId and depth tracking.
@@ -25,6 +30,7 @@ export interface PostCommentProps {
   parentCommentId: string | null;
   depth: number;
   content: string;
+  commentType: PostCommentType;
   isDeleted: boolean;
   deletedAt: Date | null;
   deletedById: string | null;
@@ -62,6 +68,10 @@ export class PostComment extends Entity<PostCommentProps> {
 
   get content(): string {
     return this.props.content;
+  }
+
+  get commentType(): PostCommentType {
+    return this.props.commentType;
   }
 
   get isDeleted(): boolean {
@@ -173,6 +183,7 @@ export class PostComment extends Entity<PostCommentProps> {
       | "parentCommentId"
       | "depth"
       | "user"
+      | "commentType"
     >,
     id?: string,
   ): PostComment {
@@ -218,6 +229,7 @@ export class PostComment extends Entity<PostCommentProps> {
       parentCommentId: props.parentCommentId ?? null,
       depth,
       content: props.content.trim(),
+      commentType: props.commentType ?? PostCommentType.PUBLIC,
       isDeleted: props.isDeleted ?? false,
       deletedAt: props.deletedAt ?? null,
       deletedById: props.deletedById ?? null,

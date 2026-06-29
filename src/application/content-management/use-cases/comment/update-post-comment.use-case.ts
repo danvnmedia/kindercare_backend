@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { PostCommentRepository } from "../../ports/post-comment.repository";
 import { PostComment } from "@/domain/content-management";
+import { PostCommentType } from "@/domain/content-management/entities/post-comment.entity";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface UpdatePostCommentInput {
@@ -34,6 +35,10 @@ export class UpdatePostCommentUseCase {
 
       const comment = await this.postCommentRepository.findById(commentId);
       if (!comment) {
+        throw new NotFoundException(`Comment with ID ${commentId} not found`);
+      }
+
+      if (comment.commentType !== PostCommentType.PUBLIC) {
         throw new NotFoundException(`Comment with ID ${commentId} not found`);
       }
 

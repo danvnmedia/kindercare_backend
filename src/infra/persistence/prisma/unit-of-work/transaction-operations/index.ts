@@ -5,3 +5,4 @@ export * from "./staff.transaction-ops";
 export * from "./student.transaction-ops";
 export * from "./class-staff.transaction-ops";
 export * from "./meal-menu.transaction-ops";
+export * from "./content-management.transaction-ops";

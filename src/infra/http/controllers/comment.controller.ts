@@ -25,6 +25,9 @@ import {
   UpdatePostCommentUseCase,
   DeletePostCommentUseCase,
   GetPostCommentsUseCase,
+  GetManagementCommentsUseCase,
+  CreateManagementCommentUseCase,
+  DeleteManagementCommentUseCase,
 } from "@/application/content-management/use-cases/comment";
 import {
   CreateCommentRequest,
@@ -32,10 +35,12 @@ import {
   CommentResponse,
   GetCommentsResponse,
 } from "@/infra/http/dtos/comment";
-import { CurrentUser } from "../decorators";
+import { CampusContext, CurrentUser, RequireCampusAccess } from "../decorators";
 import { User } from "@/domain/user-management/user.entity";
 import { PostComment } from "@/domain/content-management";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
+import { RolesGuard } from "../guards/roles.guard";
+import { Roles } from "../decorators/roles.decorator";
 
 @ApiTags("Comments")
 @ApiBearerAuth("JWT")
@@ -48,9 +53,13 @@ export class CommentController {
     private readonly updatePostCommentUseCase: UpdatePostCommentUseCase,
     private readonly deletePostCommentUseCase: DeletePostCommentUseCase,
     private readonly getPostCommentsUseCase: GetPostCommentsUseCase,
+    private readonly getManagementCommentsUseCase: GetManagementCommentsUseCase,
+    private readonly createManagementCommentUseCase: CreateManagementCommentUseCase,
+    private readonly deleteManagementCommentUseCase: DeleteManagementCommentUseCase,
   ) {}
 
   @Get("posts/:postId/comments")
+  @RequireCampusAccess()
   @ApiOperation({
     summary: "Get comments for a post with nested tree structure",
   })
@@ -72,7 +81,73 @@ export class CommentController {
     return this.getPostCommentsUseCase.execute(postId, params);
   }
 
+  @Get("posts/:postId/management-comments")
+  @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager")
+  @ApiOperation({ summary: "Get management notes for a post" })
+  @StandardResponse({
+    type: CommentResponse,
+    isArray: true,
+    message: "Management notes retrieved successfully",
+  })
+  async getManagementComments(
+    @Param("postId") postId: string,
+    @CampusContext() campusId: string,
+  ): Promise<PostComment[]> {
+    return this.getManagementCommentsUseCase.execute(postId, campusId);
+  }
+
+  @Post("posts/:postId/management-comments")
+  @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager")
+  @ApiOperation({ summary: "Add a management note to a post" })
+  @StandardResponse({
+    type: CommentResponse,
+    message: "Management note created successfully",
+  })
+  async createManagementComment(
+    @Param("postId") postId: string,
+    @Body() createCommentDto: CreateCommentRequest,
+    @CampusContext() campusId: string,
+    @CurrentUser() user: User,
+  ): Promise<PostComment> {
+    return this.createManagementCommentUseCase.execute(
+      {
+        postId,
+        campusId,
+        content: createCommentDto.content,
+      },
+      user,
+    );
+  }
+
+  @Delete("posts/:postId/management-comments/:commentId")
+  @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager")
+  @ApiOperation({ summary: "Delete a management note from a post" })
+  @StandardResponse({
+    type: null,
+    message: "Management note deleted successfully",
+  })
+  async deleteManagementComment(
+    @Param("postId") postId: string,
+    @Param("commentId") commentId: string,
+    @CampusContext() campusId: string,
+    @CurrentUser() user: User,
+  ): Promise<void> {
+    return this.deleteManagementCommentUseCase.execute(
+      postId,
+      commentId,
+      campusId,
+      user,
+    );
+  }
+
   @Post("posts/:postId/comments")
+  @RequireCampusAccess()
   @ApiOperation({ summary: "Add a root comment to a post" })
   @ApiParam({
     name: "postId",
@@ -86,11 +161,13 @@ export class CommentController {
   async createComment(
     @Param("postId") postId: string,
     @Body() createCommentDto: CreateCommentRequest,
+    @CampusContext() campusId: string,
     @CurrentUser() user: User,
   ): Promise<PostComment> {
     return this.createPostCommentUseCase.execute(
       {
         postId,
+        campusId,
         content: createCommentDto.content,
       },
       user,
@@ -98,6 +175,7 @@ export class CommentController {
   }
 
   @Post("comments/:commentId/replies")
+  @RequireCampusAccess()
   @ApiOperation({ summary: "Reply to an existing comment" })
   @ApiParam({
     name: "commentId",
@@ -111,11 +189,13 @@ export class CommentController {
   async createReply(
     @Param("commentId") commentId: string,
     @Body() createCommentDto: CreateCommentRequest,
+    @CampusContext() campusId: string,
     @CurrentUser() user: User,
   ): Promise<PostComment> {
     return this.createCommentReplyUseCase.execute(
       {
         parentCommentId: commentId,
+        campusId,
         content: createCommentDto.content,
       },
       user,
@@ -123,6 +203,7 @@ export class CommentController {
   }
 
   @Patch("comments/:commentId")
+  @RequireCampusAccess()
   @ApiOperation({ summary: "Update a comment (owner only)" })
   @ApiParam({
     name: "commentId",
@@ -146,6 +227,7 @@ export class CommentController {
   }
 
   @Delete("comments/:commentId")
+  @RequireCampusAccess()
   @ApiOperation({ summary: "Delete a comment (soft delete)" })
   @ApiParam({
     name: "commentId",

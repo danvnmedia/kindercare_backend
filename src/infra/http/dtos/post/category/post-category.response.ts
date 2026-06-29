@@ -31,6 +31,15 @@ export class PostCategoryResponse {
   isArchived: boolean;
 
   @Expose()
+  @ApiProperty({
+    example: true,
+    description: "Compatibility alias for !isArchived",
+  })
+  get isActive(): boolean {
+    return !this.isArchived;
+  }
+
+  @Expose()
   @ApiProperty({ example: "2025-01-01T00:00:00.000Z" })
   createdAt: Date;
 

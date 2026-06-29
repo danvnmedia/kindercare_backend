@@ -54,12 +54,7 @@ export class PublishPostUseCase {
         );
       }
 
-      // Note: Post entity publish() method expects DRAFT status
-      // This use case expects APPROVED status - need to align business rules
-      if (
-        post.status !== PostStatus.DRAFT &&
-        post.status !== PostStatus.APPROVED
-      ) {
+      if (post.status !== PostStatus.DRAFT) {
         throw new BadRequestException(
           `Cannot publish a post with status ${post.status}`,
         );
@@ -67,12 +62,7 @@ export class PublishPostUseCase {
 
       const previousStatus = post.status;
       const publishDate = post.publishAt || new Date();
-      if (post.status === PostStatus.DRAFT) {
-        post.publish(publishDate);
-      } else {
-        // For APPROVED posts, manually set status until domain logic is aligned
-        post.approve(publishDate);
-      }
+      post.publish(publishDate);
       const updatedPost = await this.postRepository.update(postId, post);
 
       const history = PostHistoryStatus.create({

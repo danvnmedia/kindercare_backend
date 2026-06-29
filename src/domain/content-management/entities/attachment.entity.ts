@@ -50,6 +50,10 @@ export class Attachment extends Entity<AttachmentProps> {
     >,
     id?: string,
   ): Attachment {
+    if (!Number.isInteger(props.order) || props.order < 0) {
+      throw new Error("Attachment order must be a non-negative integer");
+    }
+
     return new Attachment(
       {
         ...props,

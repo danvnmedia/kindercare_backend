@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { PostRepository } from "../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 
 @Injectable()
 export class DeletePostUseCase {
@@ -15,6 +16,7 @@ export class DeletePostUseCase {
   constructor(
     @Inject("POST_REPOSITORY")
     private readonly postRepository: PostRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
   async execute(
@@ -47,7 +49,25 @@ export class DeletePostUseCase {
         );
       }
 
-      await this.postRepository.delete(postId);
+      await this.unitOfWork.run(async (tx) => {
+        await tx.deletePost(postId);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "DELETE_POST",
+          targetType: "post",
+          targetId: postId,
+          campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            targetName: post.title,
+          },
+          beforeValue: {
+            title: post.title,
+            status: post.status,
+            contentVersion: post.contentVersion,
+          },
+        });
+      });
       this.logger.log(`Post deleted: ${postId}`);
     } catch (error) {
       this.logger.error(`Failed to delete post: ${error.message}`, error.stack);

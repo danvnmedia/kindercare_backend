@@ -12,6 +12,8 @@ import {
   UpdatePostCategoryData,
 } from "@/domain/content-management";
 import { PostCategoryRepository } from "../../ports/post-category.repository";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { User } from "@/domain/user-management/user.entity";
 
 export interface UpdatePostCategoryInput {
   campusId: string;
@@ -28,11 +30,13 @@ export class UpdatePostCategoryUseCase {
   constructor(
     @Inject("POST_CATEGORY_REPOSITORY")
     private readonly postCategoryRepository: PostCategoryRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
   async execute(
     id: string,
     input: UpdatePostCategoryInput,
+    currentUser: User,
   ): Promise<PostCategory> {
     try {
       this.logger.log(`Updating post category: ${id}`);
@@ -71,11 +75,26 @@ export class UpdatePostCategoryUseCase {
       if (input.icon !== undefined) updateData.icon = input.icon;
       if (input.order !== undefined) updateData.order = input.order;
 
+      const beforeValue = this.toAuditSnapshot(category);
       category.updateInfo(updateData);
 
-      // Step 5: Save to repository
-      const updatedCategory =
-        await this.postCategoryRepository.update(category);
+      const updatedCategory = await this.unitOfWork.run(async (tx) => {
+        const saved = await tx.updatePostCategory(category);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "UPDATE_POST_CATEGORY",
+          targetType: "post_category",
+          targetId: saved.id.toString(),
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            targetName: saved.name,
+          },
+          beforeValue,
+          afterValue: this.toAuditSnapshot(saved),
+        });
+        return saved;
+      });
       this.logger.log(`Post category updated successfully: ${id}`);
 
       return updatedCategory;
@@ -93,5 +112,15 @@ export class UpdatePostCategoryUseCase {
       }
       throw new BadRequestException(error.message);
     }
+  }
+
+  private toAuditSnapshot(category: PostCategory): Record<string, unknown> {
+    return {
+      name: category.name,
+      color: category.color,
+      icon: category.icon,
+      order: category.order,
+      isArchived: category.isArchived,
+    };
   }
 }

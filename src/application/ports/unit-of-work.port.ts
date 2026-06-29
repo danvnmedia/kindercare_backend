@@ -1,6 +1,17 @@
 import { AuditEventInput } from "@/application/audit";
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+import {
+  CampusSetting,
+  Post,
+  PostApprovalRequest,
+  PostCategory,
+  PostHistoryStatus,
+} from "@/domain/content-management";
 import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
+import {
+  CreatePostOptions,
+  UpdatePostOptions,
+} from "../content-management/ports/post.repository";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -270,6 +281,41 @@ export interface TransactionContext {
    * Upsert meal-menu config defaults within the current transaction.
    */
   upsertMealMenuConfig(config: MealMenuConfig): Promise<MealMenuConfig>;
+
+  createPost(post: Post, options?: CreatePostOptions): Promise<Post>;
+
+  updatePost(
+    id: string,
+    post: Post,
+    options?: UpdatePostOptions,
+  ): Promise<Post>;
+
+  deletePost(id: string): Promise<void>;
+
+  createPostCategory(category: PostCategory): Promise<PostCategory>;
+
+  updatePostCategory(category: PostCategory): Promise<PostCategory>;
+
+  deletePostCategory(id: string): Promise<void>;
+
+  reorderPostCategories(
+    campusId: string,
+    ids: string[],
+  ): Promise<PostCategory[]>;
+
+  upsertCampusSetting(setting: CampusSetting): Promise<CampusSetting>;
+
+  createPostHistoryStatus(
+    status: PostHistoryStatus,
+  ): Promise<PostHistoryStatus>;
+
+  createPostApprovalRequest(
+    request: PostApprovalRequest,
+  ): Promise<PostApprovalRequest>;
+
+  updatePostApprovalRequest(
+    request: PostApprovalRequest,
+  ): Promise<PostApprovalRequest>;
 
   /**
    * Record an audit event inside the current transaction.

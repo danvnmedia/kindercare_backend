@@ -2,11 +2,13 @@ import {
   Injectable,
   Inject,
   NotFoundException,
+  BadRequestException,
   ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { PostRepository } from "../../ports/post.repository";
 import { PostReactionRepository } from "../../ports/post-reaction.repository";
+import { CampusSettingRepository } from "../../ports/campus-setting.repository";
 import { PostReaction } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
@@ -24,6 +26,8 @@ export class TogglePostReactionUseCase {
     private readonly postRepository: PostRepository,
     @Inject("POST_REACTION_REPOSITORY")
     private readonly postReactionRepository: PostReactionRepository,
+    @Inject("CAMPUS_SETTING_REPOSITORY")
+    private readonly campusSettingRepository: CampusSettingRepository,
   ) {}
 
   async execute(
@@ -45,6 +49,18 @@ export class TogglePostReactionUseCase {
       if (post.campusId !== campusId) {
         throw new ForbiddenException(
           "You do not have access to this post in the specified campus",
+        );
+      }
+
+      const setting =
+        await this.campusSettingRepository.findByCampusId(campusId);
+      if (setting && !setting.allowReactions) {
+        throw new ForbiddenException("Reactions are disabled for this campus");
+      }
+
+      if (!post.canReceiveEngagement()) {
+        throw new BadRequestException(
+          "Cannot react to this post. Post must be published and not deleted.",
         );
       }
 

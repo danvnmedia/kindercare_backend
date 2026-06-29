@@ -15,6 +15,7 @@ import {
   ApiParam,
   ApiHeader,
   ApiBearerAuth,
+  ApiQuery,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {

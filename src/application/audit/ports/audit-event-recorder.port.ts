@@ -29,7 +29,12 @@ export type AuditTargetType =
   | "staff"
   | "user"
   | "meal_menu"
-  | "meal_menu_config";
+  | "meal_menu_config"
+  | "post"
+  | "post_category"
+  | "campus_setting"
+  | "post_history_status"
+  | "post_approval_request";
 
 /**
  * Input payload for a single audit-event write.

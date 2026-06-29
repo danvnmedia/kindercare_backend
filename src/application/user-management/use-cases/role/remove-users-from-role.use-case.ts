@@ -48,8 +48,10 @@ export class RemoveUsersFromRoleUseCase {
     currentUser: User,
   ): Promise<void> {
     this.logger.log(
-      `Revoking role ${input.roleId} from ${input.userIds.length} user(s) in campus ${input.campusId}`,
+      `Revoking role ${input.roleId} from ${new Set(input.userIds).size} user(s) in campus ${input.campusId}`,
     );
+
+    const uniqueUserIds = [...new Set(input.userIds)];
 
     // Phase 1: pre-validation OUTSIDE the UoW. First failure aborts before
     // any user_roles row is deleted and before any audit event is emitted.
@@ -70,7 +72,7 @@ export class RemoveUsersFromRoleUseCase {
         `Role belongs to campus ${role.campusId}, not ${input.campusId}`,
       );
     }
-    for (const userId of input.userIds) {
+    for (const userId of uniqueUserIds) {
       const user = await this.userRepository.findById(userId);
       if (!user) {
         throw new NotFoundException(`User ${userId} not found`);
@@ -86,7 +88,7 @@ export class RemoveUsersFromRoleUseCase {
     // so manual revoke removes tracked-provenance rows too. This is intentional
     // and symmetric to D5 manual-wins on the grant side.
     await this.unitOfWork.run(async (tx) => {
-      for (const userId of input.userIds) {
+      for (const userId of uniqueUserIds) {
         const deleted = await tx.revokeRoles(userId, [
           {
             roleId: input.roleId,

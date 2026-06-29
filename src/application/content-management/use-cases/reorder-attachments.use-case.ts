@@ -65,10 +65,35 @@ export class ReorderAttachmentsUseCase {
       }
 
       const attachmentIds = attachments.map((att) => att.id.toString());
+      const attachmentIdSet = new Set(attachmentIds);
       const orderIds = input.orders.map((order) => order.id);
-      if (!orderIds.every((id) => attachmentIds.includes(id))) {
+      const orderIdSet = new Set(orderIds);
+
+      if (orderIdSet.size !== orderIds.length) {
+        throw new BadRequestException("Attachment ids must be unique.");
+      }
+
+      if (
+        orderIdSet.size !== attachmentIdSet.size ||
+        orderIds.some((id) => !attachmentIdSet.has(id))
+      ) {
         throw new BadRequestException(
           "Some attachment ids in the request do not belong to the post.",
+        );
+      }
+
+      const requestedOrders = input.orders.map((item) => item.order);
+      if (new Set(requestedOrders).size !== requestedOrders.length) {
+        throw new BadRequestException("Attachment orders must be unique.");
+      }
+
+      const sortedOrders = [...requestedOrders].sort((a, b) => a - b);
+      const isContiguousZeroBased = sortedOrders.every(
+        (order, index) => Number.isInteger(order) && order === index,
+      );
+      if (!isContiguousZeroBased) {
+        throw new BadRequestException(
+          "Attachment orders must be contiguous and zero-based.",
         );
       }
 

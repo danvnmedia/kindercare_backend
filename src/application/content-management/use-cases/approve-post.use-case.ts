@@ -76,7 +76,7 @@ export class ApprovePostUseCase {
         postId: postId,
         changedById: currentUser.id,
         previousStatus,
-        newStatus: PostStatus.APPROVED,
+        newStatus: PostStatus.PUBLISHED,
       });
       await this.postHistoryStatusRepository.create(history);
 

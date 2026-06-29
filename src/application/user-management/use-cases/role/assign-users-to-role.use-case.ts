@@ -46,8 +46,10 @@ export class AssignUsersToRoleUseCase {
     currentUser: User,
   ): Promise<void> {
     this.logger.log(
-      `Granting role ${input.roleId} to ${input.userIds.length} user(s) in campus ${input.campusId}`,
+      `Granting role ${input.roleId} to ${new Set(input.userIds).size} user(s) in campus ${input.campusId}`,
     );
+
+    const uniqueUserIds = [...new Set(input.userIds)];
 
     // Phase 1: pre-validation OUTSIDE the UoW. First failure aborts before
     // any user_roles row is written and before any audit event is emitted.
@@ -67,7 +69,7 @@ export class AssignUsersToRoleUseCase {
         `Role belongs to campus ${role.campusId}, not ${input.campusId}`,
       );
     }
-    for (const userId of input.userIds) {
+    for (const userId of uniqueUserIds) {
       const user = await this.userRepository.findById(userId);
       if (!user) {
         throw new NotFoundException(`User ${userId} not found`);
@@ -78,7 +80,7 @@ export class AssignUsersToRoleUseCase {
     // or `tx.recordAudit` throws on any user, Prisma rolls back the entire
     // batch (D5 all-or-none) — no partial grants, no orphan audit rows.
     await this.unitOfWork.run(async (tx) => {
-      for (const userId of input.userIds) {
+      for (const userId of uniqueUserIds) {
         const inserted = await tx.assignRoles(userId, [
           {
             roleId: input.roleId,

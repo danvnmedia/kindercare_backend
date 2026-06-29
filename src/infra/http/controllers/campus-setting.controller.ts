@@ -7,9 +7,11 @@ import {
 } from "@nestjs/swagger";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../decorators";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { RolesGuard } from "../guards/roles.guard";
@@ -79,7 +81,8 @@ export class CampusSettingController {
   async updateCampusSettings(
     @CampusContext() campusId: string,
     @Body() dto: UpdateCampusSettingRequest,
+    @CurrentUser() user: User,
   ): Promise<CampusSetting> {
-    return this.updateCampusSettingUseCase.execute(campusId, dto);
+    return this.updateCampusSettingUseCase.execute(campusId, dto, user);
   }
 }

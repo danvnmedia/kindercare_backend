@@ -51,7 +51,10 @@ export class RevisePostUseCase {
         throw new ForbiddenException("Only the author can revise this post");
       }
 
-      if (post.status !== PostStatus.REJECTED) {
+      if (
+        post.status !== PostStatus.PENDING_REVIEW &&
+        post.status !== PostStatus.PUBLISHED
+      ) {
         throw new BadRequestException(
           `Cannot revise a post with status ${post.status}`,
         );

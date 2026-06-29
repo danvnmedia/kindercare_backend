@@ -83,7 +83,7 @@ export class RejectPostUseCase {
         postId: postId,
         changedById: currentUser.id,
         previousStatus,
-        newStatus: PostStatus.REJECTED,
+        newStatus: PostStatus.DRAFT,
         reason: comment,
       });
       await this.postHistoryStatusRepository.create(history);

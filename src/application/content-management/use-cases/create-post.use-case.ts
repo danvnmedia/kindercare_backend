@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Post, PostAudience, PostStatus } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
+import { PostCategoryRepository } from "../ports/post-category.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
@@ -13,6 +14,7 @@ import { ClassRepository } from "@/application/class-management/ports/class.repo
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { PostContent } from "@/domain/content-management/entities/post.entity";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
   extractTextFromTiptap,
   validateAudiencesBelongToCampus,
@@ -45,6 +47,9 @@ export class CreatePostUseCase {
     private readonly gradeLevelRepository: GradeLevelRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    @Inject("POST_CATEGORY_REPOSITORY")
+    private readonly postCategoryRepository: PostCategoryRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
   async execute(input: CreatePostInput, currentUser: User): Promise<Post> {
@@ -62,6 +67,8 @@ export class CreatePostUseCase {
         studentRepository: this.studentRepository,
       });
 
+      await this.validateCategoryIds(input.categoryIds, input.campusId);
+
       const author = await this.userRepository.findById(currentUser.id);
       if (!author) {
         throw new BadRequestException("Author not found");
@@ -69,8 +76,23 @@ export class CreatePostUseCase {
 
       const post = this.createPostEntity(input, author);
 
-      const createdPost = await this.postRepository.create(post, {
-        categoryIds: input.categoryIds,
+      const createdPost = await this.unitOfWork.run(async (tx) => {
+        const saved = await tx.createPost(post, {
+          categoryIds: input.categoryIds,
+        });
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "CREATE_POST",
+          targetType: "post",
+          targetId: saved.id.toString(),
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            targetName: saved.title,
+          },
+          afterValue: this.toAuditSnapshot(saved),
+        });
+        return saved;
       });
       this.logger.log(`Post created: ${createdPost.id.toString()}`);
 
@@ -93,6 +115,40 @@ export class CreatePostUseCase {
     if (input.audiences.length === 0) {
       throw new BadRequestException("Post must have at least one audience");
     }
+  }
+
+  private async validateCategoryIds(
+    categoryIds: string[] | undefined,
+    campusId: string,
+  ): Promise<void> {
+    if (!categoryIds?.length) return;
+
+    const uniqueCategoryIds = [...new Set(categoryIds)];
+    const categories = await Promise.all(
+      uniqueCategoryIds.map((categoryId) =>
+        this.postCategoryRepository.findById(categoryId),
+      ),
+    );
+
+    const invalidCategory = categories.find(
+      (category) =>
+        !category || category.campusId !== campusId || category.isArchived,
+    );
+
+    if (invalidCategory !== undefined) {
+      throw new BadRequestException(
+        "One or more post categories are invalid for this campus",
+      );
+    }
+  }
+
+  private toAuditSnapshot(post: Post): Record<string, unknown> {
+    return {
+      title: post.title,
+      status: post.status,
+      publishAt: post.publishAt?.toISOString() ?? null,
+      contentVersion: post.contentVersion,
+    };
   }
 
   private createPostEntity(input: CreatePostInput, author: User): Post {

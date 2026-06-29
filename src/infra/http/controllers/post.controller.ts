@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Body,
-  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -106,6 +105,8 @@ export class PostController {
 
   @Post()
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Create a new post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -178,7 +179,7 @@ export class PostController {
   })
   async getPendingApprovals(
     @CampusContext() campusId: string,
-    @Query() params: StandardRequest,
+    @StandardRequestParam() params: StandardRequest,
     @CurrentUser() user: User,
   ): Promise<PaginatedResult<PostApprovalRequest>> {
     return this.getPendingApprovalsUseCase.execute(campusId, params, user);
@@ -224,6 +225,8 @@ export class PostController {
 
   @Patch(":id")
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Update a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -249,6 +252,8 @@ export class PostController {
 
   @Delete(":id")
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Delete a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -269,6 +274,8 @@ export class PostController {
 
   @Post(":id/attachments")
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Add an attachment to a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -297,6 +304,8 @@ export class PostController {
 
   @Delete(":id/attachments/:attachmentId")
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Remove an attachment from a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -323,6 +332,8 @@ export class PostController {
 
   @Patch(":id/attachments/reorder")
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Reorder attachments in a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -351,6 +362,8 @@ export class PostController {
 
   @Post(":id/transition")
   @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
   @ApiOperation({ summary: "Transition the status of a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -458,7 +471,7 @@ export class PostController {
   @Post(":id/pin")
   @RequireCampusAccess()
   @UseGuards(RolesGuard)
-  @Roles("Admin")
+  @Roles("admin", "super_admin")
   @ApiOperation({ summary: "Pin a post to the top of the feed (admin only)" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -481,7 +494,7 @@ export class PostController {
   @Delete(":id/pin")
   @RequireCampusAccess()
   @UseGuards(RolesGuard)
-  @Roles("Admin")
+  @Roles("admin", "super_admin")
   @ApiOperation({ summary: "Unpin a post (admin only)" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

@@ -52,20 +52,10 @@ export class RemoveAttachmentUseCase {
         );
       }
 
-      await this.attachmentRepository.delete(attachmentId);
-      this.logger.log(`Attachment removed: ${attachmentId}`);
-
-      // Reorder remaining attachments
-      const remainingAttachments =
-        await this.attachmentRepository.findByPostId(postId);
-      const reorderPromises = remainingAttachments
-        .sort((a, b) => a.order - b.order)
-        .map((att, index) => ({ id: att.id.toString(), order: index }));
-
-      if (reorderPromises.length > 0) {
-        await this.attachmentRepository.updateOrder(postId, reorderPromises);
-        this.logger.log(`Reordered attachments for post ${postId}`);
-      }
+      await this.attachmentRepository.removeAndCompact(postId, attachmentId);
+      this.logger.log(
+        `Attachment removed and order compacted: ${attachmentId}`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to remove attachment: ${error.message}`,

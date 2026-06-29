@@ -911,6 +911,7 @@ model PostComment {
   parentCommentId String? @map("parent_comment_id") @db.Uuid
   depth           Int     @default(0)
   content         String  @db.Text
+  commentType     String  @default("PUBLIC") @map("comment_type")
 
   // Soft delete
   isDeleted   Boolean   @default(false) @map("is_deleted")
@@ -927,6 +928,7 @@ model PostComment {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([postId, createdAt])
+  @@index([postId, commentType, createdAt])
   @@index([postId, parentCommentId])
   @@index([parentCommentId])
   @@index([userId])
@@ -1067,6 +1069,13 @@ model File {
   size      BigInt
   extension String? @map("extension")
 
+  // File Purpose/Context
+  purpose      String  @default("GENERAL")
+  audienceType String? @map("audience_type")
+  audienceId   String? @map("audience_id") @db.Uuid
+  classId      String? @map("class_id") @db.Uuid
+  gradeLevelId String? @map("grade_level_id") @db.Uuid
+
   // Lifecycle
   status     String  @default("PENDING") /// PENDING, UPLOADED, PROCESSED, ERROR
   uploadedBy String  @map("uploaded_by") @db.Uuid
@@ -1090,6 +1099,10 @@ model File {
   @@index([status])
   @@index([key])
   @@index([isDeleted])
+  @@index([purpose])
+  @@index([audienceType, audienceId])
+  @@index([classId])
+  @@index([gradeLevelId])
   @@index([createdAt])
   @@map("file")
 }

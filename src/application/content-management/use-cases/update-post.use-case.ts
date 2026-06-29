@@ -3,16 +3,19 @@ import {
   Inject,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from "@nestjs/common";
 import { Post, PostAudience } from "@/domain/content-management";
 import { PostRepository } from "../ports/post.repository";
+import { PostCategoryRepository } from "../ports/post-category.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { PostContent } from "@/domain/content-management/entities/post.entity";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
   extractTextFromTiptap,
   validateAudiencesBelongToCampus,
@@ -43,6 +46,9 @@ export class UpdatePostUseCase {
     private readonly gradeLevelRepository: GradeLevelRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    @Inject("POST_CATEGORY_REPOSITORY")
+    private readonly postCategoryRepository: PostCategoryRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
   async execute(
@@ -68,10 +74,28 @@ export class UpdatePostUseCase {
 
       this.checkAuthorization(post, currentUser);
 
+      await this.validateCategoryIds(input.categoryIds, post.campusId);
+      const beforeValue = this.toAuditSnapshot(post);
       await this.updatePostProperties(post, input);
 
-      const updatedPost = await this.postRepository.update(postId, post, {
-        categoryIds: input.categoryIds,
+      const updatedPost = await this.unitOfWork.run(async (tx) => {
+        const saved = await tx.updatePost(postId, post, {
+          categoryIds: input.categoryIds,
+        });
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "UPDATE_POST",
+          targetType: "post",
+          targetId: saved.id.toString(),
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            targetName: saved.title,
+          },
+          beforeValue,
+          afterValue: this.toAuditSnapshot(saved),
+        });
+        return saved;
       });
       this.logger.log(`Post updated: ${updatedPost.id.toString()}`);
 
@@ -82,6 +106,15 @@ export class UpdatePostUseCase {
     }
   }
 
+  private toAuditSnapshot(post: Post): Record<string, unknown> {
+    return {
+      title: post.title,
+      status: post.status,
+      publishAt: post.publishAt?.toISOString() ?? null,
+      contentVersion: post.contentVersion,
+    };
+  }
+
   private checkAuthorization(post: Post, user: User): void {
     const isAuthor = post.authorId.toString() === user.id.toString();
     const isAdmin = user.hasSystemRole();
@@ -89,6 +122,31 @@ export class UpdatePostUseCase {
     if (!isAuthor && !isAdmin) {
       throw new ForbiddenException(
         "You are not authorized to update this post",
+      );
+    }
+  }
+
+  private async validateCategoryIds(
+    categoryIds: string[] | undefined,
+    campusId: string,
+  ): Promise<void> {
+    if (categoryIds === undefined || categoryIds.length === 0) return;
+
+    const uniqueCategoryIds = [...new Set(categoryIds)];
+    const categories = await Promise.all(
+      uniqueCategoryIds.map((categoryId) =>
+        this.postCategoryRepository.findById(categoryId),
+      ),
+    );
+
+    const invalidCategory = categories.find(
+      (category) =>
+        !category || category.campusId !== campusId || category.isArchived,
+    );
+
+    if (invalidCategory !== undefined) {
+      throw new BadRequestException(
+        "One or more post categories are invalid for this campus",
       );
     }
   }

@@ -43,6 +43,7 @@ export class PrismaPostCommentMapper {
         parentCommentId: prismaComment.parentCommentId,
         depth: prismaComment.depth,
         content: prismaComment.content,
+        commentType: prismaComment.commentType as PostComment["commentType"],
         isDeleted: prismaComment.isDeleted,
         deletedAt: prismaComment.deletedAt,
         deletedById: prismaComment.deletedById,
@@ -78,6 +79,7 @@ export class PrismaPostCommentMapper {
       parentCommentId: comment.parentCommentId,
       depth: comment.depth,
       content: comment.content,
+      commentType: comment.commentType,
       isDeleted: comment.isDeleted,
       deletedAt: comment.deletedAt,
       deletedById: comment.deletedById,
@@ -95,6 +97,7 @@ export class PrismaPostCommentMapper {
   static toPrismaUpdate(comment: PostComment): Prisma.PostCommentUpdateInput {
     const updateData: Prisma.PostCommentUpdateInput = {
       content: comment.content,
+      commentType: comment.commentType,
       isDeleted: comment.isDeleted,
       deletedAt: comment.deletedAt,
       updatedAt: comment.updatedAt,

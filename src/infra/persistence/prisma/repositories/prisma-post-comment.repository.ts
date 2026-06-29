@@ -3,6 +3,7 @@ import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto"
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { PostComment } from "@/domain/content-management";
+import { PostCommentType } from "@/domain/content-management/entities/post-comment.entity";
 import { Injectable } from "@nestjs/common";
 import { PrismaPostCommentMapper } from "../mapper/prisma-post-comment.mapper";
 import { PrismaService } from "../prisma.service";
@@ -51,7 +52,7 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
             },
           },
         },
-        where: { postId },
+        where: { postId, commentType: PostCommentType.PUBLIC },
         orderBy: { createdAt: "asc" },
       },
       PrismaPostCommentMapper,
@@ -82,6 +83,7 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
           postId,
           parentCommentId: null,
           depth: 0,
+          commentType: PostCommentType.PUBLIC,
         },
         orderBy: { createdAt: "asc" },
       },
@@ -93,6 +95,7 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
     const prismaComments = await this.prisma.postComment.findMany({
       where: {
         parentCommentId: commentId,
+        commentType: PostCommentType.PUBLIC,
       },
       orderBy: {
         createdAt: "asc",
@@ -122,6 +125,37 @@ export class PrismaPostCommentRepository implements PostCommentRepository {
         isDeleted: false,
       },
     });
+  }
+
+  async countActivePublicByPost(postId: string): Promise<number> {
+    return await this.prisma.postComment.count({
+      where: {
+        postId,
+        isDeleted: false,
+        commentType: PostCommentType.PUBLIC,
+      },
+    });
+  }
+
+  async findManagementNotesByPostId(postId: string): Promise<PostComment[]> {
+    const prismaComments = await this.prisma.postComment.findMany({
+      where: {
+        postId,
+        isDeleted: false,
+        commentType: PostCommentType.MANAGEMENT,
+      },
+      orderBy: { createdAt: "asc" },
+      include: {
+        user: {
+          include: {
+            guardians: true,
+            staffs: true,
+          },
+        },
+      },
+    });
+
+    return PrismaPostCommentMapper.toDomainArray(prismaComments);
   }
 
   async save(comment: PostComment): Promise<PostComment> {

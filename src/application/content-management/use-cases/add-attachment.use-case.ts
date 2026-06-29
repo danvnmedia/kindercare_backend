@@ -84,20 +84,21 @@ export class AddAttachmentUseCase {
       const attachments = await this.attachmentRepository.findByPostId(
         input.postId,
       );
-      const maxOrder = attachments.reduce(
-        (max, att) => Math.max(max, att.order),
-        -1,
-      );
+      if (
+        attachments.some((attachment) => attachment.fileId === input.fileId)
+      ) {
+        throw new BadRequestException("File is already attached to this post");
+      }
 
       const attachment = Attachment.create({
         postId: input.postId,
         fileId: input.fileId,
         comment: input.comment,
-        order: maxOrder + 1,
+        order: 0,
       });
 
       const createdAttachment =
-        await this.attachmentRepository.create(attachment);
+        await this.attachmentRepository.appendToPost(attachment);
       this.logger.log(`Attachment added: ${createdAttachment.id.toString()}`);
 
       return createdAttachment;

@@ -9,6 +9,8 @@ import {
   UpdateCampusSettingData,
 } from "@/domain/content-management";
 import { CampusSettingRepository } from "../../ports/campus-setting.repository";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { User } from "@/domain/user-management/user.entity";
 
 export interface UpdateCampusSettingInput {
   requireTeacherApproval?: boolean;
@@ -24,6 +26,7 @@ export class UpdateCampusSettingUseCase {
   constructor(
     @Inject("CAMPUS_SETTING_REPOSITORY")
     private readonly campusSettingRepository: CampusSettingRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
   /**
@@ -37,6 +40,7 @@ export class UpdateCampusSettingUseCase {
   async execute(
     campusId: string,
     input: UpdateCampusSettingInput,
+    currentUser: User,
   ): Promise<CampusSetting> {
     try {
       this.logger.log(`Updating campus settings for campus: ${campusId}`);
@@ -68,12 +72,25 @@ export class UpdateCampusSettingUseCase {
         updateData.allowReactions = input.allowReactions;
       }
 
-      // Update domain entity (validation happens in entity)
+      const beforeValue = this.toAuditSnapshot(settings);
       settings.update(updateData);
 
-      // Use upsert to handle both create and update cases
-      const updatedSettings =
-        await this.campusSettingRepository.upsert(settings);
+      const updatedSettings = await this.unitOfWork.run(async (tx) => {
+        const saved = await tx.upsertCampusSetting(settings);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "UPDATE_CAMPUS_SETTING",
+          targetType: "campus_setting",
+          targetId: saved.id.toString(),
+          campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+          },
+          beforeValue,
+          afterValue: this.toAuditSnapshot(saved),
+        });
+        return saved;
+      });
 
       this.logger.log(`Campus settings updated for campus: ${campusId}`);
       return updatedSettings;
@@ -84,5 +101,14 @@ export class UpdateCampusSettingUseCase {
       );
       throw new BadRequestException(error.message);
     }
+  }
+
+  private toAuditSnapshot(setting: CampusSetting): Record<string, unknown> {
+    return {
+      requireTeacherApproval: setting.requireTeacherApproval,
+      maxPinnedPosts: setting.maxPinnedPosts,
+      allowParentComments: setting.allowParentComments,
+      allowReactions: setting.allowReactions,
+    };
   }
 }

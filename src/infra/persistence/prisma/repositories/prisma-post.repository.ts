@@ -118,12 +118,21 @@ export class PrismaPostRepository implements PostRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.post.delete({ where: { id } });
+    await this.prisma.post.update({
+      where: { id },
+      data: {
+        isDeleted: true,
+        deletedAt: new Date(),
+        isPinned: false,
+        pinnedUntil: null,
+        pinnedById: null,
+      },
+    });
   }
 
   async findById(id: string): Promise<Post | null> {
-    const post = (await this.prisma.post.findUnique({
-      where: { id },
+    const post = (await this.prisma.post.findFirst({
+      where: { id, isDeleted: false },
       include: {
         author: {
           include: {
@@ -158,10 +167,12 @@ export class PrismaPostRepository implements PostRepository {
     scope?: Record<string, any>,
   ): Promise<PaginatedResult<Post>> {
     const categoryIdFilter = query.filterInfo?.filters?.categoryId;
+    const searchTerm = this.getSearchTerm(query);
 
     query.allowedFilterFields = [
       "title",
       "content",
+      "contentText",
       "type",
       "status",
       "authorId",
@@ -176,15 +187,26 @@ export class PrismaPostRepository implements PostRepository {
       "isPinned",
     ];
 
-    const where = categoryIdFilter
-      ? {
-          categories: {
-            some: {
-              categoryId: this.buildCategoryIdWhere(categoryIdFilter),
+    const where = {
+      isDeleted: false,
+      ...(categoryIdFilter
+        ? {
+            categories: {
+              some: {
+                categoryId: this.buildCategoryIdWhere(categoryIdFilter),
+              },
             },
-          },
-        }
-      : undefined;
+          }
+        : {}),
+      ...(searchTerm
+        ? {
+            OR: [
+              { title: { contains: searchTerm, mode: "insensitive" } },
+              { contentText: { contains: searchTerm, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
 
     return await this.queryService.executeQuery<Post>(
       this.prisma,
@@ -221,6 +243,19 @@ export class PrismaPostRepository implements PostRepository {
       },
       PrismaPostMapper,
     );
+  }
+
+  private getSearchTerm(query: StandardRequestDto): string | null {
+    const rawQuery = query as StandardRequestDto & {
+      search?: unknown;
+      q?: unknown;
+    };
+    const value = rawQuery.search ?? rawQuery.q;
+
+    if (typeof value !== "string") return null;
+
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
 
   private buildCategoryIdWhere(filter: unknown): string | { in: string[] } {
