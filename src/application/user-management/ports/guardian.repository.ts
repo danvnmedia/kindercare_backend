@@ -8,6 +8,7 @@ import {
   Guardian,
   GuardianStudent,
 } from "@/domain/user-management/entities/guardian.entity";
+import { Campus } from "@/domain/campus/entities/campus.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -55,6 +56,11 @@ export abstract class GuardianRepository {
     userId: string,
     campusId: string,
   ): Promise<Guardian | null>;
+
+  /**
+   * Find non-archived campuses where the user has an active guardian profile.
+   */
+  abstract findActiveCampusesByUserId(userId: string): Promise<Campus[]>;
 
   /**
    * Find guardians by campus ID

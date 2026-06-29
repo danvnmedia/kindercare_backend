@@ -83,6 +83,33 @@ describe("CreateAbsenceRequestUseCase", () => {
     expect(absenceRequestRepository.save).toHaveBeenCalledWith(result);
   });
 
+  it("ignores client-provided guardian identity fields", async () => {
+    const forgedInput = {
+      studentId: student.id.toString(),
+      requesterGuardianId: "99999999-9999-4999-a999-999999999999",
+      guardianId: "99999999-9999-4999-a999-999999999999",
+      absenceType: AbsenceRequestType.FULL_DAY,
+      startDate: "2099-07-10",
+      description: "Family appointment",
+    } as unknown as Parameters<CreateAbsenceRequestUseCase["execute"]>[2];
+
+    const result = await useCase.execute(
+      DEFAULT_CAMPUS_ID_A,
+      user,
+      forgedInput,
+    );
+
+    expect(result.requesterGuardianId).toBe(guardian.id.toString());
+    expect(guardianRepository.findByUserIdInCampus).toHaveBeenCalledWith(
+      user.id.toString(),
+      DEFAULT_CAMPUS_ID_A,
+    );
+    expect(guardianRepository.getGuardianChildrenInCampus).toHaveBeenCalledWith(
+      guardian.id.toString(),
+      DEFAULT_CAMPUS_ID_A,
+    );
+  });
+
   it("rejects requests for students not linked to the current guardian", async () => {
     guardianRepository.getGuardianChildrenInCampus.mockResolvedValue([]);
 

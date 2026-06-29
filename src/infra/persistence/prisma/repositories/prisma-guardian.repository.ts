@@ -10,6 +10,8 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { PrismaStudentMapper } from "../mapper/prisma-student.mapper"; // Import Student Mapper
+import { Campus } from "@/domain/campus/entities/campus.entity";
+import { PrismaCampusMapper } from "../mapper/prisma-campus.mapper";
 
 @Injectable()
 export class PrismaGuardianRepository implements GuardianRepository {
@@ -149,6 +151,30 @@ export class PrismaGuardianRepository implements GuardianRepository {
     return prismaGuardian
       ? PrismaGuardianMapper.toDomain(prismaGuardian)
       : null;
+  }
+
+  async findActiveCampusesByUserId(userId: string): Promise<Campus[]> {
+    const guardians = await this.prisma.guardian.findMany({
+      where: {
+        userId,
+        isArchived: false,
+        campus: {
+          isArchived: false,
+        },
+      },
+      include: {
+        campus: true,
+      },
+      orderBy: {
+        campus: {
+          name: "asc",
+        },
+      },
+    });
+
+    return guardians.map((guardian) =>
+      PrismaCampusMapper.toDomain(guardian.campus),
+    );
   }
 
   async findByCampusId(campusId: string): Promise<Guardian[]> {
