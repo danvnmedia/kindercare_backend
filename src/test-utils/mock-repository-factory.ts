@@ -101,6 +101,7 @@ export function createMockGuardianRepository(): jest.Mocked<GuardianRepository> 
     findByPhoneNumberInCampus: jest.fn(),
     findByUserId: jest.fn(),
     findByUserIdInCampus: jest.fn(),
+    findActiveCampusesByUserId: jest.fn(),
     findByCampusId: jest.fn(),
     findByIds: jest.fn(),
     findAll: jest.fn(),

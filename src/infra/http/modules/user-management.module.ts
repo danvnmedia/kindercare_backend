@@ -52,6 +52,7 @@ import { RestoreGuardianUseCase } from "@/application/user-management/use-cases/
 import { LinkStudentToGuardianUseCase } from "@/application/user-management/use-cases/guardian/link-student-to-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase as UnlinkStudentFromGuardianUseCaseGuardianSide } from "@/application/user-management/use-cases/guardian/unlink-student-from-guardian.use-case";
 import { GetGuardianChildrenUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-children.use-case";
+import { GetCurrentGuardianCampusesUseCase } from "@/application/user-management/use-cases/guardian/get-current-guardian-campuses.use-case";
 import { GetCurrentGuardianStudentsUseCase } from "@/application/absence-request";
 
 // Use Cases - Staff
@@ -183,6 +184,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     LinkStudentToGuardianUseCase,
     UnlinkStudentFromGuardianUseCaseGuardianSide,
     GetGuardianChildrenUseCase,
+    GetCurrentGuardianCampusesUseCase,
     GetCurrentGuardianStudentsUseCase,
 
     // Staff Use Cases
