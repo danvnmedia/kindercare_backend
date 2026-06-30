@@ -116,13 +116,16 @@ describe("UpdateStudentGuardianRelationshipUseCase", () => {
       findByPhoneNumber: jest.fn(),
       findByPhoneNumberInCampus: jest.fn(),
       findByUserId: jest.fn(),
+      findByUserIdInCampus: jest.fn(),
       findByCampusId: jest.fn(),
       findByIds: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      findActiveCampusesByUserId: jest.fn(),
       getGuardianChildren: jest.fn(),
+      getGuardianChildrenInCampus: jest.fn(),
     } as jest.Mocked<GuardianRepository>;
 
     mockGuardianRelationshipTypeRepository = {

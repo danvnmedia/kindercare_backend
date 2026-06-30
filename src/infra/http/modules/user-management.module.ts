@@ -26,6 +26,7 @@ import { UpdateRoleUseCase } from "@/application/user-management/use-cases/role/
 import { DeleteRoleUseCase } from "@/application/user-management/use-cases/role/delete-role.use-case";
 import { AssignUsersToRoleUseCase } from "@/application/user-management/use-cases/role/assign-users-to-role.use-case";
 import { RemoveUsersFromRoleUseCase } from "@/application/user-management/use-cases/role/remove-users-from-role.use-case";
+import { GetRoleMembersUseCase } from "@/application/user-management/use-cases/role/get-role-members.use-case";
 
 // Use Cases - Student
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
@@ -51,6 +52,8 @@ import { RestoreGuardianUseCase } from "@/application/user-management/use-cases/
 import { LinkStudentToGuardianUseCase } from "@/application/user-management/use-cases/guardian/link-student-to-guardian.use-case";
 import { UnlinkStudentFromGuardianUseCase as UnlinkStudentFromGuardianUseCaseGuardianSide } from "@/application/user-management/use-cases/guardian/unlink-student-from-guardian.use-case";
 import { GetGuardianChildrenUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-children.use-case";
+import { GetCurrentGuardianCampusesUseCase } from "@/application/user-management/use-cases/guardian/get-current-guardian-campuses.use-case";
+import { GetCurrentGuardianStudentsUseCase } from "@/application/absence-request";
 
 // Use Cases - Staff
 import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
@@ -88,6 +91,7 @@ import { RequestContextModule } from "../context/request-context.module";
 
 // Guards
 import { CampusGuard } from "../guards/campus.guard";
+import { HydrateCurrentUserGuard } from "../guards/hydrate-current-user.guard";
 import { RolesGuard } from "../guards/roles.guard";
 import { PermissionsGuard } from "../guards/permissions.guard";
 
@@ -144,6 +148,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     DeleteRoleUseCase,
     AssignUsersToRoleUseCase,
     RemoveUsersFromRoleUseCase,
+    GetRoleMembersUseCase,
 
     // Student Use Cases
     CreateStudentUseCase,
@@ -179,6 +184,8 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     LinkStudentToGuardianUseCase,
     UnlinkStudentFromGuardianUseCaseGuardianSide,
     GetGuardianChildrenUseCase,
+    GetCurrentGuardianCampusesUseCase,
+    GetCurrentGuardianStudentsUseCase,
 
     // Staff Use Cases
     CreateStaffUseCase,
@@ -213,6 +220,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
 
     // Guards (use RequestContext for user access)
     CampusGuard,
+    HydrateCurrentUserGuard,
     RolesGuard,
     PermissionsGuard,
   ],

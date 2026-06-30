@@ -269,6 +269,60 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     description: "Archive meal menus",
   },
 
+  // Weekly plan permissions
+  {
+    id: "weekly_plan.list",
+    module: "weekly_plan",
+    description: "List weekly plans",
+  },
+  {
+    id: "weekly_plan.read",
+    module: "weekly_plan",
+    description: "View weekly plan details",
+  },
+  {
+    id: "weekly_plan.create",
+    module: "weekly_plan",
+    description: "Create or copy weekly plans",
+  },
+  {
+    id: "weekly_plan.update",
+    module: "weekly_plan",
+    description: "Update or restore weekly plans",
+  },
+  {
+    id: "weekly_plan.delete",
+    module: "weekly_plan",
+    description: "Archive weekly plans",
+  },
+
+  // Absence request permissions
+  {
+    id: "absence_request.list",
+    module: "absence_request",
+    description: "List absence requests",
+  },
+  {
+    id: "absence_request.read",
+    module: "absence_request",
+    description: "View absence request details",
+  },
+  {
+    id: "absence_request.create",
+    module: "absence_request",
+    description: "Create absence requests",
+  },
+  {
+    id: "absence_request.update",
+    module: "absence_request",
+    description: "Review absence requests",
+  },
+  {
+    id: "absence_request.delete",
+    module: "absence_request",
+    description: "Archive absence requests",
+  },
+
   // Meal menu config permissions
   {
     id: "meal_menu_config.read",

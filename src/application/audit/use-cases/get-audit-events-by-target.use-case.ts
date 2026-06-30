@@ -9,6 +9,8 @@ const VALID_TARGET_TYPES: readonly AuditTargetType[] = [
   "student",
   "guardian",
   "staff",
+  "staff_type",
+  "role",
 ];
 
 export interface GetAuditEventsByTargetInput {
@@ -19,7 +21,7 @@ export interface GetAuditEventsByTargetInput {
 }
 
 /**
- * Returns the audit-event timeline for one entity (student/guardian/staff).
+ * Returns the audit-event timeline for one entity.
  * Powers the entity-history admin page (FR-5 in @doc/specs/admin-audit-log).
  *
  * Campus isolation is enforced by passing the request-scoped `campusId` as the

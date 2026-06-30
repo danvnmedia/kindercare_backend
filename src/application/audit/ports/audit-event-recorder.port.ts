@@ -27,14 +27,17 @@ export type AuditTargetType =
   | "student"
   | "guardian"
   | "staff"
+  | "staff_type"
   | "user"
+  | "role"
   | "meal_menu"
   | "meal_menu_config"
   | "post"
   | "post_category"
   | "campus_setting"
   | "post_history_status"
-  | "post_approval_request";
+  | "post_approval_request"
+  | "weekly_plan";
 
 /**
  * Input payload for a single audit-event write.

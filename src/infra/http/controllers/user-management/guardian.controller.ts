@@ -19,6 +19,7 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { HydrateCurrentUserGuard } from "../../guards/hydrate-current-user.guard";
 import {
   CampusContext,
   CurrentUser,
@@ -27,10 +28,12 @@ import {
 } from "../../decorators";
 
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { GetCurrentGuardianStudentsUseCase } from "@/application/absence-request";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { User } from "@/domain/user-management/user.entity";
 import {
   CreateGuardianRequest,
+  GuardianCampusResponse,
   GuardianResponse,
   UpdateGuardianRequest,
   LinkGuardianStudentRequest,
@@ -50,6 +53,7 @@ import { LinkStudentToGuardianUseCase } from "@/application/user-management/use-
 import { UnlinkStudentFromGuardianUseCase } from "@/application/user-management/use-cases/guardian/unlink-student-from-guardian.use-case";
 import { GetGuardianChildrenUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-children.use-case";
 import { UpdateStudentGuardianRelationshipUseCase } from "@/application/user-management/use-cases/student/update-student-guardian-relationship.use-case";
+import { GetCurrentGuardianCampusesUseCase } from "@/application/user-management/use-cases/guardian/get-current-guardian-campuses.use-case";
 
 @Controller("guardians")
 @ApiTags("Guardians")
@@ -67,6 +71,8 @@ export class GuardianController {
     private readonly unlinkStudentFromGuardianUseCase: UnlinkStudentFromGuardianUseCase,
     private readonly getGuardianChildrenUseCase: GetGuardianChildrenUseCase,
     private readonly updateStudentGuardianRelationshipUseCase: UpdateStudentGuardianRelationshipUseCase,
+    private readonly getCurrentGuardianStudentsUseCase: GetCurrentGuardianStudentsUseCase,
+    private readonly getCurrentGuardianCampusesUseCase: GetCurrentGuardianCampusesUseCase,
   ) {}
 
   @Post()
@@ -133,6 +139,51 @@ export class GuardianController {
       campusId,
       params: query,
     });
+  }
+
+  @Get("me/campuses")
+  @UseGuards(HydrateCurrentUserGuard)
+  @StandardResponse({
+    message: "Guardian campuses retrieved successfully",
+    type: GuardianCampusResponse,
+    isArray: true,
+  })
+  @ApiOperation({
+    summary: "Get campuses linked to the current guardian",
+    description:
+      "Retrieves campuses where the authenticated user has an active guardian profile.",
+  })
+  async getMyCampuses(@CurrentUser() currentUser: User) {
+    return await this.getCurrentGuardianCampusesUseCase.execute(currentUser);
+  }
+
+  @Get("me/students")
+  @RequireCampusAccess({ checkUserAccess: false })
+  @UseGuards(HydrateCurrentUserGuard)
+  @StandardResponse({
+    message: "Guardian students retrieved successfully",
+    type: GuardianChildResponse,
+    isArray: true,
+  })
+  @ApiOperation({
+    summary: "Get students linked to the current guardian",
+    description:
+      "Retrieves active students linked to the authenticated guardian in the selected campus.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus ID to scope the request",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getMyStudents(
+    @CampusContext() campusId: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.getCurrentGuardianStudentsUseCase.execute(
+      campusId,
+      currentUser,
+    );
   }
 
   @Get(":id")

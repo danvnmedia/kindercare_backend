@@ -2,7 +2,7 @@
 title: Read Projection Patterns
 description: Patterns for read-side DTO projections, derived list aggregates, relation snapshots, and Prisma view-backed computed fields without polluting domain aggregates.
 createdAt: '2026-05-31T02:12:09.368Z'
-updatedAt: '2026-05-31T02:12:09.368Z'
+updatedAt: '2026-06-25T16:35:09.959Z'
 tags:
   - patterns
   - read-projection
@@ -121,5 +121,8 @@ This avoids adding view-only relations to unrelated Prisma models and keeps the 
 - @doc/patterns/standard-response-pattern
 - @doc/patterns/mapper-pattern
 - @doc/patterns/repository-pattern
-- @doc/specs/student-status-simplification
-- @doc/specs/student-current-class-surfacing
+
+Related implementation precedents:
+
+- Student status list work established that query-derived status belongs in read projections, SQL views, or mappers when it is presentation state rather than a domain invariant.
+- Current-class surfacing established that relation snapshots are appropriate for read DTOs when the UI needs enrollment context without expanding the aggregate boundary.

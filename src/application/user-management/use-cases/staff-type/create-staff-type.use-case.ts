@@ -6,9 +6,16 @@ import {
   NotFoundException,
   Logger,
 } from "@nestjs/common";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { StaffType } from "@/domain/user-management/entities/staff-type.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { RoleRepository } from "../../ports/role.repository";
+import {
+  buildStaffTypeAuditContext,
+  pickStaffTypeAuditFields,
+} from "./staff-type-audit";
+import { loadAllowedDefaultRole } from "./staff-type-default-role.policy";
 
 export interface CreateStaffTypeInput {
   campusId: string;
@@ -28,9 +35,13 @@ export class CreateStaffTypeUseCase {
     private readonly staffTypeRepository: StaffTypeRepository,
     @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
-  async execute(input: CreateStaffTypeInput): Promise<StaffType> {
+  async execute(
+    input: CreateStaffTypeInput,
+    currentUser: User,
+  ): Promise<StaffType> {
     try {
       this.logger.log(
         `Creating staff type: ${input.name} for campus: ${input.campusId}`,
@@ -49,14 +60,11 @@ export class CreateStaffTypeUseCase {
 
       // Validate defaultRoleId if provided
       if (input.defaultRoleId) {
-        const roleExists = await this.roleRepository.exists(
+        await loadAllowedDefaultRole(
+          this.roleRepository,
           input.defaultRoleId,
+          input.campusId,
         );
-        if (!roleExists) {
-          throw new NotFoundException(
-            `Role with ID "${input.defaultRoleId}" not found`,
-          );
-        }
       }
 
       // Determine order: use provided order or auto-assign using maxOrder + 1
@@ -92,8 +100,25 @@ export class CreateStaffTypeUseCase {
         order,
       });
 
-      // Save to repository
-      const savedStaffType = await this.staffTypeRepository.save(staffType);
+      // Save and audit atomically.
+      const savedStaffType = await this.unitOfWork.run(async (tx) => {
+        const saved = await tx.createStaffType(staffType);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "CREATE_STAFF_TYPE",
+          targetType: "staff_type",
+          targetId: saved.id,
+          campusId: input.campusId,
+          context: buildStaffTypeAuditContext(
+            saved,
+            input.campusId,
+            currentUser,
+          ),
+          afterValue: pickStaffTypeAuditFields(saved),
+        });
+
+        return saved;
+      });
       this.logger.log(`Staff type created: ${savedStaffType.id}`);
 
       return savedStaffType;
@@ -104,7 +129,8 @@ export class CreateStaffTypeUseCase {
       );
       if (
         error instanceof ConflictException ||
-        error instanceof NotFoundException
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
       ) {
         throw error;
       }

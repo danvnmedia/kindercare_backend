@@ -100,6 +100,8 @@ export function createMockGuardianRepository(): jest.Mocked<GuardianRepository> 
     findByPhoneNumber: jest.fn(),
     findByPhoneNumberInCampus: jest.fn(),
     findByUserId: jest.fn(),
+    findByUserIdInCampus: jest.fn(),
+    findActiveCampusesByUserId: jest.fn(),
     findByCampusId: jest.fn(),
     findByIds: jest.fn(),
     findAll: jest.fn(),
@@ -107,6 +109,7 @@ export function createMockGuardianRepository(): jest.Mocked<GuardianRepository> 
     update: jest.fn(),
     delete: jest.fn(),
     getGuardianChildren: jest.fn(),
+    getGuardianChildrenInCampus: jest.fn(),
   } as jest.Mocked<GuardianRepository>;
 }
 
@@ -147,6 +150,7 @@ export function createMockRoleRepository(): jest.Mocked<RoleRepository> {
     removePermissions: jest.fn(),
     getPermissions: jest.fn(),
     getRoleUsers: jest.fn(),
+    getRoleMembers: jest.fn(),
   } as jest.Mocked<RoleRepository>;
 }
 

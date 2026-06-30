@@ -6,14 +6,23 @@ import {
   BadRequestException,
   Logger,
 } from "@nestjs/common";
+import { computeDiff } from "@/application/audit";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
   StaffType,
   UpdateStaffTypeData,
 } from "@/domain/user-management/entities/staff-type.entity";
+import { User } from "@/domain/user-management/user.entity";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { RoleRepository } from "../../ports/role.repository";
+import {
+  buildStaffTypeAuditContext,
+  pickStaffTypeAuditFields,
+} from "./staff-type-audit";
+import { loadAllowedDefaultRole } from "./staff-type-default-role.policy";
 
 export interface UpdateStaffTypeInput {
+  campusId: string;
   name?: string;
   description?: string | null;
   defaultRoleId?: string | null;
@@ -30,9 +39,14 @@ export class UpdateStaffTypeUseCase {
     private readonly staffTypeRepository: StaffTypeRepository,
     @Inject("ROLE_REPOSITORY")
     private readonly roleRepository: RoleRepository,
+    private readonly unitOfWork: UnitOfWorkPort,
   ) {}
 
-  async execute(id: string, input: UpdateStaffTypeInput): Promise<StaffType> {
+  async execute(
+    id: string,
+    input: UpdateStaffTypeInput,
+    currentUser: User,
+  ): Promise<StaffType> {
     try {
       this.logger.log(`Updating staff type: ${id}`);
 
@@ -41,11 +55,16 @@ export class UpdateStaffTypeUseCase {
       if (!staffType) {
         throw new NotFoundException(`Staff type with ID "${id}" not found`);
       }
+      if (staffType.campusId !== input.campusId) {
+        throw new NotFoundException(
+          `Staff type with ID "${id}" not found in this campus`,
+        );
+      }
 
       // Check for duplicate name if name is being changed
       if (input.name && input.name !== staffType.name) {
         const existingByName = await this.staffTypeRepository.findByName(
-          staffType.campusId,
+          input.campusId,
           input.name,
         );
         if (existingByName && existingByName.id !== id) {
@@ -57,14 +76,11 @@ export class UpdateStaffTypeUseCase {
 
       // Validate defaultRoleId if provided
       if (input.defaultRoleId !== undefined && input.defaultRoleId !== null) {
-        const roleExists = await this.roleRepository.exists(
+        await loadAllowedDefaultRole(
+          this.roleRepository,
           input.defaultRoleId,
+          input.campusId,
         );
-        if (!roleExists) {
-          throw new NotFoundException(
-            `Role with ID "${input.defaultRoleId}" not found`,
-          );
-        }
       }
 
       // Validate order uniqueness if being changed
@@ -72,7 +88,7 @@ export class UpdateStaffTypeUseCase {
         const existingByOrder =
           await this.staffTypeRepository.findByOrderAndCampus(
             input.order,
-            staffType.campusId,
+            input.campusId,
           );
         if (existingByOrder && existingByOrder.id !== id) {
           throw new ConflictException(
@@ -100,11 +116,40 @@ export class UpdateStaffTypeUseCase {
         updateData.order = input.order;
       }
 
+      const beforeAudit = pickStaffTypeAuditFields(staffType);
+
       // Update domain entity (validation happens in entity)
       staffType.update(updateData);
+      const diff = computeDiff(
+        beforeAudit,
+        pickStaffTypeAuditFields(staffType),
+      );
 
-      // Save to repository
-      const updatedStaffType = await this.staffTypeRepository.update(staffType);
+      if (Object.keys(diff.after).length === 0) {
+        this.logger.log(`No staff type changes detected for ${id}`);
+        return staffType;
+      }
+
+      // Save and audit atomically.
+      const updatedStaffType = await this.unitOfWork.run(async (tx) => {
+        const updated = await tx.updateStaffType(staffType);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "UPDATE_STAFF_TYPE",
+          targetType: "staff_type",
+          targetId: updated.id,
+          campusId: input.campusId,
+          context: buildStaffTypeAuditContext(
+            updated,
+            input.campusId,
+            currentUser,
+          ),
+          beforeValue: diff.before,
+          afterValue: diff.after,
+        });
+
+        return updated;
+      });
       this.logger.log(`Staff type updated: ${updatedStaffType.id}`);
 
       return updatedStaffType;
@@ -115,7 +160,8 @@ export class UpdateStaffTypeUseCase {
       );
       if (
         error instanceof NotFoundException ||
-        error instanceof ConflictException
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
       ) {
         throw error;
       }

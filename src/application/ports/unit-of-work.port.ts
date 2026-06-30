@@ -8,6 +8,13 @@ import {
   PostHistoryStatus,
 } from "@/domain/content-management";
 import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
+import { WeeklyPlan } from "@/domain/weekly-plan";
+import {
+  CreateRoleData,
+  Role,
+  UpdateRoleData,
+} from "@/domain/user-management/role.entity";
+import { StaffType } from "@/domain/user-management/entities/staff-type.entity";
 import {
   CreatePostOptions,
   UpdatePostOptions,
@@ -97,6 +104,59 @@ export interface TransactionContext {
     userId: string,
     removals: Array<{ roleId: string; campusId: string | null }>,
   ): Promise<number>;
+
+  /**
+   * Create a role and optional permission rows within the current transaction.
+   */
+  createRole(data: CreateRoleData): Promise<Role>;
+
+  /**
+   * Update a role within the current transaction.
+   */
+  updateRole(id: string, data: UpdateRoleData): Promise<Role>;
+
+  /**
+   * Delete a role within the current transaction.
+   */
+  deleteRole(id: string): Promise<void>;
+
+  /**
+   * Add permission rows to a role within the current transaction.
+   * Returns the number of rows actually inserted.
+   */
+  addRolePermissions(roleId: string, permissionIds: string[]): Promise<number>;
+
+  /**
+   * Remove permission rows from a role within the current transaction.
+   * Returns the number of rows actually deleted.
+   */
+  removeRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<number>;
+
+  /**
+   * Replace the full permission set for a role within the current transaction.
+   */
+  replaceRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<void>;
+
+  /**
+   * Create a StaffType within the current transaction.
+   */
+  createStaffType(staffType: StaffType): Promise<StaffType>;
+
+  /**
+   * Update a StaffType within the current transaction.
+   */
+  updateStaffType(staffType: StaffType): Promise<StaffType>;
+
+  /**
+   * Reorder StaffTypes within one campus inside the current transaction.
+   */
+  reorderStaffTypes(campusId: string, ids: string[]): Promise<StaffType[]>;
 
   /**
    * Execute a raw create operation for Guardian entity
@@ -316,6 +376,26 @@ export interface TransactionContext {
   updatePostApprovalRequest(
     request: PostApprovalRequest,
   ): Promise<PostApprovalRequest>;
+
+  /**
+   * Create a weekly plan and its block/activity rows within the current transaction.
+   */
+  createWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
+
+  /**
+   * Update a weekly plan and replace its block/activity rows within the current transaction.
+   */
+  updateWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
+
+  /**
+   * Soft-archive a weekly plan within the current transaction.
+   */
+  archiveWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
+
+  /**
+   * Restore a weekly plan within the current transaction.
+   */
+  restoreWeeklyPlan(weeklyPlan: WeeklyPlan): Promise<WeeklyPlan>;
 
   /**
    * Record an audit event inside the current transaction.

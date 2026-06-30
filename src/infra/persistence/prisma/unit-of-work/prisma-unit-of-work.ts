@@ -8,12 +8,15 @@ import { PrismaService } from "../prisma.service";
 import {
   PrismaTransactionClient,
   UserTransactionOps,
+  RoleTransactionOps,
+  StaffTypeTransactionOps,
   GuardianTransactionOps,
   StaffTransactionOps,
   StudentTransactionOps,
   ClassStaffTransactionOps,
   MealMenuTransactionOps,
   ContentManagementTransactionOps,
+  WeeklyPlanTransactionOps,
 } from "./transaction-operations";
 
 /**
@@ -56,12 +59,15 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
     tx: PrismaTransactionClient,
   ): TransactionContext {
     const userOps = new UserTransactionOps(tx);
+    const roleOps = new RoleTransactionOps(tx);
+    const staffTypeOps = new StaffTypeTransactionOps(tx);
     const guardianOps = new GuardianTransactionOps(tx);
     const staffOps = new StaffTransactionOps(tx);
     const studentOps = new StudentTransactionOps(tx);
     const classStaffOps = new ClassStaffTransactionOps(tx);
     const mealMenuOps = new MealMenuTransactionOps(tx);
     const contentManagementOps = new ContentManagementTransactionOps(tx);
+    const weeklyPlanOps = new WeeklyPlanTransactionOps(tx);
 
     return {
       // User operations
@@ -70,6 +76,19 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       assignRoles: userOps.assignRoles.bind(userOps),
       revokeRolesByProvenance: userOps.revokeRolesByProvenance.bind(userOps),
       revokeRoles: userOps.revokeRoles.bind(userOps),
+
+      // Role operations
+      createRole: roleOps.createRole.bind(roleOps),
+      updateRole: roleOps.updateRole.bind(roleOps),
+      deleteRole: roleOps.deleteRole.bind(roleOps),
+      addRolePermissions: roleOps.addRolePermissions.bind(roleOps),
+      removeRolePermissions: roleOps.removeRolePermissions.bind(roleOps),
+      replaceRolePermissions: roleOps.replaceRolePermissions.bind(roleOps),
+
+      // StaffType operations
+      createStaffType: staffTypeOps.createStaffType.bind(staffTypeOps),
+      updateStaffType: staffTypeOps.updateStaffType.bind(staffTypeOps),
+      reorderStaffTypes: staffTypeOps.reorderStaffTypes.bind(staffTypeOps),
 
       // Guardian operations
       createGuardian: guardianOps.createGuardian.bind(guardianOps),
@@ -122,6 +141,12 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
         contentManagementOps.updatePostApprovalRequest.bind(
           contentManagementOps,
         ),
+
+      // Weekly-plan operations
+      createWeeklyPlan: weeklyPlanOps.createWeeklyPlan.bind(weeklyPlanOps),
+      updateWeeklyPlan: weeklyPlanOps.updateWeeklyPlan.bind(weeklyPlanOps),
+      archiveWeeklyPlan: weeklyPlanOps.archiveWeeklyPlan.bind(weeklyPlanOps),
+      restoreWeeklyPlan: weeklyPlanOps.restoreWeeklyPlan.bind(weeklyPlanOps),
 
       // Audit operations — captures the active `prismaTransaction` so callers
       // never have to thread a raw `Prisma.TransactionClient` themselves.

@@ -1,5 +1,9 @@
 import { Injectable, Inject, Logger } from "@nestjs/common";
-import { RoleRepository, PaginatedRoles } from "../../ports/role.repository";
+import {
+  FindAllRolesOptions,
+  RoleRepository,
+  PaginatedRoles,
+} from "../../ports/role.repository";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 
 @Injectable()
@@ -11,13 +15,16 @@ export class GetAllRolesUseCase {
     private readonly roleRepository: RoleRepository,
   ) {}
 
-  async execute(params: StandardRequest): Promise<PaginatedRoles> {
+  async execute(
+    params: StandardRequest,
+    options: FindAllRolesOptions = {},
+  ): Promise<PaginatedRoles> {
     try {
       this.logger.log(
         `Fetching roles: offset=${params.offset ?? 0}, limit=${params.limit ?? 10}`,
       );
 
-      const result = await this.roleRepository.findAll(params);
+      const result = await this.roleRepository.findAll(params, options);
 
       this.logger.log(
         `Found ${result.pagination.count} roles, returning page ${result.pagination.currentPage}`,

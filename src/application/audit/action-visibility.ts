@@ -55,6 +55,17 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   GRANT_ROLE: "ADMIN",
   REVOKE_ROLE: "ADMIN",
 
+  // RBAC role lifecycle (3)
+  CREATE_ROLE: "ADMIN",
+  UPDATE_ROLE: "ADMIN",
+  DELETE_ROLE: "ADMIN",
+
+  // StaffType lifecycle (4)
+  CREATE_STAFF_TYPE: "ADMIN",
+  UPDATE_STAFF_TYPE: "ADMIN",
+  ARCHIVE_STAFF_TYPE: "ADMIN",
+  REORDER_STAFF_TYPES: "ADMIN",
+
   // Meal-menu lifecycle (6)
   CREATE_MEAL_MENU: "ADMIN",
   COPY_MEAL_MENU: "ADMIN",
@@ -79,6 +90,13 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   DELETE_POST_CATEGORY: "ADMIN",
   REORDER_POST_CATEGORIES: "ADMIN",
   UPDATE_CAMPUS_SETTING: "ADMIN",
+
+  // Weekly-plan lifecycle (5)
+  CREATE_WEEKLY_PLAN: "ADMIN",
+  COPY_WEEKLY_PLAN: "ADMIN",
+  UPDATE_WEEKLY_PLAN: "ADMIN",
+  ARCHIVE_WEEKLY_PLAN: "ADMIN",
+  RESTORE_WEEKLY_PLAN: "ADMIN",
 };
 
 // Runtime self-check — keeps the map covering every AuditAction even if the

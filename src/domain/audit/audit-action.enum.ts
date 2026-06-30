@@ -51,6 +51,17 @@ export const AUDIT_ACTIONS = [
   "GRANT_ROLE",
   "REVOKE_ROLE",
 
+  // RBAC role lifecycle (3)
+  "CREATE_ROLE",
+  "UPDATE_ROLE",
+  "DELETE_ROLE",
+
+  // StaffType lifecycle (4)
+  "CREATE_STAFF_TYPE",
+  "UPDATE_STAFF_TYPE",
+  "ARCHIVE_STAFF_TYPE",
+  "REORDER_STAFF_TYPES",
+
   // Meal-menu lifecycle (6)
   "CREATE_MEAL_MENU",
   "COPY_MEAL_MENU",
@@ -75,6 +86,13 @@ export const AUDIT_ACTIONS = [
   "DELETE_POST_CATEGORY",
   "REORDER_POST_CATEGORIES",
   "UPDATE_CAMPUS_SETTING",
+
+  // Weekly-plan lifecycle (5)
+  "CREATE_WEEKLY_PLAN",
+  "COPY_WEEKLY_PLAN",
+  "UPDATE_WEEKLY_PLAN",
+  "ARCHIVE_WEEKLY_PLAN",
+  "RESTORE_WEEKLY_PLAN",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

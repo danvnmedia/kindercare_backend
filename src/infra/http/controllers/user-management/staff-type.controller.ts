@@ -8,16 +8,26 @@ import {
   Param,
   UseGuards,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam, ApiHeader } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+  ApiHeader,
+} from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
+import { PermissionsGuard } from "../../guards/permissions.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../../decorators";
+import { Permissions } from "../../decorators/permissions.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { User } from "@/domain/user-management/user.entity";
 
 import {
   CreateStaffTypeRequest,
@@ -35,6 +45,7 @@ import { ReorderStaffTypesUseCase } from "@/application/user-management/use-case
 
 @Controller("staff-types")
 @ApiTags("Staff Types")
+@ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
 export class StaffTypeController {
   constructor(
@@ -48,6 +59,8 @@ export class StaffTypeController {
 
   @Post()
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("staff_type.create")
   @StandardResponse({
     message: "Staff type created successfully",
     type: StaffTypeResponse,
@@ -66,15 +79,21 @@ export class StaffTypeController {
   async create(
     @CampusContext() campusId: string,
     @Body() dto: CreateStaffTypeRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.createStaffTypeUseCase.execute({
-      ...dto,
-      campusId,
-    });
+    return await this.createStaffTypeUseCase.execute(
+      {
+        ...dto,
+        campusId,
+      },
+      currentUser,
+    );
   }
 
   @Post("reorder")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("staff_type.update")
   @StandardResponse({
     message: "Staff types reordered successfully",
     type: StaffTypeResponse,
@@ -93,15 +112,21 @@ export class StaffTypeController {
   async reorder(
     @CampusContext() campusId: string,
     @Body() dto: ReorderStaffTypesRequest,
+    @CurrentUser() currentUser: User,
   ) {
-    return await this.reorderStaffTypesUseCase.execute({
-      campusId,
-      ids: dto.ids,
-    });
+    return await this.reorderStaffTypesUseCase.execute(
+      {
+        campusId,
+        ids: dto.ids,
+      },
+      currentUser,
+    );
   }
 
   @Get()
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("staff_type.list")
   @StandardResponse({
     message: "Staff types retrieved successfully",
     type: StaffTypeResponse,
@@ -129,6 +154,9 @@ export class StaffTypeController {
   }
 
   @Get(":id")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("staff_type.read")
   @StandardResponse({
     message: "Staff type retrieved successfully",
     type: StaffTypeResponse,
@@ -142,11 +170,20 @@ export class StaffTypeController {
     description: "Staff Type UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async findById(@Param("id") id: string) {
-    return await this.getStaffTypeByIdUseCase.execute(id);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff type lookup",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async findById(@Param("id") id: string, @CampusContext() campusId: string) {
+    return await this.getStaffTypeByIdUseCase.execute(id, campusId);
   }
 
   @Patch(":id")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("staff_type.update")
   @StandardResponse({
     message: "Staff type updated successfully",
     type: StaffTypeResponse,
@@ -161,11 +198,29 @@ export class StaffTypeController {
     description: "Staff Type UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async update(@Param("id") id: string, @Body() dto: UpdateStaffTypeRequest) {
-    return await this.updateStaffTypeUseCase.execute(id, dto);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff type update",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async update(
+    @Param("id") id: string,
+    @Body() dto: UpdateStaffTypeRequest,
+    @CampusContext() campusId: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.updateStaffTypeUseCase.execute(
+      id,
+      { ...dto, campusId },
+      currentUser,
+    );
   }
 
   @Delete(":id")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("staff_type.delete")
   @StandardResponse({
     message: "Staff type archived successfully",
     type: StaffTypeResponse,
@@ -180,7 +235,21 @@ export class StaffTypeController {
     description: "Staff Type UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async delete(@Param("id") id: string) {
-    return await this.deleteStaffTypeUseCase.execute(id);
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff type archive",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async delete(
+    @Param("id") id: string,
+    @CampusContext() campusId: string,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.deleteStaffTypeUseCase.execute(
+      id,
+      { campusId },
+      currentUser,
+    );
   }
 }

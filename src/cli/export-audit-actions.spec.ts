@@ -3,7 +3,7 @@
  *
  * Two layers:
  *   1. Pure function shape — `buildAuditActionsExport()` returns the documented
- *      schema, in spec FR-1 order, with all 19 v1 actions.
+ *      schema, in spec FR-1 order, with all current actions.
  *   2. Drift detector — the checked-in `generated/audit-actions.json` must
  *      stay in sync with the `AUDIT_ACTIONS` tuple. If you add a new action
  *      and forget to run `npm run export:audit-actions`, this test fails.
@@ -39,10 +39,11 @@ describe("buildAuditActionsExport", () => {
   // @doc/specs/subject-removal-classstaff-role-refactor; direct role
   // assignment (grant/revoke) added 2 in
   // @doc/specs/direct-role-assignment-via-uow; meal-menu lifecycle added 6 in
-  // @doc/specs/meal-menu-backend.
-  it("emits exactly 30 actions (24 existing + 6 meal-menu)", () => {
+  // @doc/specs/meal-menu-backend; weekly-plan lifecycle added 5 in
+  // @doc/specs/weekly-plan-daily-schedule.
+  it("emits exactly 35 actions (30 existing + 5 weekly-plan)", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(30);
+    expect(result.actions).toHaveLength(35);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {

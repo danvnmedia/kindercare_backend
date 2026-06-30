@@ -49,6 +49,8 @@ export class PermissionEntity {
     "setting",
     "meal_menu",
     "meal_menu_config",
+    "weekly_plan",
+    "absence_request",
   ] as const;
 
   /**

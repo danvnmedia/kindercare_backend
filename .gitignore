@@ -139,7 +139,8 @@ prisma/migrations/dev.db*
 dump.rdb
 
 # Generated files
-generated/
+generated/*
+!generated/audit-actions.json
 
 # Backup files
 *.backup
@@ -157,6 +158,7 @@ generated/
 # Sub-agents
 .agents
 .claude
+.kiro
 
 # Knowns workspace — only docs/ is repo-shared.
 # Config, tasks, versions, memory, runtime, archive, and time tracking stay local.

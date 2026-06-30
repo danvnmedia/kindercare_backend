@@ -10,6 +10,8 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { PrismaStudentMapper } from "../mapper/prisma-student.mapper"; // Import Student Mapper
+import { Campus } from "@/domain/campus/entities/campus.entity";
+import { PrismaCampusMapper } from "../mapper/prisma-campus.mapper";
 
 @Injectable()
 export class PrismaGuardianRepository implements GuardianRepository {
@@ -126,6 +128,55 @@ export class PrismaGuardianRepository implements GuardianRepository {
       : null;
   }
 
+  async findByUserIdInCampus(
+    userId: string,
+    campusId: string,
+  ): Promise<Guardian | null> {
+    const prismaGuardian = await this.prisma.guardian.findFirst({
+      where: {
+        userId,
+        campusId,
+        isArchived: false,
+      },
+      include: {
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
+  }
+
+  async findActiveCampusesByUserId(userId: string): Promise<Campus[]> {
+    const guardians = await this.prisma.guardian.findMany({
+      where: {
+        userId,
+        isArchived: false,
+        campus: {
+          isArchived: false,
+        },
+      },
+      include: {
+        campus: true,
+      },
+      orderBy: {
+        campus: {
+          name: "asc",
+        },
+      },
+    });
+
+    return guardians.map((guardian) =>
+      PrismaCampusMapper.toDomain(guardian.campus),
+    );
+  }
+
   async findByCampusId(campusId: string): Promise<Guardian[]> {
     const guardians = await this.prisma.guardian.findMany({
       where: { campusId },
@@ -225,6 +276,42 @@ export class PrismaGuardianRepository implements GuardianRepository {
       include: {
         student: true,
         guardianRelationship: true,
+      },
+    });
+
+    return guardianStudents.map((gs) => ({
+      student: PrismaStudentMapper.toDomain(gs.student),
+      guardianRelationship: {
+        id: gs.guardianRelationship.id,
+        name: gs.guardianRelationship.name,
+      },
+    }));
+  }
+
+  async getGuardianChildrenInCampus(
+    guardianId: string,
+    campusId: string,
+  ): Promise<GuardianStudent[]> {
+    const guardianStudents = await this.prisma.guardianStudent.findMany({
+      where: {
+        guardianId,
+        guardian: {
+          campusId,
+          isArchived: false,
+        },
+        student: {
+          campusId,
+          isArchived: false,
+        },
+      },
+      include: {
+        student: true,
+        guardianRelationship: true,
+      },
+      orderBy: {
+        student: {
+          fullName: "asc",
+        },
       },
     });
 

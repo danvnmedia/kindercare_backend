@@ -1,6 +1,6 @@
 # KNOWNS
 
-Canonical repository guidance for agents working in this project.
+Human-readable repository guidance for agents working in this project. Runtime-critical AI bootstrap guidance is provided by Knowns MCP `initial` and on-demand `help`.
 
 ## Table of Contents
 
@@ -21,20 +21,23 @@ Canonical repository guidance for agents working in this project.
 
 ## Source of Truth
 
-- `KNOWNS.md` is the canonical repo-level guidance file.
+- MCP `initial` is the primary runtime bootstrap for AI agents.
+- MCP `help("tool.*")` and `help("workflow.*")` are the primary on-demand sources for tool schemas and workflow recipes.
+- `KNOWNS.md` is a human-readable project reference and fallback when MCP is unavailable.
 - `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `OPENCODE.md`, and `.github/copilot-instructions.md` are compatibility shims for runtimes that auto-detect those filenames.
 - If guidance appears in multiple places, follow this precedence order:
   1. System instructions
   2. Developer instructions
-  3. `KNOWNS.md`
-  4. Compatibility shim files
-  5. Other repository docs
-- If a shim file and `KNOWNS.md` differ, treat `KNOWNS.md` as correct.
+  3. MCP `initial` / `help`
+  4. Skills
+  5. `KNOWNS.md`
+  6. Compatibility shim files
+  7. Other repository docs
 
 ## TL;DR
 
-- Read `KNOWNS.md` first.
 - Call `initial` at session start — it returns project readiness, knowledge counts, code intelligence rules, workflow guidance, and available tools.
+- Use `help("tool.action")`, `help("tool.*")`, or `help("workflow.*")` when a domain/action schema is not visible.
 - Use Knowns as the memory layer for humans and the AI-friendly working layer for agents.
 - Search before reading; read only the sections and docs relevant to the current task.
 - Never manually edit Knowns-managed task or doc markdown.
@@ -48,12 +51,14 @@ Canonical repository guidance for agents working in this project.
 - Knowns is the project's memory layer for humans and the AI-friendly operating layer for agents.
 - Knowns manages tasks, docs, templates, specs, references, and workflow state in one place.
 - Tasks and docs may reference each other using `@task-<id>`, `@doc/<path>`, and `@template/<name>`.
-- `KNOWNS.md` defines repo-level operating rules; skills define step-by-step execution flows.
+- MCP `initial` defines runtime operating rules; skills define step-by-step execution flows.
+- `KNOWNS.md` provides a stable human-readable reference for those conventions.
 - Long guidance should be retrieved by section, not blindly injected in full on every request.
 
 ## How Agents Should Read This File
 
-- Always read `## Source of Truth` and `## TL;DR` first.
+- Prefer MCP `initial` and `help` first. Read this file when MCP guidance is unavailable or deeper project context is needed.
+- If reading this file, start with `## Source of Truth` and `## TL;DR`.
 - For short or obvious tasks, use the summary sections plus the relevant section only.
 - For tool usage questions, read `## Tool Selection` and `## Common Mistakes`.
 - For safety-sensitive work, read `## Critical Rules` and `## Git Safety`.
@@ -108,7 +113,7 @@ Canonical repository guidance for agents working in this project.
 - Use `appendNotes` for progress updates; `notes` replaces existing notes and should only be used intentionally.
 - Validate before marking work complete.
 - Use skills for detailed workflow execution instead of duplicating step-by-step process here.
-- Compatibility shim files must stay lightweight and must direct agents back to `KNOWNS.md` for behavioral rules instead of restating divergent guidance.
+- Compatibility shim files must stay lightweight and must direct agents to MCP `initial`/`help` first, with `KNOWNS.md` as fallback reference.
 
 ## Git Safety
 
@@ -121,7 +126,7 @@ Canonical repository guidance for agents working in this project.
 
 ## Context Retrieval Strategy
 
-- Treat `KNOWNS.md` as an indexed manual, not a prompt to fully inject every time.
+- Treat `KNOWNS.md` as an indexed manual, not a required startup prompt or content to fully inject every time.
 - Read in this order when context is limited:
   1. `## Source of Truth`
   2. `## TL;DR`
@@ -167,14 +172,14 @@ Canonical repository guidance for agents working in this project.
 
 ## Recommended File Roles
 
-- `KNOWNS.md`: canonical repo-level guide.
-- Compatibility shim files: lightweight entrypoints that introduce Knowns and redirect runtimes to `KNOWNS.md`.
+- `KNOWNS.md`: human-readable repo-level reference and fallback.
+- Compatibility shim files: lightweight entrypoints that introduce Knowns and redirect runtimes to MCP `initial`/`help`.
 - Other docs: deeper domain, feature, or workflow references.
 
 ## Compatibility Pattern
 
 - Keep shim files short.
-- In every shim file, explicitly say that `KNOWNS.md` is canonical.
+- In every shim file, explicitly say MCP `initial` is the primary bootstrap and `KNOWNS.md` is optional fallback/reference.
 - Preserve the `<!-- KNOWNS GUIDELINES START -->` and `<!-- KNOWNS GUIDELINES END -->` markers in shim files so tooling can detect and sync them reliably.
 
 ## Maintenance Rules
@@ -182,4 +187,4 @@ Canonical repository guidance for agents working in this project.
 - Update the Knowns generator when the repository's operational rules change.
 - Keep top sections stable so automated loaders can depend on them.
 - Prefer adding new sections over bloating the TL;DR.
-- Keep workflow details in skills when possible; keep `KNOWNS.md` focused on rules, conventions, and routing.
+- Keep workflow details in skills and MCP `help` when possible; keep `KNOWNS.md` focused on human-readable rules, conventions, and routing.

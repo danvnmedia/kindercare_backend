@@ -2,7 +2,7 @@
 title: README
 description: Documentation index — start here. Map of every doc with one-line summaries grouped by topic.
 createdAt: '2026-01-03T19:51:45.975Z'
-updatedAt: '2026-06-13T16:03:34.943Z'
+updatedAt: '2026-06-25T16:35:23.768Z'
 tags:
   - index
   - overview
@@ -92,10 +92,11 @@ tags:
 
 ## Specs and PRDs
 
+General docs should not link to SDD specs or task records. When spec-derived behavior becomes durable, write the actual rule into the relevant architecture, pattern, guide, or handoff doc.
+
 | Doc | What it covers |
 |-----|----------------|
-| @doc/specs/class-enrollment-period-model | Enrollment as a period (start, end, exit reason) — preserves history of class membership |
-| @doc/prds/post-and-content-management | Original PRD for Post CMS — Facebook-style posts, approval workflow |
+| @doc/prds/post-and-content-management | Original PRD for Post CMS - Facebook-style posts, approval workflow |
 | @doc/prds/frontend-multi-campus-migration-guide | Frontend guide for adopting the multi-campus headers and types |
 
 ---

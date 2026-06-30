@@ -50,6 +50,12 @@ model Campus {
   mealMenus      MealMenu[]
   mealMenuConfig MealMenuConfig?
 
+  // Relations - Weekly Plan
+  weeklyPlans WeeklyPlan[]
+
+  // Relations - Absence Requests
+  absenceRequests AbsenceRequest[]
+
   // Settings (one-to-one)
   campusSetting CampusSetting?
 
@@ -256,6 +262,10 @@ model User {
   attendanceUpdates     StudentAttendanceSummary[] @relation("AttendanceUpdates")
   attendanceLogsCreated StudentAttendanceLog[]     @relation("AttendanceLogCreator")
 
+  // Absence Requests
+  absenceRequestSubmissions AbsenceRequest[] @relation("AbsenceRequestSubmissions")
+  absenceRequestReviews     AbsenceRequest[] @relation("AbsenceRequestReviews")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -321,6 +331,9 @@ model Student {
 
   // Guardians relationship
   guardians GuardianStudent[]
+
+  // Absence Requests
+  absenceRequests AbsenceRequest[]
 
   // Class & Enrollment
   enrollments           Enrollment[]
@@ -436,6 +449,9 @@ model Guardian {
   // Children relationship
   children GuardianStudent[]
 
+  // Absence Requests
+  absenceRequests AbsenceRequest[]
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -547,6 +563,7 @@ model Class {
   attendanceSummaries StudentAttendanceSummary[]
   postAudiences       PostAudience[]
   mealMenus           MealMenu[]
+  weeklyPlans         WeeklyPlan[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1049,6 +1066,104 @@ model MealMenuConfig {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("meal_menu_config")
+}
+
+// ==========================================
+// WEEKLY PLAN
+// ==========================================
+
+model WeeklyPlan {
+  id            String   @id @default(uuid()) @db.Uuid
+  campusId      String   @map("campus_id") @db.Uuid
+  classId       String   @map("class_id") @db.Uuid
+  weekStartDate DateTime @map("week_start_date") @db.Date
+  theme         String?  @db.VarChar(255)
+  isArchived    Boolean  @default(false) @map("is_archived")
+
+  campus Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  class  Class             @relation(fields: [classId], references: [id], onDelete: Restrict)
+  blocks WeeklyPlanBlock[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Prisma cannot express the active-only class/week uniqueness; migration SQL
+  // owns the partial unique index for active rows.
+  @@index([campusId, classId, weekStartDate], map: "weekly_plan_class_week_lookup")
+  @@index([campusId])
+  @@index([classId])
+  @@index([weekStartDate])
+  @@index([isArchived])
+  @@map("weekly_plan")
+}
+
+model WeeklyPlanBlock {
+  id           String @id @default(uuid()) @db.Uuid
+  weeklyPlanId String @map("weekly_plan_id") @db.Uuid
+  dayOfWeek    Int    @map("day_of_week")
+  startMinute  Int    @map("start_minute")
+  endMinute    Int    @map("end_minute")
+  order        Int    @default(0)
+
+  weeklyPlan WeeklyPlan           @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+  activities WeeklyPlanActivity[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([weeklyPlanId])
+  @@index([dayOfWeek, startMinute])
+  @@map("weekly_plan_block")
+}
+
+model WeeklyPlanActivity {
+  id                String  @id @default(uuid()) @db.Uuid
+  weeklyPlanBlockId String  @map("weekly_plan_block_id") @db.Uuid
+  order             Int
+  title             String  @db.VarChar(500)
+  description       String? @db.VarChar(2000)
+
+  weeklyPlanBlock WeeklyPlanBlock @relation(fields: [weeklyPlanBlockId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([weeklyPlanBlockId, order], map: "weekly_plan_activity_order_key")
+  @@index([weeklyPlanBlockId])
+  @@map("weekly_plan_activity")
+}
+
+model AbsenceRequest {
+  id                  String    @id @default(uuid()) @db.Uuid
+  campusId            String    @map("campus_id") @db.Uuid
+  studentId           String    @map("student_id") @db.Uuid
+  requesterGuardianId String    @map("requester_guardian_id") @db.Uuid
+  requesterUserId     String?   @map("requester_user_id") @db.Uuid
+  absenceType         String    @map("absence_type") @db.VarChar(20)
+  startDate           DateTime  @map("start_date") @db.Date
+  endDate             DateTime  @map("end_date") @db.Date
+  startMinute         Int?      @map("start_minute")
+  endMinute           Int?      @map("end_minute")
+  description         String    @db.VarChar(1000)
+  status              String    @default("PENDING") @db.VarChar(20)
+  reviewedById        String?   @map("reviewed_by_id") @db.Uuid
+  reviewedAt          DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote          String?   @map("review_note") @db.VarChar(1000)
+
+  campus            Campus   @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  requesterGuardian Guardian @relation(fields: [requesterGuardianId], references: [id], onDelete: Restrict)
+  requesterUser     User?    @relation("AbsenceRequestSubmissions", fields: [requesterUserId], references: [id], onDelete: SetNull)
+  reviewedBy        User?    @relation("AbsenceRequestReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([campusId, status, startDate], map: "absence_request_campus_status_start_idx")
+  @@index([campusId, studentId, startDate, endDate], map: "absence_request_student_date_idx")
+  @@index([requesterGuardianId, createdAt], map: "absence_request_guardian_history_idx")
+  @@index([reviewedById])
+  @@map("absence_request")
 }
 
 // ==========================================

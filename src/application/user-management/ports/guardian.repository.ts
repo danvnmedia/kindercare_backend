@@ -4,7 +4,11 @@
  * Implementation will be provided by infrastructure layer
  */
 
-import { Guardian } from "@/domain/user-management/entities/guardian.entity";
+import {
+  Guardian,
+  GuardianStudent,
+} from "@/domain/user-management/entities/guardian.entity";
+import { Campus } from "@/domain/campus/entities/campus.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -46,6 +50,19 @@ export abstract class GuardianRepository {
   abstract findByUserId(userId: string): Promise<Guardian | null>;
 
   /**
+   * Find an active guardian by user ID within a specific campus.
+   */
+  abstract findByUserIdInCampus(
+    userId: string,
+    campusId: string,
+  ): Promise<Guardian | null>;
+
+  /**
+   * Find non-archived campuses where the user has an active guardian profile.
+   */
+  abstract findActiveCampusesByUserId(userId: string): Promise<Campus[]>;
+
+  /**
    * Find guardians by campus ID
    */
   abstract findByCampusId(campusId: string): Promise<Guardian[]>;
@@ -84,4 +101,12 @@ export abstract class GuardianRepository {
    * Get guardian's children (students)
    */
   abstract getGuardianChildren(guardianId: string): Promise<any[]>;
+
+  /**
+   * Get a guardian's active children in a specific campus.
+   */
+  abstract getGuardianChildrenInCampus(
+    guardianId: string,
+    campusId: string,
+  ): Promise<GuardianStudent[]>;
 }

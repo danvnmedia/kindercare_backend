@@ -22,7 +22,7 @@ export interface Role {
  * Role creation data (without generated fields)
  */
 export interface CreateRoleData {
-  id: string;
+  id?: string;
   name: string;
   description?: string | null;
   campusId?: string | null;

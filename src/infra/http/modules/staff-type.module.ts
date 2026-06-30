@@ -20,6 +20,9 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
 import { UserManagementModule } from "./user-management.module";
 import { RequestContextModule } from "../context/request-context.module";
 import { CampusModule } from "./campus.module";
+import { CampusGuard } from "../guards/campus.guard";
+import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
+import { PermissionsGuard } from "../guards/permissions.guard";
 
 /**
  * Staff Type Module
@@ -53,6 +56,11 @@ import { CampusModule } from "./campus.module";
       provide: "STAFF_TYPE_REPOSITORY",
       useClass: PrismaStaffTypeRepository,
     },
+
+    // Guards
+    ClerkAuthGuard,
+    CampusGuard,
+    PermissionsGuard,
   ],
   exports: ["STAFF_TYPE_REPOSITORY"],
 })

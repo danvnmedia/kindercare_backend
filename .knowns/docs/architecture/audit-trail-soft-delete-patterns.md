@@ -2,7 +2,7 @@
 title: 'Audit Trail & Soft Delete Patterns'
 description: Audit timestamps, audit user fields, isArchived vs isDeleted+deletedAt, history tables, and Clerk identity locking
 createdAt: '2026-05-05T17:44:33.648Z'
-updatedAt: '2026-05-05T17:44:33.648Z'
+updatedAt: '2026-06-25T16:37:30.868Z'
 tags:
   - architecture
   - audit
@@ -46,14 +46,14 @@ These fields use `onDelete: SetNull` for optional ones and `onDelete: Restrict` 
 
 ## Actor Plumbing for Admin Audit Log
 
-The repository ships a single audit-log substrate driven by @doc/specs/admin-audit-log. Every mutation use case in the 19-action vocabulary (FR-1 of the spec) accepts `currentUser: User` as the last positional argument on `execute()`. The use case body does not consume it directly today — the audit-recorder service wired in subsequent tasks (`9cpd5c`, `nrm0az`, `e5v0wm`, `2c5xq3`, `7ah3pb`) reads `currentUser.id` and emits one `audit_event` row per action inside the same DB transaction.
+The repository ships a single audit-log substrate for audited administrative mutations. Every mutation use case in the current 19-action audit vocabulary accepts `currentUser: User` as the last positional argument on `execute()`. The use case body may not consume it directly; transaction-bound audit recorder wiring reads `currentUser.id` and emits one `audit_event` row per audited action inside the same database transaction as the business mutation.
 
-**Established by:** @task-qyz3jv (actor-context-plumbing).
+This actor-context plumbing was established so controllers pass the authenticated actor consistently before audit emission is wired into individual use cases.
 
 **Pattern at the boundary:**
 
 ```typescript
-// controller — extracts the actor and threads it
+// controller - extracts the actor and threads it
 async create(
   @CampusContext() campusId: string,
   @Body() dto: CreateStudentRequest,
@@ -62,19 +62,19 @@ async create(
   return this.createStudentUseCase.execute({ ...dto, campusId }, currentUser);
 }
 
-// use case — accepts the actor but does not consume yet
+// use case - accepts the actor for audit wiring
 async execute(
   input: CreateStudentInput,
   currentUser: User,
 ): Promise<Student> {
-  void currentUser; // audit recorder wiring lands in the audit-log task
+  void currentUser; // retained until this mutation emits audit records
   // ... existing logic
 }
 ```
 
-**Why `@CurrentUser()` works:** the decorator returns `request.user`, populated lazily by `RequestContext.getUser()`. Every in-scope route is decorated with `@RequireCampusAccess()` (which triggers `CampusGuard.canActivate()` → `requestContext.getUser()`), so by the time the param decorator fires, `request.user` already holds the full `User` domain entity. For controller methods *without* a downstream guard that triggers `RequestContext.getUser()`, call `this.requestContext.getUserOrFail()` directly.
+**Why `@CurrentUser()` works:** the decorator returns `request.user`, populated lazily by `RequestContext.getUser()`. Every in-scope route is decorated with `@RequireCampusAccess()` (which triggers `CampusGuard.canActivate()` -> `requestContext.getUser()`), so by the time the param decorator fires, `request.user` already holds the full `User` domain entity. For controller methods without a downstream guard that triggers `RequestContext.getUser()`, call `this.requestContext.getUserOrFail()` directly.
 
-**In-scope use cases (per `specs/admin-audit-log` FR-1):**
+**In-scope audited use cases:**
 
 | Group | Use case | Action |
 |---|---|---|
@@ -97,11 +97,11 @@ async execute(
 | Creation | `create-student.use-case` | `CREATE_STUDENT` |
 | | `create-guardian.use-case` | `CREATE_GUARDIAN` |
 | | `create-staff.use-case` | `CREATE_STAFF` |
-| Guardian ↔ Student | `link-student-with-guardian.use-case` (student-keyed) | `LINK_GUARDIAN_TO_STUDENT` |
+| Guardian / Student | `link-student-with-guardian.use-case` (student-keyed) | `LINK_GUARDIAN_TO_STUDENT` |
 | | `link-student-to-guardian.use-case` (guardian-keyed) | `LINK_GUARDIAN_TO_STUDENT` |
 | | `unlink-student-from-guardian.use-case` (both controllers) | `UNLINK_GUARDIAN_FROM_STUDENT` |
 
-**Out of scope:** attendance, role/permission management, grade-level / school-year / class CRUD, category reorder. Adding these would expand the action vocabulary in @doc/specs/admin-audit-log and is tracked as a separate work item.
+**Out of scope:** attendance, role/permission management, grade-level / school-year / class CRUD, and category reorder. Adding these areas requires expanding the audit action vocabulary and should be handled as separate scoped work.
 
 ## Soft Delete: `isArchived` (Recoverable)
 

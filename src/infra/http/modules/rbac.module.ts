@@ -7,6 +7,7 @@ import {
   SeedPermissionsUseCase,
   AssignPermissionsToRoleUseCase,
   RemovePermissionsFromRoleUseCase,
+  ReplaceRolePermissionsUseCase,
 } from "@/application/rbac";
 
 // Repositories
@@ -36,6 +37,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     SeedPermissionsUseCase,
     AssignPermissionsToRoleUseCase,
     RemovePermissionsFromRoleUseCase,
+    ReplaceRolePermissionsUseCase,
 
     // Repositories
     {
@@ -54,6 +56,7 @@ import { StandardResponseModule } from "@/core/modules/standard-response/standar
     SeedPermissionsUseCase,
     AssignPermissionsToRoleUseCase,
     RemovePermissionsFromRoleUseCase,
+    ReplaceRolePermissionsUseCase,
   ],
 })
 export class RbacModule {}

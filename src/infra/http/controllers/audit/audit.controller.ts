@@ -69,7 +69,7 @@ export class AuditController {
   @ApiOperation({
     summary: "Get audit events for a target entity",
     description:
-      "Returns audit events for the given student/guardian/staff target within the current campus, DESC by createdAt. Pagination via limit/offset.",
+      "Returns audit events for the given student/guardian/staff/role target within the current campus, DESC by createdAt. Pagination via limit/offset.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -78,7 +78,7 @@ export class AuditController {
   })
   @ApiQuery({
     name: "targetType",
-    enum: ["student", "guardian", "staff"],
+    enum: ["student", "guardian", "staff", "role"],
     required: true,
   })
   @ApiQuery({ name: "targetId", required: true, format: "uuid" })
