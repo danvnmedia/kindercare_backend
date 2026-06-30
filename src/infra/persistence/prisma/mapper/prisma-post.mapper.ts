@@ -174,26 +174,24 @@ export class PrismaPostMapper {
     );
   }
 
-  static toPrismaPostAudience(postAudience: PostAudience): PrismaPostAudience {
-    const prismaPostAudience: PrismaPostAudience = {
+  static toPrismaPostAudience(postAudience: PostAudience) {
+    const prismaPostAudience: {
+      id: string;
+      type: AudienceType;
+      postId: string;
+      campusId: string;
+      classId: string | null;
+    } = {
       id: postAudience.id.toString(),
       type: postAudience.audienceType,
       postId: postAudience.postId.toString(),
       campusId: postAudience.campusId,
       classId: null,
-      studentId: null,
-      gradeLevelId: null,
     };
 
     switch (postAudience.audienceType) {
       case AudienceType.CLASS:
         prismaPostAudience.classId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.STUDENT:
-        prismaPostAudience.studentId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.GRADE:
-        prismaPostAudience.gradeLevelId = postAudience.audienceId.toString();
         break;
     }
     return prismaPostAudience;
@@ -203,27 +201,22 @@ export class PrismaPostMapper {
    * Convert PostAudience to Prisma create input for nested relations.
    * Note: postId is omitted because Prisma handles it automatically in nested creates.
    */
-  static toPrismaPostAudienceCreate(
-    postAudience: PostAudience,
-  ): Omit<PrismaPostAudience, "postId"> {
-    const result: Omit<PrismaPostAudience, "postId"> = {
+  static toPrismaPostAudienceCreate(postAudience: PostAudience) {
+    const result: {
+      id: string;
+      type: AudienceType;
+      campusId: string;
+      classId: string | null;
+    } = {
       id: postAudience.id.toString(),
       type: postAudience.audienceType,
       campusId: postAudience.campusId,
       classId: null,
-      studentId: null,
-      gradeLevelId: null,
     };
 
     switch (postAudience.audienceType) {
       case AudienceType.CLASS:
         result.classId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.STUDENT:
-        result.studentId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.GRADE:
-        result.gradeLevelId = postAudience.audienceId.toString();
         break;
     }
     return result;

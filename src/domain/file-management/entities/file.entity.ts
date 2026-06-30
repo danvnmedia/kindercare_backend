@@ -19,8 +19,8 @@ export interface FileProps {
 
   // File Purpose/Context
   purpose: FilePurpose;
-  audienceType: FileAudienceType | null; // ALL, GRADE, CLASS, STUDENT - mirrors post audience scope
-  audienceId: string | null; // The specific grade/class/student ID (null for ALL or GENERAL)
+  audienceType: FileAudienceType | null; // ALL or CLASS storage grouping
+  audienceId: string | null; // The specific class ID (null for ALL or GENERAL)
   classId: string | null; // Direct relation to class
   gradeLevelId: string | null; // Direct relation to grade level
 

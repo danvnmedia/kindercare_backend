@@ -97,6 +97,38 @@ async function main() {
     `Assigned ${rolePermissionResult.count} new permissions to Super Admin.`,
   );
 
+  const superAdminClerkUid = process.env.SEED_SUPER_ADMIN_CLERK_UID;
+  if (superAdminClerkUid) {
+    const adminUser = await prisma.user.upsert({
+      where: { clerkUid: superAdminClerkUid },
+      update: { isActive: true },
+      create: {
+        clerkUid: superAdminClerkUid,
+        isActive: true,
+      },
+    });
+
+    await prisma.userRole.createMany({
+      data: [
+        {
+          userId: adminUser.id,
+          roleId: superAdminRole.id,
+          campusId: null,
+          grantedViaStaffTypeId: null,
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    console.log(
+      `Seeded Super Admin user assignment for Clerk UID: ${superAdminClerkUid}`,
+    );
+  } else {
+    console.log(
+      "Skipped Super Admin user assignment (SEED_SUPER_ADMIN_CLERK_UID not set).",
+    );
+  }
+
   console.log("Seeding completed.");
 }
 

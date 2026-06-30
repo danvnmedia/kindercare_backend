@@ -43,4 +43,9 @@ export abstract class FileRepository {
    * Note: Excludes soft-deleted files by default
    */
   abstract findByKey(key: string): Promise<File | null>;
+
+  /**
+   * Find pending files older than cutoff for upload cleanup.
+   */
+  abstract findStalePending(cutoff: Date, limit: number): Promise<File[]>;
 }

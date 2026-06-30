@@ -1,8 +1,6 @@
 import { BadRequestException } from "@nestjs/common";
 import { AudienceType } from "@/domain/content-management";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
-import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
-import { StudentRepository } from "@/application/user-management/ports/student.repository";
 
 export interface AudienceInput {
   audienceType: AudienceType;
@@ -11,8 +9,6 @@ export interface AudienceInput {
 
 export interface AudienceValidationDependencies {
   classRepository: ClassRepository;
-  gradeLevelRepository: GradeLevelRepository;
-  studentRepository: StudentRepository;
 }
 
 interface CampusScopedEntity {
@@ -42,7 +38,7 @@ function ensureEntitiesExistAndBelongToCampus<T extends CampusScopedEntity>(
 }
 
 /**
- * Validates that all audience targets (Class, GradeLevel, Student) belong to the specified campus.
+ * Validates that all audience targets (Class) belong to the specified campus.
  * Throws BadRequestException if any target is from a different campus or doesn't exist.
  *
  * @param audiences - Array of audience inputs to validate
@@ -59,8 +55,6 @@ export async function validateAudiencesBelongToCampus(
   }
 
   const classIds = new Set<string>();
-  const gradeIds = new Set<string>();
-  const studentIds = new Set<string>();
 
   // Collect IDs by type
   for (const audience of audiences) {
@@ -70,16 +64,7 @@ export async function validateAudiencesBelongToCampus(
           classIds.add(audience.audienceId);
         }
         break;
-      case AudienceType.GRADE:
-        if (audience.audienceId) {
-          gradeIds.add(audience.audienceId);
-        }
-        break;
-      case AudienceType.STUDENT:
-        if (audience.audienceId) {
-          studentIds.add(audience.audienceId);
-        }
-        break;
+
       case AudienceType.ALL:
         // ALL audience type doesn't have a specific target, skip validation
         break;
@@ -87,8 +72,6 @@ export async function validateAudiencesBelongToCampus(
   }
 
   const uniqueClassIds = [...classIds];
-  const uniqueGradeIds = [...gradeIds];
-  const uniqueStudentIds = [...studentIds];
 
   // Validate classes belong to campus
   if (uniqueClassIds.length > 0) {
@@ -100,41 +83,6 @@ export async function validateAudiencesBelongToCampus(
       "Class",
       (classEntity) =>
         `Class "${classEntity.name}" does not belong to the specified campus`,
-    );
-  }
-
-  // Validate grade levels belong to campus
-  if (uniqueGradeIds.length > 0) {
-    const gradeLevels = await Promise.all(
-      uniqueGradeIds.map((gradeId) =>
-        deps.gradeLevelRepository.findById(gradeId),
-      ),
-    );
-    const existingGradeLevels = gradeLevels.filter(
-      (gradeLevel): gradeLevel is NonNullable<typeof gradeLevel> =>
-        gradeLevel !== null,
-    );
-
-    ensureEntitiesExistAndBelongToCampus(
-      uniqueGradeIds,
-      existingGradeLevels,
-      campusId,
-      "Grade level",
-      (gradeLevel) =>
-        `Grade level "${gradeLevel.name}" does not belong to the specified campus`,
-    );
-  }
-
-  // Validate students belong to campus
-  if (uniqueStudentIds.length > 0) {
-    const students = await deps.studentRepository.findByIds(uniqueStudentIds);
-    ensureEntitiesExistAndBelongToCampus(
-      uniqueStudentIds,
-      students,
-      campusId,
-      "Student",
-      (student) =>
-        `Student "${student.fullName}" does not belong to the specified campus`,
     );
   }
 }

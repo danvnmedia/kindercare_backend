@@ -12,8 +12,7 @@ import { PostCategoryRepository } from "../ports/post-category.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
-import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
-import { StudentRepository } from "@/application/user-management/ports/student.repository";
+
 import { PostContent } from "@/domain/content-management/entities/post.entity";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
@@ -42,10 +41,6 @@ export class UpdatePostUseCase {
     private readonly postRepository: PostRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
-    @Inject("GRADE_LEVEL_REPOSITORY")
-    private readonly gradeLevelRepository: GradeLevelRepository,
-    @Inject("STUDENT_REPOSITORY")
-    private readonly studentRepository: StudentRepository,
     @Inject("POST_CATEGORY_REPOSITORY")
     private readonly postCategoryRepository: PostCategoryRepository,
     private readonly unitOfWork: UnitOfWorkPort,
@@ -172,8 +167,6 @@ export class UpdatePostUseCase {
       // Validate that new audiences belong to the post's campus
       await validateAudiencesBelongToCampus(input.audiences, post.campusId, {
         classRepository: this.classRepository,
-        gradeLevelRepository: this.gradeLevelRepository,
-        studentRepository: this.studentRepository,
       });
 
       const audiences = input.audiences.map((audience) => {

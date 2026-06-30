@@ -23,8 +23,6 @@ const POST_INCLUDE = {
   audiences: {
     include: {
       class: { select: { id: true, name: true } },
-      student: { select: { id: true, fullName: true } },
-      gradeLevel: { select: { id: true, name: true } },
     },
   },
   attachments: { include: { file: true } },

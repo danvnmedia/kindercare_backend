@@ -1,3 +1,10 @@
+export interface StoredObjectMetadata {
+  exists: boolean;
+  contentLength?: number;
+  contentType?: string;
+  eTag?: string;
+}
+
 export abstract class StorageService {
   abstract getUploadSignedUrl(
     key: string,
@@ -6,4 +13,5 @@ export abstract class StorageService {
   ): Promise<string>;
   abstract delete(key: string): Promise<void>;
   abstract getSignedUrl(key: string, expiresIn?: number): Promise<string>;
+  abstract getObjectMetadata(key: string): Promise<StoredObjectMetadata>;
 }

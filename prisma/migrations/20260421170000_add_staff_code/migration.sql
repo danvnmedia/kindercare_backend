@@ -6,7 +6,21 @@
 
 */
 -- AlterTable
-ALTER TABLE "staff" ADD COLUMN "staff_code" TEXT NOT NULL;
+ALTER TABLE "staff" ADD COLUMN "staff_code" TEXT;
+
+-- Backfill existing staff before enforcing NOT NULL.
+WITH numbered_staff AS (
+    SELECT
+        "id",
+        ROW_NUMBER() OVER (PARTITION BY "campus_id" ORDER BY "created_at", "id") AS row_number
+    FROM "staff"
+)
+UPDATE "staff"
+SET "staff_code" = 'STF' || LPAD(numbered_staff.row_number::text, 5, '0')
+FROM numbered_staff
+WHERE "staff"."id" = numbered_staff."id";
+
+ALTER TABLE "staff" ALTER COLUMN "staff_code" SET NOT NULL;
 
 -- CreateTable
 CREATE TABLE "staff_code_sequence" (

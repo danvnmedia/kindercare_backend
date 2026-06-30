@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { StorageService } from "../../application/file-management/ports/storage.service";
@@ -20,7 +21,7 @@ export class R2StorageService implements StorageService {
     const accessKeyId = process.env.CLOUDFLARE_R2_ACCESS_KEY;
     const secretAccessKey = process.env.CLOUDFLARE_R2_SECRET_KEY;
     const bucketName = process.env.CLOUDFLARE_R2_BUCKET;
-    const publicDomain = process.env.R2_PUBLIC_DOMAIN;
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN?.replace(/\/+$/, "");
 
     if (!accountId || !accessKeyId || !secretAccessKey || !bucketName) {
       throw new Error(
@@ -50,12 +51,12 @@ export class R2StorageService implements StorageService {
    * Generate a presigned URL for uploading a file to R2
    * @param key - The storage key (path) for the file
    * @param contentType - The MIME type of the file
-   * @param expiresIn - URL expiration time in seconds (default: 1 hour)
+   * @param expiresIn - URL expiration time in seconds (default: 15 minutes)
    */
   async getUploadSignedUrl(
     key: string,
     contentType: string,
-    expiresIn: number = 3600,
+    expiresIn: number = 900,
   ): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
@@ -79,7 +80,8 @@ export class R2StorageService implements StorageService {
   async getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
     // If public domain is configured, return public URL
     if (this.publicDomain) {
-      return `${this.publicDomain}/${key}`;
+      const encodedKey = key.split("/").map(encodeURIComponent).join("/");
+      return `${this.publicDomain}/${encodedKey}`;
     }
 
     // Otherwise, generate a presigned URL
@@ -108,5 +110,37 @@ export class R2StorageService implements StorageService {
 
     await this.s3Client.send(command);
     this.logger.debug(`Deleted file with key: ${key}`);
+  }
+
+  async getObjectMetadata(key: string) {
+    try {
+      const result = await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+        }),
+      );
+
+      return {
+        exists: true,
+        contentLength: result.ContentLength,
+        contentType: result.ContentType,
+        eTag: result.ETag,
+      };
+    } catch (error) {
+      const errorName = error instanceof Error ? error.name : "";
+      const statusCode = (error as { $metadata?: { httpStatusCode?: number } })
+        ?.$metadata?.httpStatusCode;
+
+      if (
+        errorName === "NotFound" ||
+        errorName === "NoSuchKey" ||
+        statusCode === 404
+      ) {
+        return { exists: false };
+      }
+
+      throw error;
+    }
   }
 }

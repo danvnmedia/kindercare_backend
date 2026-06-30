@@ -5,12 +5,19 @@ services:
       dockerfile: Dockerfile.prod
     env_file:
       - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-kindercare}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - PORT=${APP_PORT:-8000}
+      - SEED_SUPER_ADMIN_CLERK_UID=${SEED_SUPER_ADMIN_CLERK_UID:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    command: node dist/src/main.js
+    command: npm run start:prod
     networks:
       - kindercare-network
 
@@ -19,11 +26,15 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
-      - POSTGRES_DB=${POSTGRES_DB:-nestjs_boilerplate}
+      - POSTGRES_DB=${POSTGRES_DB:-kindercare}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d nestjs_boilerplate"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-kindercare}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5

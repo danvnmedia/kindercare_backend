@@ -25,7 +25,7 @@ class CreateAudienceDto {
 
   @ApiPropertyOptional({
     description:
-      "The audience ID (required for CLASS, GRADE, STUDENT types; optional for ALL type where campusId from header is used)",
+      "The audience ID (required for CLASS; optional for ALL where campusId from header is used)",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @ValidateIf((o) => o.audienceType !== AudienceType.ALL)

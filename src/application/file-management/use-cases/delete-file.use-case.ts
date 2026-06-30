@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { FileRepository } from "../ports/file.repository";
@@ -6,6 +10,8 @@ import { FileRepository } from "../ports/file.repository";
 export interface DeleteFileUseCaseRequest {
   fileId: UniqueEntityID;
   campusId: string;
+  deletedBy: string;
+  isAdmin: boolean;
 }
 
 export type DeleteFileUseCaseResponse = Either<Error, void>;
@@ -17,6 +23,8 @@ export class DeleteFileUseCase {
   async execute({
     fileId,
     campusId,
+    deletedBy,
+    isAdmin,
   }: DeleteFileUseCaseRequest): Promise<DeleteFileUseCaseResponse> {
     // Find file with campus verification to ensure user can only delete files in their campus
     const file = await this.fileRepository.findByIdAndCampus(
@@ -25,7 +33,15 @@ export class DeleteFileUseCase {
     );
 
     if (!file) {
-      return left(new Error("File not found."));
+      return left(new NotFoundException("File not found."));
+    }
+
+    if (file.uploadedBy !== deletedBy && !isAdmin) {
+      return left(
+        new ForbiddenException(
+          "Only the uploader or an admin can delete this file.",
+        ),
+      );
     }
 
     // Soft delete - mark as deleted but keep the file in storage for potential recovery

@@ -11,8 +11,7 @@ import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
-import { GradeLevelRepository } from "@/application/class-management/ports/grade-level.repository";
-import { StudentRepository } from "@/application/user-management/ports/student.repository";
+
 import { PostContent } from "@/domain/content-management/entities/post.entity";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
@@ -43,10 +42,6 @@ export class CreatePostUseCase {
     private readonly userRepository: UserRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
-    @Inject("GRADE_LEVEL_REPOSITORY")
-    private readonly gradeLevelRepository: GradeLevelRepository,
-    @Inject("STUDENT_REPOSITORY")
-    private readonly studentRepository: StudentRepository,
     @Inject("POST_CATEGORY_REPOSITORY")
     private readonly postCategoryRepository: PostCategoryRepository,
     private readonly unitOfWork: UnitOfWorkPort,
@@ -63,8 +58,6 @@ export class CreatePostUseCase {
       // Validate that audience targets belong to the specified campus
       await validateAudiencesBelongToCampus(input.audiences, input.campusId, {
         classRepository: this.classRepository,
-        gradeLevelRepository: this.gradeLevelRepository,
-        studentRepository: this.studentRepository,
       });
 
       await this.validateCategoryIds(input.categoryIds, input.campusId);

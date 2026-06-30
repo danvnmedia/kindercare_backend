@@ -30,6 +30,7 @@ export class PrismaAttachmentRepository implements AttachmentRepository {
           ...prismaAttachment,
           order: (maxOrder._max.order ?? -1) + 1,
         },
+        include: { file: true },
       });
     });
     return PrismaAttachmentMapper.toDomain(createdAttachment);
@@ -41,6 +42,7 @@ export class PrismaAttachmentRepository implements AttachmentRepository {
 
   async removeAndCompact(postId: string, attachmentId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM post WHERE id = ${postId}::uuid FOR UPDATE`;
       const deleted = await tx.attachment.deleteMany({
         where: { id: attachmentId, postId },
       });
@@ -72,6 +74,8 @@ export class PrismaAttachmentRepository implements AttachmentRepository {
   async findByPostId(postId: string): Promise<Attachment[]> {
     const attachments = await this.prisma.attachment.findMany({
       where: { postId },
+      include: { file: true },
+      orderBy: { order: "asc" },
     });
     return attachments.map(PrismaAttachmentMapper.toDomain);
   }
@@ -81,6 +85,7 @@ export class PrismaAttachmentRepository implements AttachmentRepository {
     orders: { id: string; order: number }[],
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM post WHERE id = ${postId}::uuid FOR UPDATE`;
       for (const [index, item] of orders.entries()) {
         const result = await tx.attachment.updateMany({
           where: { id: item.id, postId },

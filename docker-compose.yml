@@ -19,6 +19,7 @@ services:
       # SEED_ON_EMPTY=true - Only seed if database is empty (recommended for dev)
       - SEED_ON_EMPTY=${SEED_ON_EMPTY:-true}
       - SEED_DATABASE=${SEED_DATABASE:-false}
+      - SEED_SUPER_ADMIN_CLERK_UID=${SEED_SUPER_ADMIN_CLERK_UID:-}
     depends_on:
       postgres:
         condition: service_healthy

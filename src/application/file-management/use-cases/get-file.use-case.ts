@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { File } from "@/domain/file-management/entities/file.entity";
@@ -31,7 +35,11 @@ export class GetFileUseCase {
     );
 
     if (!file) {
-      return left(new Error("File not found."));
+      return left(new NotFoundException("File not found."));
+    }
+
+    if (!file.isAvailable()) {
+      return left(new BadRequestException("File is not available."));
     }
 
     const url = await this.storageService.getSignedUrl(file.key);

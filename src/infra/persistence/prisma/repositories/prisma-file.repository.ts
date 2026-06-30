@@ -6,6 +6,7 @@ import { PrismaFileMapper } from "../mapper/prisma-file.mapper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
 
 @Injectable()
 export class PrismaFileRepository implements FileRepository {
@@ -107,5 +108,18 @@ export class PrismaFileRepository implements FileRepository {
       },
     });
     return file ? PrismaFileMapper.toDomain(file) : null;
+  }
+
+  async findStalePending(cutoff: Date, limit: number): Promise<File[]> {
+    const files = await this.prisma.file.findMany({
+      where: {
+        status: FileStatus.PENDING,
+        isDeleted: false,
+        updatedAt: { lt: cutoff },
+      },
+      orderBy: { updatedAt: "asc" },
+      take: limit,
+    });
+    return files.map(PrismaFileMapper.toDomain);
   }
 }

@@ -73,13 +73,7 @@ export const FILE_VALIDATION = {
 
   // Allowed MIME types by category
   ALLOWED_MIME_TYPES: {
-    images: [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "image/svg+xml",
-    ],
+    images: ["image/jpeg", "image/png", "image/gif", "image/webp"],
     documents: [
       "application/pdf",
       "application/msword",
@@ -162,9 +156,25 @@ export function validateFileUpload(
     };
   }
 
+  if (!filename.trim()) {
+    return {
+      isValid: false,
+      error: "Filename is required",
+    };
+  }
+
+  if (/[\\/\0\x00-\x1F\x7F]/.test(filename)) {
+    return {
+      isValid: false,
+      error: "Filename contains invalid characters",
+    };
+  }
+
   // Check for blocked extensions
-  const extension = filename.toLowerCase().substring(filename.lastIndexOf("."));
-  if (FILE_VALIDATION.BLOCKED_EXTENSIONS.includes(extension)) {
+  const lastDot = filename.lastIndexOf(".");
+  const extension =
+    lastDot === -1 ? "" : filename.toLowerCase().substring(lastDot);
+  if (extension && FILE_VALIDATION.BLOCKED_EXTENSIONS.includes(extension)) {
     return {
       isValid: false,
       error: `File extension '${extension}' is not allowed for security reasons`,
@@ -193,6 +203,29 @@ export function validateFileUpload(
  * @param key - The file key/path to sanitize
  * @returns The sanitized key or throws an error if invalid
  */
+export function sanitizeUploadFilename(filename: string): string {
+  const normalized = filename.normalize("NFKC").trim();
+  const extensionIndex = normalized.lastIndexOf(".");
+  const rawBase =
+    extensionIndex > 0 ? normalized.slice(0, extensionIndex) : normalized;
+  const rawExtension =
+    extensionIndex > 0 ? normalized.slice(extensionIndex) : "";
+
+  const safeBase = rawBase
+    .replace(/[\\/\0\x00-\x1F\x7F]/g, "-")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[.-]+|[.-]+$/g, "")
+    .slice(0, 120);
+
+  const safeExtension = rawExtension
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, "")
+    .slice(0, 20);
+
+  return `${safeBase || "file"}${safeExtension}`;
+}
+
 export function sanitizeFilePath(key: string): string {
   // Remove null bytes
   const sanitized = key.replace(/\0/g, "");

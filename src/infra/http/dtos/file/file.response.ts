@@ -26,6 +26,13 @@ export class FileResponse {
   @Expose()
   key: string;
 
+  @ApiProperty({
+    description: "Backend-resolved URL for downloading or displaying the file.",
+    example: "https://cdn.example.com/files/campus-id/post/ALL/uuid-file.jpg",
+  })
+  @Expose()
+  url: string;
+
   @ApiPropertyOptional({
     description: "The S3 bucket name where the file is stored.",
     example: "kindercare-uploads",
@@ -86,7 +93,8 @@ export class FileResponse {
   audienceType: FileAudienceType | null;
 
   @ApiPropertyOptional({
-    description: "The specific audience ID (class/grade/student UUID).",
+    description:
+      "The specific audience ID (class UUID when audienceType is CLASS).",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @Expose()

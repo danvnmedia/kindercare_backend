@@ -1,4 +1,5 @@
 import { Post } from "@/domain/content-management";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -19,6 +20,11 @@ export abstract class PostRepository {
   ): Promise<Post>;
   abstract delete(id: string): Promise<void>;
   abstract findById(id: string): Promise<Post | null>;
+  abstract findVisibleById(
+    id: string,
+    campusId: string,
+    viewer: User,
+  ): Promise<Post | null>;
   /**
    * Find posts with filtering, sorting, pagination
    * @param query - Standard query parameters (filters, sorts, pagination)
@@ -27,6 +33,7 @@ export abstract class PostRepository {
   abstract findMany(
     query: StandardRequestDto,
     scope?: Record<string, any>,
+    viewer?: User,
   ): Promise<PaginatedResult<Post>>;
 
   /**

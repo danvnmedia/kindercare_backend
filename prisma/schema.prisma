@@ -339,7 +339,6 @@ model Student {
   enrollments           Enrollment[]
   schoolYearEnrollments SchoolYearEnrollment[]
   attendanceSummaries   StudentAttendanceSummary[]
-  postAudiences         PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -504,7 +503,6 @@ model GradeLevel {
 
   classes               Class[]
   mealMenus             MealMenu[]
-  postAudiences         PostAudience[]
   schoolYearEnrollments SchoolYearEnrollment[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -845,27 +843,21 @@ model PostHistoryStatus {
 }
 
 model PostAudience {
-  id           String  @id @default(uuid()) @db.Uuid
-  type         String
-  postId       String  @map("post_id") @db.Uuid
-  classId      String? @map("class_id") @db.Uuid
-  studentId    String? @map("student_id") @db.Uuid
-  gradeLevelId String? @map("grade_level_id") @db.Uuid
+  id      String  @id @default(uuid()) @db.Uuid
+  type    String
+  postId  String  @map("post_id") @db.Uuid
+  classId String? @map("class_id") @db.Uuid
 
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
 
-  post       Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  class      Class?      @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student    Student?    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: Cascade)
+  post  Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  class Class? @relation(fields: [classId], references: [id], onDelete: Cascade)
 
   @@index([campusId])
   @@index([postId])
   @@index([classId])
-  @@index([studentId])
-  @@index([gradeLevelId])
   @@index([type])
   @@map("post_audience")
 }
@@ -1236,6 +1228,7 @@ model Attachment {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([postId, order])
+  @@unique([postId, fileId])
   @@index([postId])
   @@index([fileId])
   @@map("attachment")

@@ -1,10 +1,8 @@
 /**
- * Audience type for file visibility scope.
- * Mirrors the AudienceType from content-management for consistency.
+ * Optional storage grouping for universal uploads.
+ * Omit or use ALL for campus-wide files; use CLASS for class-scoped files.
  */
 export enum FileAudienceType {
   ALL = "ALL",
-  GRADE = "GRADE",
   CLASS = "CLASS",
-  STUDENT = "STUDENT",
 }

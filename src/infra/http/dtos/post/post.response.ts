@@ -45,26 +45,6 @@ class AudienceClassResponse {
   name: string;
 }
 
-class AudienceStudentResponse {
-  @ApiProperty({ example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f" })
-  @Expose()
-  id: string;
-
-  @ApiProperty({ example: "Jane Doe" })
-  @Expose()
-  fullName: string;
-}
-
-class AudienceGradeLevelResponse {
-  @ApiProperty({ example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f" })
-  @Expose()
-  id: string;
-
-  @ApiProperty({ example: "Grade 1" })
-  @Expose()
-  name: string;
-}
-
 export class PostAudienceResponse {
   @ApiProperty({
     description: "The ID of the audience.",
@@ -103,22 +83,6 @@ export class PostAudienceResponse {
   @Expose()
   classId?: string;
 
-  @ApiProperty({
-    description: "The ID of the student.",
-    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
-    required: false,
-  })
-  @Expose()
-  studentId?: string;
-
-  @ApiProperty({
-    description: "The ID of the grade level.",
-    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
-    required: false,
-  })
-  @Expose()
-  gradeLevelId?: string;
-
   @ApiPropertyOptional({
     description: "The class details (when type is CLASS).",
     type: AudienceClassResponse,
@@ -126,22 +90,6 @@ export class PostAudienceResponse {
   @Expose()
   @Type(() => AudienceClassResponse)
   class?: AudienceClassResponse;
-
-  @ApiPropertyOptional({
-    description: "The student details (when type is STUDENT).",
-    type: AudienceStudentResponse,
-  })
-  @Expose()
-  @Type(() => AudienceStudentResponse)
-  student?: AudienceStudentResponse;
-
-  @ApiPropertyOptional({
-    description: "The grade level details (when type is GRADE).",
-    type: AudienceGradeLevelResponse,
-  })
-  @Expose()
-  @Type(() => AudienceGradeLevelResponse)
-  gradeLevel?: AudienceGradeLevelResponse;
 }
 
 export class AttachmentResponse {

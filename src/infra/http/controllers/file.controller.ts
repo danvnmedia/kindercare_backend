@@ -32,6 +32,7 @@ import { InitiateUploadRequest } from "../dtos/file/initiate-upload.request";
 import { FileResponse } from "../dtos/file/file.response";
 import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
 import { User } from "@/domain/user-management/user.entity";
+import { File } from "@/domain/file-management/entities/file.entity";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 
 /**
@@ -59,6 +60,31 @@ export class FileController {
     private completeUploadUseCase: CompleteUploadUseCase,
   ) {}
 
+  private toFileResponse(file: File, url: string): FileResponse {
+    return {
+      id: file.id.toString(),
+      campusId: file.campusId,
+      key: file.key,
+      url,
+      bucket: file.bucket,
+      storageProvider: file.storageProvider,
+      filename: file.filename,
+      mimeType: file.mimeType,
+      size: Number(file.size),
+      extension: file.extension,
+      purpose: file.purpose,
+      audienceType: file.audienceType,
+      audienceId: file.audienceId,
+      classId: file.classId,
+      gradeLevelId: file.gradeLevelId,
+      status: file.status,
+      isDeleted: file.isDeleted,
+      uploadedBy: file.uploadedBy,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+    };
+  }
+
   @Post("initiate-upload")
   @RequireCampusAccess()
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
@@ -76,7 +102,6 @@ export class FileController {
       filename,
       mimeType,
       size,
-      storageProvider,
       purpose,
       audienceType,
       audienceId,
@@ -90,7 +115,6 @@ export class FileController {
       size,
       uploadedBy: user.id.toString(),
       campusId,
-      storageProvider,
       purpose,
       audienceType,
       audienceId,
@@ -116,18 +140,20 @@ export class FileController {
   })
   async completeUpload(
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
     @CampusContext() campusId: string,
   ) {
     const result = await this.completeUploadUseCase.execute({
       fileId: new UniqueEntityID(id),
       campusId,
+      uploadedBy: user.id.toString(),
     });
 
     if (result.isLeft()) {
       throw result.value;
     }
 
-    return result.value;
+    return this.toFileResponse(result.value.file, result.value.url);
   }
 
   @Get(":id")
@@ -150,8 +176,7 @@ export class FileController {
       throw result.value;
     }
 
-    const { file } = result.value;
-    return file;
+    return this.toFileResponse(result.value.file, result.value.url);
   }
 
   @Delete(":id")
@@ -160,11 +185,14 @@ export class FileController {
   @ApiOperation({ summary: "Soft delete a file" })
   async delete(
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
     @CampusContext() campusId: string,
   ): Promise<void> {
     const result = await this.deleteFile.execute({
       fileId: new UniqueEntityID(id),
       campusId,
+      deletedBy: user.id.toString(),
+      isAdmin: user.hasSystemRole(),
     });
 
     if (result.isLeft()) {

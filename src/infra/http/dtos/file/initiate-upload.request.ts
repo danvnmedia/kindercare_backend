@@ -4,9 +4,9 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
-  IsIn,
   IsEnum,
   IsUUID,
+  ValidateIf,
 } from "class-validator";
 import { FilePurpose } from "@/domain/file-management/enums/file-purpose.enum";
 import { FileAudienceType } from "@/domain/file-management/enums/file-audience-type.enum";
@@ -27,16 +27,6 @@ export class InitiateUploadRequest {
   size: number;
 
   @ApiPropertyOptional({
-    description:
-      "Storage provider (defaults to LOCAL, R2 uses S3-compatible API)",
-    enum: ["S3", "R2", "GCS", "LOCAL"],
-    default: "LOCAL",
-  })
-  @IsOptional()
-  @IsIn(["S3", "R2", "GCS", "LOCAL"])
-  storageProvider?: string;
-
-  @ApiPropertyOptional({
     description: "Purpose of the file upload",
     enum: FilePurpose,
     default: FilePurpose.GENERAL,
@@ -47,18 +37,26 @@ export class InitiateUploadRequest {
 
   @ApiPropertyOptional({
     description:
-      "Audience type for file visibility scope (mirrors post audience). Required for POST_ATTACHMENT purpose.",
+      "Optional audience type for storage grouping. Omit or use ALL for campus-wide uploads; use CLASS for class-scoped uploads.",
     enum: FileAudienceType,
   })
-  @IsOptional()
+  @ValidateIf(
+    (request: InitiateUploadRequest) => request.audienceType !== undefined,
+  )
+  @IsNotEmpty()
   @IsEnum(FileAudienceType)
   audienceType?: FileAudienceType;
 
   @ApiPropertyOptional({
     description:
-      "The specific audience ID (class/grade/student UUID). Required when audienceType is CLASS, GRADE, or STUDENT.",
+      "The specific class UUID. Required when audienceType is CLASS.",
   })
-  @IsOptional()
+  @ValidateIf(
+    (request: InitiateUploadRequest) =>
+      request.audienceType === FileAudienceType.CLASS ||
+      request.audienceId !== undefined,
+  )
+  @IsNotEmpty()
   @IsUUID()
   audienceId?: string;
 }

@@ -58,4 +58,23 @@ export class LocalStorageService implements StorageService {
     void expiresIn;
     return `${BASE_URL}/${key}`;
   }
+
+  async getObjectMetadata(key: string) {
+    const sanitizedKey = sanitizeFilePath(key);
+    const filePath = path.join(UPLOAD_DIR, sanitizedKey);
+
+    try {
+      const stats = await fs.promises.stat(filePath);
+      return {
+        exists: stats.isFile(),
+        contentLength: stats.size,
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        return { exists: false };
+      }
+
+      throw error;
+    }
+  }
 }

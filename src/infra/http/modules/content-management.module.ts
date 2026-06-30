@@ -81,8 +81,8 @@ import { RequestContextModule } from "../context/request-context.module";
     ClerkModule,
     StandardResponseModule,
     AuthModule,
-    UserManagementModule, // For USER_REPOSITORY, STUDENT_REPOSITORY
-    ClassManagementModule, // For CLASS_REPOSITORY, GRADE_LEVEL_REPOSITORY
+    UserManagementModule, // For USER_REPOSITORY
+    ClassManagementModule, // For CLASS_REPOSITORY
     FileManagementModule, // For FILE_REPOSITORY
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
     RequestContextModule, // Provides RequestContext for CampusGuard

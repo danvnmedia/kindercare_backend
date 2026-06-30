@@ -4,7 +4,8 @@ import {
   CreatePostOptions,
   UpdatePostOptions,
 } from "@/application/content-management/ports/post.repository";
-import { Post } from "@/domain/content-management";
+import { Post, AudienceType } from "@/domain/content-management";
+import { User } from "@/domain/user-management/user.entity";
 import { PrismaService } from "../prisma.service";
 import {
   PrismaPostMapper,
@@ -46,8 +47,6 @@ export class PrismaPostRepository implements PostRepository {
         audiences: {
           include: {
             class: { select: { id: true, name: true } },
-            student: { select: { id: true, fullName: true } },
-            gradeLevel: { select: { id: true, name: true } },
           },
         },
         attachments: {
@@ -98,8 +97,6 @@ export class PrismaPostRepository implements PostRepository {
         audiences: {
           include: {
             class: { select: { id: true, name: true } },
-            student: { select: { id: true, fullName: true } },
-            gradeLevel: { select: { id: true, name: true } },
           },
         },
         attachments: {
@@ -143,8 +140,6 @@ export class PrismaPostRepository implements PostRepository {
         audiences: {
           include: {
             class: { select: { id: true, name: true } },
-            student: { select: { id: true, fullName: true } },
-            gradeLevel: { select: { id: true, name: true } },
           },
         },
         attachments: {
@@ -162,9 +157,50 @@ export class PrismaPostRepository implements PostRepository {
     return post ? PrismaPostMapper.toDomain(post) : null;
   }
 
+  async findVisibleById(
+    id: string,
+    campusId: string,
+    viewer: User,
+  ): Promise<Post | null> {
+    const post = (await this.prisma.post.findFirst({
+      where: {
+        id,
+        campusId,
+        isDeleted: false,
+        ...this.buildViewerVisibilityWhere(viewer),
+      },
+      include: {
+        author: {
+          include: {
+            guardians: true,
+            staffs: true,
+          },
+        },
+        audiences: {
+          include: {
+            class: { select: { id: true, name: true } },
+          },
+        },
+        attachments: {
+          include: {
+            file: true,
+          },
+        },
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
+    })) as PrismaPostWithRelations | null;
+
+    return post ? PrismaPostMapper.toDomain(post) : null;
+  }
+
   async findMany(
     query: StandardRequestDto,
     scope?: Record<string, any>,
+    viewer?: User,
   ): Promise<PaginatedResult<Post>> {
     const categoryIdFilter = query.filterInfo?.filters?.categoryId;
     const searchTerm = this.getSearchTerm(query);
@@ -189,6 +225,7 @@ export class PrismaPostRepository implements PostRepository {
 
     const where = {
       isDeleted: false,
+      ...this.buildViewerVisibilityWhere(viewer),
       ...(categoryIdFilter
         ? {
             categories: {
@@ -224,8 +261,6 @@ export class PrismaPostRepository implements PostRepository {
           audiences: {
             include: {
               class: { select: { id: true, name: true } },
-              student: { select: { id: true, fullName: true } },
-              gradeLevel: { select: { id: true, name: true } },
             },
           },
           attachments: {
@@ -243,6 +278,41 @@ export class PrismaPostRepository implements PostRepository {
       },
       PrismaPostMapper,
     );
+  }
+
+  private buildViewerVisibilityWhere(viewer?: User): Record<string, any> {
+    if (!viewer || viewer.profile?.type !== "guardian") return {};
+
+    const guardianId = viewer.profile.id;
+
+    return {
+      AND: [
+        {
+          OR: [
+            { audiences: { some: { type: AudienceType.ALL } } },
+            {
+              audiences: {
+                some: {
+                  type: AudienceType.CLASS,
+                  class: {
+                    enrollments: {
+                      some: {
+                        endDate: null,
+                        student: {
+                          guardians: {
+                            some: { guardianId },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    };
   }
 
   private getSearchTerm(query: StandardRequestDto): string | null {
@@ -310,8 +380,6 @@ export class PrismaPostRepository implements PostRepository {
         audiences: {
           include: {
             class: { select: { id: true, name: true } },
-            student: { select: { id: true, fullName: true } },
-            gradeLevel: { select: { id: true, name: true } },
           },
         },
         attachments: {

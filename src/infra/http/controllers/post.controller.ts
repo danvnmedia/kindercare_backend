@@ -158,8 +158,9 @@ export class PostController {
   async findMany(
     @CampusContext() campusId: string,
     @StandardRequestParam() params: StandardRequest,
+    @CurrentUser() user: User,
   ) {
-    return this.listPostsUseCase.execute(campusId, params);
+    return this.listPostsUseCase.execute(campusId, params, user);
   }
 
   @Get("pending-approval")
@@ -219,8 +220,9 @@ export class PostController {
   async findOne(
     @CampusContext() campusId: string,
     @Param("id") id: string,
+    @CurrentUser() user: User,
   ): Promise<PostEntity> {
-    return this.getPostUseCase.execute(campusId, id);
+    return this.getPostUseCase.execute(campusId, id, user);
   }
 
   @Patch(":id")

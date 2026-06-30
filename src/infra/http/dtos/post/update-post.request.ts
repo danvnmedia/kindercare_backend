@@ -24,8 +24,7 @@ class UpdateAudienceDto {
   audienceType: AudienceType;
 
   @ApiPropertyOptional({
-    description:
-      "The audience ID (required for CLASS, GRADE, STUDENT types; optional for ALL type)",
+    description: "The audience ID (required for CLASS; optional for ALL)",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @ValidateIf((o) => o.audienceType !== AudienceType.ALL)
