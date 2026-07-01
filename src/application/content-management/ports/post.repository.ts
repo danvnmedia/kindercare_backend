@@ -47,5 +47,5 @@ export abstract class PostRepository {
    * Excludes posts with expired pins.
    * Orders by createdAt descending.
    */
-  abstract findPinnedByCampus(campusId: string): Promise<Post[]>;
+  abstract findPinnedByCampus(campusId: string, viewer?: User): Promise<Post[]>;
 }

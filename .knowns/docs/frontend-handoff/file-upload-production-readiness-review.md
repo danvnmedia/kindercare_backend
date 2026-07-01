@@ -132,12 +132,6 @@ Manual deployed browser smoke is still required because local static validation 
 
 ## Loose Docs Consolidation 2026-07-01
 
-Reviewed loose files:
-
-- `docs/validation/file-upload-flow-validation.md`
-- `CMS-backend.md`
-- `CMS-backend-fix-refactor-plan.md`
-
 Merged durable upload-specific points into `@doc/architecture/file-management-and-storage` and durable CMS audit/refactor points into `@doc/architecture/content-management-system`.
 
 The loose validation doc had one stale complete-upload sequence section that listed marking `UPLOADED` before metadata verification. Canonical current behavior is metadata verification first, then `UPLOADED` persistence.

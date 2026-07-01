@@ -201,8 +201,9 @@ export class PostController {
   })
   async getPinnedPosts(
     @CampusContext() campusId: string,
+    @CurrentUser() user: User,
   ): Promise<PostEntity[]> {
-    return this.getPinnedPostsUseCase.execute(campusId);
+    return this.getPinnedPostsUseCase.execute(campusId, user);
   }
 
   @Get(":id")

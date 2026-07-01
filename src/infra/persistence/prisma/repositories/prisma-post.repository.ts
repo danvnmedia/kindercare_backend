@@ -360,14 +360,17 @@ export class PrismaPostRepository implements PostRepository {
     });
   }
 
-  async findPinnedByCampus(campusId: string): Promise<Post[]> {
+  async findPinnedByCampus(campusId: string, viewer?: User): Promise<Post[]> {
     const now = new Date();
     const posts = (await this.prisma.post.findMany({
       where: {
         campusId,
         isPinned: true,
         isDeleted: false,
-        OR: [{ pinnedUntil: null }, { pinnedUntil: { gt: now } }],
+        AND: [
+          this.buildViewerVisibilityWhere(viewer),
+          { OR: [{ pinnedUntil: null }, { pinnedUntil: { gt: now } }] },
+        ],
       },
       orderBy: { createdAt: "desc" },
       include: {
