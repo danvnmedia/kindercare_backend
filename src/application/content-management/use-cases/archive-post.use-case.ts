@@ -14,6 +14,7 @@ import {
   Post,
   PostHistoryStatus,
 } from "@/domain/content-management";
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 @Injectable()
 export class ArchivePostUseCase {
@@ -46,9 +47,10 @@ export class ArchivePostUseCase {
         );
       }
 
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
-        throw new ForbiddenException("Only administrators can archive posts");
+      if (!userHasPostPermission(currentUser, campusId, "post.update")) {
+        throw new ForbiddenException(
+          "You do not have permission to archive posts",
+        );
       }
 
       if (post.status !== PostStatus.PUBLISHED) {

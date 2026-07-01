@@ -2,6 +2,7 @@ import { Injectable, Inject, ForbiddenException, Logger } from "@nestjs/common";
 import { PostApprovalRequestRepository } from "../../ports/post-approval-request.repository";
 import { User } from "@/domain/user-management/user.entity";
 import { PostApprovalRequest } from "@/domain/content-management";
+import { userHasPostPermission } from "../authorization/post-permission.helper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -22,11 +23,9 @@ export class GetPendingApprovalsUseCase {
     try {
       this.logger.log(`Getting pending approvals for campus: ${campusId}`);
 
-      // Validate admin permission
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
+      if (!userHasPostPermission(currentUser, campusId, "post.review")) {
         throw new ForbiddenException(
-          "Only administrators can view pending approvals",
+          "You do not have permission to view pending approvals",
         );
       }
 

@@ -22,7 +22,11 @@ export class DeletePostCommentUseCase {
     private readonly postCommentRepository: PostCommentRepository,
   ) {}
 
-  async execute(commentId: string, currentUser: User): Promise<void> {
+  async execute(
+    commentId: string,
+    campusId: string,
+    currentUser: User,
+  ): Promise<void> {
     try {
       this.logger.log(
         `Deleting comment: ${commentId} by user: ${currentUser.id}`,
@@ -42,7 +46,20 @@ export class DeletePostCommentUseCase {
         return;
       }
 
-      const canDelete = await this.checkDeletePermission(comment, currentUser);
+      const post = await this.postRepository.findVisibleById(
+        comment.postId,
+        campusId,
+        currentUser,
+      );
+      if (!post) {
+        throw new NotFoundException(`Comment with ID ${commentId} not found`);
+      }
+
+      const canDelete = this.checkDeletePermission(
+        comment,
+        currentUser,
+        post.authorId,
+      );
       if (!canDelete) {
         throw new ForbiddenException(
           "You do not have permission to delete this comment",
@@ -62,10 +79,11 @@ export class DeletePostCommentUseCase {
     }
   }
 
-  private async checkDeletePermission(
+  private checkDeletePermission(
     comment: PostComment,
     user: User,
-  ): Promise<boolean> {
+    postAuthorId: string,
+  ): boolean {
     // Comment owner can delete
     if (comment.userId === user.id) {
       return true;
@@ -77,8 +95,7 @@ export class DeletePostCommentUseCase {
     }
 
     // Post author can delete any comment on their post
-    const post = await this.postRepository.findById(comment.postId);
-    if (post && post.authorId === user.id) {
+    if (postAuthorId === user.id) {
       return true;
     }
 

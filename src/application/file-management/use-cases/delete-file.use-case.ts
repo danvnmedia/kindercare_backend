@@ -11,7 +11,7 @@ export interface DeleteFileUseCaseRequest {
   fileId: UniqueEntityID;
   campusId: string;
   deletedBy: string;
-  isAdmin: boolean;
+  canDeleteAny: boolean;
 }
 
 export type DeleteFileUseCaseResponse = Either<Error, void>;
@@ -24,7 +24,7 @@ export class DeleteFileUseCase {
     fileId,
     campusId,
     deletedBy,
-    isAdmin,
+    canDeleteAny,
   }: DeleteFileUseCaseRequest): Promise<DeleteFileUseCaseResponse> {
     // Find file with campus verification to ensure user can only delete files in their campus
     const file = await this.fileRepository.findByIdAndCampus(
@@ -36,10 +36,10 @@ export class DeleteFileUseCase {
       return left(new NotFoundException("File not found."));
     }
 
-    if (file.uploadedBy !== deletedBy && !isAdmin) {
+    if (file.uploadedBy !== deletedBy && !canDeleteAny) {
       return left(
         new ForbiddenException(
-          "Only the uploader or an admin can delete this file.",
+          "Only the uploader or a user with file delete permission can delete this file.",
         ),
       );
     }

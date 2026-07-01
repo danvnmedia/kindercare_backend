@@ -78,9 +78,11 @@ export class CommentController {
   })
   async getPostComments(
     @Param("postId") postId: string,
+    @CampusContext() campusId: string,
+    @CurrentUser() user: User,
     @StandardRequestParam() params: StandardRequest,
   ) {
-    return this.getPostCommentsUseCase.execute(postId, params);
+    return this.getPostCommentsUseCase.execute(postId, campusId, user, params);
   }
 
   @Get("posts/:postId/management-comments")
@@ -225,10 +227,12 @@ export class CommentController {
   async updateComment(
     @Param("commentId") commentId: string,
     @Body() updateCommentDto: UpdateCommentRequest,
+    @CampusContext() campusId: string,
     @CurrentUser() user: User,
   ): Promise<PostComment> {
     return this.updatePostCommentUseCase.execute(
       commentId,
+      campusId,
       { content: updateCommentDto.content },
       user,
     );
@@ -250,8 +254,9 @@ export class CommentController {
   })
   async deleteComment(
     @Param("commentId") commentId: string,
+    @CampusContext() campusId: string,
     @CurrentUser() user: User,
   ): Promise<void> {
-    return this.deletePostCommentUseCase.execute(commentId, user);
+    return this.deletePostCommentUseCase.execute(commentId, campusId, user);
   }
 }

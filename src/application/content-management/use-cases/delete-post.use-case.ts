@@ -8,6 +8,7 @@ import {
 import { PostRepository } from "../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 @Injectable()
 export class DeletePostUseCase {
@@ -41,9 +42,13 @@ export class DeletePostUseCase {
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const isAdmin = currentUser.hasSystemRole();
+      const canDelete = userHasPostPermission(
+        currentUser,
+        campusId,
+        "post.delete",
+      );
 
-      if (!isAuthor && !isAdmin) {
+      if (!isAuthor && !canDelete) {
         throw new ForbiddenException(
           "You are not authorized to delete this post",
         );

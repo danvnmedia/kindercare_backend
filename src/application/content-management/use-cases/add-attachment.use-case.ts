@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 export interface AddAttachmentInput {
   postId: string;
@@ -54,9 +55,13 @@ export class AddAttachmentUseCase {
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const isAdmin = currentUser.hasSystemRole();
+      const canUpdate = userHasPostPermission(
+        currentUser,
+        input.campusId,
+        "post.update",
+      );
 
-      if (!isAuthor && !isAdmin) {
+      if (!isAuthor && !canUpdate) {
         throw new ForbiddenException(
           "You are not authorized to add attachments to this post",
         );

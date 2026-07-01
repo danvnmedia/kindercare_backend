@@ -33,7 +33,10 @@ import { FileResponse } from "../dtos/file/file.response";
 import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
 import { User } from "@/domain/user-management/user.entity";
 import { File } from "@/domain/file-management/entities/file.entity";
+import { RoleEntity } from "@/domain/user-management/role.entity";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 
 /**
  * File Management Controller
@@ -87,6 +90,8 @@ export class FileController {
 
   @Post("initiate-upload")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.create")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({
     summary: "Initiate a file upload",
@@ -133,6 +138,8 @@ export class FileController {
 
   @Post(":id/complete")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.create")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Complete a file upload" })
   @StandardResponse({
@@ -158,6 +165,8 @@ export class FileController {
 
   @Get(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.read")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Get a file by ID" })
   @StandardResponse({
@@ -181,6 +190,8 @@ export class FileController {
 
   @Delete(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.delete")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Soft delete a file" })
   async delete(
@@ -192,7 +203,11 @@ export class FileController {
       fileId: new UniqueEntityID(id),
       campusId,
       deletedBy: user.id.toString(),
-      isAdmin: user.hasSystemRole(),
+      canDeleteAny:
+        user.hasSystemRole() ||
+        user
+          .getRolesForCampus(campusId)
+          .some((role) => RoleEntity.hasPermissionById(role, "file.delete")),
     });
 
     if (result.isLeft()) {

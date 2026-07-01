@@ -2,6 +2,7 @@ import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { PostRepository } from "../../ports/post.repository";
 import { PostCommentRepository } from "../../ports/post-comment.repository";
 import { PostComment } from "@/domain/content-management";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -37,12 +38,18 @@ export class GetPostCommentsUseCase {
 
   async execute(
     postId: string,
+    campusId: string,
+    currentUser: User,
     params: StandardRequest,
   ): Promise<GetPostCommentsResult> {
     try {
       this.logger.log(`Fetching comments for post: ${postId}`);
 
-      const post = await this.postRepository.findById(postId);
+      const post = await this.postRepository.findVisibleById(
+        postId,
+        campusId,
+        currentUser,
+      );
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }

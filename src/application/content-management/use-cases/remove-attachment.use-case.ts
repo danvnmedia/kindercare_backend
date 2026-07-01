@@ -8,6 +8,7 @@ import {
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 @Injectable()
 export class RemoveAttachmentUseCase {
@@ -44,9 +45,13 @@ export class RemoveAttachmentUseCase {
       }
 
       const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const isAdmin = currentUser.hasSystemRole();
+      const canUpdate = userHasPostPermission(
+        currentUser,
+        campusId,
+        "post.update",
+      );
 
-      if (!isAuthor && !isAdmin) {
+      if (!isAuthor && !canUpdate) {
         throw new ForbiddenException(
           "You are not authorized to remove attachments from this post",
         );
