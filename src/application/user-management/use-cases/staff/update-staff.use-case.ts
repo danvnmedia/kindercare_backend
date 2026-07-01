@@ -239,9 +239,7 @@ export class UpdateStaffUseCase {
     // Build the target-set snapshots for `Staff.setStaffTypes`. Carry-over
     // types (in both old and new) reuse their existing snapshot to avoid an
     // unnecessary repo round-trip; added types come from `resolved`.
-    const existingSnapshots = new Map(
-      staff.staffTypes.map((t) => [t.id, t]),
-    );
+    const existingSnapshots = new Map(staff.staffTypes.map((t) => [t.id, t]));
     const newSnapshots: StaffTypeSnapshot[] = input.staffTypeIds.map((id) => {
       const r = resolved.get(id);
       if (r) return { id, name: r.name };
@@ -306,12 +304,7 @@ export class UpdateStaffUseCase {
       this.logger.warn(
         `User not found for staff ${staff.id}, falling back to DB-only update`,
       );
-      return await this.updateDbOnly(
-        staff,
-        input,
-        staffTypeDiff,
-        currentUser,
-      );
+      return await this.updateDbOnly(staff, input, staffTypeDiff, currentUser);
     }
 
     const originalValues: ClerkOriginalValues = {

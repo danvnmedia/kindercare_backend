@@ -124,7 +124,9 @@ export class WeeklyPlanController {
     @CampusContext() campusId: string,
     @Query() query: ListWeeklyPlansQuery,
   ): Promise<PaginatedResult<WeeklyPlan>> {
-    return this.getWeeklyPlansUseCase.execute(this.toListInput(campusId, query));
+    return this.getWeeklyPlansUseCase.execute(
+      this.toListInput(campusId, query),
+    );
   }
 
   @Get("active")

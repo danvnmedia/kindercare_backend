@@ -16,3 +16,8 @@ export * from "./prisma-weekly-plan.mapper";
 export * from "./prisma-student-attendance-summary.mapper";
 export * from "./prisma-student-attendance-log.mapper";
 export * from "./prisma-absence-request.mapper";
+export * from "./prisma-medication-request.mapper";
+export * from "./prisma-student-health-checkup.mapper";
+export * from "./prisma-student-health-event.mapper";
+export * from "./prisma-student-health-instruction.mapper";
+export * from "./prisma-student-health-profile.mapper";

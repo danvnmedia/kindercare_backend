@@ -85,6 +85,46 @@ describe("weekly-plan audit vocab additions", () => {
   });
 });
 
+describe("student-health audit vocab additions", () => {
+  const studentHealthActions = [
+    "UPDATE_STUDENT_HEALTH_PROFILE",
+    "CREATE_STUDENT_HEALTH_CHECKUP",
+    "UPDATE_STUDENT_HEALTH_CHECKUP",
+    "CREATE_STUDENT_HEALTH_INSTRUCTION",
+    "UPDATE_STUDENT_HEALTH_INSTRUCTION",
+    "CREATE_STUDENT_HEALTH_EVENT",
+    "UPDATE_STUDENT_HEALTH_EVENT",
+  ] as const;
+
+  it("registers every student-health audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...studentHealthActions]),
+    );
+  });
+
+  it("maps every student-health action to ADMIN visibility", () => {
+    for (const action of studentHealthActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
+describe("medication audit vocab additions", () => {
+  const medicationActions = ["CREATE_MEDICATION_REQUEST"] as const;
+
+  it("registers every medication audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...medicationActions]),
+    );
+  });
+
+  it("maps every medication action to ADMIN visibility", () => {
+    for (const action of medicationActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
 describe("StaffType audit vocab additions", () => {
   const staffTypeActions = [
     "CREATE_STAFF_TYPE",

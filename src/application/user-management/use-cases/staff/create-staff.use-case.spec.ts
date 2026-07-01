@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { CreateStaffUseCase } from "./create-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
@@ -83,9 +87,11 @@ describe("CreateStaffUseCase", () => {
   beforeEach(() => {
     staffRepo = createMockStaffRepository();
     staffTypeRepo = {
-      findById: jest.fn().mockImplementation(async (id: string) =>
-        stype({ id, defaultRoleId: ROLE_STAFF }),
-      ),
+      findById: jest
+        .fn()
+        .mockImplementation(async (id: string) =>
+          stype({ id, defaultRoleId: ROLE_STAFF }),
+        ),
     } as unknown as jest.Mocked<StaffTypeRepository>;
     mockTx = {
       createUser: jest
@@ -208,10 +214,10 @@ describe("CreateStaffUseCase", () => {
       // Join set is written in input order; ordering for display by
       // `StaffType.order` is the responsibility of the read mapper, not
       // the use case.
-      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith(expect.any(String), [
-        TYPE_TEACHER,
-        TYPE_VICE_PRESIDENT,
-      ]);
+      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith(
+        expect.any(String),
+        [TYPE_TEACHER, TYPE_VICE_PRESIDENT],
+      );
     });
 
     it("emits one provenance entry per type even when only some have defaultRoleId", async () => {
@@ -352,7 +358,9 @@ describe("CreateStaffUseCase", () => {
     it("compensation fires when replaceStaffTypes throws inside the UoW", async () => {
       // Failure point sits between createStaff and the role grant — confirms
       // the saga rolls back regardless of which UoW step throws.
-      mockTx.replaceStaffTypes.mockRejectedValue(new Error("join row insert fail"));
+      mockTx.replaceStaffTypes.mockRejectedValue(
+        new Error("join row insert fail"),
+      );
 
       await expect(useCase.execute(validInput, actor)).rejects.toThrow(
         BadRequestException,

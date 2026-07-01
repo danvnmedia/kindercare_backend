@@ -20,7 +20,9 @@ type PrismaClassStaffWithRelations = PrismaClassStaff & {
   // See @doc/specs/staff-multi-type-refactor (D1) and prisma-class-staff.repository.ts.
   staff?:
     | (PrismaStaff & {
-        staffTypes?: Array<PrismaStaffStaffType & { staffType: PrismaStaffType }>;
+        staffTypes?: Array<
+          PrismaStaffStaffType & { staffType: PrismaStaffType }
+        >;
       })
     | null;
 };

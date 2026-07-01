@@ -96,5 +96,4 @@ export class UpdateStaffRequest {
   @IsOptional()
   @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
   gender?: Gender;
-
 }

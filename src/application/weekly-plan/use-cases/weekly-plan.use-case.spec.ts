@@ -148,7 +148,9 @@ describe("Weekly Plan use cases", () => {
     expect(result.created[0].id).not.toBe(result.created[1].id);
     expect(transactionContext.recordAudit).toHaveBeenCalledTimes(2);
     expect(
-      transactionContext.recordAudit.mock.calls.map(([payload]) => payload.action),
+      transactionContext.recordAudit.mock.calls.map(
+        ([payload]) => payload.action,
+      ),
     ).toEqual(["CREATE_WEEKLY_PLAN", "CREATE_WEEKLY_PLAN"]);
     expect(result.created[0].blocks[0].activities[0]).toEqual({
       order: 0,
@@ -369,7 +371,9 @@ describe("Weekly Plan use cases", () => {
       description: null,
     });
     expect(
-      transactionContext.recordAudit.mock.calls.map(([payload]) => payload.action),
+      transactionContext.recordAudit.mock.calls.map(
+        ([payload]) => payload.action,
+      ),
     ).toEqual(["COPY_WEEKLY_PLAN", "COPY_WEEKLY_PLAN", "COPY_WEEKLY_PLAN"]);
     expect(transactionContext.recordAudit).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -393,8 +397,9 @@ describe("Weekly Plan use cases", () => {
     classRepository.findById.mockImplementation(async (id) =>
       id === missingClassId ? null : makeClass(id),
     );
-    weeklyPlanRepository.findActiveByNaturalKey.mockImplementation(async (key) =>
-      key.classId === conflictClassId ? makeWeeklyPlan("conflict") : null,
+    weeklyPlanRepository.findActiveByNaturalKey.mockImplementation(
+      async (key) =>
+        key.classId === conflictClassId ? makeWeeklyPlan("conflict") : null,
     );
 
     const useCase = new CopyWeeklyPlanUseCase(
@@ -550,9 +555,9 @@ describe("Weekly Plan use cases", () => {
       .mockResolvedValueOnce(source)
       .mockResolvedValueOnce(archived);
     weeklyPlanRepository.findActiveByNaturalKey.mockResolvedValue(null);
-    unitOfWork.run.mockRejectedValueOnce(uniqueError).mockRejectedValueOnce(
-      uniqueError,
-    );
+    unitOfWork.run
+      .mockRejectedValueOnce(uniqueError)
+      .mockRejectedValueOnce(uniqueError);
 
     const copyUseCase = new CopyWeeklyPlanUseCase(
       weeklyPlanRepository,

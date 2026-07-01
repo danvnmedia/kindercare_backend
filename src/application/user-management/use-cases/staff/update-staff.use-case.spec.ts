@@ -316,7 +316,11 @@ describe("UpdateStaffUseCase", () => {
       staffRepo.findById.mockResolvedValue(null);
 
       await expect(
-        useCase.execute("missing", { campusId: CAMPUS_ID, fullName: "X" }, actor),
+        useCase.execute(
+          "missing",
+          { campusId: CAMPUS_ID, fullName: "X" },
+          actor,
+        ),
       ).rejects.toThrow(NotFoundException);
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
@@ -330,7 +334,11 @@ describe("UpdateStaffUseCase", () => {
       staffRepo.findById.mockResolvedValue(staff);
 
       await expect(
-        useCase.execute("staff-1", { campusId: CAMPUS_ID, fullName: "X" }, actor),
+        useCase.execute(
+          "staff-1",
+          { campusId: CAMPUS_ID, fullName: "X" },
+          actor,
+        ),
       ).rejects.toThrow(NotFoundException);
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
@@ -389,7 +397,11 @@ describe("UpdateStaffUseCase", () => {
       staffTypeRepo.findById.mockImplementation(
         async (id: string) =>
           (id === TYPE_C
-            ? stype({ id: TYPE_C, name: "VicePresident", defaultRoleId: ROLE_C })
+            ? stype({
+                id: TYPE_C,
+                name: "VicePresident",
+                defaultRoleId: ROLE_C,
+              })
             : id === TYPE_B
               ? stype({ id: TYPE_B, name: "Nurse", defaultRoleId: ROLE_B })
               : null) as never,
@@ -473,7 +485,9 @@ describe("UpdateStaffUseCase", () => {
         actor,
       );
 
-      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith("staff-1", [TYPE_B]);
+      expect(mockTx.replaceStaffTypes).toHaveBeenCalledWith("staff-1", [
+        TYPE_B,
+      ]);
       expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
       expect(mockTx.assignRoles).not.toHaveBeenCalled();
 
@@ -491,8 +505,7 @@ describe("UpdateStaffUseCase", () => {
       const staff = makeStaff([{ id: TYPE_A, name: "Existing" }]);
       staffRepo.findById.mockResolvedValue(staff);
       staffTypeRepo.findById.mockImplementation(
-        async (id: string) =>
-          stype({ id, defaultRoleId: ROLE_B }) as never,
+        async (id: string) => stype({ id, defaultRoleId: ROLE_B }) as never,
       );
 
       await useCase.execute(
@@ -529,8 +542,7 @@ describe("UpdateStaffUseCase", () => {
       const staff = makeStaff([{ id: TYPE_A, name: "Teacher" }]);
       staffRepo.findById.mockResolvedValue(staff);
       staffTypeRepo.findById.mockImplementation(
-        async (id: string) =>
-          stype({ id, defaultRoleId: ROLE_B }) as never,
+        async (id: string) => stype({ id, defaultRoleId: ROLE_B }) as never,
       );
       mockTx.assignRoles.mockResolvedValueOnce(0);
 

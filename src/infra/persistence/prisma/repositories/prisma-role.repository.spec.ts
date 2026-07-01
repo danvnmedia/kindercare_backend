@@ -17,8 +17,7 @@ describe("PrismaRoleRepository.getRoleMembers", () => {
             roleId: ROLE_ID,
             campusId: CAMPUS_ID,
             assignedAt,
-            grantedViaStaffTypeId:
-              "55555555-5555-4555-a555-555555555555",
+            grantedViaStaffTypeId: "55555555-5555-4555-a555-555555555555",
             grantedViaStaffType: {
               id: "55555555-5555-4555-a555-555555555555",
               name: "Teacher",

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  Logger,
-} from "@nestjs/common";
+import { Injectable, Inject, Logger } from "@nestjs/common";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { PermissionRepository } from "../ports/permission.repository";
 import { RoleRepository } from "@/application/user-management/ports/role.repository";
@@ -59,9 +55,7 @@ export class RemovePermissionsFromRoleUseCase {
       .sort();
 
     if (removedPermissionIds.length === 0) {
-      this.logger.log(
-        `No assigned permissions to remove from role ${roleId}`,
-      );
+      this.logger.log(`No assigned permissions to remove from role ${roleId}`);
       return;
     }
 
@@ -83,12 +77,9 @@ export class RemovePermissionsFromRoleUseCase {
           targetType: "role",
           targetId: roleId,
           campusId,
-          context: buildPermissionMutationContext(
-            role,
-            campusId,
-            currentUser,
-            { removedPermissionIds },
-          ),
+          context: buildPermissionMutationContext(role, campusId, currentUser, {
+            removedPermissionIds,
+          }),
           beforeValue: { permissionIds: beforePermissionIds },
           afterValue: { permissionIds: afterPermissionIds },
         });

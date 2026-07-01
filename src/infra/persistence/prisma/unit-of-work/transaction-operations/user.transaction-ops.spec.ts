@@ -180,10 +180,10 @@ describe("UserTransactionOps", () => {
     it("returns 0 when no tracked grant matches any of the supplied provenance IDs", async () => {
       tx.userRole.deleteMany.mockResolvedValue({ count: 0 });
 
-      const deleted = await ops.revokeRolesByProvenance(
-        "user-with-no-grant",
-        ["stype-1", "stype-2"],
-      );
+      const deleted = await ops.revokeRolesByProvenance("user-with-no-grant", [
+        "stype-1",
+        "stype-2",
+      ]);
 
       expect(deleted).toBe(0);
     });
