@@ -14,10 +14,7 @@ import {
 import { User } from "@/domain/user-management/user.entity";
 import { RoleRepository } from "../../ports/role.repository";
 import { CampusRepository } from "@/application/campus/ports/campus.repository";
-import {
-  buildRoleAuditContext,
-  pickRoleAuditFields,
-} from "./role-audit";
+import { buildRoleAuditContext, pickRoleAuditFields } from "./role-audit";
 
 export interface CreateRoleInput {
   name: string;

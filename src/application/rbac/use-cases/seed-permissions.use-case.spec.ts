@@ -29,6 +29,24 @@ const ABSENCE_REQUEST_PERMISSION_IDS = [
   "absence_request.delete",
 ];
 
+const STUDENT_HEALTH_PERMISSION_IDS = [
+  "student_health.read",
+  "student_health.create",
+  "student_health.update",
+];
+
+const MEDICATION_PERMISSION_IDS = [
+  "medication_request.list",
+  "medication_request.read",
+  "medication_request.create",
+  "medication_request.update",
+  "medication_request.delete",
+  "medication_administration.list",
+  "medication_administration.read",
+  "medication_administration.create",
+  "medication_administration.update",
+];
+
 describe("SeedPermissionsUseCase", () => {
   let repository: jest.Mocked<PermissionRepository>;
   let useCase: SeedPermissionsUseCase;
@@ -103,6 +121,30 @@ describe("SeedPermissionsUseCase", () => {
     for (const id of ABSENCE_REQUEST_PERMISSION_IDS) {
       const permission = permissions.find((item) => item.id === id);
       expect(permission?.module).toBe("absence_request");
+      expect(permission?.description).toEqual(expect.any(String));
+    }
+  });
+
+  it("includes all student-health permission IDs in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(expect.arrayContaining(STUDENT_HEALTH_PERMISSION_IDS));
+    for (const id of STUDENT_HEALTH_PERMISSION_IDS) {
+      const permission = permissions.find((item) => item.id === id);
+      expect(permission?.module).toBe("student_health");
+      expect(permission?.description).toEqual(expect.any(String));
+    }
+  });
+
+  it("includes all medication permission IDs in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(expect.arrayContaining(MEDICATION_PERMISSION_IDS));
+    for (const id of MEDICATION_PERMISSION_IDS) {
+      const permission = permissions.find((item) => item.id === id);
+      expect(permission?.module).toBe(id.split(".")[0]);
       expect(permission?.description).toEqual(expect.any(String));
     }
   });

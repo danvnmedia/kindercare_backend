@@ -101,7 +101,9 @@ describe("AssignUsersToRoleUseCase", () => {
       // Message must name BOTH the role's home campus and the requested
       // campus so the FE can surface a clear "wrong campus" error.
       await expect(promise).rejects.toThrow(
-        new RegExp(`${otherCampusId}.*${campusId}|${campusId}.*${otherCampusId}`),
+        new RegExp(
+          `${otherCampusId}.*${campusId}|${campusId}.*${otherCampusId}`,
+        ),
       );
 
       expect(unitOfWork.run).not.toHaveBeenCalled();

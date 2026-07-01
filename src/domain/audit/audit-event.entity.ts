@@ -21,7 +21,12 @@ export type AuditTargetType =
   | "role"
   | "meal_menu"
   | "meal_menu_config"
-  | "weekly_plan";
+  | "weekly_plan"
+  | "student_health_profile"
+  | "student_health_checkup"
+  | "student_health_instruction"
+  | "student_health_event"
+  | "medication_request";
 
 /**
  * AuditEvent — read-only projection of the `audit_event` table.

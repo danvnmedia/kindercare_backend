@@ -267,8 +267,13 @@ describe("PrismaStaffRepository", () => {
         campusId: "campus-1",
       });
 
-      const { prismaArg, modelName, mapper, params: passedParams, options } =
-        callArgs();
+      const {
+        prismaArg,
+        modelName,
+        mapper,
+        params: passedParams,
+        options,
+      } = callArgs();
       expect(prismaArg).toBe(prisma);
       expect(modelName).toBe("staff");
       expect(mapper).toBe(PrismaStaffMapper);

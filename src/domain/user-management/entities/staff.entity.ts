@@ -186,11 +186,7 @@ export class Staff extends Entity<StaffProps> {
   public static create(
     props: Optional<
       StaffProps,
-      | "createdAt"
-      | "updatedAt"
-      | "isArchived"
-      | "userId"
-      | "staffTypes"
+      "createdAt" | "updatedAt" | "isArchived" | "userId" | "staffTypes"
     >,
     id?: string,
   ): Staff {

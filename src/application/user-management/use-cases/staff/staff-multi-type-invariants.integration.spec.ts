@@ -160,8 +160,8 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       } as unknown as TransactionContext;
 
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 
@@ -215,10 +215,10 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
 
       // `replaceStaffTypes` receives the full target set verbatim — order
       // preserved (caller-supplied order, not lex-sorted).
-      expect(replaceStaffTypesSpy).toHaveBeenCalledWith(
-        result.id,
-        [TYPE_TEACHER, TYPE_VICE_PRESIDENT],
-      );
+      expect(replaceStaffTypesSpy).toHaveBeenCalledWith(result.id, [
+        TYPE_TEACHER,
+        TYPE_VICE_PRESIDENT,
+      ]);
 
       // D-extra-3 fan-out: exactly two `user_roles` inserts, same roleId,
       // distinct `grantedViaStaffTypeId` provenance. The 4-col `NULLS NOT
@@ -302,8 +302,8 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       } as unknown as TransactionContext;
 
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 
@@ -427,8 +427,8 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       } as unknown as TransactionContext;
 
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 

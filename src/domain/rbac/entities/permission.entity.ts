@@ -33,6 +33,7 @@ export class PermissionEntity {
   static readonly VALID_MODULES = [
     "campus",
     "student",
+    "student_health",
     "guardian",
     "staff",
     "class",
@@ -51,6 +52,8 @@ export class PermissionEntity {
     "meal_menu_config",
     "weekly_plan",
     "absence_request",
+    "medication_request",
+    "medication_administration",
   ] as const;
 
   /**

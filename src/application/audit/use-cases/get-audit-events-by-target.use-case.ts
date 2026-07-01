@@ -11,6 +11,14 @@ const VALID_TARGET_TYPES: readonly AuditTargetType[] = [
   "staff",
   "staff_type",
   "role",
+  "meal_menu",
+  "meal_menu_config",
+  "weekly_plan",
+  "student_health_profile",
+  "student_health_checkup",
+  "student_health_instruction",
+  "student_health_event",
+  "medication_request",
 ];
 
 export interface GetAuditEventsByTargetInput {

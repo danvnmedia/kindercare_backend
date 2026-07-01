@@ -12,6 +12,8 @@ import { AttendanceModule } from "./modules/attendance.module";
 import { MealMenuModule } from "./modules/meal-menu.module";
 import { WeeklyPlanModule } from "./modules/weekly-plan.module";
 import { AbsenceRequestModule } from "./modules/absence-request.module";
+import { MedicationModule } from "./modules/medication.module";
+import { StudentHealthModule } from "./modules/student-health.module";
 import { AuthMiddleware } from "./middleware/auth.middleware";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
 
@@ -43,6 +45,8 @@ import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
     MealMenuModule, // Meal-menu management
     WeeklyPlanModule, // Weekly-plan schedule management
     AbsenceRequestModule, // Parent/admin absence request management
+    MedicationModule, // Medication request and administration management
+    StudentHealthModule, // Student profile health tab management
     AuditModule, // Admin audit-log read endpoints (@doc/specs/admin-audit-log)
   ],
   controllers: [],

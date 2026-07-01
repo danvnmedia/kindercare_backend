@@ -143,6 +143,70 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
             : null,
         };
       }
+      case "student_health_profile": {
+        const row = await tx.studentHealthProfile.findUnique({
+          where: { id: targetId },
+          select: {
+            student: { select: { fullName: true } },
+          },
+        });
+        return { targetName: row?.student.fullName ?? null };
+      }
+      case "student_health_checkup": {
+        const row = await tx.studentHealthCheckup.findUnique({
+          where: { id: targetId },
+          select: {
+            student: { select: { fullName: true } },
+            checkedAt: true,
+          },
+        });
+        return {
+          targetName: row
+            ? `${row.student.fullName} ${row.checkedAt.toISOString()}`
+            : null,
+        };
+      }
+      case "student_health_instruction": {
+        const row = await tx.studentHealthInstruction.findUnique({
+          where: { id: targetId },
+          select: {
+            title: true,
+            student: { select: { fullName: true } },
+          },
+        });
+        return {
+          targetName: row ? `${row.student.fullName} ${row.title}` : null,
+        };
+      }
+      case "student_health_event": {
+        const row = await tx.studentHealthEvent.findUnique({
+          where: { id: targetId },
+          select: {
+            title: true,
+            student: { select: { fullName: true } },
+          },
+        });
+        return {
+          targetName: row ? `${row.student.fullName} ${row.title}` : null,
+        };
+      }
+      case "medication_request": {
+        const row = await tx.medicationRequest.findUnique({
+          where: { id: targetId },
+          select: {
+            student: { select: { fullName: true } },
+            startDate: true,
+            endDate: true,
+          },
+        });
+        return {
+          targetName: row
+            ? `${row.student.fullName} ${row.startDate
+                .toISOString()
+                .slice(0, 10)} to ${row.endDate.toISOString().slice(0, 10)}`
+            : null,
+        };
+      }
       default: {
         // Exhaustiveness guard — if a new `AuditTargetType` member is added
         // to the port without updating this switch, this branch becomes

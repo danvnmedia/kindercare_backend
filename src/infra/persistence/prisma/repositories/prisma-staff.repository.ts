@@ -221,11 +221,7 @@ export class PrismaStaffRepository implements StaffRepository {
     // for ?search). isArchived, the anti-join on classStaff, and
     // scope.campusId are all system-enforced via `where` + `scope`.
     params.allowedFilterFields = ["fullName"];
-    params.allowedSortFields = [
-      "fullName",
-      "staffCode",
-      "createdAt",
-    ];
+    params.allowedSortFields = ["fullName", "staffCode", "createdAt"];
 
     return await this.queryService.executeQuery<Staff>(
       this.prisma,

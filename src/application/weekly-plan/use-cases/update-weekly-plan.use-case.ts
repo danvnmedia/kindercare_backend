@@ -117,10 +117,7 @@ export class UpdateWeeklyPlanUseCase {
     }
   }
 
-  private async resolveClass(
-    campusId: string,
-    classId: string | undefined,
-  ) {
+  private async resolveClass(campusId: string, classId: string | undefined) {
     if (classId === undefined) return undefined;
 
     const classroom = await this.classRepository.findById(classId);

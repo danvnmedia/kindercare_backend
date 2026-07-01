@@ -56,6 +56,17 @@ model Campus {
   // Relations - Absence Requests
   absenceRequests AbsenceRequest[]
 
+  // Relations - Student Health
+  studentHealthProfiles     StudentHealthProfile[]
+  studentHealthCheckups     StudentHealthCheckup[]
+  studentHealthInstructions StudentHealthInstruction[]
+  studentHealthEvents       StudentHealthEvent[]
+
+  // Relations - Medication
+  medicationRequests                  MedicationRequest[]
+  medicationAdministrationOccurrences MedicationAdministrationOccurrence[]
+  medicationRequestTimelineEntries    MedicationRequestTimelineEntry[]
+
   // Settings (one-to-one)
   campusSetting CampusSetting?
 
@@ -266,6 +277,22 @@ model User {
   absenceRequestSubmissions AbsenceRequest[] @relation("AbsenceRequestSubmissions")
   absenceRequestReviews     AbsenceRequest[] @relation("AbsenceRequestReviews")
 
+  // Medication Requests and Administration
+  medicationRequestSubmissions                  MedicationRequest[]                  @relation("MedicationRequestSubmissions")
+  medicationRequestReviews                      MedicationRequest[]                  @relation("MedicationRequestReviews")
+  medicationRequestTimelineEntries              MedicationRequestTimelineEntry[]     @relation("MedicationRequestTimelineActorUser")
+  medicationAdministrationLogsRecorded          MedicationAdministrationLog[]        @relation("MedicationAdministrationLogRecordedBy")
+  medicationAdministrationOccurrencesRecordedBy MedicationAdministrationOccurrence[] @relation("MedicationOccurrenceLatestRecordedBy")
+
+  // Student Health
+  studentHealthProfilesUpdated     StudentHealthProfile[]     @relation("StudentHealthProfileLastUpdatedBy")
+  studentHealthCheckupsRecorded    StudentHealthCheckup[]     @relation("StudentHealthCheckupRecordedBy")
+  studentHealthCheckupsUpdated     StudentHealthCheckup[]     @relation("StudentHealthCheckupLastUpdatedBy")
+  studentHealthInstructionsCreated StudentHealthInstruction[] @relation("StudentHealthInstructionCreatedBy")
+  studentHealthInstructionsUpdated StudentHealthInstruction[] @relation("StudentHealthInstructionLastUpdatedBy")
+  studentHealthEventsRecorded      StudentHealthEvent[]       @relation("StudentHealthEventRecordedBy")
+  studentHealthEventsUpdated       StudentHealthEvent[]       @relation("StudentHealthEventLastUpdatedBy")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -334,6 +361,16 @@ model Student {
 
   // Absence Requests
   absenceRequests AbsenceRequest[]
+
+  // Medication Requests and Administration
+  medicationRequests                  MedicationRequest[]
+  medicationAdministrationOccurrences MedicationAdministrationOccurrence[]
+
+  // Student Health
+  healthProfile      StudentHealthProfile?
+  healthCheckups     StudentHealthCheckup[]
+  healthInstructions StudentHealthInstruction[]
+  healthEvents       StudentHealthEvent[]
 
   // Class & Enrollment
   enrollments           Enrollment[]
@@ -451,6 +488,10 @@ model Guardian {
 
   // Absence Requests
   absenceRequests AbsenceRequest[]
+
+  // Medication Requests
+  medicationRequests               MedicationRequest[]
+  medicationRequestTimelineEntries MedicationRequestTimelineEntry[] @relation("MedicationRequestTimelineActorGuardian")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1162,6 +1203,363 @@ model AbsenceRequest {
   @@index([requesterGuardianId, createdAt], map: "absence_request_guardian_history_idx")
   @@index([reviewedById])
   @@map("absence_request")
+}
+
+// ==========================================
+// MEDICATION REQUESTS AND ADMINISTRATION
+// ==========================================
+
+enum MedicationRequestStatus {
+  SUBMITTED
+  NEEDS_MORE_INFO
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+}
+
+enum MedicationAdministrationOutcome {
+  GIVEN
+  SKIPPED
+  REFUSED
+  ABSENT
+}
+
+model MedicationRequest {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  campusId            String                  @map("campus_id") @db.Uuid
+  studentId           String                  @map("student_id") @db.Uuid
+  requesterGuardianId String                  @map("requester_guardian_id") @db.Uuid
+  requesterUserId     String?                 @map("requester_user_id") @db.Uuid
+  status              MedicationRequestStatus @default(SUBMITTED)
+  startDate           DateTime                @map("start_date") @db.Date
+  endDate             DateTime                @map("end_date") @db.Date
+  reason              String?                 @db.Text
+  parentNotes         String?                 @map("parent_notes") @db.Text
+  reviewedByUserId    String?                 @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt          DateTime?               @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote          String?                 @map("review_note") @db.Text
+  cancelledAt         DateTime?               @map("cancelled_at") @db.Timestamptz(6)
+  cancelReason        String?                 @map("cancel_reason") @db.Text
+
+  campus            Campus                               @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student           Student                              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  requesterGuardian Guardian                             @relation(fields: [requesterGuardianId], references: [id], onDelete: Restrict)
+  requesterUser     User?                                @relation("MedicationRequestSubmissions", fields: [requesterUserId], references: [id], onDelete: SetNull)
+  reviewedByUser    User?                                @relation("MedicationRequestReviews", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  items             MedicationRequestItem[]
+  occurrences       MedicationAdministrationOccurrence[]
+  timelineEntries   MedicationRequestTimelineEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([id, campusId, studentId], map: "medication_request_id_scope_unique")
+  @@unique([id, campusId], map: "medication_request_id_campus_unique")
+  @@index([campusId, status, startDate], map: "medication_request_campus_status_start_idx")
+  @@index([campusId, studentId, startDate, endDate], map: "medication_request_student_date_idx")
+  @@index([requesterGuardianId, createdAt], map: "medication_request_guardian_history_idx")
+  @@index([requesterUserId])
+  @@index([reviewedByUserId])
+  @@map("medication_request")
+}
+
+model MedicationRequestItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  requestId      String   @map("request_id") @db.Uuid
+  medicationName String   @map("medication_name") @db.VarChar(200)
+  dosage         String?  @db.VarChar(200)
+  instructions   String   @db.Text
+  timesOfDay     String[] @default([]) @map("times_of_day")
+  scheduleNotes  String?  @map("schedule_notes") @db.Text
+  notes          String?  @db.Text
+
+  request     MedicationRequest                    @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  occurrences MedicationAdministrationOccurrence[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([requestId, id], map: "medication_request_item_request_id_unique")
+  @@index([requestId])
+  @@index([medicationName])
+  @@map("medication_request_item")
+}
+
+model MedicationRequestTimelineEntry {
+  id              String  @id @default(uuid()) @db.Uuid
+  requestId       String  @map("request_id") @db.Uuid
+  campusId        String  @map("campus_id") @db.Uuid
+  actorType       String  @map("actor_type") @db.VarChar(30)
+  actorUserId     String? @map("actor_user_id") @db.Uuid
+  actorGuardianId String? @map("actor_guardian_id") @db.Uuid
+  action          String  @db.VarChar(40)
+  note            String? @db.Text
+
+  request       MedicationRequest @relation(fields: [requestId, campusId], references: [id, campusId], onDelete: Restrict)
+  campus        Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  actorUser     User?             @relation("MedicationRequestTimelineActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorGuardian Guardian?         @relation("MedicationRequestTimelineActorGuardian", fields: [actorGuardianId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([requestId, createdAt], map: "med_request_timeline_request_created_idx")
+  @@index([campusId, createdAt], map: "med_request_timeline_campus_created_idx")
+  @@index([actorUserId], map: "med_request_timeline_actor_user_idx")
+  @@index([actorGuardianId], map: "med_request_timeline_actor_guardian_idx")
+  @@map("medication_request_timeline_entry")
+}
+
+model MedicationAdministrationOccurrence {
+  id                     String                           @id @default(uuid()) @db.Uuid
+  requestId              String                           @map("request_id") @db.Uuid
+  medicationItemId       String                           @map("medication_item_id") @db.Uuid
+  campusId               String                           @map("campus_id") @db.Uuid
+  studentId              String                           @map("student_id") @db.Uuid
+  dueDate                DateTime                         @map("due_date") @db.Date
+  dueMinute              Int                              @map("due_minute")
+  latestOutcome          MedicationAdministrationOutcome? @map("latest_outcome")
+  latestLogId            String?                          @map("latest_log_id") @db.Uuid
+  latestRecordedAt       DateTime?                        @map("latest_recorded_at") @db.Timestamptz(6)
+  latestRecordedByUserId String?                          @map("latest_recorded_by_user_id") @db.Uuid
+  latestNote             String?                          @map("latest_note") @db.Text
+
+  request              MedicationRequest             @relation(fields: [requestId, campusId, studentId], references: [id, campusId, studentId], onDelete: Restrict)
+  medicationItem       MedicationRequestItem         @relation(fields: [requestId, medicationItemId], references: [requestId, id], onDelete: Restrict)
+  campus               Campus                        @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student              Student                       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  latestLog            MedicationAdministrationLog?  @relation("MedicationOccurrenceLatestLog", fields: [id, latestLogId], references: [occurrenceId, id], onDelete: NoAction, onUpdate: NoAction)
+  latestRecordedByUser User?                         @relation("MedicationOccurrenceLatestRecordedBy", fields: [latestRecordedByUserId], references: [id], onDelete: SetNull)
+  logs                 MedicationAdministrationLog[]
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([medicationItemId, dueDate, dueMinute], map: "med_admin_occurrence_item_due_unique")
+  @@index([campusId, dueDate, dueMinute], map: "med_admin_occurrence_daily_idx")
+  @@index([campusId, studentId, dueDate], map: "med_admin_occurrence_student_daily_idx")
+  @@index([requestId])
+  @@index([latestOutcome])
+  @@index([latestLogId])
+  @@index([latestRecordedByUserId], map: "med_admin_occurrence_latest_user_idx")
+  @@map("medication_administration_occurrence")
+}
+
+model MedicationAdministrationLog {
+  id                String                          @id @default(uuid()) @db.Uuid
+  occurrenceId      String                          @map("occurrence_id") @db.Uuid
+  outcome           MedicationAdministrationOutcome
+  recordedByUserId  String                          @map("recorded_by_user_id") @db.Uuid
+  recordedAt        DateTime                        @map("recorded_at") @db.Timestamptz(6)
+  actualMinute      Int?                            @map("actual_minute")
+  note              String?                         @db.Text
+  correctionOfLogId String?                         @map("correction_of_log_id") @db.Uuid
+
+  occurrence           MedicationAdministrationOccurrence   @relation(fields: [occurrenceId], references: [id], onDelete: Restrict)
+  recordedBy           User                                 @relation("MedicationAdministrationLogRecordedBy", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  correctionOfLog      MedicationAdministrationLog?         @relation("MedicationAdministrationLogCorrection", fields: [occurrenceId, correctionOfLogId], references: [occurrenceId, id], onDelete: NoAction, onUpdate: NoAction)
+  corrections          MedicationAdministrationLog[]        @relation("MedicationAdministrationLogCorrection")
+  latestForOccurrences MedicationAdministrationOccurrence[] @relation("MedicationOccurrenceLatestLog")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([occurrenceId, id], map: "med_admin_log_occurrence_id_unique")
+  @@index([occurrenceId, recordedAt], map: "med_admin_log_occurrence_recorded_idx")
+  @@index([recordedByUserId])
+  @@index([correctionOfLogId])
+  @@map("medication_administration_log")
+}
+
+// ==========================================
+// STUDENT HEALTH
+// ==========================================
+
+enum StudentHealthAllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+  UNKNOWN
+}
+
+enum StudentHealthConditionCategory {
+  EYE
+  ENT
+  RESPIRATORY
+  SKIN
+  DIGESTIVE
+  CARDIAC
+  NEUROLOGICAL
+  MOBILITY
+  OTHER
+}
+
+enum StudentHealthConditionStatus {
+  ACTIVE
+  MONITORING
+  RESOLVED
+  UNKNOWN
+}
+
+enum StudentHealthRestrictionType {
+  FOOD
+  ACTIVITY
+  MEDICATION
+  ENVIRONMENT
+  OTHER
+}
+
+enum StudentHealthCheckupType {
+  GENERAL
+  GROWTH
+  VISION
+  OTHER
+}
+
+enum StudentHealthInstructionType {
+  MEDICATION
+  CARE
+  DIET
+  ACTIVITY
+  OTHER
+}
+
+enum StudentHealthEventType {
+  ILLNESS
+  INJURY
+  SYMPTOM
+  OBSERVATION
+  OTHER
+}
+
+enum StudentHealthEventStatus {
+  OPEN
+  RESOLVED
+  ARCHIVED
+}
+
+model StudentHealthProfile {
+  id           String @id @default(uuid()) @db.Uuid
+  campusId     String @map("campus_id") @db.Uuid
+  studentId    String @unique @map("student_id") @db.Uuid
+  allergies    Json   @default("[]")
+  conditions   Json   @default("[]")
+  restrictions Json   @default("[]")
+
+  emergencyNotes      String? @map("emergency_notes") @db.Text
+  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+
+  campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lastUpdatedBy User?   @relation("StudentHealthProfileLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([campusId])
+  @@index([lastUpdatedByUserId])
+  @@map("student_health_profile")
+}
+
+model StudentHealthCheckup {
+  id          String                   @id @default(uuid()) @db.Uuid
+  campusId    String                   @map("campus_id") @db.Uuid
+  studentId   String                   @map("student_id") @db.Uuid
+  checkupType StudentHealthCheckupType @default(GENERAL) @map("checkup_type")
+  checkedAt   DateTime                 @map("checked_at") @db.Timestamptz(6)
+  heightCm    Decimal?                 @map("height_cm") @db.Decimal(5, 2)
+  weightKg    Decimal?                 @map("weight_kg") @db.Decimal(5, 2)
+  notes       String?                  @db.Text
+
+  recordedByUserId    String? @map("recorded_by_user_id") @db.Uuid
+  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+
+  campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recordedBy    User?   @relation("StudentHealthCheckupRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  lastUpdatedBy User?   @relation("StudentHealthCheckupLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([campusId])
+  @@index([studentId])
+  @@index([campusId, studentId, checkedAt(sort: Desc)], map: "student_health_checkup_lookup_idx")
+  @@index([checkupType])
+  @@index([recordedByUserId])
+  @@index([lastUpdatedByUserId])
+  @@map("student_health_checkup")
+}
+
+model StudentHealthInstruction {
+  id              String                       @id @default(uuid()) @db.Uuid
+  campusId        String                       @map("campus_id") @db.Uuid
+  studentId       String                       @map("student_id") @db.Uuid
+  instructionType StudentHealthInstructionType @map("instruction_type")
+  title           String                       @db.VarChar(200)
+  instruction     String                       @db.Text
+  dosage          String?                      @db.VarChar(200)
+  startDate       DateTime                     @map("start_date") @db.Date
+  endDate         DateTime?                    @map("end_date") @db.Date
+  timesOfDay      String[]                     @default([]) @map("times_of_day")
+  scheduleNotes   String?                      @map("schedule_notes") @db.Text
+  notes           String?                      @db.Text
+  isActive        Boolean                      @default(true) @map("is_active")
+
+  createdByUserId     String? @map("created_by_user_id") @db.Uuid
+  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+
+  campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdBy     User?   @relation("StudentHealthInstructionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  lastUpdatedBy User?   @relation("StudentHealthInstructionLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([campusId])
+  @@index([studentId])
+  @@index([campusId, studentId, isActive, startDate, endDate], map: "student_health_instruction_active_idx")
+  @@index([instructionType])
+  @@index([createdByUserId])
+  @@index([lastUpdatedByUserId])
+  @@map("student_health_instruction")
+}
+
+model StudentHealthEvent {
+  id              String                          @id @default(uuid()) @db.Uuid
+  campusId        String                          @map("campus_id") @db.Uuid
+  studentId       String                          @map("student_id") @db.Uuid
+  eventType       StudentHealthEventType          @map("event_type")
+  category        StudentHealthConditionCategory?
+  title           String                          @db.VarChar(200)
+  description     String?                         @db.Text
+  occurredAt      DateTime                        @map("occurred_at") @db.Timestamptz(6)
+  status          StudentHealthEventStatus        @default(OPEN)
+  resolutionNotes String?                         @map("resolution_notes") @db.Text
+
+  recordedByUserId    String? @map("recorded_by_user_id") @db.Uuid
+  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+
+  campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recordedBy    User?   @relation("StudentHealthEventRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+  lastUpdatedBy User?   @relation("StudentHealthEventLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([campusId])
+  @@index([studentId])
+  @@index([campusId, studentId, occurredAt(sort: Desc)], map: "student_health_event_timeline_idx")
+  @@index([eventType])
+  @@index([category])
+  @@index([status])
+  @@index([recordedByUserId])
+  @@index([lastUpdatedByUserId])
+  @@map("student_health_event")
 }
 
 // ==========================================

@@ -228,9 +228,7 @@ describe("PrismaStudentRepository", () => {
       const { params: passedParams } = callArgs();
       // The repo is a pass-through for the JSON filter string — operator
       // validation belongs to PrismaQueryService, not the repository.
-      expect(passedParams.filter).toBe(
-        '{"phase":{"in":["ACTIVE","WAITING"]}}',
-      );
+      expect(passedParams.filter).toBe('{"phase":{"in":["ACTIVE","WAITING"]}}');
     });
 
     it("preserves the `phase` filter (eq shorthand) through to executeQuery", async () => {

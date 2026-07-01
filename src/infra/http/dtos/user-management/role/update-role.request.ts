@@ -1,10 +1,5 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import {
-  IsOptional,
-  IsString,
-  MaxLength,
-  MinLength,
-} from "class-validator";
+import { IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class UpdateRoleRequest {
   @ApiPropertyOptional({
@@ -27,5 +22,4 @@ export class UpdateRoleRequest {
   @IsString()
   @MaxLength(255)
   description?: string;
-
 }

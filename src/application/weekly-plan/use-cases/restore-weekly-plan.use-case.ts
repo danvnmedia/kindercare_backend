@@ -39,7 +39,9 @@ export class RestoreWeeklyPlanUseCase {
     }
 
     if (!plan.isArchived) {
-      throw new BadRequestException(`Weekly plan with ID ${id} is not archived`);
+      throw new BadRequestException(
+        `Weekly plan with ID ${id} is not archived`,
+      );
     }
 
     const conflicting = await this.weeklyPlanRepository.findActiveByNaturalKey(

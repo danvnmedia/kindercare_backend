@@ -60,11 +60,7 @@ describe("StaffTransactionOps", () => {
     });
 
     it("inserts one row per supplied staffTypeId with the parent staffId attached", async () => {
-      await ops.replaceStaffTypes("staff-1", [
-        "stype-1",
-        "stype-2",
-        "stype-3",
-      ]);
+      await ops.replaceStaffTypes("staff-1", ["stype-1", "stype-2", "stype-3"]);
 
       expect(tx.staffStaffType.createMany).toHaveBeenCalledTimes(1);
       const arg = tx.staffStaffType.createMany.mock.calls[0][0];

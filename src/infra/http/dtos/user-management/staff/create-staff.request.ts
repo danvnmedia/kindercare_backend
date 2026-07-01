@@ -99,5 +99,4 @@ export class CreateStaffRequest {
   @TransformToUTCDate()
   @IsAdultDateOfBirth()
   dateOfBirth?: Date;
-
 }

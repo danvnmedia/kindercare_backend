@@ -17,10 +17,7 @@ import { User } from "@/domain/user-management/user.entity";
 import { RoleRepository } from "../../ports/role.repository";
 import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
 import { CampusRepository } from "@/application/campus/ports/campus.repository";
-import {
-  buildRoleAuditContext,
-  pickRoleAuditFields,
-} from "./role-audit";
+import { buildRoleAuditContext, pickRoleAuditFields } from "./role-audit";
 
 export interface UpdateRoleInput {
   name?: string;
@@ -103,8 +100,7 @@ export class UpdateRoleUseCase {
       }
 
       // 5. Prepare update data
-      const updateData: UpdateRoleData = {
-      };
+      const updateData: UpdateRoleData = {};
       if (normalizedName !== undefined) {
         updateData.name = normalizedName;
       }
