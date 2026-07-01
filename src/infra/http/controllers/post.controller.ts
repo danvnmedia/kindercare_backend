@@ -29,6 +29,8 @@ import {
   ReorderAttachmentsUseCase,
   GetPostHistoryUseCase,
   TransitionPostUseCase,
+  BatchTransitionPostUseCase,
+  BatchTransitionPostOutput,
 } from "@/application/content-management/use-cases";
 import {
   TogglePostReactionUseCase,
@@ -51,6 +53,8 @@ import {
   AddAttachmentRequest,
   ReorderAttachmentsRequest,
   TransitionPostRequest,
+  BatchTransitionPostRequest,
+  BatchTransitionPostResponse,
   PinPostRequest,
 } from "@/infra/http/dtos/post/index";
 import {
@@ -93,6 +97,7 @@ export class PostController {
     private readonly removeAttachmentUseCase: RemoveAttachmentUseCase,
     private readonly reorderAttachmentsUseCase: ReorderAttachmentsUseCase,
     private readonly transitionPostUseCase: TransitionPostUseCase,
+    private readonly batchTransitionPostUseCase: BatchTransitionPostUseCase,
     private readonly getPostHistoryUseCase: GetPostHistoryUseCase,
     private readonly togglePostReactionUseCase: TogglePostReactionUseCase,
     private readonly getPostReactionStatusUseCase: GetPostReactionStatusUseCase,
@@ -360,6 +365,34 @@ export class PostController {
         ...reorderAttachmentsDto,
       },
       user,
+    );
+  }
+
+  @Post("batch-transition")
+  @RequireCampusAccess()
+  @UseGuards(RolesGuard)
+  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @ApiOperation({ summary: "Batch transition post statuses" })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID context for the posts",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @StandardResponse({
+    type: BatchTransitionPostResponse,
+  })
+  async batchTransitionPosts(
+    @CampusContext() campusId: string,
+    @Body() { postIds, action, comment }: BatchTransitionPostRequest,
+    @CurrentUser() user: User,
+  ): Promise<BatchTransitionPostOutput> {
+    return this.batchTransitionPostUseCase.execute(
+      campusId,
+      postIds,
+      action,
+      user,
+      comment,
     );
   }
 

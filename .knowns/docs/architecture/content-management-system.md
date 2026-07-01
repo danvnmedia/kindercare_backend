@@ -62,7 +62,7 @@ The entity throws on illegal transitions, e.g. `Cannot publish post with status 
 
 ### `TransitionPostUseCase` — the dispatcher
 
-The HTTP layer exposes one transition endpoint (`POST /posts/:id/transition`) backed by `TransitionPostUseCase`, which dispatches to the per-action use case:
+The HTTP layer exposes a single-post transition endpoint (`POST /posts/:id/transition`) backed by `TransitionPostUseCase`, which dispatches to the per-action use case:
 
 ```typescript
 switch (action) {
@@ -74,6 +74,8 @@ switch (action) {
   case PostTransitionAction.ARCHIVE: return this.archivePostUseCase.execute(...);
 }
 ```
+
+`POST /posts/batch-transition` wraps the same dispatcher for up to 100 post IDs. It de-duplicates IDs, processes each post through `TransitionPostUseCase`, and returns per-post results with `total`, `succeeded`, `failed`, and `results[]`. Batch transition is intentionally partial-success: one invalid or unauthorized post does not roll back successful transitions. Use it for management bulk approve flows so frontend code can show progress and failed rows without issuing N unrelated requests.
 
 Each use case:
 
@@ -136,7 +138,7 @@ Read visibility is audience-aware for parent/guardian users:
 - Staff/admin users keep normal campus-scoped feed visibility.
 - `ALL` posts are visible to every authenticated user with campus access.
 - `CLASS` posts are visible to a guardian only when one of their linked children has an active enrollment (`endDate = null`) in the target class.
-- `GET /posts` and `GET /posts/:id` both route through repository visibility filters so list/detail behavior stays consistent.
+- `GET /posts`, `GET /posts/:id`, and `GET /posts/pinned` route through repository visibility filters so list/detail/pinned behavior stays consistent.
 
 CMS `AudienceType` now exposes only `ALL` and `CLASS`; legacy `GRADE` and `STUDENT` post-audience DB columns were removed by migration `20260701001000_remove_grade_student_post_audience` after deleting legacy rows of those types.
 

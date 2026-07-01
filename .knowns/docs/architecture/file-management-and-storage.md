@@ -217,6 +217,8 @@ Every `File` belongs to a campus. Keys include `campusId` for organization, but 
 
 If `addAttachment` fails after upload completion, the file can remain uploaded but unattached. Cleanup/remediation for uploaded-orphan files is a remaining product/ops decision.
 
+Attachment removal must remove the `Attachment` row for existing CMS attachments; it must not delete the underlying `File` row directly because the schema restricts hard file deletion while attachments exist. Frontend edit-mode bulk delete mirrors this rule: existing images call remove-attachment, while newly uploaded unattached images may call file delete.
+
 ## Soft Delete and Cleanup
 
 `File.isDeleted` flags the DB row as removed. Repositories exclude deleted rows from normal reads.

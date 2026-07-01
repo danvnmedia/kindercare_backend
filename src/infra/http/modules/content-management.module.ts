@@ -20,6 +20,7 @@ import {
   ArchivePostUseCase,
   GetPostHistoryUseCase,
   TransitionPostUseCase,
+  BatchTransitionPostUseCase,
   GetCampusSettingUseCase,
   UpdateCampusSettingUseCase,
 } from "@/application/content-management/use-cases";
@@ -114,6 +115,7 @@ import { RequestContextModule } from "../context/request-context.module";
     ArchivePostUseCase,
     GetPostHistoryUseCase,
     TransitionPostUseCase,
+    BatchTransitionPostUseCase,
     // Campus Setting Use Cases
     GetCampusSettingUseCase,
     UpdateCampusSettingUseCase,
