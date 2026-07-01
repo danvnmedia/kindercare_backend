@@ -16,8 +16,8 @@ import {
   ApiHeader,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { RolesGuard } from "../guards/roles.guard";
-import { Roles } from "../decorators/roles.decorator";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 import {
   CampusContext,
   CurrentUser,
@@ -61,6 +61,8 @@ export class PostCategoryController {
 
   @Get()
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.list", "post.manage")
   @StandardResponse({
     message: "Post categories retrieved successfully",
     type: PostCategoryResponse,
@@ -86,8 +88,8 @@ export class PostCategoryController {
 
   @Post()
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post category created successfully",
     type: PostCategoryResponse,
@@ -122,8 +124,8 @@ export class PostCategoryController {
 
   @Patch(":id")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post category updated successfully",
     type: PostCategoryResponse,
@@ -161,8 +163,8 @@ export class PostCategoryController {
 
   @Delete(":id")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post category archived successfully",
     type: PostCategoryResponse,
@@ -193,8 +195,8 @@ export class PostCategoryController {
 
   @Post("reorder")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post categories reordered successfully",
     type: PostCategoryResponse,

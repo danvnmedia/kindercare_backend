@@ -8,6 +8,7 @@ import {
 import { PostRepository } from "../../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
 import { Post } from "@/domain/content-management";
+import { userHasPostPermission } from "../authorization/post-permission.helper";
 
 @Injectable()
 export class UnpinPostUseCase {
@@ -26,10 +27,10 @@ export class UnpinPostUseCase {
     try {
       this.logger.log(`Unpinning post: ${postId}`);
 
-      // Validate admin permission
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
-        throw new ForbiddenException("Only administrators can unpin posts");
+      if (!userHasPostPermission(currentUser, campusId, "post.manage")) {
+        throw new ForbiddenException(
+          "You do not have permission to unpin posts",
+        );
       }
 
       // Find the post

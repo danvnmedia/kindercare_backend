@@ -150,6 +150,16 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
   { id: "post.update", module: "post", description: "Update post information" },
   { id: "post.delete", module: "post", description: "Delete a post" },
   { id: "post.list", module: "post", description: "List all posts" },
+  {
+    id: "post.review",
+    module: "post",
+    description: "Review and approve posts",
+  },
+  {
+    id: "post.manage",
+    module: "post",
+    description: "Manage CMS administration settings and moderation",
+  },
 
   // File permissions
   { id: "file.create", module: "file", description: "Upload a file" },

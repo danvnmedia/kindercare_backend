@@ -75,8 +75,8 @@ import { Post as PostEntity } from "@/domain/content-management/entities/post.en
 import { PostHistoryStatus } from "@/domain/content-management/entities/post-history-status.entity";
 import { PostApprovalRequest } from "@/domain/content-management";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { RolesGuard } from "../guards/roles.guard";
-import { Roles } from "../decorators/roles.decorator";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 import {
   StandardRequest,
   PaginatedResult,
@@ -110,8 +110,8 @@ export class PostController {
 
   @Post()
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.create", "post.manage")
   @ApiOperation({ summary: "Create a new post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -133,6 +133,8 @@ export class PostController {
 
   @Get()
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.list", "post.manage")
   @ApiOperation({ summary: "List all posts" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -170,6 +172,8 @@ export class PostController {
 
   @Get("pending-approval")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.review", "post.manage")
   @ApiOperation({ summary: "Get pending approval requests for a campus" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -193,6 +197,8 @@ export class PostController {
 
   @Get("pinned")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Get pinned posts for a campus" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -213,6 +219,8 @@ export class PostController {
 
   @Get(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Get a post by ID" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -233,8 +241,8 @@ export class PostController {
 
   @Patch(":id")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.update", "post.manage")
   @ApiOperation({ summary: "Update a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -260,8 +268,8 @@ export class PostController {
 
   @Delete(":id")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.delete", "post.manage")
   @ApiOperation({ summary: "Delete a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -282,8 +290,8 @@ export class PostController {
 
   @Post(":id/attachments")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.update", "post.manage")
   @ApiOperation({ summary: "Add an attachment to a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -312,8 +320,8 @@ export class PostController {
 
   @Delete(":id/attachments/:attachmentId")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.update", "post.manage")
   @ApiOperation({ summary: "Remove an attachment from a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -340,8 +348,8 @@ export class PostController {
 
   @Patch(":id/attachments/reorder")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.update", "post.manage")
   @ApiOperation({ summary: "Reorder attachments in a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -370,8 +378,8 @@ export class PostController {
 
   @Post("batch-transition")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.update", "post.review", "post.manage")
   @ApiOperation({ summary: "Batch transition post statuses" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -398,8 +406,8 @@ export class PostController {
 
   @Post(":id/transition")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager", "teacher", "staff")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.update", "post.review", "post.manage")
   @ApiOperation({ summary: "Transition the status of a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -427,6 +435,8 @@ export class PostController {
 
   @Get(":id/history")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Get post history" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -447,6 +457,8 @@ export class PostController {
 
   @Get(":id/approval-history")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.review", "post.manage")
   @ApiOperation({ summary: "Get approval history for a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -464,6 +476,8 @@ export class PostController {
 
   @Post(":id/heart")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Toggle heart reaction on a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -484,6 +498,8 @@ export class PostController {
 
   @Get(":id/heart")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Get heart reaction status for a post" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -506,8 +522,8 @@ export class PostController {
 
   @Post(":id/pin")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @ApiOperation({ summary: "Pin a post to the top of the feed (admin only)" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -529,8 +545,8 @@ export class PostController {
 
   @Delete(":id/pin")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @ApiOperation({ summary: "Unpin a post (admin only)" })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

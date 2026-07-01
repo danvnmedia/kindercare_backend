@@ -40,15 +40,13 @@ export class CreatePostCommentUseCase {
         `Creating comment on post: ${input.postId} by user: ${currentUser.id}`,
       );
 
-      const post = await this.postRepository.findById(input.postId);
+      const post = await this.postRepository.findVisibleById(
+        input.postId,
+        input.campusId,
+        currentUser,
+      );
       if (!post) {
         throw new NotFoundException(`Post with ID ${input.postId} not found`);
-      }
-
-      if (post.campusId !== input.campusId) {
-        throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
-        );
       }
 
       const setting = await this.campusSettingRepository.findByCampusId(

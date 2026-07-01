@@ -49,16 +49,14 @@ export class CreateCommentReplyUseCase {
         );
       }
 
-      const post = await this.postRepository.findById(parentComment.postId);
+      const post = await this.postRepository.findVisibleById(
+        parentComment.postId,
+        input.campusId,
+        currentUser,
+      );
       if (!post) {
         throw new NotFoundException(
           `Post with ID ${parentComment.postId} not found`,
-        );
-      }
-
-      if (post.campusId !== input.campusId) {
-        throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
         );
       }
 

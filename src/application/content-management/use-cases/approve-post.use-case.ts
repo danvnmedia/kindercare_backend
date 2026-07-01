@@ -15,6 +15,7 @@ import {
   Post,
   PostHistoryStatus,
 } from "@/domain/content-management";
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 @Injectable()
 export class ApprovePostUseCase {
@@ -49,9 +50,10 @@ export class ApprovePostUseCase {
         );
       }
 
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
-        throw new ForbiddenException("Only administrators can approve posts");
+      if (!userHasPostPermission(currentUser, campusId, "post.review")) {
+        throw new ForbiddenException(
+          "You do not have permission to approve posts",
+        );
       }
 
       if (post.status !== PostStatus.PENDING_REVIEW) {

@@ -10,6 +10,7 @@ import { PostRepository } from "../../ports/post.repository";
 import { CampusSettingRepository } from "../../ports/campus-setting.repository";
 import { User } from "@/domain/user-management/user.entity";
 import { Post, PostStatus, CampusSetting } from "@/domain/content-management";
+import { userHasPostPermission } from "../authorization/post-permission.helper";
 
 export interface PinPostInput {
   pinnedUntil?: Date | null;
@@ -35,10 +36,8 @@ export class PinPostUseCase {
     try {
       this.logger.log(`Pinning post: ${postId}`);
 
-      // Validate admin permission
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
-        throw new ForbiddenException("Only administrators can pin posts");
+      if (!userHasPostPermission(currentUser, campusId, "post.manage")) {
+        throw new ForbiddenException("You do not have permission to pin posts");
       }
 
       // Find the post

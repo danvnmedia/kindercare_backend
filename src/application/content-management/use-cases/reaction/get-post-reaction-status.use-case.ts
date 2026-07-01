@@ -3,7 +3,6 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
-  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { PostRepository } from "../../ports/post.repository";
@@ -39,16 +38,13 @@ export class GetPostReactionStatusUseCase {
         `Getting reaction status for post: ${postId}, user: ${currentUser.id}`,
       );
 
-      const post = await this.postRepository.findById(postId);
+      const post = await this.postRepository.findVisibleById(
+        postId,
+        campusId,
+        currentUser,
+      );
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
-      }
-
-      // Verify the post belongs to the specified campus
-      if (post.campusId !== campusId) {
-        throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
-        );
       }
 
       const setting =

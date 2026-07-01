@@ -39,8 +39,8 @@ import { CampusContext, CurrentUser, RequireCampusAccess } from "../decorators";
 import { User } from "@/domain/user-management/user.entity";
 import { PostComment } from "@/domain/content-management";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { RolesGuard } from "../guards/roles.guard";
-import { Roles } from "../decorators/roles.decorator";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 
 @ApiTags("Comments")
 @ApiBearerAuth("JWT")
@@ -60,6 +60,8 @@ export class CommentController {
 
   @Get("posts/:postId/comments")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({
     summary: "Get comments for a post with nested tree structure",
   })
@@ -83,8 +85,8 @@ export class CommentController {
 
   @Get("posts/:postId/management-comments")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @ApiOperation({ summary: "Get management notes for a post" })
   @StandardResponse({
     type: CommentResponse,
@@ -100,8 +102,8 @@ export class CommentController {
 
   @Post("posts/:postId/management-comments")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @ApiOperation({ summary: "Add a management note to a post" })
   @StandardResponse({
     type: CommentResponse,
@@ -125,8 +127,8 @@ export class CommentController {
 
   @Delete("posts/:postId/management-comments/:commentId")
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin", "manager")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @ApiOperation({ summary: "Delete a management note from a post" })
   @StandardResponse({
     type: null,
@@ -148,6 +150,8 @@ export class CommentController {
 
   @Post("posts/:postId/comments")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Add a root comment to a post" })
   @ApiParam({
     name: "postId",
@@ -176,6 +180,8 @@ export class CommentController {
 
   @Post("comments/:commentId/replies")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Reply to an existing comment" })
   @ApiParam({
     name: "commentId",
@@ -204,6 +210,8 @@ export class CommentController {
 
   @Patch("comments/:commentId")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Update a comment (owner only)" })
   @ApiParam({
     name: "commentId",
@@ -228,6 +236,8 @@ export class CommentController {
 
   @Delete("comments/:commentId")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.read", "post.manage")
   @ApiOperation({ summary: "Delete a comment (soft delete)" })
   @ApiParam({
     name: "commentId",
