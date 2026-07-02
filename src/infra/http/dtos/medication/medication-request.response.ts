@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Expose, Type } from "class-transformer";
+import { Expose, Transform, Type } from "class-transformer";
 
 import {
   MedicationAdministrationOutcome,
@@ -7,6 +7,8 @@ import {
   MedicationRequestTimelineAction,
   MedicationRequestTimelineActorType,
 } from "@/domain/medication";
+
+import { formatMedicationResponseDateOnly } from "./medication-date-only.response";
 
 export class MedicationRequestStudentSummaryResponse {
   @Expose()
@@ -227,8 +229,9 @@ export class MedicationRequestOccurrenceResponse {
   studentId: string;
 
   @Expose()
-  @ApiProperty({ example: "2026-07-01T00:00:00.000Z" })
-  dueDate: Date;
+  @Transform(({ value }) => formatMedicationResponseDateOnly(value))
+  @ApiProperty({ example: "2026-07-01" })
+  dueDate: string;
 
   @Expose()
   @ApiProperty({ example: "12:30" })
@@ -319,12 +322,14 @@ export class MedicationRequestResponse {
   status: MedicationRequestStatus;
 
   @Expose()
-  @ApiProperty({ example: "2026-07-01T00:00:00.000Z" })
-  startDate: Date;
+  @Transform(({ value }) => formatMedicationResponseDateOnly(value))
+  @ApiProperty({ example: "2026-07-01" })
+  startDate: string;
 
   @Expose()
-  @ApiProperty({ example: "2026-07-05T00:00:00.000Z" })
-  endDate: Date;
+  @Transform(({ value }) => formatMedicationResponseDateOnly(value))
+  @ApiProperty({ example: "2026-07-05" })
+  endDate: string;
 
   @Expose()
   @ApiProperty({ example: "Fever after doctor visit", nullable: true })

@@ -568,6 +568,16 @@ export function normalizeDateOnly(value: unknown, fieldName: string): Date {
   return date;
 }
 
+export function formatMedicationDateOnly(
+  value: Date | string | null,
+): string | null {
+  if (value === null) {
+    return null;
+  }
+
+  return normalizeDateOnly(value, "Date").toISOString().slice(0, 10);
+}
+
 export function parseTimeToMinute(value: unknown, fieldName = "Time"): number {
   if (typeof value !== "string" || !TIME_OF_DAY_PATTERN.test(value.trim())) {
     throw new Error(`${fieldName} must be in HH:mm format`);
