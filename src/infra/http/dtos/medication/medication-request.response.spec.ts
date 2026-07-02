@@ -103,6 +103,8 @@ describe("MedicationRequestResponse", () => {
     );
 
     expect(instanceToPlain(response)).toMatchObject({
+      startDate: "2099-07-01",
+      endDate: "2099-07-05",
       reviewNote: "Please confirm lunch dosage.",
       cancelledAt: null,
       timelineEntries: [
@@ -269,6 +271,7 @@ describe("MedicationRequestResponse", () => {
       reviewedByUser: { id: "44444444-4444-4444-a444-444444444444" },
       occurrences: [
         {
+          dueDate: "2099-07-01",
           latestOutcome: MedicationAdministrationOutcome.GIVEN,
           logs: [
             { outcome: MedicationAdministrationOutcome.REFUSED },
@@ -354,6 +357,7 @@ describe("MedicationRequestResponse", () => {
     expect(plain).toMatchObject({
       occurrences: [
         {
+          dueDate: "2099-07-01",
           dueTime: "12:30",
           latestOutcome: MedicationAdministrationOutcome.GIVEN,
           logs: [{ outcome: MedicationAdministrationOutcome.GIVEN }],

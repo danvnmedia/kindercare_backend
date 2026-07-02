@@ -1,10 +1,12 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Expose, Type } from "class-transformer";
+import { Expose, Transform, Type } from "class-transformer";
 
 import {
   MedicationAdministrationOutcome,
   MedicationAdministrationStatus,
 } from "@/domain/medication";
+
+import { formatMedicationResponseDateOnly } from "./medication-date-only.response";
 
 export class MedicationAdministrationStudentSummaryResponse {
   @Expose()
@@ -113,8 +115,9 @@ export class MedicationAdministrationQueueItemResponse {
   instructions: string;
 
   @Expose()
-  @ApiProperty({ example: "2026-07-01T00:00:00.000Z" })
-  dueDate: Date;
+  @Transform(({ value }) => formatMedicationResponseDateOnly(value))
+  @ApiProperty({ example: "2026-07-01" })
+  dueDate: string;
 
   @Expose()
   @ApiProperty({ example: "12:30" })

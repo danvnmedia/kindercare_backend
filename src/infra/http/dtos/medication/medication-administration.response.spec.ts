@@ -89,6 +89,7 @@ describe("MedicationAdministrationResponse", () => {
     expect(plain).toMatchObject({
       occurrenceId: "123e4567-e89b-12d3-a456-426614174010",
       medicationName: "Antibiotic syrup",
+      dueDate: "2099-07-01",
       latestLog: {
         outcome: MedicationAdministrationOutcome.GIVEN,
       },
