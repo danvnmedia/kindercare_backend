@@ -25,6 +25,14 @@ export interface ProvisionIdentityResult {
 }
 
 /**
+ * Minimal identity lookup result used to classify safe attach vs provider-only
+ * conflicts without exposing provider profile data to staff flows.
+ */
+export interface IdentityLookupResult {
+  clerkUid: string;
+}
+
+/**
  * Input for updating an existing identity
  */
 export interface UpdateIdentityInput {
@@ -50,6 +58,18 @@ export abstract class IdentityPort {
   abstract provisionUser(
     input: ProvisionIdentityInput,
   ): Promise<ProvisionIdentityResult>;
+
+  /**
+   * Find identity-provider users by email address.
+   */
+  abstract findIdentitiesByEmail(email: string): Promise<IdentityLookupResult[]>;
+
+  /**
+   * Find identity-provider users by phone number.
+   */
+  abstract findIdentitiesByPhoneNumber(
+    phoneNumber: string,
+  ): Promise<IdentityLookupResult[]>;
 
   /**
    * Update an existing identity account

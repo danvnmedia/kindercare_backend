@@ -33,7 +33,6 @@ import { ClassRepository } from "@/application/class-management/ports/class.repo
 import { SchoolYearEnrollmentRepository } from "@/application/class-management/ports/school-year-enrollment.repository";
 import { GuardianRelationshipTypeRepository } from "@/application/user-management/ports/guardian-relationship-type.repository";
 import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
-import { IdentityPort } from "@/application/ports/identity.port";
 import { ArchiveStudentUseCase } from "@/application/user-management/use-cases/student/archive-student.use-case";
 import { CreateStudentUseCase } from "@/application/user-management/use-cases/student/create-student.use-case";
 import { LinkStudentWithGuardianUseCase } from "@/application/user-management/use-cases/student/link-student-with-guardian.use-case";
@@ -299,10 +298,6 @@ function buildCreateScenario(): Scenario {
   );
   const unitOfWork = { run: runSpy } as unknown as UnitOfWorkPort;
 
-  const identityPort = {
-    provisionUser: jest.fn(),
-    deleteIdentity: jest.fn(),
-  } as unknown as IdentityPort;
   const codeGenerator = {
     generateNextCode: jest.fn().mockResolvedValue("STU-2026-000123"),
   } as unknown as StudentCodeGeneratorPort;
@@ -311,7 +306,6 @@ function buildCreateScenario(): Scenario {
     studentRepository,
     guardianRepository,
     unitOfWork,
-    identityPort,
     codeGenerator,
   );
 
@@ -356,6 +350,7 @@ function buildLinkScenario(): Scenario {
     findById: jest.fn().mockResolvedValue({
       id: REL_ID,
       name: "Mother",
+      campusId: CAMPUS_ID,
       isArchived: false,
     }),
   } as unknown as jest.Mocked<GuardianRelationshipTypeRepository>;
@@ -386,6 +381,7 @@ function buildLinkScenario(): Scenario {
           studentId: STUDENT_ID,
           guardianId: GUARDIAN_ID,
           relationshipId: REL_ID,
+          campusId: CAMPUS_ID,
         },
         buildActor(),
       ),

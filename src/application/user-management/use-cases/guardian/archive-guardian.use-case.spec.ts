@@ -2,18 +2,12 @@ import { NotFoundException } from "@nestjs/common";
 
 import { ArchiveGuardianUseCase } from "./archive-guardian.use-case";
 import { GuardianRepository } from "../../ports/guardian.repository";
-import { UserRepository } from "../../ports/user.repository";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
-import {
-  createGuardian,
-  createMockGuardianRepository,
-  createMockUserRepository,
-} from "@/test-utils";
+import { createGuardian, createMockGuardianRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
@@ -42,15 +36,12 @@ function buildActor(): User {
 describe("ArchiveGuardianUseCase", () => {
   let useCase: ArchiveGuardianUseCase;
   let guardianRepo: jest.Mocked<GuardianRepository>;
-  let userRepo: jest.Mocked<UserRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
-  let identityPort: jest.Mocked<IdentityPort>;
   let actor: User;
 
   beforeEach(() => {
     guardianRepo = createMockGuardianRepository();
-    userRepo = createMockUserRepository();
     mockTx = {
       updateGuardian: jest.fn().mockResolvedValue({ id: "guardian-1" }),
       updateUser: jest.fn().mockResolvedValue({ id: "user-1" }),
@@ -59,22 +50,13 @@ describe("ArchiveGuardianUseCase", () => {
     unitOfWork = {
       run: jest.fn((task) => task(mockTx)),
     } as unknown as jest.Mocked<UnitOfWorkPort>;
-    identityPort = {
-      lockIdentity: jest.fn().mockResolvedValue(undefined),
-      unlockIdentity: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<IdentityPort>;
     actor = buildActor();
 
-    useCase = new ArchiveGuardianUseCase(
-      guardianRepo,
-      userRepo,
-      unitOfWork,
-      identityPort,
-    );
+    useCase = new ArchiveGuardianUseCase(guardianRepo, unitOfWork);
   });
 
-  describe("AC-3 — happy path emits ARCHIVE_GUARDIAN inside UoW", () => {
-    it("locks Clerk, archives in DB, deactivates user, and records audit", async () => {
+  describe("profile-scoped archive", () => {
+    it("archives a linked guardian profile without mutating the global identity", async () => {
       const guardian = createGuardian({
         id: "guardian-1",
         campusId: CAMPUS_ID,
@@ -82,31 +64,14 @@ describe("ArchiveGuardianUseCase", () => {
         userId: "user-1",
       });
       guardianRepo.findById.mockResolvedValue(guardian);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
 
       await useCase.execute("guardian-1", CAMPUS_ID, actor);
 
-      expect(identityPort.lockIdentity).toHaveBeenCalledTimes(1);
-      expect(identityPort.lockIdentity).toHaveBeenCalledWith(
-        "user_clerk1234567",
-      );
       expect(mockTx.updateGuardian).toHaveBeenCalledWith(
         "guardian-1",
         expect.objectContaining({ isArchived: true }),
       );
-      expect(mockTx.updateUser).toHaveBeenCalledWith("user-1", {
-        isActive: false,
-      });
+      expect(mockTx.updateUser).not.toHaveBeenCalled();
 
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
       const payload = mockTx.recordAudit.mock.calls[0]![0];
@@ -120,7 +85,7 @@ describe("ArchiveGuardianUseCase", () => {
       expect(payload.afterValue).toEqual({ isArchived: true });
     });
 
-    it("skips Clerk + updateUser when guardian has no User account", async () => {
+    it("archives an unlinked guardian profile", async () => {
       const guardian = createGuardian({
         id: "guardian-1",
         campusId: CAMPUS_ID,
@@ -130,7 +95,6 @@ describe("ArchiveGuardianUseCase", () => {
 
       await useCase.execute("guardian-1", CAMPUS_ID, actor);
 
-      expect(identityPort.lockIdentity).not.toHaveBeenCalled();
       expect(mockTx.updateUser).not.toHaveBeenCalled();
       expect(mockTx.updateGuardian).toHaveBeenCalledTimes(1);
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);

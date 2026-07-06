@@ -22,6 +22,7 @@ describe("PrismaStaffRepository", () => {
   beforeEach(() => {
     prisma = {
       staff: {
+        findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
       },
     };
@@ -178,6 +179,23 @@ describe("PrismaStaffRepository", () => {
         staffTypes: { some: { staffTypeId: "type-1" } },
       });
       expect(args.include).toEqual(EXPECTED_INCLUDE);
+    });
+  });
+
+  describe("findAnyByUserIdInCampus", () => {
+    it("uses the campusId/userId compound selector and includes archived rows", async () => {
+      await repository.findAnyByUserIdInCampus("user-1", "campus-1");
+
+      expect(prisma.staff.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.staff.findUnique).toHaveBeenCalledWith({
+        where: {
+          campusId_userId: {
+            campusId: "campus-1",
+            userId: "user-1",
+          },
+        },
+        include: EXPECTED_INCLUDE,
+      });
     });
   });
 

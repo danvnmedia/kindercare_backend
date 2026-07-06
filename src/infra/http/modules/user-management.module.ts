@@ -5,11 +5,13 @@ import { RoleController } from "../controllers/user-management/role.controller";
 import { StudentController } from "../controllers/user-management/student.controller";
 import { GuardianController } from "../controllers/user-management/guardian.controller";
 import { StaffController } from "../controllers/user-management/staff.controller";
+import { IdentityAdminController } from "../controllers/user-management/identity-admin.controller";
 import { DangerGuardianController } from "../controllers/danger/danger-guardian.controller";
 import { DangerStaffController } from "../controllers/danger/danger-staff.controller";
 import { DangerStudentController } from "../controllers/danger/danger-student.controller";
 
-// NOTE: User use cases are commented out until they are refactored to work with Person-based model
+// NOTE: Legacy User CRUD use cases are commented out until they are refactored to work with Person-based model.
+// Global identity administration use cases below are explicit identity lifecycle operations.
 // import { CreateUserUseCase } from '@/application/user-management/use-cases/user/create-user.use-case';
 // import { GetUserByIdUseCase } from '@/application/user-management/use-cases/user/get-user-by-id.use-case';
 // import { GetAllUsersUseCase } from '@/application/user-management/use-cases/user/get-all-users.use-case';
@@ -17,6 +19,11 @@ import { DangerStudentController } from "../controllers/danger/danger-student.co
 // import { DeleteUserUseCase } from '@/application/user-management/use-cases/user/delete-user.use-case';
 // import { AssignRolesToUserUseCase } from '@/application/user-management/use-cases/user/assign-roles-to-user.use-case';
 // import { RemoveRolesFromUserUseCase } from '@/application/user-management/use-cases/user/remove-roles-from-user.use-case';
+
+// Use Cases - Global Identity Admin
+import { DeleteGlobalIdentityUseCase } from "@/application/user-management/use-cases/user/delete-global-identity.use-case";
+import { LockGlobalIdentityUseCase } from "@/application/user-management/use-cases/user/lock-global-identity.use-case";
+import { UnlockGlobalIdentityUseCase } from "@/application/user-management/use-cases/user/unlock-global-identity.use-case";
 
 // Use Cases - Role
 import { CreateRoleUseCase } from "@/application/user-management/use-cases/role/create-role.use-case";
@@ -43,6 +50,7 @@ import { UpdateStudentGuardianRelationshipUseCase } from "@/application/user-man
 
 // Use Cases - Guardian
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
+import { CreateOrAttachGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-or-attach-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
 import { GetGuardianByIdUseCase } from "@/application/user-management/use-cases/guardian/get-guardian-by-id.use-case";
 import { UpdateGuardianUseCase } from "@/application/user-management/use-cases/guardian/update-guardian.use-case";
@@ -57,6 +65,7 @@ import { GetCurrentGuardianStudentsUseCase } from "@/application/absence-request
 
 // Use Cases - Staff
 import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
+import { CreateOrAttachStaffUseCase } from "@/application/user-management/use-cases/staff/create-or-attach-staff.use-case";
 import { GetStaffByIdUseCase } from "@/application/user-management/use-cases/staff/get-staff-by-id.use-case";
 import { GetAllStaffUseCase } from "@/application/user-management/use-cases/staff/get-all-staff.use-case";
 import { UpdateStaffUseCase } from "@/application/user-management/use-cases/staff/update-staff.use-case";
@@ -94,6 +103,7 @@ import { CampusGuard } from "../guards/campus.guard";
 import { HydrateCurrentUserGuard } from "../guards/hydrate-current-user.guard";
 import { RolesGuard } from "../guards/roles.guard";
 import { PermissionsGuard } from "../guards/permissions.guard";
+import { GlobalAdminGuard } from "../guards/global-admin.guard";
 
 /**
  * User Management Module
@@ -123,6 +133,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
   ],
   controllers: [
     RoleController,
+    IdentityAdminController,
     StudentController,
     GuardianController,
     StaffController,
@@ -131,7 +142,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     DangerStudentController,
   ],
   providers: [
-    // NOTE: User Use Cases commented out until refactored
+    // NOTE: Legacy User Use Cases commented out until refactored
     // CreateUserUseCase,
     // GetUserByIdUseCase,
     // GetAllUsersUseCase,
@@ -139,6 +150,11 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     // DeleteUserUseCase,
     // AssignRolesToUserUseCase,
     // RemoveRolesFromUserUseCase,
+
+    // Global Identity Admin Use Cases
+    LockGlobalIdentityUseCase,
+    UnlockGlobalIdentityUseCase,
+    DeleteGlobalIdentityUseCase,
 
     // Role Use Cases
     CreateRoleUseCase,
@@ -175,6 +191,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
 
     // Guardian Use Cases
     CreateGuardianUseCase,
+    CreateOrAttachGuardianUseCase,
     GetAllGuardiansUseCase,
     GetGuardianByIdUseCase,
     UpdateGuardianUseCase,
@@ -189,6 +206,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
 
     // Staff Use Cases
     CreateStaffUseCase,
+    CreateOrAttachStaffUseCase,
     GetStaffByIdUseCase,
     GetAllStaffUseCase,
     UpdateStaffUseCase,
@@ -223,6 +241,7 @@ import { PermissionsGuard } from "../guards/permissions.guard";
     HydrateCurrentUserGuard,
     RolesGuard,
     PermissionsGuard,
+    GlobalAdminGuard,
   ],
   exports: [
     "USER_REPOSITORY",

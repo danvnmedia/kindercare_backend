@@ -382,5 +382,20 @@ describe("CreateStaffUseCase", () => {
       expect(identityPort.provisionUser).not.toHaveBeenCalled();
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
+
+    it("does not attach through POST /staff when the identity provider rejects an existing identity", async () => {
+      identityPort.provisionUser.mockRejectedValueOnce(
+        new Error("identity already exists"),
+      );
+
+      await expect(useCase.execute(validInput, actor)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(identityPort.provisionUser).toHaveBeenCalledTimes(1);
+      expect(mockTx.createUser).not.toHaveBeenCalled();
+      expect(mockTx.createStaff).not.toHaveBeenCalled();
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
   });
 });

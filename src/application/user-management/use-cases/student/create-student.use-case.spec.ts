@@ -4,7 +4,6 @@ import { CreateStudentUseCase } from "./create-student.use-case";
 import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
 import { StudentCodeGeneratorPort } from "@/application/ports/student-code-generator.port";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
@@ -48,7 +47,6 @@ describe("CreateStudentUseCase", () => {
   let guardianRepo: jest.Mocked<GuardianRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
-  let identityPort: jest.Mocked<IdentityPort>;
   let codeGenerator: jest.Mocked<StudentCodeGeneratorPort>;
   let actor: User;
 
@@ -71,10 +69,6 @@ describe("CreateStudentUseCase", () => {
     unitOfWork = {
       run: jest.fn((task) => task(mockTx)),
     } as unknown as jest.Mocked<UnitOfWorkPort>;
-    identityPort = {
-      provisionUser: jest.fn().mockResolvedValue({ clerkUid: "user_new123" }),
-      deleteIdentity: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<IdentityPort>;
     codeGenerator = {
       generateNextCode: jest.fn().mockResolvedValue(STUDENT_CODE),
     } as unknown as jest.Mocked<StudentCodeGeneratorPort>;
@@ -89,7 +83,6 @@ describe("CreateStudentUseCase", () => {
       studentRepo,
       guardianRepo,
       unitOfWork,
-      identityPort,
       codeGenerator,
     );
   });
@@ -98,7 +91,6 @@ describe("CreateStudentUseCase", () => {
     it("creates the student, skips Clerk + user, and records audit with name + code", async () => {
       await useCase.execute(baseInput, actor);
 
-      expect(identityPort.provisionUser).not.toHaveBeenCalled();
       expect(mockTx.createUser).not.toHaveBeenCalled();
       expect(mockTx.createStudent).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -122,17 +114,40 @@ describe("CreateStudentUseCase", () => {
       });
     });
 
-    it("provisions Clerk + creates user when createUserAccount=true", async () => {
+    it("rejects createUserAccount=true before identity or DB work", async () => {
+      await expect(
+        useCase.execute(
+          { ...baseInput, email: "eli@example.com", createUserAccount: true },
+          actor,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(guardianRepo.findByIds).not.toHaveBeenCalled();
+      expect(studentRepo.findByEmailInCampus).not.toHaveBeenCalled();
+      expect(codeGenerator.generateNextCode).not.toHaveBeenCalled();
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+      expect(mockTx.createUser).not.toHaveBeenCalled();
+    });
+
+    it("rejects createUserAccount=true even when guardian IDs are invalid", async () => {
+      await expect(
+        useCase.execute(
+          { ...baseInput, createUserAccount: true, guardianIds: ["g-missing"] },
+          actor,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(guardianRepo.findByIds).not.toHaveBeenCalled();
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("creates a profile-only student when createUserAccount=false", async () => {
       await useCase.execute(
-        { ...baseInput, email: "eli@example.com", createUserAccount: true },
+        { ...baseInput, email: "eli@example.com", createUserAccount: false },
         actor,
       );
 
-      expect(identityPort.provisionUser).toHaveBeenCalledTimes(1);
-      expect(mockTx.createUser).toHaveBeenCalledWith({
-        clerkUid: "user_new123",
-        isActive: true,
-      });
+      expect(mockTx.createUser).not.toHaveBeenCalled();
       expect(mockTx.createStudent).toHaveBeenCalledTimes(1);
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
     });
@@ -159,29 +174,16 @@ describe("CreateStudentUseCase", () => {
   });
 
   describe("AC-4 — rollback", () => {
-    it("propagates the recorder error and compensates Clerk when createUserAccount=true", async () => {
-      mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
-
-      await expect(
-        useCase.execute(
-          { ...baseInput, email: "eli@example.com", createUserAccount: true },
-          actor,
-        ),
-      ).rejects.toThrow(BadRequestException);
-
-      expect(mockTx.createStudent).toHaveBeenCalledTimes(1);
-      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
-      expect(identityPort.deleteIdentity).toHaveBeenCalledWith("user_new123");
-    });
-
-    it("propagates without Clerk compensation when createUserAccount=false", async () => {
+    it("propagates DB transaction errors without Clerk compensation", async () => {
       mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
 
       await expect(useCase.execute(baseInput, actor)).rejects.toThrow(
         BadRequestException,
       );
 
-      expect(identityPort.deleteIdentity).not.toHaveBeenCalled();
+      expect(mockTx.createStudent).toHaveBeenCalledTimes(1);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
+      expect(mockTx.createUser).not.toHaveBeenCalled();
     });
   });
 
@@ -195,11 +197,10 @@ describe("CreateStudentUseCase", () => {
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
 
-    it("rejects createUserAccount=true without email or phone", async () => {
+    it("rejects createUserAccount=true without requiring email or phone validation", async () => {
       await expect(
         useCase.execute({ ...baseInput, createUserAccount: true }, actor),
       ).rejects.toThrow(BadRequestException);
-      expect(identityPort.provisionUser).not.toHaveBeenCalled();
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });

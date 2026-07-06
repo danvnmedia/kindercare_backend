@@ -33,10 +33,12 @@ export const AUDIT_ACTIONS = [
   "ARCHIVE_STAFF",
   "RESTORE_STAFF",
 
-  // Creation (3)
+  // Creation / attach (5)
   "CREATE_STUDENT",
   "CREATE_GUARDIAN",
   "CREATE_STAFF",
+  "ATTACH_EXISTING_GUARDIAN_IDENTITY",
+  "ATTACH_EXISTING_STAFF_IDENTITY",
 
   // Guardian ↔ Student (2)
   "LINK_GUARDIAN_TO_STUDENT",
@@ -55,6 +57,11 @@ export const AUDIT_ACTIONS = [
   "CREATE_ROLE",
   "UPDATE_ROLE",
   "DELETE_ROLE",
+
+  // Global identity lifecycle (3)
+  "LOCK_GLOBAL_IDENTITY",
+  "UNLOCK_GLOBAL_IDENTITY",
+  "DELETE_GLOBAL_IDENTITY",
 
   // StaffType lifecycle (4)
   "CREATE_STAFF_TYPE",

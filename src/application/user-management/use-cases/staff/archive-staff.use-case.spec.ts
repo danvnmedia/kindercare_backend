@@ -2,18 +2,12 @@ import { NotFoundException } from "@nestjs/common";
 
 import { ArchiveStaffUseCase } from "./archive-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
-import { UserRepository } from "../../ports/user.repository";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
-import {
-  createStaff,
-  createMockStaffRepository,
-  createMockUserRepository,
-} from "@/test-utils";
+import { createStaff, createMockStaffRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
@@ -42,71 +36,53 @@ function buildActor(): User {
 describe("ArchiveStaffUseCase", () => {
   let useCase: ArchiveStaffUseCase;
   let staffRepo: jest.Mocked<StaffRepository>;
-  let userRepo: jest.Mocked<UserRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
-  let identityPort: jest.Mocked<IdentityPort>;
   let actor: User;
 
   beforeEach(() => {
     staffRepo = createMockStaffRepository();
-    userRepo = createMockUserRepository();
     mockTx = {
       updateStaff: jest.fn().mockResolvedValue({ id: "staff-1" }),
       updateUser: jest.fn().mockResolvedValue({ id: "user-1" }),
+      revokeRolesByProvenance: jest.fn().mockResolvedValue(2),
+      revokeRoles: jest.fn().mockResolvedValue(0),
       recordAudit: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<TransactionContext>;
     unitOfWork = {
       run: jest.fn((task) => task(mockTx)),
     } as unknown as jest.Mocked<UnitOfWorkPort>;
-    identityPort = {
-      lockIdentity: jest.fn().mockResolvedValue(undefined),
-      unlockIdentity: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<IdentityPort>;
     actor = buildActor();
 
-    useCase = new ArchiveStaffUseCase(
-      staffRepo,
-      userRepo,
-      unitOfWork,
-      identityPort,
-    );
+    useCase = new ArchiveStaffUseCase(staffRepo, unitOfWork);
   });
 
-  describe("AC-3 — happy path emits ARCHIVE_STAFF inside UoW", () => {
-    it("locks Clerk, archives in DB, deactivates user, and records audit", async () => {
+  describe("profile-scoped archive", () => {
+    it("archives a linked staff profile and revokes only StaffType-derived grants", async () => {
       const staff = createStaff({
         id: "staff-1",
         campusId: CAMPUS_ID,
         fullName: "Dan Le",
         userId: "user-1",
+        staffTypes: [
+          { id: "type-teacher", name: "Teacher" },
+          { id: "type-lead", name: "Lead" },
+        ],
       });
       staffRepo.findById.mockResolvedValue(staff);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
 
       await useCase.execute("staff-1", CAMPUS_ID, actor);
 
-      expect(identityPort.lockIdentity).toHaveBeenCalledTimes(1);
-      expect(identityPort.lockIdentity).toHaveBeenCalledWith(
-        "user_clerk1234567",
-      );
       expect(mockTx.updateStaff).toHaveBeenCalledWith(
         "staff-1",
         expect.objectContaining({ isArchived: true }),
       );
-      expect(mockTx.updateUser).toHaveBeenCalledWith("user-1", {
-        isActive: false,
-      });
+      expect(mockTx.updateUser).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith("user-1", [
+        "type-teacher",
+        "type-lead",
+      ]);
+      expect(mockTx.revokeRoles).not.toHaveBeenCalled();
 
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
       const payload = mockTx.recordAudit.mock.calls[0]![0];
@@ -120,7 +96,24 @@ describe("ArchiveStaffUseCase", () => {
       expect(payload.afterValue).toEqual({ isArchived: true });
     });
 
-    it("skips Clerk + updateUser when staff has no User account", async () => {
+    it("does not revoke grants when linked staff has no StaffTypes", async () => {
+      const staff = createStaff({
+        id: "staff-1",
+        campusId: CAMPUS_ID,
+        userId: "user-1",
+        staffTypes: [],
+      });
+      staffRepo.findById.mockResolvedValue(staff);
+
+      await useCase.execute("staff-1", CAMPUS_ID, actor);
+
+      expect(mockTx.updateUser).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
+      expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
+    });
+
+    it("archives an unlinked staff profile", async () => {
       const staff = createStaff({
         id: "staff-1",
         campusId: CAMPUS_ID,
@@ -130,8 +123,8 @@ describe("ArchiveStaffUseCase", () => {
 
       await useCase.execute("staff-1", CAMPUS_ID, actor);
 
-      expect(identityPort.lockIdentity).not.toHaveBeenCalled();
       expect(mockTx.updateUser).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
       expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
       expect(mockTx.recordAudit.mock.calls[0]![0].action).toBe("ARCHIVE_STAFF");

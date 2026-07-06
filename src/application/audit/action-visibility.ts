@@ -37,10 +37,12 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   ARCHIVE_STAFF: "ADMIN",
   RESTORE_STAFF: "ADMIN",
 
-  // Creation (3)
+  // Creation / attach (5)
   CREATE_STUDENT: "ADMIN",
   CREATE_GUARDIAN: "ADMIN",
   CREATE_STAFF: "ADMIN",
+  ATTACH_EXISTING_GUARDIAN_IDENTITY: "ADMIN",
+  ATTACH_EXISTING_STAFF_IDENTITY: "ADMIN",
 
   // Guardian ↔ Student (2)
   LINK_GUARDIAN_TO_STUDENT: "ADMIN",
@@ -59,6 +61,11 @@ export const ACTION_VISIBILITY: Record<AuditAction, AuditVisibility> = {
   CREATE_ROLE: "ADMIN",
   UPDATE_ROLE: "ADMIN",
   DELETE_ROLE: "ADMIN",
+
+  // Global identity lifecycle (3)
+  LOCK_GLOBAL_IDENTITY: "ADMIN",
+  UNLOCK_GLOBAL_IDENTITY: "ADMIN",
+  DELETE_GLOBAL_IDENTITY: "ADMIN",
 
   // StaffType lifecycle (4)
   CREATE_STAFF_TYPE: "ADMIN",

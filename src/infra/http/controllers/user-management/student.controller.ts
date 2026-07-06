@@ -76,7 +76,7 @@ export class StudentController {
   @ApiOperation({
     summary: "Create a new student",
     description:
-      "Creates a new student with personal information and optional guardian assignment. Can also create user account with Clerk if requested.",
+      "Creates a profile-only student with personal information and optional guardian assignment. Student login account creation is not supported yet; createUserAccount=true returns 400.",
   })
   @ApiHeader({
     name: "x-campus-id",
@@ -280,6 +280,7 @@ export class StudentController {
   ) {
     return await this.linkStudentWithGuardianUseCase.execute(
       {
+        campusId,
         studentId,
         guardianId: dto.guardianId,
         relationshipId: dto.relationshipId,
@@ -323,6 +324,7 @@ export class StudentController {
   ) {
     await this.unlinkStudentFromGuardianUseCase.execute(
       {
+        campusId,
         studentId,
         guardianId,
       },

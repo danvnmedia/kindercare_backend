@@ -16,6 +16,14 @@ export class ProfileInfo {
   id: string;
 
   @Expose()
+  @ApiProperty({
+    example: "550e8400-e29b-41d4-a716-446655440001",
+    nullable: true,
+    description: "Campus that owns this profile",
+  })
+  campusId: string | null;
+
+  @Expose()
   @ApiProperty({ example: "Nguyễn Văn A" })
   fullName: string;
 
@@ -40,7 +48,7 @@ export class ProfileInfo {
  * Auth Me Response
  *
  * Response for /auth/me endpoint.
- * Returns authenticated user information with roles and profile.
+ * Returns authenticated user information with roles and active profiles.
  */
 export class AuthMeResponse {
   @Expose()
@@ -75,11 +83,10 @@ export class AuthMeResponse {
   @Expose()
   @Type(() => ProfileInfo)
   @ApiProperty({
-    type: ProfileInfo,
-    description: "User profile information (from Guardian or Staff)",
-    nullable: true,
+    type: [ProfileInfo],
+    description: "Active user profile information from Guardian and Staff rows",
   })
-  profile: ProfileInfo | null;
+  profiles: ProfileInfo[];
 
   @Expose()
   @ApiProperty({

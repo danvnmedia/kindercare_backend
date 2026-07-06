@@ -38,12 +38,14 @@ import {
   UpdateGuardianRequest,
   LinkGuardianStudentRequest,
   GuardianChildResponse,
+  CreateOrAttachGuardianResponse,
 } from "../../dtos/user-management/guardian";
 import { LinkStudentGuardianResponse } from "../../dtos/user-management/student/student-guardian.response";
 import { UpdateStudentGuardianRequest } from "../../dtos/user-management/student";
 
 // Use Cases
 import { CreateGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-guardian.use-case";
+import { CreateOrAttachGuardianUseCase } from "@/application/user-management/use-cases/guardian/create-or-attach-guardian.use-case";
 import { ArchiveGuardianUseCase } from "@/application/user-management/use-cases/guardian/archive-guardian.use-case";
 import { RestoreGuardianUseCase } from "@/application/user-management/use-cases/guardian/restore-guardian.use-case";
 import { GetAllGuardiansUseCase } from "@/application/user-management/use-cases/guardian/get-all-guardians.use-case";
@@ -73,6 +75,7 @@ export class GuardianController {
     private readonly updateStudentGuardianRelationshipUseCase: UpdateStudentGuardianRelationshipUseCase,
     private readonly getCurrentGuardianStudentsUseCase: GetCurrentGuardianStudentsUseCase,
     private readonly getCurrentGuardianCampusesUseCase: GetCurrentGuardianCampusesUseCase,
+    private readonly createOrAttachGuardianUseCase: CreateOrAttachGuardianUseCase,
   ) {}
 
   @Post()
@@ -98,6 +101,44 @@ export class GuardianController {
     @CurrentUser() currentUser: User,
   ) {
     return await this.createGuardianUseCase.execute(
+      {
+        campusId,
+        fullName: dto.fullName,
+        dateOfBirth: dto.dateOfBirth,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        occupation: dto.occupation,
+        workAddress: dto.workAddress,
+        address: dto.address,
+        gender: dto.gender as Gender,
+      },
+      currentUser,
+    );
+  }
+
+  @Post("create-or-attach")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Guardian create-or-attach completed successfully",
+    type: CreateOrAttachGuardianResponse,
+  })
+  @ApiOperation({
+    summary: "Create or attach a guardian account",
+    description:
+      "Creates a selected-campus guardian profile by either provisioning a new parent identity or attaching to an eligible existing identity.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the guardian create-or-attach operation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async createOrAttach(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateGuardianRequest,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.createOrAttachGuardianUseCase.execute(
       {
         campusId,
         fullName: dto.fullName,
@@ -248,7 +289,7 @@ export class GuardianController {
   @ApiOperation({
     summary: "Archive a guardian (soft delete)",
     description:
-      "Archives a guardian by locking their Clerk account and marking them as inactive. Use PATCH /guardians/:id/restore to restore. For permanent deletion, use DELETE /danger/guardians/:id.",
+      "Archives only the campus guardian profile. Linked User and Clerk identities remain active unless changed through global identity administration. Use PATCH /guardians/:id/restore to restore the profile. For permanent profile deletion, use DELETE /danger/guardians/:id.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -273,7 +314,7 @@ export class GuardianController {
   @ApiOperation({
     summary: "Restore an archived guardian",
     description:
-      "Restores an archived guardian by unlocking their Clerk account and marking them as active.",
+      "Restores only the campus guardian profile. This does not unlock or reactivate the linked global identity.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -322,6 +363,7 @@ export class GuardianController {
   ) {
     return await this.linkStudentToGuardianUseCase.execute(
       {
+        campusId,
         guardianId,
         studentId: dto.studentId,
         relationshipId: dto.relationshipId,
@@ -366,6 +408,7 @@ export class GuardianController {
   ) {
     await this.unlinkStudentFromGuardianUseCase.execute(
       {
+        campusId,
         guardianId,
         studentId,
       },

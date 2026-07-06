@@ -55,8 +55,10 @@ describe("buildAuditActionsExport", () => {
     expect(result.actions[5]).toBe("EDIT_STUDENT_PROFILE");
     expect(result.actions[8]).toBe("ARCHIVE_STUDENT");
     expect(result.actions[14]).toBe("CREATE_STUDENT");
-    expect(result.actions[17]).toBe("LINK_GUARDIAN_TO_STUDENT");
-    expect(result.actions[18]).toBe("UNLINK_GUARDIAN_FROM_STUDENT");
+    expect(result.actions[17]).toBe("ATTACH_EXISTING_GUARDIAN_IDENTITY");
+    expect(result.actions[18]).toBe("ATTACH_EXISTING_STAFF_IDENTITY");
+    expect(result.actions[19]).toBe("LINK_GUARDIAN_TO_STUDENT");
+    expect(result.actions[20]).toBe("UNLINK_GUARDIAN_FROM_STUDENT");
   });
 
   it("every emitted action is a member of the AuditAction union", () => {

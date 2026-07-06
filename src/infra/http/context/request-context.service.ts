@@ -164,6 +164,10 @@ export class RequestContext {
   async getUser(): Promise<User | null> {
     // Return cached user if already loaded
     if (this.userLoaded) {
+      if (this.cachedUser) {
+        this.assertUserActive(this.cachedUser);
+      }
+
       return this.cachedUser ?? null;
     }
 
@@ -177,6 +181,10 @@ export class RequestContext {
     try {
       // Fetch user from repository
       const user = await this.userRepository.findByClerkUid(this._clerkId);
+
+      if (user) {
+        this.assertUserActive(user);
+      }
 
       // Cache the result
       this.cachedUser = user ?? undefined;
@@ -193,6 +201,12 @@ export class RequestContext {
 
       return user;
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.userLoaded = true;
+        this.cachedUser = undefined;
+        throw error;
+      }
+
       this.logger.error(
         `Failed to fetch user for clerkId ${this._clerkId}`,
         error,
@@ -243,5 +257,14 @@ export class RequestContext {
   clearCache(): void {
     this.cachedUser = null;
     this.userLoaded = false;
+  }
+
+  private assertUserActive(user: User): void {
+    if (user.isActive) {
+      return;
+    }
+
+    this.logger.warn(`Inactive user attempted access: ${user.id}`);
+    throw new UnauthorizedException("User account is inactive");
   }
 }
