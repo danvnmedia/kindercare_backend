@@ -35,15 +35,16 @@ describe("buildAuditActionsExport", () => {
 
   // Locked count — bump deliberately when adding a new action so the FE
   // template registry change-log stays auditable. v1 shipped 19
-  // (admin-audit-log); class-staff lifecycle added 3; direct role assignment
-  // added 2; role lifecycle added 3; staff-type lifecycle added 4; meal-menu
+  // (admin-audit-log); guardian/student links added 2; class-staff lifecycle
+  // added 3; direct role assignment added 2; role lifecycle added 3; global
+  // identity lifecycle added 3; staff-type lifecycle added 4; meal-menu
   // lifecycle added 6; weekly-plan lifecycle added 5; student-health profile
   // updates added 1; student-health checkup lifecycle added 2; student-health
   // instruction lifecycle added 2; student-health event lifecycle added 2;
   // medication request lifecycle added 1.
-  it("emits exactly 50 actions including medication requests", () => {
+  it("emits exactly 55 actions including medication requests", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(50);
+    expect(result.actions).toHaveLength(55);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {
