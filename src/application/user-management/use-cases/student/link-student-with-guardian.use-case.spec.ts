@@ -87,6 +87,7 @@ describe("LinkStudentWithGuardianUseCase", () => {
     );
     relationshipRepo.findById.mockResolvedValue({
       id: REL_ID,
+      campusId: CAMPUS_ID,
       name: "Mother",
       isArchived: false,
     } as never);
@@ -104,6 +105,7 @@ describe("LinkStudentWithGuardianUseCase", () => {
     it("inserts the link and records audit with both names + relationshipType", async () => {
       await useCase.execute(
         {
+          campusId: CAMPUS_ID,
           studentId: STUDENT_ID,
           guardianId: GUARDIAN_ID,
           relationshipId: REL_ID,
@@ -139,10 +141,11 @@ describe("LinkStudentWithGuardianUseCase", () => {
 
       await expect(
         useCase.execute(
-          {
-            studentId: STUDENT_ID,
-            guardianId: GUARDIAN_ID,
-            relationshipId: REL_ID,
+        {
+          campusId: CAMPUS_ID,
+          studentId: STUDENT_ID,
+          guardianId: GUARDIAN_ID,
+          relationshipId: REL_ID,
           },
           actor,
         ),
@@ -163,6 +166,7 @@ describe("LinkStudentWithGuardianUseCase", () => {
             studentId: STUDENT_ID,
             guardianId: GUARDIAN_ID,
             relationshipId: REL_ID,
+            campusId: CAMPUS_ID,
           },
           actor,
         ),
@@ -173,6 +177,7 @@ describe("LinkStudentWithGuardianUseCase", () => {
     it("throws BadRequestException when relationship type is archived", async () => {
       relationshipRepo.findById.mockResolvedValueOnce({
         id: REL_ID,
+        campusId: CAMPUS_ID,
         name: "Mother",
         isArchived: true,
       } as never);
@@ -180,6 +185,7 @@ describe("LinkStudentWithGuardianUseCase", () => {
       await expect(
         useCase.execute(
           {
+            campusId: CAMPUS_ID,
             studentId: STUDENT_ID,
             guardianId: GUARDIAN_ID,
             relationshipId: REL_ID,
@@ -201,14 +207,64 @@ describe("LinkStudentWithGuardianUseCase", () => {
 
       await expect(
         useCase.execute(
+        {
+          campusId: CAMPUS_ID,
+          studentId: STUDENT_ID,
+          guardianId: GUARDIAN_ID,
+          relationshipId: REL_ID,
+          },
+          actor,
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException before mutation when student is in another campus", async () => {
+      studentRepo.findById.mockResolvedValueOnce(
+        createStudent({
+          id: STUDENT_ID,
+          campusId: "22222222-2222-4222-a222-222222222222",
+          fullName: "Eli Pham",
+        }),
+      );
+
+      await expect(
+        useCase.execute(
           {
+            campusId: CAMPUS_ID,
             studentId: STUDENT_ID,
             guardianId: GUARDIAN_ID,
             relationshipId: REL_ID,
           },
           actor,
         ),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow(NotFoundException);
+
+      expect(guardianRepo.findById).not.toHaveBeenCalled();
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException before mutation when relationship type is in another campus", async () => {
+      relationshipRepo.findById.mockResolvedValueOnce({
+        id: REL_ID,
+        campusId: "22222222-2222-4222-a222-222222222222",
+        name: "Mother",
+        isArchived: false,
+      } as never);
+
+      await expect(
+        useCase.execute(
+          {
+            campusId: CAMPUS_ID,
+            studentId: STUDENT_ID,
+            guardianId: GUARDIAN_ID,
+            relationshipId: REL_ID,
+          },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(studentRepo.findById).not.toHaveBeenCalled();
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });

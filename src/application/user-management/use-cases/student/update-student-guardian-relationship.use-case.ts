@@ -55,6 +55,11 @@ export class UpdateStudentGuardianRelationshipUseCase {
           `Guardian relationship type with ID "${input.relationshipId}" not found`,
         );
       }
+      if (relationshipType.campusId !== input.campusId) {
+        throw new NotFoundException(
+          `Guardian relationship type with ID "${input.relationshipId}" not found in this campus`,
+        );
+      }
       if (relationshipType.isArchived) {
         throw new BadRequestException(
           `Guardian relationship type "${relationshipType.name}" is archived and cannot be used`,

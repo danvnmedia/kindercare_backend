@@ -8,17 +8,15 @@ import {
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { StaffRepository } from "../../ports/staff.repository";
-import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
-import { IdentityPort } from "@/application/ports/identity.port";
+import { StaffTypeRepository } from "../../ports/staff-type.repository";
+import { RoleAssignmentInput } from "../../ports/user.repository";
 
 /**
  * Restore Staff Use Case
  *
- * Restores a soft-deleted staff by:
- * 1. Unlocking the Clerk user (allows sign-in again)
- * 2. Activating the user in database (isActive = true)
- * 3. Restoring the staff in database (isArchived = false)
+ * Restores only the campus Staff profile and recreates StaffType-derived role
+ * grants. Global identity unlock/reactivation is handled by identity-admin flows.
  */
 @Injectable()
 export class RestoreStaffUseCase {
@@ -27,10 +25,9 @@ export class RestoreStaffUseCase {
   constructor(
     @Inject("STAFF_REPOSITORY")
     private readonly staffRepository: StaffRepository,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
+    @Inject("STAFF_TYPE_REPOSITORY")
+    private readonly staffTypeRepository: StaffTypeRepository,
     private readonly unitOfWork: UnitOfWorkPort,
-    private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(
@@ -58,12 +55,11 @@ export class RestoreStaffUseCase {
       throw new BadRequestException(`Staff with ID ${id} is not archived`);
     }
 
-    // Step 4: Unlock Clerk user (best effort - don't fail if this fails)
-    if (staff.hasUserAccount()) {
-      await this.unlockClerkUser(staff.userId!);
-    }
+    // Step 4: Resolve active StaffType default-role grants before opening UoW.
+    const derivedRoleAssignments =
+      await this.buildActiveStaffTypeRoleAssignments(staff);
 
-    // Step 5: Restore staff + activate user + emit audit row atomically.
+    // Step 5: Restore staff + recreate derived grants + emit audit row atomically.
     staff.restore();
 
     await this.unitOfWork.run(async (tx) => {
@@ -73,12 +69,10 @@ export class RestoreStaffUseCase {
       });
       this.logger.log(`Staff restored in transaction: ${id}`);
 
-      if (staff.hasUserAccount()) {
-        await tx.updateUser(staff.userId!, {
-          isActive: true,
-        });
+      if (staff.hasUserAccount() && derivedRoleAssignments.length > 0) {
+        await tx.assignRoles(staff.userId!, derivedRoleAssignments);
         this.logger.log(
-          `User account activated in transaction for staff: ${staff.email}`,
+          `Recreated ${derivedRoleAssignments.length} StaffType-derived grant(s) for user ${staff.userId} in campus ${staff.campusId}`,
         );
       }
 
@@ -98,30 +92,38 @@ export class RestoreStaffUseCase {
     return staff;
   }
 
-  private async unlockClerkUser(userId: string): Promise<void> {
-    try {
-      const user = await this.findUserById(userId);
-      if (user?.clerkUid) {
-        this.logger.log(`Unlocking Clerk identity: ${user.clerkUid}`);
-        await this.identityPort.unlockIdentity(user.clerkUid);
-        this.logger.log(`Clerk identity unlocked: ${user.clerkUid}`);
-      }
-    } catch (error) {
-      // Best effort - don't fail the restore operation if Clerk unlock fails
-      this.logger.warn(
-        `Failed to unlock Clerk user (continuing with restore): ${error.message}`,
-      );
+  private async buildActiveStaffTypeRoleAssignments(
+    staff: Staff,
+  ): Promise<Array<RoleAssignmentInput & { grantedViaStaffTypeId: string }>> {
+    if (!staff.hasUserAccount()) {
+      return [];
     }
-  }
 
-  private async findUserById(
-    userId: string,
-  ): Promise<{ clerkUid: string | null } | null> {
-    try {
-      const user = await this.userRepository.findById(userId);
-      return user ? { clerkUid: user.clerkUid } : null;
-    } catch {
-      return null;
+    const assignments: Array<
+      RoleAssignmentInput & { grantedViaStaffTypeId: string }
+    > = [];
+
+    for (const staffTypeSnapshot of staff.staffTypes) {
+      const staffType = await this.staffTypeRepository.findById(
+        staffTypeSnapshot.id,
+      );
+
+      if (
+        !staffType ||
+        staffType.isArchived ||
+        staffType.campusId !== staff.campusId ||
+        !staffType.defaultRoleId
+      ) {
+        continue;
+      }
+
+      assignments.push({
+        roleId: staffType.defaultRoleId,
+        campusId: staff.campusId,
+        grantedViaStaffTypeId: staffType.id,
+      });
     }
+
+    return assignments;
   }
 }

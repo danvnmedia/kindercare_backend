@@ -98,9 +98,10 @@ export class CreateStudentRequest {
 
   @ApiProperty({
     description:
-      "Create user account for student (will create User + Clerk account)",
+      "Deprecated unsupported flag. Student login accounts are not supported yet; passing true returns 400.",
     example: false,
     default: false,
+    deprecated: true,
   })
   @IsOptional()
   @IsBoolean()

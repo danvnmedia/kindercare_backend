@@ -46,6 +46,16 @@ export abstract class StaffRepository {
   abstract findByUserId(userId: string): Promise<Staff | null>;
 
   /**
+   * Find any staff profile by linked user ID within a campus, including
+   * archived profiles. Used by create-or-attach flows to distinguish active,
+   * archived, and absent target-campus profiles for a shared identity.
+   */
+  abstract findAnyByUserIdInCampus(
+    userId: string,
+    campusId: string,
+  ): Promise<Staff | null>;
+
+  /**
    * Find staff by staff type ID
    */
   abstract findByStaffTypeId(staffTypeId: string): Promise<Staff[]>;

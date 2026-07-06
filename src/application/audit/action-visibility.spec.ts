@@ -105,3 +105,33 @@ describe("StaffType audit vocab additions", () => {
     }
   });
 });
+
+describe("global identity lifecycle audit vocab additions", () => {
+  const identityActions = [
+    "LOCK_GLOBAL_IDENTITY",
+    "UNLOCK_GLOBAL_IDENTITY",
+    "DELETE_GLOBAL_IDENTITY",
+  ] as const;
+
+  it("registers every global identity lifecycle audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...identityActions]),
+    );
+  });
+
+  it("maps every global identity lifecycle action to ADMIN visibility", () => {
+    for (const action of identityActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
+describe("guardian existing identity attach audit vocab addition", () => {
+  it("registers the guardian existing identity attach action", () => {
+    expect(AUDIT_ACTIONS).toContain("ATTACH_EXISTING_GUARDIAN_IDENTITY");
+  });
+
+  it("maps guardian existing identity attach to ADMIN visibility", () => {
+    expect(ACTION_VISIBILITY.ATTACH_EXISTING_GUARDIAN_IDENTITY).toBe("ADMIN");
+  });
+});

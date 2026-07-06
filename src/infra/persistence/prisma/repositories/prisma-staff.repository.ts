@@ -111,6 +111,19 @@ export class PrismaStaffRepository implements StaffRepository {
     return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
   }
 
+  async findAnyByUserIdInCampus(
+    userId: string,
+    campusId: string,
+  ): Promise<Staff | null> {
+    const prismaStaff = await this.prisma.staff.findUnique({
+      where: {
+        campusId_userId: { campusId, userId },
+      },
+      include: STAFF_INCLUDE_WITH_USER,
+    });
+    return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
+  }
+
   async findByStaffTypeId(staffTypeId: string): Promise<Staff[]> {
     // `some` semantics: a staff matches when ANY of their `staff_staff_type`
     // rows points at the given type. Compiles to `EXISTS (SELECT 1 FROM
@@ -221,11 +234,7 @@ export class PrismaStaffRepository implements StaffRepository {
     // for ?search). isArchived, the anti-join on classStaff, and
     // scope.campusId are all system-enforced via `where` + `scope`.
     params.allowedFilterFields = ["fullName"];
-    params.allowedSortFields = [
-      "fullName",
-      "staffCode",
-      "createdAt",
-    ];
+    params.allowedSortFields = ["fullName", "staffCode", "createdAt"];
 
     return await this.queryService.executeQuery<Staff>(
       this.prisma,

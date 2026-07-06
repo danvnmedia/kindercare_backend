@@ -6,6 +6,7 @@ import { CampusGuard } from "../../guards/campus.guard";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { HydrateCurrentUserGuard } from "../../guards/hydrate-current-user.guard";
 import { createUser } from "@/test-utils/entity-factories";
+import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { GuardianController } from "./guardian.controller";
 
 function handler(name: keyof GuardianController) {
@@ -59,6 +60,7 @@ describe("GuardianController self-service route metadata", () => {
       unused,
       unused,
       getCurrentGuardianCampusesUseCase as never,
+      unused,
     );
 
     await controller.getMyCampuses(currentUser);
@@ -81,5 +83,60 @@ describe("GuardianController self-service route metadata", () => {
   it("keeps admin guardian routes on the normal campus access path", () => {
     expect(campusMetadataFor("findAll")).toEqual({});
     expect(guardsFor("findAll")).not.toContain(HydrateCurrentUserGuard);
+  });
+
+  it("adds create-or-attach on the normal campus access path", () => {
+    expect(routePathFor("createOrAttach")).toBe("create-or-attach");
+    expect(campusMetadataFor("createOrAttach")).toEqual({});
+    expect(guardsFor("createOrAttach")).not.toContain(HydrateCurrentUserGuard);
+  });
+
+  it("delegates createOrAttach with campus and current user context", async () => {
+    const currentUser = createUser();
+    const createOrAttachGuardianUseCase = {
+      execute: jest.fn().mockResolvedValue({}),
+    };
+    const unused = {} as never;
+    const controller = new GuardianController(
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      createOrAttachGuardianUseCase as never,
+    );
+
+    await controller.createOrAttach(
+      "campus-1",
+      {
+        fullName: "Carol Pham",
+        email: "carol@example.com",
+        phoneNumber: "+84900000001",
+        gender: Gender.FEMALE,
+      },
+      currentUser,
+    );
+
+    expect(createOrAttachGuardianUseCase.execute).toHaveBeenCalledWith(
+      {
+        campusId: "campus-1",
+        fullName: "Carol Pham",
+        dateOfBirth: undefined,
+        email: "carol@example.com",
+        phoneNumber: "+84900000001",
+        occupation: undefined,
+        workAddress: undefined,
+        address: undefined,
+        gender: Gender.FEMALE,
+      },
+      currentUser,
+    );
   });
 });

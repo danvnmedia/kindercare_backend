@@ -1,4 +1,8 @@
-import { BadRequestException, ConflictException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { LinkStudentToGuardianUseCase } from "./link-student-to-guardian.use-case";
 import { StudentRepository } from "../../ports/student.repository";
@@ -83,6 +87,7 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
     );
     relationshipRepo.findById.mockResolvedValue({
       id: REL_ID,
+      campusId: CAMPUS_ID,
       name: "Father",
       isArchived: false,
     } as never);
@@ -100,6 +105,7 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
     it("targets the student and records both names + relationshipType", async () => {
       await useCase.execute(
         {
+          campusId: CAMPUS_ID,
           guardianId: GUARDIAN_ID,
           studentId: STUDENT_ID,
           relationshipId: REL_ID,
@@ -133,10 +139,11 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
 
       await expect(
         useCase.execute(
-          {
-            guardianId: GUARDIAN_ID,
-            studentId: STUDENT_ID,
-            relationshipId: REL_ID,
+        {
+          campusId: CAMPUS_ID,
+          guardianId: GUARDIAN_ID,
+          studentId: STUDENT_ID,
+          relationshipId: REL_ID,
           },
           actor,
         ),
@@ -151,6 +158,7 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
     it("throws BadRequestException when relationship type is archived", async () => {
       relationshipRepo.findById.mockResolvedValueOnce({
         id: REL_ID,
+        campusId: CAMPUS_ID,
         name: "Father",
         isArchived: true,
       } as never);
@@ -158,6 +166,7 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
       await expect(
         useCase.execute(
           {
+            campusId: CAMPUS_ID,
             guardianId: GUARDIAN_ID,
             studentId: STUDENT_ID,
             relationshipId: REL_ID,
@@ -179,14 +188,64 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
 
       await expect(
         useCase.execute(
+        {
+          campusId: CAMPUS_ID,
+          guardianId: GUARDIAN_ID,
+          studentId: STUDENT_ID,
+          relationshipId: REL_ID,
+          },
+          actor,
+        ),
+      ).rejects.toThrow(ConflictException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException before mutation when guardian is in another campus", async () => {
+      guardianRepo.findById.mockResolvedValueOnce(
+        createGuardian({
+          id: GUARDIAN_ID,
+          campusId: "22222222-2222-4222-a222-222222222222",
+          fullName: "Carol Pham",
+        }),
+      );
+
+      await expect(
+        useCase.execute(
           {
+            campusId: CAMPUS_ID,
             guardianId: GUARDIAN_ID,
             studentId: STUDENT_ID,
             relationshipId: REL_ID,
           },
           actor,
         ),
-      ).rejects.toThrow(ConflictException);
+      ).rejects.toThrow(NotFoundException);
+
+      expect(studentRepo.getStudentGuardians).not.toHaveBeenCalled();
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException before mutation when relationship type is in another campus", async () => {
+      relationshipRepo.findById.mockResolvedValueOnce({
+        id: REL_ID,
+        campusId: "22222222-2222-4222-a222-222222222222",
+        name: "Father",
+        isArchived: false,
+      } as never);
+
+      await expect(
+        useCase.execute(
+          {
+            campusId: CAMPUS_ID,
+            guardianId: GUARDIAN_ID,
+            studentId: STUDENT_ID,
+            relationshipId: REL_ID,
+          },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(guardianRepo.findById).not.toHaveBeenCalled();
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });

@@ -22,6 +22,7 @@ describe("PrismaStaffRepository", () => {
   beforeEach(() => {
     prisma = {
       staff: {
+        findUnique: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
       },
     };
@@ -181,6 +182,23 @@ describe("PrismaStaffRepository", () => {
     });
   });
 
+  describe("findAnyByUserIdInCampus", () => {
+    it("uses the campusId/userId compound selector and includes archived rows", async () => {
+      await repository.findAnyByUserIdInCampus("user-1", "campus-1");
+
+      expect(prisma.staff.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.staff.findUnique).toHaveBeenCalledWith({
+        where: {
+          campusId_userId: {
+            campusId: "campus-1",
+            userId: "user-1",
+          },
+        },
+        include: EXPECTED_INCLUDE,
+      });
+    });
+  });
+
   describe("findEligibleForClass", () => {
     // Each test calls the repo, then inspects the args we passed to
     // PrismaQueryService.executeQuery. executeQuery itself is exercised by
@@ -267,8 +285,13 @@ describe("PrismaStaffRepository", () => {
         campusId: "campus-1",
       });
 
-      const { prismaArg, modelName, mapper, params: passedParams, options } =
-        callArgs();
+      const {
+        prismaArg,
+        modelName,
+        mapper,
+        params: passedParams,
+        options,
+      } = callArgs();
       expect(prismaArg).toBe(prisma);
       expect(modelName).toBe("staff");
       expect(mapper).toBe(PrismaStaffMapper);

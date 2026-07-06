@@ -2,19 +2,13 @@ import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { Guardian } from "@/domain/user-management/entities/guardian.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { GuardianRepository } from "../../ports/guardian.repository";
-import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
-import { IdentityPort } from "@/application/ports/identity.port";
 
 /**
  * Archive Guardian Use Case (Soft Delete)
  *
- * Performs soft delete by:
- * 1. Locking the Clerk user (prevents sign-in)
- * 2. Deactivating the user in database (isActive = false)
- * 3. Archiving the guardian in database (isArchived = true)
- *
- * This preserves data for potential account recovery.
+ * Performs profile-scoped soft delete by archiving the Guardian row.
+ * Global identity lock/deactivation is handled by explicit identity-admin flows.
  */
 @Injectable()
 export class ArchiveGuardianUseCase {
@@ -23,10 +17,7 @@ export class ArchiveGuardianUseCase {
   constructor(
     @Inject("GUARDIAN_REPOSITORY")
     private readonly guardianRepository: GuardianRepository,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
     private readonly unitOfWork: UnitOfWorkPort,
-    private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(
@@ -49,12 +40,7 @@ export class ArchiveGuardianUseCase {
       );
     }
 
-    // Step 3: Lock Clerk user (best effort - don't fail if this fails)
-    if (guardian.hasUserAccount()) {
-      await this.lockClerkUser(guardian.userId!);
-    }
-
-    // Step 4: Archive guardian + deactivate user + emit audit row atomically.
+    // Step 3: Archive guardian + emit audit row atomically.
     guardian.archive();
 
     await this.unitOfWork.run(async (tx) => {
@@ -63,15 +49,6 @@ export class ArchiveGuardianUseCase {
         updatedAt: guardian.updatedAt,
       });
       this.logger.log(`Guardian archived in transaction: ${id}`);
-
-      if (guardian.hasUserAccount()) {
-        await tx.updateUser(guardian.userId!, {
-          isActive: false,
-        });
-        this.logger.log(
-          `User account deactivated in transaction for guardian: ${guardian.email ?? guardian.phoneNumber}`,
-        );
-      }
 
       await tx.recordAudit({
         actorId: currentUser.id,
@@ -87,32 +64,5 @@ export class ArchiveGuardianUseCase {
 
     this.logger.log(`Guardian archived successfully: ${id}`);
     return guardian;
-  }
-
-  private async lockClerkUser(userId: string): Promise<void> {
-    try {
-      const user = await this.findUserById(userId);
-      if (user?.clerkUid) {
-        this.logger.log(`Locking Clerk identity: ${user.clerkUid}`);
-        await this.identityPort.lockIdentity(user.clerkUid);
-        this.logger.log(`Clerk identity locked: ${user.clerkUid}`);
-      }
-    } catch (error) {
-      // Best effort - don't fail the archive operation if Clerk lock fails
-      this.logger.warn(
-        `Failed to lock Clerk user (continuing with archive): ${error.message}`,
-      );
-    }
-  }
-
-  private async findUserById(
-    userId: string,
-  ): Promise<{ clerkUid: string | null } | null> {
-    try {
-      const user = await this.userRepository.findById(userId);
-      return user ? { clerkUid: user.clerkUid } : null;
-    } catch {
-      return null;
-    }
   }
 }

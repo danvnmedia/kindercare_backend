@@ -36,6 +36,7 @@ import {
   getCampusFromRequest,
   setCampusOnRequest,
   hasCampusAccess,
+  hasActiveStaffProfileInCampus,
   isValidUUID,
   isGlobalAdmin,
 } from "../context/campus-context";
@@ -133,6 +134,15 @@ export class CampusGuard implements CanActivate {
         setCampusOnRequest(request, campusId);
         this.requestContext.setCampusId(campusId);
         return true;
+      }
+
+      if (!hasActiveStaffProfileInCampus(fullUser, campusId)) {
+        this.logger.warn(
+          `CampusGuard: User ${fullUser.id} has no active staff profile in campus ${campusId}`,
+        );
+        throw new ForbiddenException(
+          "Active staff profile required for this campus",
+        );
       }
 
       // Check if user has access to this campus

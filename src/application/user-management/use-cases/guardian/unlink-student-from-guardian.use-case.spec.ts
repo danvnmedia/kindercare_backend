@@ -97,7 +97,11 @@ describe("UnlinkStudentFromGuardianUseCase (guardian-side)", () => {
   describe("AC-3 — happy path emits UNLINK_GUARDIAN_FROM_STUDENT inside UoW", () => {
     it("removes the link and records audit with relationshipType snapshot", async () => {
       await useCase.execute(
-        { guardianId: GUARDIAN_ID, studentId: STUDENT_ID },
+        {
+          campusId: CAMPUS_ID,
+          guardianId: GUARDIAN_ID,
+          studentId: STUDENT_ID,
+        },
         actor,
       );
 
@@ -127,7 +131,11 @@ describe("UnlinkStudentFromGuardianUseCase (guardian-side)", () => {
 
       await expect(
         useCase.execute(
-          { guardianId: GUARDIAN_ID, studentId: STUDENT_ID },
+          {
+            campusId: CAMPUS_ID,
+            guardianId: GUARDIAN_ID,
+            studentId: STUDENT_ID,
+          },
           actor,
         ),
       ).rejects.toThrow("audit fail");
@@ -143,10 +151,38 @@ describe("UnlinkStudentFromGuardianUseCase (guardian-side)", () => {
 
       await expect(
         useCase.execute(
-          { guardianId: GUARDIAN_ID, studentId: STUDENT_ID },
+          {
+            campusId: CAMPUS_ID,
+            guardianId: GUARDIAN_ID,
+            studentId: STUDENT_ID,
+          },
           actor,
         ),
       ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException before mutation when guardian is in another campus", async () => {
+      guardianRepo.findById.mockResolvedValueOnce(
+        createGuardian({
+          id: GUARDIAN_ID,
+          campusId: "22222222-2222-4222-a222-222222222222",
+          fullName: "Carol Pham",
+        }),
+      );
+
+      await expect(
+        useCase.execute(
+          {
+            campusId: CAMPUS_ID,
+            guardianId: GUARDIAN_ID,
+            studentId: STUDENT_ID,
+          },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(studentRepo.findById).not.toHaveBeenCalled();
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });

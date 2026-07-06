@@ -44,6 +44,15 @@ export class UserTransactionOps {
   }
 
   /**
+   * Delete an existing user within the transaction.
+   */
+  async deleteUser(id: string): Promise<void> {
+    await this.tx.user.delete({
+      where: { id },
+    });
+  }
+
+  /**
    * Assign roles to a user within the transaction with campus + provenance context.
    *
    * `skipDuplicates: true` compiles to `ON CONFLICT DO NOTHING` on PostgreSQL —

@@ -7,18 +7,12 @@ import {
 import { UpdateStaffUseCase } from "./update-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
-import { UserRepository } from "../../ports/user.repository";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
-import {
-  createStaff,
-  createMockStaffRepository,
-  createMockUserRepository,
-} from "@/test-utils";
+import { createStaff, createMockStaffRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
@@ -81,10 +75,8 @@ describe("UpdateStaffUseCase", () => {
   let useCase: UpdateStaffUseCase;
   let staffRepo: jest.Mocked<StaffRepository>;
   let staffTypeRepo: jest.Mocked<StaffTypeRepository>;
-  let userRepo: jest.Mocked<UserRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
-  let identityPort: jest.Mocked<IdentityPort>;
   let actor: User;
 
   beforeEach(() => {
@@ -103,7 +95,6 @@ describe("UpdateStaffUseCase", () => {
       archive: jest.fn(),
       unarchive: jest.fn(),
     } as unknown as jest.Mocked<StaffTypeRepository>;
-    userRepo = createMockUserRepository();
     mockTx = {
       updateStaff: jest.fn().mockResolvedValue({ id: "staff-1" }),
       replaceStaffTypes: jest.fn().mockResolvedValue(undefined),
@@ -114,20 +105,9 @@ describe("UpdateStaffUseCase", () => {
     unitOfWork = {
       run: jest.fn((task) => task(mockTx)),
     } as unknown as jest.Mocked<UnitOfWorkPort>;
-    identityPort = {
-      createUser: jest.fn(),
-      updateUser: jest.fn().mockResolvedValue(undefined),
-      deleteUser: jest.fn(),
-    } as unknown as jest.Mocked<IdentityPort>;
     actor = buildActor();
 
-    useCase = new UpdateStaffUseCase(
-      staffRepo,
-      staffTypeRepo,
-      userRepo,
-      unitOfWork,
-      identityPort,
-    );
+    useCase = new UpdateStaffUseCase(staffRepo, staffTypeRepo, unitOfWork);
   });
 
   describe("DB-only path (no User account)", () => {
@@ -148,7 +128,6 @@ describe("UpdateStaffUseCase", () => {
         actor,
       );
 
-      expect(identityPort.updateUser).not.toHaveBeenCalled();
       expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
       expect(mockTx.replaceStaffTypes).not.toHaveBeenCalled();
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
@@ -212,8 +191,8 @@ describe("UpdateStaffUseCase", () => {
     });
   });
 
-  describe("Clerk-saga path", () => {
-    it("emits audit AFTER Clerk + updateStaff succeed", async () => {
+  describe("linked identity field restrictions", () => {
+    it("rejects linked staff email changes before DB writes", async () => {
       const staff = createStaff({
         id: "staff-1",
         campusId: CAMPUS_ID,
@@ -223,53 +202,6 @@ describe("UpdateStaffUseCase", () => {
         staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
       staffRepo.findById.mockResolvedValue(staff);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
-
-      await useCase.execute(
-        "staff-1",
-        { campusId: CAMPUS_ID, email: "dan.new@example.com" },
-        actor,
-      );
-
-      expect(identityPort.updateUser).toHaveBeenCalledTimes(1);
-      expect(mockTx.updateStaff).toHaveBeenCalledTimes(1);
-      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
-      const payload = mockTx.recordAudit.mock.calls[0]![0];
-      expect(payload.beforeValue).toEqual({ email: "dan@example.com" });
-      expect(payload.afterValue).toEqual({ email: "dan.new@example.com" });
-    });
-
-    it("AC-4 — recorder failure triggers Clerk revert", async () => {
-      const staff = createStaff({
-        id: "staff-1",
-        campusId: CAMPUS_ID,
-        email: "dan@example.com",
-        userId: "user-1",
-        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
-      });
-      staffRepo.findById.mockResolvedValue(staff);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
-      mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
 
       await expect(
         useCase.execute(
@@ -277,12 +209,36 @@ describe("UpdateStaffUseCase", () => {
           { campusId: CAMPUS_ID, email: "dan.new@example.com" },
           actor,
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(ConflictException);
 
-      expect(identityPort.updateUser).toHaveBeenCalledTimes(2);
-      expect(identityPort.updateUser.mock.calls[1]![1]).toEqual({
-        email: "dan@example.com",
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+      expect(mockTx.updateStaff).not.toHaveBeenCalled();
+    });
+
+    it("rejects linked staff phone and fullName changes", async () => {
+      const staff = createStaff({
+        id: "staff-1",
+        campusId: CAMPUS_ID,
+        fullName: "Dan Le",
+        phoneNumber: "+15550000001",
+        userId: "user-1",
+        staffTypes: [{ id: TYPE_A, name: "Teacher" }],
       });
+      staffRepo.findById.mockResolvedValue(staff);
+
+      await expect(
+        useCase.execute(
+          "staff-1",
+          {
+            campusId: CAMPUS_ID,
+            phoneNumber: "+15550000002",
+            fullName: "Dan New",
+          },
+          actor,
+        ),
+      ).rejects.toThrow(ConflictException);
+
+      expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });
 

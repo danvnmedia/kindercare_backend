@@ -1,4 +1,3 @@
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
@@ -20,7 +19,6 @@ import {
 } from "@nestjs/common";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
-import { UserRepository } from "../../ports/user.repository";
 
 export interface UpdateStaffInput extends UpdateStaffData {
   campusId: string; // Required for campus verification
@@ -33,19 +31,6 @@ export interface UpdateStaffInput extends UpdateStaffData {
    * @doc/specs/staff-multi-type-refactor.
    */
   staffTypeIds?: string[];
-}
-
-interface ClerkChanges {
-  hasChanges: boolean;
-  email?: string;
-  phoneNumber?: string;
-  fullName?: string;
-}
-
-interface ClerkOriginalValues {
-  email: string;
-  phoneNumber: string;
-  fullName: string;
 }
 
 type RoleProvenanceEntry = { roleId: string; viaStaffTypeId: string };
@@ -110,10 +95,7 @@ export class UpdateStaffUseCase {
     private readonly staffRepository: StaffRepository,
     @Inject("STAFF_TYPE_REPOSITORY")
     private readonly staffTypeRepository: StaffTypeRepository,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
     private readonly unitOfWork: UnitOfWorkPort,
-    private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(
@@ -136,7 +118,10 @@ export class UpdateStaffUseCase {
       );
     }
 
-    // Step 3: Check uniqueness (email and phone) - campus-scoped
+    // Step 3: Linked identity fields are global and require a separate flow.
+    this.rejectLinkedIdentityFieldChanges(staff, input);
+
+    // Step 4: Check uniqueness (email and phone) - campus-scoped
     if (input.email && input.email !== staff.email) {
       await this.checkEmailUniqueness(staff.campusId, input.email, id);
     }
@@ -144,7 +129,7 @@ export class UpdateStaffUseCase {
       await this.checkPhoneUniqueness(staff.campusId, input.phoneNumber, id);
     }
 
-    // Step 4: Resolve the staff-type set diff outside the UoW so:
+    // Step 5: Resolve the staff-type set diff outside the UoW so:
     //  - per-type validation (existence / archived / cross-campus) surfaces
     //    as a 4xx without holding a DB transaction open;
     //  - the audit payload can name what was revoked even after the rows
@@ -153,22 +138,35 @@ export class UpdateStaffUseCase {
     //    before `pickStaffAuditFields` snapshots `staffTypeIds`.
     const staffTypeDiff = await this.resolveStaffTypeDiff(staff, input);
 
-    // Step 5: Detect Clerk-relevant changes (email, phone, fullName)
-    const clerkChanges = this.detectClerkChanges(staff, input);
+    // Step 6: Update DB only. Global identity changes use a separate flow.
+    return await this.updateDbOnly(staff, input, staffTypeDiff, currentUser);
+  }
 
-    // Step 6: If has User account AND has Clerk changes -> Saga pattern
-    if (staff.userId && clerkChanges.hasChanges) {
-      return await this.updateWithClerkSync(
-        staff,
-        input,
-        clerkChanges,
-        staffTypeDiff,
-        currentUser,
-      );
+  private rejectLinkedIdentityFieldChanges(
+    staff: Staff,
+    input: UpdateStaffInput,
+  ): void {
+    if (!staff.userId) {
+      return;
     }
 
-    // Step 7: Otherwise, just update DB with transaction
-    return await this.updateDbOnly(staff, input, staffTypeDiff, currentUser);
+    const changedFields = [
+      input.email !== undefined && input.email !== staff.email ? "email" : null,
+      input.phoneNumber !== undefined && input.phoneNumber !== staff.phoneNumber
+        ? "phoneNumber"
+        : null,
+      input.fullName !== undefined && input.fullName !== staff.fullName
+        ? "fullName"
+        : null,
+    ].filter((field): field is string => field !== null);
+
+    if (changedFields.length === 0) {
+      return;
+    }
+
+    throw new ConflictException(
+      `Linked staff identity fields cannot be changed through profile update: ${changedFields.join(", ")}`,
+    );
   }
 
   /**
@@ -263,117 +261,7 @@ export class UpdateStaffUseCase {
   }
 
   /**
-   * Detect which fields need to be synced with Clerk
-   */
-  private detectClerkChanges(
-    staff: Staff,
-    input: UpdateStaffInput,
-  ): ClerkChanges {
-    const changes: ClerkChanges = { hasChanges: false };
-
-    if (input.email !== undefined && input.email !== staff.email) {
-      changes.email = input.email;
-      changes.hasChanges = true;
-    }
-    if (
-      input.phoneNumber !== undefined &&
-      input.phoneNumber !== staff.phoneNumber
-    ) {
-      changes.phoneNumber = input.phoneNumber;
-      changes.hasChanges = true;
-    }
-    if (input.fullName !== undefined && input.fullName !== staff.fullName) {
-      changes.fullName = input.fullName;
-      changes.hasChanges = true;
-    }
-
-    return changes;
-  }
-
-  /**
-   * Update with Clerk sync using Saga pattern.
-   * Flow: Clerk first → DB transaction → revert Clerk on failure.
-   */
-  private async updateWithClerkSync(
-    staff: Staff,
-    input: UpdateStaffInput,
-    clerkChanges: ClerkChanges,
-    staffTypeDiff: StaffTypeDiff | null,
-    currentUser: User,
-  ): Promise<Staff> {
-    const user = await this.userRepository.findById(staff.userId!);
-    if (!user) {
-      this.logger.warn(
-        `User not found for staff ${staff.id}, falling back to DB-only update`,
-      );
-      return await this.updateDbOnly(
-        staff,
-        input,
-        staffTypeDiff,
-        currentUser,
-      );
-    }
-
-    const originalValues: ClerkOriginalValues = {
-      email: staff.email,
-      phoneNumber: staff.phoneNumber,
-      fullName: staff.fullName,
-    };
-
-    this.logger.log(
-      `Updating Clerk user ${user.clerkUid} for staff ${staff.id}`,
-    );
-
-    // Update Clerk FIRST (external service)
-    try {
-      await this.identityPort.updateUser(user.clerkUid, {
-        email: clerkChanges.email,
-        phoneNumber: clerkChanges.phoneNumber,
-        fullName: clerkChanges.fullName,
-      });
-      this.logger.log(`Clerk user updated successfully: ${user.clerkUid}`);
-    } catch (clerkError) {
-      this.logger.error(
-        `Failed to update Clerk user: ${clerkError.message}`,
-        clerkError.stack,
-      );
-      throw new BadRequestException(
-        `Failed to update identity: ${clerkError.message}`,
-      );
-    }
-
-    try {
-      const updatedStaff = await this.runStaffUpdateTransaction(
-        staff,
-        input,
-        staffTypeDiff,
-        currentUser,
-      );
-      this.logger.log(`Staff updated successfully: ${staff.id}`);
-      return updatedStaff;
-    } catch (dbError) {
-      // Compensate: revert Clerk to original values.
-      this.logger.error(
-        `DB transaction failed, compensating by reverting Clerk: ${user.clerkUid}`,
-      );
-      await this.revertClerkChanges(
-        user.clerkUid,
-        originalValues,
-        clerkChanges,
-      );
-
-      this.logger.error(
-        `Failed to update staff: ${dbError.message}`,
-        dbError.stack,
-      );
-      throw new BadRequestException(
-        `Failed to update staff: ${dbError.message}`,
-      );
-    }
-  }
-
-  /**
-   * Update DB only (no Clerk sync needed).
+   * Update DB only. Global identity changes use a separate flow.
    */
   private async updateDbOnly(
     staff: Staff,
@@ -399,8 +287,8 @@ export class UpdateStaffUseCase {
   }
 
   /**
-   * Apply the entity mutations + open the UoW. Shared by the Clerk-saga and
-   * DB-only paths so the in-transaction sequence is defined exactly once:
+   * Apply the entity mutations + open the UoW so the in-transaction sequence
+   * is defined exactly once:
    *
    *   1. `tx.updateStaff` (scalar columns)
    *   2. `tx.replaceStaffTypes` (full-set swap — only when a diff was supplied)
@@ -559,45 +447,6 @@ export class UpdateStaffUseCase {
     }
 
     return { rolesGranted, rolesRevoked };
-  }
-
-  /**
-   * Compensation: revert Clerk changes to original values.
-   */
-  private async revertClerkChanges(
-    clerkUid: string,
-    originalValues: ClerkOriginalValues,
-    appliedChanges: ClerkChanges,
-  ): Promise<void> {
-    try {
-      const revertData: {
-        email?: string;
-        phoneNumber?: string;
-        fullName?: string;
-      } = {};
-
-      // Only revert fields that were actually changed
-      if (appliedChanges.email !== undefined) {
-        revertData.email = originalValues.email;
-      }
-      if (appliedChanges.phoneNumber !== undefined) {
-        revertData.phoneNumber = originalValues.phoneNumber;
-      }
-      if (appliedChanges.fullName !== undefined) {
-        revertData.fullName = originalValues.fullName;
-      }
-
-      await this.identityPort.updateUser(clerkUid, revertData);
-      this.logger.log(
-        `Compensation successful: Clerk reverted for ${clerkUid}`,
-      );
-    } catch (compensationError) {
-      // Log but don't throw - compensation is best effort
-      this.logger.error(
-        `Compensation FAILED: Could not revert Clerk user ${clerkUid}. Manual fix required.`,
-        compensationError.stack,
-      );
-    }
   }
 
   private async checkEmailUniqueness(

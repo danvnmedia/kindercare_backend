@@ -44,6 +44,7 @@ export class PrismaUserMapper {
     return {
       type: "guardian",
       id: guardian.id,
+      campusId: guardian.campusId,
       fullName: guardian.fullName,
       email: guardian.email,
       phoneNumber: guardian.phoneNumber,
@@ -59,6 +60,7 @@ export class PrismaUserMapper {
     return {
       type: "staff",
       id: staff.id,
+      campusId: staff.campusId,
       fullName: staff.fullName,
       email: staff.email,
       phoneNumber: staff.phoneNumber,
@@ -85,21 +87,20 @@ export class PrismaUserMapper {
         assignedAt: ur.assignedAt,
       })) ?? [];
 
-    // Determine profile: prefer staff over guardian if both exist
-    // (staff typically means employee with more access)
-    let profile: UserProfile | null = null;
-    if (prismaUser.staffs && prismaUser.staffs.length > 0) {
-      profile = this.mapStaffToProfile(prismaUser.staffs[0]);
-    } else if (prismaUser.guardians && prismaUser.guardians.length > 0) {
-      profile = this.mapGuardianToProfile(prismaUser.guardians[0]);
-    }
+    const staffProfiles =
+      prismaUser.staffs?.map((staff) => this.mapStaffToProfile(staff)) ?? [];
+    const guardianProfiles =
+      prismaUser.guardians?.map((guardian) =>
+        this.mapGuardianToProfile(guardian),
+      ) ?? [];
+    const profiles: UserProfile[] = [...staffProfiles, ...guardianProfiles];
 
     return User.reconstitute(
       {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
         roleAssignments,
-        profile,
+        profiles,
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,
       },

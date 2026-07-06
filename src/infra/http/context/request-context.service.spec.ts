@@ -34,6 +34,8 @@ describe("RequestContext", () => {
     mockUserRepository = {
       findById: jest.fn(),
       findByEmail: jest.fn(),
+      findManyByEmail: jest.fn(),
+      findManyByPhoneNumber: jest.fn(),
       findByClerkUid: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -79,6 +81,20 @@ describe("RequestContext", () => {
       const result = await requestContext.getUser();
 
       expect(result).toBe(user);
+      expect(mockUserRepository.findByClerkUid).not.toHaveBeenCalled();
+    });
+
+    it("should reject an inactive cached user from the request", async () => {
+      const user = createUser({ id: "user-1", isActive: false });
+      mockRequest = createMockRequest("clerk-user-1");
+      mockRequest.user = user;
+
+      requestContext = new RequestContext(mockRequest, mockUserRepository);
+
+      const result = requestContext.getUser();
+
+      await expect(result).rejects.toThrow(UnauthorizedException);
+      await expect(result).rejects.toThrow("User account is inactive");
       expect(mockUserRepository.findByClerkUid).not.toHaveBeenCalled();
     });
   });
@@ -185,6 +201,21 @@ describe("RequestContext", () => {
 
       expect(mockRequest.user).toBe(expectedUser);
     });
+
+    it("should reject inactive users before syncing to the request", async () => {
+      const inactiveUser = createUser({ id: "user-1", isActive: false });
+      mockRequest = createMockRequest("clerk-user-1");
+      mockUserRepository.findByClerkUid.mockResolvedValue(inactiveUser);
+
+      requestContext = new RequestContext(mockRequest, mockUserRepository);
+
+      const result = requestContext.getUser();
+
+      await expect(result).rejects.toThrow(UnauthorizedException);
+      await expect(result).rejects.toThrow("User account is inactive");
+      expect(mockRequest.user).toBeUndefined();
+      expect(requestContext.isUserLoaded()).toBe(true);
+    });
   });
 
   describe("getUser - Caching", () => {
@@ -256,6 +287,20 @@ describe("RequestContext", () => {
       await expect(requestContext.getUserOrFail()).rejects.toThrow(
         "User not found",
       );
+    });
+
+    it("should throw UnauthorizedException when the user is inactive", async () => {
+      mockRequest = createMockRequest("clerk-user-1");
+      mockUserRepository.findByClerkUid.mockResolvedValue(
+        createUser({ id: "user-1", isActive: false }),
+      );
+
+      requestContext = new RequestContext(mockRequest, mockUserRepository);
+
+      const result = requestContext.getUserOrFail();
+
+      await expect(result).rejects.toThrow(UnauthorizedException);
+      await expect(result).rejects.toThrow("User account is inactive");
     });
   });
 

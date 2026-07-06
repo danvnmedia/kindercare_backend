@@ -19,7 +19,11 @@ import {
   MealMenuConfig,
   MealMenuEntryInput,
 } from "@/domain/meal-menu";
-import { User, UserRoleAssignment } from "@/domain/user-management/user.entity";
+import {
+  User,
+  UserProfile,
+  UserRoleAssignment,
+} from "@/domain/user-management/user.entity";
 import { Role } from "@/domain/user-management/role.entity";
 import {
   Permission,
@@ -326,6 +330,8 @@ export function createUser(
     email: string;
     isActive: boolean;
     roleAssignments: UserRoleAssignment[];
+    profile: UserProfile | null;
+    profiles: UserProfile[];
   }> = {},
 ): User {
   const uniqueSuffix = uuidv4().slice(0, 8);
@@ -339,15 +345,21 @@ export function createUser(
     overrides.id ?? uuidv4(),
   );
 
-  // If role assignments are provided, reconstitute with them
-  if (overrides.roleAssignments) {
+  // If relation-shaped fields are provided, reconstitute with them
+  if (
+    overrides.roleAssignments ||
+    overrides.profile !== undefined ||
+    overrides.profiles
+  ) {
     return User.reconstitute(
       {
         clerkUid: user.clerkUid,
         name: user.name,
         email: user.email,
         isActive: user.isActive,
-        roleAssignments: overrides.roleAssignments,
+        roleAssignments: overrides.roleAssignments ?? [],
+        profile: overrides.profile,
+        profiles: overrides.profiles,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
