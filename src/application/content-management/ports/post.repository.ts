@@ -11,6 +11,18 @@ export interface UpdatePostOptions {
   categoryIds?: string[];
 }
 
+export interface PostClassFacet {
+  classId: string;
+  className: string;
+  count: number;
+}
+
+export interface PostAudienceFacets {
+  allCount: number;
+  classCount: number;
+  classes: PostClassFacet[];
+}
+
 export abstract class PostRepository {
   abstract create(post: Post, options?: CreatePostOptions): Promise<Post>;
   abstract update(
@@ -35,6 +47,13 @@ export abstract class PostRepository {
     scope?: Record<string, any>,
     viewer?: User,
   ): Promise<PaginatedResult<Post>>;
+
+  /** CMS-only post audience/class facets for management filters. */
+  abstract findAudienceFacets(
+    campusId: string,
+    query: StandardRequestDto,
+    viewer?: User,
+  ): Promise<PostAudienceFacets>;
 
   /**
    * Count the number of active pinned posts for a campus.

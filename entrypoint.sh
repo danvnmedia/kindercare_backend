@@ -26,6 +26,9 @@ if [ $retry_count -eq $max_retries ]; then
   exit 1
 fi
 
+echo "🔧 Generating Prisma client..."
+npx prisma generate
+
 echo "🔄 Running database migrations..."
 npx prisma migrate deploy
 

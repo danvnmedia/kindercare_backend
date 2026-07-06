@@ -60,6 +60,7 @@ import {
 import {
   PostResponse,
   AttachmentResponse,
+  PostAudienceFacetsResponse,
 } from "@/infra/http/dtos/post/post.response";
 import { PostReactionResponse } from "@/infra/http/dtos/post/post-reaction.response";
 import { ApprovalRequestResponse } from "../dtos/post/approval";
@@ -160,6 +161,8 @@ export class PostController {
       "authorId",
       "categoryId",
       "isPinned",
+      "audienceType",
+      "classId",
     ],
   })
   async findMany(
@@ -168,6 +171,29 @@ export class PostController {
     @CurrentUser() user: User,
   ) {
     return this.listPostsUseCase.execute(campusId, params, user);
+  }
+
+  @Get("facets")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.list", "post.manage")
+  @ApiOperation({ summary: "Get post audience filter facets" })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID to get post facets for",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @StandardResponse({
+    type: PostAudienceFacetsResponse,
+    allowedFilterFields: ["status", "categoryId"],
+  })
+  async getAudienceFacets(
+    @CampusContext() campusId: string,
+    @StandardRequestParam() params: StandardRequest,
+    @CurrentUser() user: User,
+  ) {
+    return this.listPostsUseCase.getAudienceFacets(campusId, params, user);
   }
 
   @Get("pending-approval")

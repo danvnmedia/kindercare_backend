@@ -92,6 +92,35 @@ export class PostAudienceResponse {
   class?: AudienceClassResponse;
 }
 
+export class PostClassFacetResponse {
+  @ApiProperty({ example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f" })
+  @Expose()
+  classId: string;
+
+  @ApiProperty({ example: "Sunflower" })
+  @Expose()
+  className: string;
+
+  @ApiProperty({ example: 12 })
+  @Expose()
+  count: number;
+}
+
+export class PostAudienceFacetsResponse {
+  @ApiProperty({ example: 24 })
+  @Expose()
+  allCount: number;
+
+  @ApiProperty({ example: 18 })
+  @Expose()
+  classCount: number;
+
+  @ApiProperty({ type: [PostClassFacetResponse] })
+  @Expose()
+  @Type(() => PostClassFacetResponse)
+  classes: PostClassFacetResponse[];
+}
+
 export class AttachmentResponse {
   @ApiProperty({
     description: "The ID of the attachment.",

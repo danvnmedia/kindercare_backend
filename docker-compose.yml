@@ -18,7 +18,8 @@ services:
       # SEED_DATABASE=true - Always run seed on startup
       # SEED_ON_EMPTY=true - Only seed if database is empty (recommended for dev)
       - SEED_ON_EMPTY=${SEED_ON_EMPTY:-true}
-      - SEED_DATABASE=${SEED_DATABASE:-false}
+      # Default true for local Docker so new RBAC permissions/roles are backfilled on existing dev DBs.
+      - SEED_DATABASE=${SEED_DATABASE:-true}
       - SEED_SUPER_ADMIN_CLERK_UID=${SEED_SUPER_ADMIN_CLERK_UID:-}
     depends_on:
       postgres:
@@ -26,10 +27,8 @@ services:
       redis:
         condition: service_started
     volumes:
-      - .:/app
-      - /app/node_modules
       - uploads_data:/app/uploads
-    command: npm run start:dev
+    command: node dist/src/main
     networks:
       - kindercare-network
 

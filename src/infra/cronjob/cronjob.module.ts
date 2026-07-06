@@ -6,9 +6,15 @@ import { FileRepository } from "@/application/file-management/ports/file.reposit
 import { PrismaFileRepository } from "@/infra/persistence/prisma/repositories/prisma-file.repository";
 import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { StorageModule } from "@/infra/storage/storage.module";
+import { StandardResponseModule } from "@/core/modules/standard-response";
 
 @Module({
-  imports: [ScheduleModule.forRoot(), PrismaModule, StorageModule],
+  imports: [
+    ScheduleModule.forRoot(),
+    PrismaModule,
+    StorageModule,
+    StandardResponseModule,
+  ],
   providers: [
     CleanupTask,
     CleanupStalePendingUploadsUseCase,

@@ -14,9 +14,9 @@ RUN npm install
 # Copy application code
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client and build app
 RUN npx prisma generate
-
+RUN npm run build
 
 COPY entrypoint.sh /usr/local/bin/
 RUN dos2unix /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh

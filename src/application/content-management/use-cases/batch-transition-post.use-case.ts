@@ -1,8 +1,14 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { PostTransitionAction } from "@/domain/content-management/enums";
 import { Post } from "@/domain/content-management/entities/post.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { TransitionPostUseCase } from "./transition-post.use-case";
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 export interface BatchTransitionPostError {
   code: string;
@@ -50,6 +56,13 @@ export class BatchTransitionPostUseCase {
       );
     }
 
+    const requiredPermission = this.getRequiredPermission(action);
+    if (!userHasPostPermission(user, campusId, requiredPermission)) {
+      throw new ForbiddenException(
+        `You do not have permission to ${action} posts`,
+      );
+    }
+
     const results: BatchTransitionPostResult[] = [];
 
     for (const postId of uniquePostIds) {
@@ -69,7 +82,10 @@ export class BatchTransitionPostUseCase {
           success: false,
           error: {
             code: this.getErrorCode(error),
-            message: error instanceof Error ? error.message : "Failed to transition post",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Failed to transition post",
             statusCode,
           },
         });
@@ -89,6 +105,17 @@ export class BatchTransitionPostUseCase {
       failed,
       results,
     };
+  }
+
+  private getRequiredPermission(action: PostTransitionAction): string {
+    switch (action) {
+      case PostTransitionAction.APPROVE:
+      case PostTransitionAction.REJECT:
+      case PostTransitionAction.REVISE:
+        return "post.review";
+      default:
+        return "post.update";
+    }
   }
 
   private getStatusCode(error: unknown): number {

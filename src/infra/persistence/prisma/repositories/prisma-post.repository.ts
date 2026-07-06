@@ -3,8 +3,10 @@ import {
   PostRepository,
   CreatePostOptions,
   UpdatePostOptions,
+  PostAudienceFacets,
 } from "@/application/content-management/ports/post.repository";
-import { Post, AudienceType } from "@/domain/content-management";
+import { Prisma } from "@prisma/client";
+import { Post, AudienceType, PostStatus } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 import { PrismaService } from "../prisma.service";
 import {
@@ -203,6 +205,12 @@ export class PrismaPostRepository implements PostRepository {
     viewer?: User,
   ): Promise<PaginatedResult<Post>> {
     const categoryIdFilter = query.filterInfo?.filters?.categoryId;
+    const audienceTypeFilter = this.getStringFilterValue(
+      query.filterInfo?.filters?.audienceType,
+    );
+    const classIdFilter = this.getStringFilterValue(
+      query.filterInfo?.filters?.classId,
+    );
     const searchTerm = this.getSearchTerm(query);
 
     query.allowedFilterFields = [
@@ -214,6 +222,8 @@ export class PrismaPostRepository implements PostRepository {
       "authorId",
       "isPinned",
       "campusId",
+      "audienceType",
+      "classId",
     ];
     query.allowedSortFields = [
       "createdAt",
@@ -232,6 +242,19 @@ export class PrismaPostRepository implements PostRepository {
               some: {
                 categoryId: this.buildCategoryIdWhere(categoryIdFilter),
               },
+            },
+          }
+        : {}),
+      ...(audienceTypeFilter === AudienceType.ALL
+        ? { audiences: { some: { type: AudienceType.ALL } } }
+        : {}),
+      ...(audienceTypeFilter === AudienceType.CLASS && !classIdFilter
+        ? { audiences: { some: { type: AudienceType.CLASS } } }
+        : {}),
+      ...(classIdFilter
+        ? {
+            audiences: {
+              some: { type: AudienceType.CLASS, classId: classIdFilter },
             },
           }
         : {}),
@@ -280,6 +303,89 @@ export class PrismaPostRepository implements PostRepository {
     );
   }
 
+  async findAudienceFacets(
+    campusId: string,
+    query: StandardRequestDto,
+    viewer?: User,
+  ): Promise<PostAudienceFacets> {
+    const categoryIdFilter = query.filterInfo?.filters?.categoryId;
+    const statusFilter = query.filterInfo?.filters?.status;
+    const searchTerm = this.getSearchTerm(query);
+    const statusWhere = this.buildPostStatusWhere(statusFilter);
+    const baseWhere: Prisma.PostWhereInput = {
+      campusId,
+      isDeleted: false,
+      ...this.buildViewerVisibilityWhere(viewer),
+      ...(statusWhere ? { status: statusWhere } : {}),
+      ...(categoryIdFilter
+        ? {
+            categories: {
+              some: { categoryId: this.buildCategoryIdWhere(categoryIdFilter) },
+            },
+          }
+        : {}),
+      ...(searchTerm
+        ? {
+            OR: [
+              { title: { contains: searchTerm, mode: "insensitive" } },
+              { contentText: { contains: searchTerm, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    };
+
+    const [allCount, classCount, classGroups] = await Promise.all([
+      this.prisma.post.count({
+        where: {
+          ...baseWhere,
+          audiences: { some: { type: AudienceType.ALL } },
+        },
+      }),
+      this.prisma.post.count({
+        where: {
+          ...baseWhere,
+          audiences: { some: { type: AudienceType.CLASS } },
+        },
+      }),
+      this.prisma.postAudience.groupBy({
+        by: ["classId"],
+        where: {
+          type: AudienceType.CLASS,
+          classId: { not: null },
+          post: baseWhere,
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const classIds = classGroups
+      .map((group) => group.classId)
+      .filter((classId): classId is string => typeof classId === "string");
+    const classes = await this.prisma.class.findMany({
+      where: { id: { in: classIds }, campusId },
+      select: { id: true, name: true },
+    });
+    const classNames = new Map(classes.map((item) => [item.id, item.name]));
+
+    return {
+      allCount,
+      classCount,
+      classes: classGroups
+        .flatMap((group) => {
+          if (!group.classId) return [];
+          return [
+            {
+              classId: group.classId,
+              className: classNames.get(group.classId) ?? group.classId,
+              count:
+                typeof group._count === "object" ? (group._count._all ?? 0) : 0,
+            },
+          ];
+        })
+        .sort((a, b) => a.className.localeCompare(b.className)),
+    };
+  }
+
   private buildViewerVisibilityWhere(viewer?: User): Record<string, any> {
     if (!viewer || viewer.profile?.type !== "guardian") return {};
 
@@ -326,6 +432,43 @@ export class PrismaPostRepository implements PostRepository {
 
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  private getStringFilterValue(filter: unknown): string | null {
+    if (typeof filter === "string") return filter;
+    if (typeof filter === "object" && filter !== null && "eq" in filter) {
+      const value = (filter as { eq?: unknown }).eq;
+      return typeof value === "string" ? value : null;
+    }
+    return null;
+  }
+
+  private buildPostStatusWhere(
+    filter: unknown,
+  ): PostStatus | { in: PostStatus[] } | null {
+    const validStatuses = new Set<string>(Object.values(PostStatus));
+    const normalize = (value: unknown): PostStatus | null => {
+      if (typeof value !== "string" || !validStatuses.has(value)) return null;
+      return value as PostStatus;
+    };
+
+    const direct = normalize(filter);
+    if (direct) return direct;
+
+    if (typeof filter === "object" && filter !== null && "eq" in filter) {
+      return normalize((filter as { eq?: unknown }).eq);
+    }
+
+    if (typeof filter === "object" && filter !== null && "in" in filter) {
+      const values = (filter as { in?: unknown }).in;
+      if (!Array.isArray(values)) return null;
+      const statuses = values
+        .map(normalize)
+        .filter((value): value is PostStatus => value !== null);
+      return statuses.length > 0 ? { in: statuses } : null;
+    }
+
+    return null;
   }
 
   private buildCategoryIdWhere(filter: unknown): string | { in: string[] } {
