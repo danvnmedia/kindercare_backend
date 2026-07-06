@@ -300,9 +300,7 @@ describe("BulkAssignStaffToClassUseCase", () => {
           actor,
         ),
       ).rejects.toThrow(
-        new BadRequestException(
-          ClassStaffErrorCode.MULTIPLE_HOMEROOM_IN_BATCH,
-        ),
+        new BadRequestException(ClassStaffErrorCode.MULTIPLE_HOMEROOM_IN_BATCH),
       );
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();
@@ -358,9 +356,7 @@ describe("BulkAssignStaffToClassUseCase", () => {
           actor,
         ),
       ).rejects.toThrow(
-        new BadRequestException(
-          ClassStaffErrorCode.DUPLICATE_STAFF_IN_BATCH,
-        ),
+        new BadRequestException(ClassStaffErrorCode.DUPLICATE_STAFF_IN_BATCH),
       );
 
       expect(mockClassRepository.findById).not.toHaveBeenCalled();

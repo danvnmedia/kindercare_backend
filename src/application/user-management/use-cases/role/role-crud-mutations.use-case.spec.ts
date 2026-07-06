@@ -93,11 +93,7 @@ describe("Role CRUD mutation use cases", () => {
       roleRepo.findByName.mockResolvedValue(null);
       mockTx.createRole.mockResolvedValue(createdRole);
 
-      const useCase = new CreateRoleUseCase(
-        roleRepo,
-        campusRepo,
-        unitOfWork,
-      );
+      const useCase = new CreateRoleUseCase(roleRepo, campusRepo, unitOfWork);
 
       await useCase.execute(
         {
@@ -134,11 +130,7 @@ describe("Role CRUD mutation use cases", () => {
     });
 
     it("rejects API-created system/default roles before entering the UoW", async () => {
-      const useCase = new CreateRoleUseCase(
-        roleRepo,
-        campusRepo,
-        unitOfWork,
-      );
+      const useCase = new CreateRoleUseCase(roleRepo, campusRepo, unitOfWork);
 
       await expect(
         useCase.execute(
@@ -164,11 +156,7 @@ describe("Role CRUD mutation use cases", () => {
       roleRepo.findById.mockResolvedValue(
         buildRole({ campusId: OTHER_CAMPUS_ID }),
       );
-      const useCase = new UpdateRoleUseCase(
-        roleRepo,
-        campusRepo,
-        unitOfWork,
-      );
+      const useCase = new UpdateRoleUseCase(roleRepo, campusRepo, unitOfWork);
 
       await expect(
         useCase.execute(
@@ -185,11 +173,7 @@ describe("Role CRUD mutation use cases", () => {
 
     it("rejects system-default roles before entering the UoW", async () => {
       roleRepo.findById.mockResolvedValue(buildRole({ isSystemDefault: true }));
-      const useCase = new UpdateRoleUseCase(
-        roleRepo,
-        campusRepo,
-        unitOfWork,
-      );
+      const useCase = new UpdateRoleUseCase(roleRepo, campusRepo, unitOfWork);
 
       await expect(
         useCase.execute(
@@ -205,14 +189,8 @@ describe("Role CRUD mutation use cases", () => {
     it("updates a campus role and audits only changed fields", async () => {
       roleRepo.findById.mockResolvedValue(buildRole());
       roleRepo.findByName.mockResolvedValue(null);
-      mockTx.updateRole.mockResolvedValue(
-        buildRole({ name: "Lead Teacher" }),
-      );
-      const useCase = new UpdateRoleUseCase(
-        roleRepo,
-        campusRepo,
-        unitOfWork,
-      );
+      mockTx.updateRole.mockResolvedValue(buildRole({ name: "Lead Teacher" }));
+      const useCase = new UpdateRoleUseCase(roleRepo, campusRepo, unitOfWork);
 
       await useCase.execute(
         ROLE_ID,

@@ -2,9 +2,7 @@ import "reflect-metadata";
 import { GUARDS_METADATA } from "@nestjs/common/constants";
 
 import { REQUIRE_CAMPUS_ACCESS_KEY } from "../../decorators";
-import {
-  PERMISSIONS_KEY,
-} from "../../decorators/permissions.decorator";
+import { PERMISSIONS_KEY } from "../../decorators/permissions.decorator";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { PermissionsGuard } from "../../guards/permissions.guard";
 import { RoleController } from "./role.controller";

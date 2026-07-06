@@ -67,6 +67,26 @@ export function hasCampusAccess(user: User, campusId: string | null): boolean {
 }
 
 /**
+ * Check if user has an active staff profile in a specific campus.
+ *
+ * The User projection only includes active Staff/Guardian profiles. Therefore,
+ * a missing staff profile for the campus means the user is not an active staff
+ * member there, even if role grants still exist.
+ */
+export function hasActiveStaffProfileInCampus(
+  user: User,
+  campusId: string | null,
+): boolean {
+  if (!campusId) {
+    return true;
+  }
+
+  return user.profiles.some(
+    (profile) => profile.type === "staff" && profile.campusId === campusId,
+  );
+}
+
+/**
  * Check if user is a global admin (has a system role that grants bypass)
  * Global roles have campusId = null and isSystemRole = true
  *

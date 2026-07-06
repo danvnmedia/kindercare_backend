@@ -97,7 +97,11 @@ describe("UnlinkStudentFromGuardianUseCase (student-side)", () => {
   describe("AC-3 — happy path emits UNLINK_GUARDIAN_FROM_STUDENT inside UoW", () => {
     it("removes the link and records audit with relationshipType snapshot", async () => {
       await useCase.execute(
-        { studentId: STUDENT_ID, guardianId: GUARDIAN_ID },
+        {
+          campusId: CAMPUS_ID,
+          studentId: STUDENT_ID,
+          guardianId: GUARDIAN_ID,
+        },
         actor,
       );
 
@@ -127,7 +131,11 @@ describe("UnlinkStudentFromGuardianUseCase (student-side)", () => {
 
       await expect(
         useCase.execute(
-          { studentId: STUDENT_ID, guardianId: GUARDIAN_ID },
+          {
+            campusId: CAMPUS_ID,
+            studentId: STUDENT_ID,
+            guardianId: GUARDIAN_ID,
+          },
           actor,
         ),
       ).rejects.toThrow("audit fail");
@@ -143,10 +151,38 @@ describe("UnlinkStudentFromGuardianUseCase (student-side)", () => {
 
       await expect(
         useCase.execute(
-          { studentId: STUDENT_ID, guardianId: GUARDIAN_ID },
+          {
+            campusId: CAMPUS_ID,
+            studentId: STUDENT_ID,
+            guardianId: GUARDIAN_ID,
+          },
           actor,
         ),
       ).rejects.toThrow(NotFoundException);
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("throws NotFoundException before mutation when student is in another campus", async () => {
+      studentRepo.findById.mockResolvedValueOnce(
+        createStudent({
+          id: STUDENT_ID,
+          campusId: "22222222-2222-4222-a222-222222222222",
+          fullName: "Eli Pham",
+        }),
+      );
+
+      await expect(
+        useCase.execute(
+          {
+            campusId: CAMPUS_ID,
+            studentId: STUDENT_ID,
+            guardianId: GUARDIAN_ID,
+          },
+          actor,
+        ),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(guardianRepo.findById).not.toHaveBeenCalled();
       expect(unitOfWork.run).not.toHaveBeenCalled();
     });
   });

@@ -12,9 +12,9 @@
  *
  *   - Scenario 4: `UpdateStaffUseCase` issues the tracked-provenance insert
  *     UNCONDITIONALLY when an added type carries a `defaultRoleId`. No
- *     pre-check against `UserRepository` to detect a "would-conflict with
- *     manual grant" path — D5 retirement leaves the 4-col `NULLS NOT
- *     DISTINCT` unique key as the only conflict arbiter at the DB layer
+ *     user-role pre-check is available to detect a "would-conflict with manual
+ *     grant" path — D5 retirement leaves the 4-col `NULLS NOT DISTINCT`
+ *     unique key as the only conflict arbiter at the DB layer
  *     (see Superseded sections in @doc/specs/tracked-grant-revocation).
  *
  *   - Scenario 6: legacy NULL-orphan staff hydration. A staff with an empty
@@ -41,7 +41,6 @@ import { CreateStaffUseCase } from "./create-staff.use-case";
 import { UpdateStaffUseCase } from "./update-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
-import { UserRepository } from "../../ports/user.repository";
 import { IdentityPort } from "@/application/ports/identity.port";
 import { StaffCodeGeneratorPort } from "@/application/ports/staff-code-generator.port";
 import {
@@ -54,7 +53,6 @@ import { PrismaStaffMapper } from "@/infra/persistence/prisma/mapper/prisma-staf
 import {
   createStaff,
   createMockStaffRepository,
-  createMockUserRepository,
 } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
@@ -160,8 +158,8 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       } as unknown as TransactionContext;
 
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
 
@@ -215,10 +213,10 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
 
       // `replaceStaffTypes` receives the full target set verbatim — order
       // preserved (caller-supplied order, not lex-sorted).
-      expect(replaceStaffTypesSpy).toHaveBeenCalledWith(
-        result.id,
-        [TYPE_TEACHER, TYPE_VICE_PRESIDENT],
-      );
+      expect(replaceStaffTypesSpy).toHaveBeenCalledWith(result.id, [
+        TYPE_TEACHER,
+        TYPE_VICE_PRESIDENT,
+      ]);
 
       // D-extra-3 fan-out: exactly two `user_roles` inserts, same roleId,
       // distinct `grantedViaStaffTypeId` provenance. The 4-col `NULLS NOT
@@ -254,10 +252,10 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
 
   // -----------------------------------------------------------------
   // Scenario 4 — D5 retirement: tracked insert is unconditional;
-  //              `UserRepository` is never read for a pre-check
+  //              no user-role pre-check runs
   // -----------------------------------------------------------------
   describe("Scenario 4 — UpdateStaffUseCase: tracked-grant insert is unconditional (no pre-check against manual rows)", () => {
-    it("issues tx.assignRoles with tracked provenance even when a manual ROLE_X 'would already exist'; no UserRepository pre-check fires", async () => {
+    it("issues tx.assignRoles with tracked provenance even when a manual ROLE_X 'would already exist'; no user-role pre-check fires", async () => {
       const staffRepo = createMockStaffRepository();
       staffRepo.findById.mockResolvedValue(
         createStaff({
@@ -286,8 +284,6 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
         ),
       } as unknown as jest.Mocked<StaffTypeRepository>;
 
-      const userRepo = createMockUserRepository();
-
       const updateStaffSpy = jest.fn().mockResolvedValue({ id: "staff-1" });
       const replaceStaffTypesSpy = jest.fn().mockResolvedValue(undefined);
       const revokeRolesByProvenanceSpy = jest.fn().mockResolvedValue(0);
@@ -302,21 +298,15 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       } as unknown as TransactionContext;
 
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
-
-      const identityPort = {
-        updateUser: jest.fn().mockResolvedValue(undefined),
-      } as unknown as IdentityPort;
 
       const useCase = new UpdateStaffUseCase(
         staffRepo,
         staffTypeRepo,
-        userRepo,
         unitOfWork,
-        identityPort,
       );
 
       // Staff has [Other]; swap-in {Other, Teacher} so Teacher.defaultRoleId
@@ -345,13 +335,12 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
         },
       ]);
 
-      // Structural lock: no `UserRepository.getUserRoles*` pre-check exists
-      // on the path. If a future refactor adds defensive "skip if manual
-      // already holds it" logic, these assertions fail and force a spec
-      // re-read against D5 retirement (Superseded sections of
+      // Structural lock: UpdateStaffUseCase has no UserRepository dependency
+      // for defensive "skip if manual already holds it" logic. If such a
+      // pre-check returns, this fixture has to change and forces a spec re-read
+      // against D5 retirement (Superseded sections of
       // @doc/specs/tracked-grant-revocation).
-      expect(userRepo.getUserRoles).not.toHaveBeenCalled();
-      expect(userRepo.getUserRolesForCampus).not.toHaveBeenCalled();
+      expect(UpdateStaffUseCase.length).toBe(3);
     });
   });
 
@@ -409,8 +398,6 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       const staffTypeRepo = {
         findById: jest.fn(),
       } as unknown as jest.Mocked<StaffTypeRepository>;
-      const userRepo = createMockUserRepository();
-
       const updateStaffSpy = jest
         .fn()
         .mockResolvedValue({ id: "staff-legacy" });
@@ -427,21 +414,15 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
       } as unknown as TransactionContext;
 
       const unitOfWork = {
-        run: jest.fn(
-          (task: (tx: TransactionContext) => Promise<unknown>) => task(mockTx),
+        run: jest.fn((task: (tx: TransactionContext) => Promise<unknown>) =>
+          task(mockTx),
         ),
       } as unknown as UnitOfWorkPort;
-
-      const identityPort = {
-        updateUser: jest.fn().mockResolvedValue(undefined),
-      } as unknown as IdentityPort;
 
       const useCase = new UpdateStaffUseCase(
         staffRepo,
         staffTypeRepo,
-        userRepo,
         unitOfWork,
-        identityPort,
       );
 
       await useCase.execute(

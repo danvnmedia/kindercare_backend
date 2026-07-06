@@ -13,6 +13,7 @@ import { GuardianRepository } from "../../ports/guardian.repository";
 import { GuardianRelationshipTypeRepository } from "../../ports/guardian-relationship-type.repository";
 
 export interface LinkStudentWithGuardianInput {
+  campusId: string;
   studentId: string;
   guardianId: string;
   relationshipId: string;
@@ -57,6 +58,11 @@ export class LinkStudentWithGuardianUseCase {
           `Guardian relationship type with ID "${input.relationshipId}" not found`,
         );
       }
+      if (relationshipType.campusId !== input.campusId) {
+        throw new NotFoundException(
+          `Guardian relationship type with ID "${input.relationshipId}" not found in this campus`,
+        );
+      }
       if (relationshipType.isArchived) {
         throw new BadRequestException(
           `Guardian relationship type "${relationshipType.name}" is archived and cannot be used`,
@@ -64,16 +70,16 @@ export class LinkStudentWithGuardianUseCase {
       }
 
       const student = await this.studentRepository.findById(input.studentId);
-      if (!student) {
+      if (!student || student.campusId !== input.campusId) {
         throw new NotFoundException(
-          `Student with ID ${input.studentId} not found`,
+          `Student with ID ${input.studentId} not found in this campus`,
         );
       }
 
       const guardian = await this.guardianRepository.findById(input.guardianId);
-      if (!guardian) {
+      if (!guardian || guardian.campusId !== input.campusId) {
         throw new NotFoundException(
-          `Guardian with ID ${input.guardianId} not found`,
+          `Guardian with ID ${input.guardianId} not found in this campus`,
         );
       }
 

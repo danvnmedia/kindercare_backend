@@ -2,19 +2,13 @@ import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { StaffRepository } from "../../ports/staff.repository";
-import { UserRepository } from "../../ports/user.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
-import { IdentityPort } from "@/application/ports/identity.port";
 
 /**
  * Archive Staff Use Case (Soft Delete)
  *
- * Performs soft delete by:
- * 1. Locking the Clerk user (prevents sign-in)
- * 2. Deactivating the user in database (isActive = false)
- * 3. Archiving the staff in database (isArchived = true)
- *
- * This preserves data for potential account recovery.
+ * Performs profile-scoped soft delete by archiving the Staff row and revoking
+ * StaffType-derived role grants. Manual grants are preserved by provenance.
  */
 @Injectable()
 export class ArchiveStaffUseCase {
@@ -23,10 +17,7 @@ export class ArchiveStaffUseCase {
   constructor(
     @Inject("STAFF_REPOSITORY")
     private readonly staffRepository: StaffRepository,
-    @Inject("USER_REPOSITORY")
-    private readonly userRepository: UserRepository,
     private readonly unitOfWork: UnitOfWorkPort,
-    private readonly identityPort: IdentityPort,
   ) {}
 
   async execute(
@@ -49,12 +40,7 @@ export class ArchiveStaffUseCase {
       );
     }
 
-    // Step 3: Lock Clerk user (best effort - don't fail if this fails)
-    if (staff.hasUserAccount()) {
-      await this.lockClerkUser(staff.userId!);
-    }
-
-    // Step 4: Archive staff + deactivate user + emit audit row atomically.
+    // Step 3: Archive staff + revoke derived grants + emit audit row atomically.
     staff.archive();
 
     await this.unitOfWork.run(async (tx) => {
@@ -65,12 +51,13 @@ export class ArchiveStaffUseCase {
       this.logger.log(`Staff archived in transaction: ${id}`);
 
       if (staff.hasUserAccount()) {
-        await tx.updateUser(staff.userId!, {
-          isActive: false,
-        });
-        this.logger.log(
-          `User account deactivated in transaction for staff: ${staff.email}`,
-        );
+        const staffTypeIds = staff.staffTypes.map((staffType) => staffType.id);
+        if (staffTypeIds.length > 0) {
+          await tx.revokeRolesByProvenance(staff.userId!, staffTypeIds);
+          this.logger.log(
+            `Revoked StaffType-derived grants for user ${staff.userId} from staffTypes [${staffTypeIds.join(", ")}]`,
+          );
+        }
       }
 
       await tx.recordAudit({
@@ -87,32 +74,5 @@ export class ArchiveStaffUseCase {
 
     this.logger.log(`Staff archived successfully: ${id}`);
     return staff;
-  }
-
-  private async lockClerkUser(userId: string): Promise<void> {
-    try {
-      const user = await this.findUserById(userId);
-      if (user?.clerkUid) {
-        this.logger.log(`Locking Clerk identity: ${user.clerkUid}`);
-        await this.identityPort.lockIdentity(user.clerkUid);
-        this.logger.log(`Clerk identity locked: ${user.clerkUid}`);
-      }
-    } catch (error) {
-      // Best effort - don't fail the archive operation if Clerk lock fails
-      this.logger.warn(
-        `Failed to lock Clerk user (continuing with archive): ${error.message}`,
-      );
-    }
-  }
-
-  private async findUserById(
-    userId: string,
-  ): Promise<{ clerkUid: string | null } | null> {
-    try {
-      const user = await this.userRepository.findById(userId);
-      return user ? { clerkUid: user.clerkUid } : null;
-    } catch {
-      return null;
-    }
   }
 }

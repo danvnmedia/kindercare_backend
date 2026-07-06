@@ -37,6 +37,23 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
   { id: "student.delete", module: "student", description: "Delete a student" },
   { id: "student.list", module: "student", description: "List all students" },
 
+  // Student health permissions
+  {
+    id: "student_health.read",
+    module: "student_health",
+    description: "View student health records",
+  },
+  {
+    id: "student_health.create",
+    module: "student_health",
+    description: "Create student health records",
+  },
+  {
+    id: "student_health.update",
+    module: "student_health",
+    description: "Update student health records",
+  },
+
   // Guardian permissions
   {
     id: "guardian.create",
@@ -331,6 +348,55 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     id: "absence_request.delete",
     module: "absence_request",
     description: "Archive absence requests",
+  },
+
+  // Medication request permissions
+  {
+    id: "medication_request.list",
+    module: "medication_request",
+    description: "List medication requests",
+  },
+  {
+    id: "medication_request.read",
+    module: "medication_request",
+    description: "View medication request details",
+  },
+  {
+    id: "medication_request.create",
+    module: "medication_request",
+    description: "Create medication requests",
+  },
+  {
+    id: "medication_request.update",
+    module: "medication_request",
+    description: "Review or update medication requests",
+  },
+  {
+    id: "medication_request.delete",
+    module: "medication_request",
+    description: "Archive medication requests",
+  },
+
+  // Medication administration permissions
+  {
+    id: "medication_administration.list",
+    module: "medication_administration",
+    description: "List medication administration occurrences",
+  },
+  {
+    id: "medication_administration.read",
+    module: "medication_administration",
+    description: "View medication administration details",
+  },
+  {
+    id: "medication_administration.create",
+    module: "medication_administration",
+    description: "Record medication administration outcomes",
+  },
+  {
+    id: "medication_administration.update",
+    module: "medication_administration",
+    description: "Correct medication administration outcomes",
   },
 
   // Meal menu config permissions

@@ -4,10 +4,9 @@
  * fulfilling AC-11 + AC-12.
  *
  * What this locks down:
- *   - D4: Archive/restore must not touch `user_roles`. The auto-granted role
- *     row persists across the archive→restore cycle; only the Clerk lock +
- *     `user.isActive = false` blocks an archived user. Restoring is one-click
- *     — no role re-grant needed.
+ *   - Identity/profile split: archive/restore must not touch global User or
+ *     Clerk identity state. Archive revokes StaffType-derived grants for the
+ *     profile; restore recreates StaffType-derived grants from active types.
  *   - D1: `UpdateStaffTypeUseCase` changing `defaultRoleId` must not propagate
  *     to any existing `user_roles` row. StaffType writes now use UoW for
  *     same-transaction audit, but the invariant remains: the UoW closure must
@@ -16,10 +15,10 @@
  * Pattern: mirrors `update-staff-tracked-grant.integration.spec.ts` (sibling
  * task fd2utj). This repo has no real-DB Postgres harness; every other
  * `*.integration.spec.ts` here uses the same mock-UoW + fake-tx scaffold. We
- * assert the invariant NEGATIVELY: the role-mutation methods
- * (`assignRoles`, `revokeRolesByProvenance`) exist on the fake `tx` but are
- * never called by archive/restore. If a real-DB harness is introduced later,
- * these tests should be ported to read back `user_roles` directly.
+ * assert the invariant by spying on the role-mutation methods
+ * (`assignRoles`, `revokeRolesByProvenance`) and the identity mutation
+ * (`updateUser`). If a real-DB harness is introduced later, these tests should
+ * be ported to read back `user_roles` directly.
  */
 
 import { ArchiveStaffUseCase } from "./archive-staff.use-case";
@@ -27,7 +26,6 @@ import { RestoreStaffUseCase } from "./restore-staff.use-case";
 import { UpdateStaffTypeUseCase } from "../staff-type/update-staff-type.use-case";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { RoleRepository } from "../../ports/role.repository";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
@@ -37,13 +35,14 @@ import { User } from "@/domain/user-management/user.entity";
 import {
   createStaff,
   createMockStaffRepository,
-  createMockUserRepository,
 } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
 const USER_ID = "user-1";
 const STAFF_ID = "staff-1";
+const STAFF_TYPE_ID = "stype-1";
+const ROLE_RESTORED = "role-restored";
 
 function buildActor(): User {
   return User.reconstitute(
@@ -89,11 +88,10 @@ function buildMockTx() {
 
 describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)", () => {
   // -----------------------------------------------------------------
-  // AC-11 — Archive/Restore must not touch user_roles
-  //         (Spec D4, Scenario 5)
+  // Identity/profile split — Archive/Restore must not touch global identity.
   // -----------------------------------------------------------------
-  describe("AC-11: ArchiveStaffUseCase does not mutate user_roles", () => {
-    it("runs the archive UoW closure without invoking any role-mutation port", async () => {
+  describe("ArchiveStaffUseCase", () => {
+    it("revokes derived grants without mutating global User identity", async () => {
       const staffRepo = createMockStaffRepository();
       staffRepo.findById.mockResolvedValue(
         createStaff({
@@ -101,20 +99,8 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
           campusId: CAMPUS_ID,
           fullName: "Dan Le",
           userId: USER_ID,
+          staffTypes: [{ id: STAFF_TYPE_ID, name: "Teacher" }],
         }),
-      );
-
-      const userRepo = createMockUserRepository();
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          USER_ID,
-        ),
       );
 
       const mockTx = buildMockTx();
@@ -124,16 +110,7 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
         ),
       } as unknown as UnitOfWorkPort;
 
-      const identityPort = {
-        lockIdentity: jest.fn().mockResolvedValue(undefined),
-      } as unknown as IdentityPort;
-
-      const useCase = new ArchiveStaffUseCase(
-        staffRepo,
-        userRepo,
-        unitOfWork,
-        identityPort,
-      );
+      const useCase = new ArchiveStaffUseCase(staffRepo, unitOfWork);
 
       await useCase.execute(STAFF_ID, CAMPUS_ID, buildActor());
 
@@ -142,19 +119,18 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
         STAFF_ID,
         expect.objectContaining({ isArchived: true }),
       );
-      expect(mockTx.updateUser).toHaveBeenCalledWith(USER_ID, {
-        isActive: false,
-      });
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
 
-      // D4 invariant — the contract this test exists for.
       expect(mockTx.assignRoles).not.toHaveBeenCalled();
-      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(USER_ID, [
+        STAFF_TYPE_ID,
+      ]);
+      expect(mockTx.updateUser).not.toHaveBeenCalled();
     });
   });
 
-  describe("AC-11: RestoreStaffUseCase does not mutate user_roles", () => {
-    it("runs the restore UoW closure without invoking any role-mutation port", async () => {
+  describe("RestoreStaffUseCase", () => {
+    it("recreates derived grants without mutating global User identity", async () => {
       const staffRepo = createMockStaffRepository();
       staffRepo.findById.mockResolvedValue(
         createStaff({
@@ -163,21 +139,19 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
           fullName: "Dan Le",
           userId: USER_ID,
           isArchived: true,
+          staffTypes: [{ id: STAFF_TYPE_ID, name: "Teacher" }],
         }),
       );
 
-      const userRepo = createMockUserRepository();
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          USER_ID,
-        ),
-      );
+      const staffTypeRepo = {
+        findById: jest.fn().mockResolvedValue({
+          id: STAFF_TYPE_ID,
+          campusId: CAMPUS_ID,
+          name: "Teacher",
+          defaultRoleId: ROLE_RESTORED,
+          isArchived: false,
+        }),
+      } as unknown as jest.Mocked<StaffTypeRepository>;
 
       const mockTx = buildMockTx();
       const unitOfWork = {
@@ -186,15 +160,10 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
         ),
       } as unknown as UnitOfWorkPort;
 
-      const identityPort = {
-        unlockIdentity: jest.fn().mockResolvedValue(undefined),
-      } as unknown as IdentityPort;
-
       const useCase = new RestoreStaffUseCase(
         staffRepo,
-        userRepo,
+        staffTypeRepo,
         unitOfWork,
-        identityPort,
       );
 
       await useCase.execute(STAFF_ID, CAMPUS_ID, buildActor());
@@ -204,19 +173,22 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
         STAFF_ID,
         expect.objectContaining({ isArchived: false }),
       );
-      expect(mockTx.updateUser).toHaveBeenCalledWith(USER_ID, {
-        isActive: true,
-      });
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
 
-      // D4 invariant.
-      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      expect(mockTx.assignRoles).toHaveBeenCalledWith(USER_ID, [
+        {
+          roleId: ROLE_RESTORED,
+          campusId: CAMPUS_ID,
+          grantedViaStaffTypeId: STAFF_TYPE_ID,
+        },
+      ]);
       expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
+      expect(mockTx.updateUser).not.toHaveBeenCalled();
     });
   });
 
-  describe("AC-11: archive→restore round-trip never touches user_roles", () => {
-    it("survives a full archive→restore cycle without any role mutation", async () => {
+  describe("archive→restore round-trip", () => {
+    it("revokes then restores derived grants without global identity mutation", async () => {
       const staffRepo = createMockStaffRepository();
       // Archive sees an active staff; restore sees the post-archive snapshot.
       staffRepo.findById
@@ -226,6 +198,7 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
             campusId: CAMPUS_ID,
             fullName: "Dan Le",
             userId: USER_ID,
+            staffTypes: [{ id: STAFF_TYPE_ID, name: "Teacher" }],
           }),
         )
         .mockResolvedValueOnce(
@@ -235,21 +208,19 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
             fullName: "Dan Le",
             userId: USER_ID,
             isArchived: true,
+            staffTypes: [{ id: STAFF_TYPE_ID, name: "Teacher" }],
           }),
         );
 
-      const userRepo = createMockUserRepository();
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          USER_ID,
-        ),
-      );
+      const staffTypeRepo = {
+        findById: jest.fn().mockResolvedValue({
+          id: STAFF_TYPE_ID,
+          campusId: CAMPUS_ID,
+          name: "Teacher",
+          defaultRoleId: ROLE_RESTORED,
+          isArchived: false,
+        }),
+      } as unknown as jest.Mocked<StaffTypeRepository>;
 
       // One shared tx — both use-case runs accumulate calls on the same
       // spies, so the final assertion covers BOTH closures.
@@ -260,38 +231,32 @@ describe("Tracked-grant non-propagation (tracked-grant-revocation AC-11, AC-12)"
         ),
       } as unknown as UnitOfWorkPort;
 
-      const identityPort = {
-        lockIdentity: jest.fn().mockResolvedValue(undefined),
-        unlockIdentity: jest.fn().mockResolvedValue(undefined),
-      } as unknown as IdentityPort;
-
-      const archive = new ArchiveStaffUseCase(
-        staffRepo,
-        userRepo,
-        unitOfWork,
-        identityPort,
-      );
+      const archive = new ArchiveStaffUseCase(staffRepo, unitOfWork);
       const restore = new RestoreStaffUseCase(
         staffRepo,
-        userRepo,
+        staffTypeRepo,
         unitOfWork,
-        identityPort,
       );
 
       const actor = buildActor();
       await archive.execute(STAFF_ID, CAMPUS_ID, actor);
       await restore.execute(STAFF_ID, CAMPUS_ID, actor);
 
-      // Both closures ran: two staff updates, two user updates, two audits.
+      // Both closures ran: two staff updates and two audits.
       expect(mockTx.updateStaff).toHaveBeenCalledTimes(2);
-      expect(mockTx.updateUser).toHaveBeenCalledTimes(2);
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(2);
 
-      // Across the entire round-trip: zero role mutations. In a real DB this
-      // is what guarantees the auto-granted user_roles row is still present
-      // and active after restore.
-      expect(mockTx.assignRoles).not.toHaveBeenCalled();
-      expect(mockTx.revokeRolesByProvenance).not.toHaveBeenCalled();
+      expect(mockTx.revokeRolesByProvenance).toHaveBeenCalledWith(USER_ID, [
+        STAFF_TYPE_ID,
+      ]);
+      expect(mockTx.assignRoles).toHaveBeenCalledWith(USER_ID, [
+        {
+          roleId: ROLE_RESTORED,
+          campusId: CAMPUS_ID,
+          grantedViaStaffTypeId: STAFF_TYPE_ID,
+        },
+      ]);
+      expect(mockTx.updateUser).not.toHaveBeenCalled();
     });
   });
 

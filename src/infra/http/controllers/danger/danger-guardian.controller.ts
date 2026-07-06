@@ -40,7 +40,7 @@ export class DangerGuardianController {
   @ApiOperation({
     summary: "Permanently delete a guardian (DANGER)",
     description:
-      "DANGER: Permanently deletes a guardian within the specified campus, their user account, and Clerk identity. This action is IRREVERSIBLE. For soft delete (archiving), use DELETE /guardians/:id instead.",
+      "DANGER: Permanently deletes only the guardian profile within the specified campus. Linked User and Clerk identities are preserved and must be managed through global identity administration. This action is IRREVERSIBLE. For soft delete (archiving), use DELETE /guardians/:id instead.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

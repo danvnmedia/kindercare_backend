@@ -32,6 +32,28 @@ describe("CampusGuard", () => {
   const validUUID_B = DEFAULT_CAMPUS_ID_B;
   const invalidUUID = "not-a-valid-uuid";
 
+  const createStaffProfile = (campusId: string = validUUID) => ({
+    type: "staff" as const,
+    id: `staff-profile-${campusId}`,
+    campusId,
+    fullName: "Active Staff",
+    email: "staff@example.com",
+    phoneNumber: "+15550000001",
+    dateOfBirth: null,
+    gender: null,
+  });
+
+  const createGuardianProfile = (campusId: string = validUUID) => ({
+    type: "guardian" as const,
+    id: `guardian-profile-${campusId}`,
+    campusId,
+    fullName: "Active Guardian",
+    email: "guardian@example.com",
+    phoneNumber: "+15550000002",
+    dateOfBirth: null,
+    gender: null,
+  });
+
   // Helper to create mock execution context
   const createMockContext = (
     headers: Record<string, string> = {},
@@ -106,6 +128,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -139,6 +162,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -171,6 +195,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -203,6 +228,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -330,6 +356,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -401,6 +428,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID_B)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -440,6 +468,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -492,6 +521,77 @@ describe("CampusGuard", () => {
       expect(mockRequestContext.getUser).not.toHaveBeenCalled();
     });
 
+    it("should skip active staff profile gate when checkUserAccess is false for guardian routes", async () => {
+      const campus = createCampus({ id: validUUID });
+      const guardianUser = createUser({
+        id: "guardian-user-1",
+        profiles: [createGuardianProfile(validUUID)],
+      });
+
+      mockRequestContext = createMockRequestContext("clerk-guardian-1");
+      mockRequestContext.getUser.mockResolvedValue(guardianUser);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
+
+      mockReflector.getAllAndOverride.mockReturnValue({
+        required: true,
+        checkUserAccess: false,
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        "clerk-guardian-1",
+      );
+
+      const result = await guard.canActivate(context);
+
+      expect(result).toBe(true);
+      expect(mockRequestContext.getUser).not.toHaveBeenCalled();
+    });
+
+    it("should deny campus role access when the user has no active staff profile in the campus", async () => {
+      const campus = createCampus({ id: validUUID });
+      const role = createRole({ name: "Staff", campusId: validUUID });
+      const user = createUser({
+        id: "user-1",
+        roleAssignments: [createRoleAssignment(role, validUUID)],
+      });
+
+      mockRequestContext = createMockRequestContext("clerk-user-1");
+      mockRequestContext.getUser.mockResolvedValue(user);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
+
+      mockReflector.getAllAndOverride.mockReturnValue({
+        required: true,
+        checkUserAccess: true,
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID },
+        {},
+        {},
+        "clerk-user-1",
+      );
+
+      const result = guard.canActivate(context);
+
+      await expect(result).rejects.toThrow(ForbiddenException);
+      await expect(result).rejects.toThrow(
+        "Active staff profile required for this campus",
+      );
+    });
+
     it("should throw ForbiddenException when user not found in database", async () => {
       const campus = createCampus({ id: validUUID });
 
@@ -531,6 +631,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -615,6 +716,7 @@ describe("CampusGuard", () => {
       const fakeAdmin = createUser({
         id: "fake-admin-1",
         roleAssignments: [createRoleAssignment(fakeAdminRole, null)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -660,6 +762,7 @@ describe("CampusGuard", () => {
       const globalAdmin = createUser({
         id: "admin-1",
         roleAssignments: [createRoleAssignment(globalAdminRole, null)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated admin context
@@ -703,6 +806,7 @@ describe("CampusGuard", () => {
       const localAdmin = createUser({
         id: "local-admin-1",
         roleAssignments: [createRoleAssignment(localAdminRole, validUUID_B)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context
@@ -742,6 +846,7 @@ describe("CampusGuard", () => {
       const user = createUser({
         id: "user-1",
         roleAssignments: [createRoleAssignment(role, validUUID)],
+        profiles: [createStaffProfile(validUUID)],
       });
 
       // Recreate guard with authenticated context

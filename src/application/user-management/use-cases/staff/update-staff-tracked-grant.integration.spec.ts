@@ -26,18 +26,12 @@
 import { UpdateStaffUseCase } from "./update-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
-import { UserRepository } from "../../ports/user.repository";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
-import {
-  createStaff,
-  createMockStaffRepository,
-  createMockUserRepository,
-} from "@/test-utils";
+import { createStaff, createMockStaffRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
@@ -103,8 +97,6 @@ describe("UpdateStaffUseCase — staff-type swap atomicity (Scenario 8)", () => 
       ),
     } as unknown as jest.Mocked<StaffTypeRepository>;
 
-    const userRepo = createMockUserRepository();
-
     const ROLE_ERROR = new Error("assignRoles failure (rollback probe)");
 
     const updateStaffSpy = jest.fn().mockResolvedValue({ id: "staff-1" });
@@ -125,16 +117,10 @@ describe("UpdateStaffUseCase — staff-type swap atomicity (Scenario 8)", () => 
     );
     const unitOfWork = { run: runSpy } as unknown as UnitOfWorkPort;
 
-    const identityPort = {
-      updateUser: jest.fn().mockResolvedValue(undefined),
-    } as unknown as IdentityPort;
-
     const useCase = new UpdateStaffUseCase(
       staffRepo,
       staffTypeRepo,
-      userRepo,
       unitOfWork,
-      identityPort,
     );
 
     await expect(

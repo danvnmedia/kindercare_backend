@@ -20,6 +20,11 @@ type RootClientMock = {
   staffType: { findUnique: jest.Mock };
   mealMenu: { findUnique: jest.Mock };
   weeklyPlan: { findUnique: jest.Mock };
+  studentHealthProfile: { findUnique: jest.Mock };
+  studentHealthCheckup: { findUnique: jest.Mock };
+  studentHealthInstruction: { findUnique: jest.Mock };
+  studentHealthEvent: { findUnique: jest.Mock };
+  medicationRequest: { findUnique: jest.Mock };
 };
 
 describe("PrismaAuditEventRecorder", () => {
@@ -32,6 +37,11 @@ describe("PrismaAuditEventRecorder", () => {
     staffType: DelegateMock;
     mealMenu: DelegateMock;
     weeklyPlan: DelegateMock;
+    studentHealthProfile: DelegateMock;
+    studentHealthCheckup: DelegateMock;
+    studentHealthInstruction: DelegateMock;
+    studentHealthEvent: DelegateMock;
+    medicationRequest: DelegateMock;
   };
   // A "root client" stand-in. The recorder must never touch this — every
   // call should target the supplied `tx`. Sharing the same shape makes the
@@ -59,6 +69,11 @@ describe("PrismaAuditEventRecorder", () => {
       staffType: { findUnique: jest.fn(), create: jest.fn() },
       mealMenu: { findUnique: jest.fn(), create: jest.fn() },
       weeklyPlan: { findUnique: jest.fn(), create: jest.fn() },
+      studentHealthProfile: { findUnique: jest.fn(), create: jest.fn() },
+      studentHealthCheckup: { findUnique: jest.fn(), create: jest.fn() },
+      studentHealthInstruction: { findUnique: jest.fn(), create: jest.fn() },
+      studentHealthEvent: { findUnique: jest.fn(), create: jest.fn() },
+      medicationRequest: { findUnique: jest.fn(), create: jest.fn() },
     };
     rootClient = {
       auditEvent: { create: jest.fn() },
@@ -68,6 +83,11 @@ describe("PrismaAuditEventRecorder", () => {
       staffType: { findUnique: jest.fn() },
       mealMenu: { findUnique: jest.fn() },
       weeklyPlan: { findUnique: jest.fn() },
+      studentHealthProfile: { findUnique: jest.fn() },
+      studentHealthCheckup: { findUnique: jest.fn() },
+      studentHealthInstruction: { findUnique: jest.fn() },
+      studentHealthEvent: { findUnique: jest.fn() },
+      medicationRequest: { findUnique: jest.fn() },
     };
     recorder = new PrismaAuditEventRecorder();
   });
@@ -137,6 +157,8 @@ describe("PrismaAuditEventRecorder", () => {
       expect(rootClient.staffType.findUnique).not.toHaveBeenCalled();
       expect(rootClient.mealMenu.findUnique).not.toHaveBeenCalled();
       expect(rootClient.weeklyPlan.findUnique).not.toHaveBeenCalled();
+      expect(rootClient.studentHealthEvent.findUnique).not.toHaveBeenCalled();
+      expect(rootClient.medicationRequest.findUnique).not.toHaveBeenCalled();
     });
 
     it("picks visibility from ACTION_VISIBILITY map", async () => {
@@ -198,6 +220,7 @@ describe("PrismaAuditEventRecorder", () => {
       expect(tx.staffType.findUnique).not.toHaveBeenCalled();
       expect(tx.mealMenu.findUnique).not.toHaveBeenCalled();
       expect(tx.weeklyPlan.findUnique).not.toHaveBeenCalled();
+      expect(tx.studentHealthEvent.findUnique).not.toHaveBeenCalled();
 
       const data = tx.auditEvent.create.mock.calls[0][0].data;
       expect(data.context).toMatchObject({ targetName: "Carol Pham" });
@@ -336,6 +359,66 @@ describe("PrismaAuditEventRecorder", () => {
       });
       expect(tx.auditEvent.create.mock.calls[0][0].data.context).toMatchObject({
         targetName: "K1 Room A 2026-06-15",
+      });
+    });
+
+    it("resolves a student health event title snapshot for targetType='student_health_event'", async () => {
+      tx.studentHealthEvent.findUnique.mockResolvedValue({
+        title: "Eye redness observed",
+        student: { fullName: "Alice Student" },
+      });
+      tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });
+
+      await recorder.record(
+        baseInput({
+          action: "CREATE_STUDENT_HEALTH_EVENT",
+          targetType: "student_health_event",
+          targetId: "health-event-1",
+          context: {},
+        }),
+        txAsClient(),
+      );
+
+      expect(tx.studentHealthEvent.findUnique).toHaveBeenCalledWith({
+        where: { id: "health-event-1" },
+        select: {
+          title: true,
+          student: { select: { fullName: true } },
+        },
+      });
+      expect(tx.auditEvent.create.mock.calls[0][0].data.context).toMatchObject({
+        targetName: "Alice Student Eye redness observed",
+      });
+    });
+
+    it("resolves a medication request snapshot for targetType='medication_request'", async () => {
+      tx.medicationRequest.findUnique.mockResolvedValue({
+        student: { fullName: "Alice Student" },
+        startDate: new Date("2026-07-01T00:00:00.000Z"),
+        endDate: new Date("2026-07-05T00:00:00.000Z"),
+      });
+      tx.auditEvent.create.mockResolvedValue({ id: "evt-1" });
+
+      await recorder.record(
+        baseInput({
+          action: "CREATE_MEDICATION_REQUEST",
+          targetType: "medication_request",
+          targetId: "medication-request-1",
+          context: {},
+        }),
+        txAsClient(),
+      );
+
+      expect(tx.medicationRequest.findUnique).toHaveBeenCalledWith({
+        where: { id: "medication-request-1" },
+        select: {
+          student: { select: { fullName: true } },
+          startDate: true,
+          endDate: true,
+        },
+      });
+      expect(tx.auditEvent.create.mock.calls[0][0].data.context).toMatchObject({
+        targetName: "Alice Student 2026-07-01 to 2026-07-05",
       });
     });
 

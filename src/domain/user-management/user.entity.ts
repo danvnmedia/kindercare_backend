@@ -4,7 +4,7 @@
  * NO NestJS decorators allowed in this layer
  *
  * NOTE: User ONLY contains authentication information.
- * User can be either a Guardian or Staff (NOT Student - kindergarten kids don't login)
+ * User can link to Guardian and/or Staff profiles (NOT Student - kindergarten kids don't login)
  */
 
 import { Entity } from "@/core/entities/entity";
@@ -18,6 +18,7 @@ import { Role } from "./role.entity";
 export interface UserProfile {
   type: "guardian" | "staff";
   id: string;
+  campusId?: string | null;
   fullName: string;
   email: string | null;
   phoneNumber: string | null;
@@ -54,7 +55,8 @@ export interface UserProps {
   name?: string;
   email?: string;
   roleAssignments?: UserRoleAssignment[];
-  profile?: UserProfile | null; // Guardian or Staff profile info
+  profiles?: UserProfile[]; // Active Guardian and Staff profile info
+  profile?: UserProfile | null; // Compatibility accessor source for existing actor-name callers
   createdAt: Date;
   updatedAt: Date;
 }
@@ -106,8 +108,20 @@ export class User extends Entity<UserProps> {
     return this.props.roleAssignments;
   }
 
+  get profiles(): UserProfile[] {
+    if (this.props.profiles) {
+      return this.props.profiles;
+    }
+
+    return this.props.profile ? [this.props.profile] : [];
+  }
+
   get profile(): UserProfile | null | undefined {
-    return this.props.profile;
+    if (this.props.profile !== undefined) {
+      return this.props.profile;
+    }
+
+    return this.profiles[0] ?? null;
   }
 
   get createdAt(): Date {

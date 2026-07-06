@@ -66,7 +66,10 @@ export function parseTimeToMinute(value: string, fieldName: string): number {
   return hours * 60 + minutes;
 }
 
-export function formatMinuteAsTime(value: number, fieldName = "minute"): string {
+export function formatMinuteAsTime(
+  value: number,
+  fieldName = "minute",
+): string {
   assertMinute(value, fieldName, true);
 
   const hours = Math.floor(value / 60);
@@ -198,7 +201,9 @@ function normalizeActivities(
 
   return activities.map((activity, index) => {
     const rawTitle =
-      activity && typeof activity === "object" && typeof activity.title === "string"
+      activity &&
+      typeof activity === "object" &&
+      typeof activity.title === "string"
         ? activity.title
         : "";
     const title = rawTitle.trim();

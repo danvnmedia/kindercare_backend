@@ -28,7 +28,9 @@ export class GetActiveWeeklyPlanUseCase {
     private readonly classRepository: ClassRepository,
   ) {}
 
-  async execute(input: GetActiveWeeklyPlanInput): Promise<ActiveWeeklyPlanResult> {
+  async execute(
+    input: GetActiveWeeklyPlanInput,
+  ): Promise<ActiveWeeklyPlanResult> {
     const classroom = await this.classRepository.findById(input.classId);
 
     if (!classroom || classroom.campusId !== input.campusId) {

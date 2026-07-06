@@ -30,11 +30,11 @@ const USER_WITH_ROLES_INCLUDE = {
   // Include guardian and staff profiles for /auth/me endpoint
   guardians: {
     where: { isArchived: false },
-    take: 1,
+    orderBy: { createdAt: "asc" },
   },
   staffs: {
     where: { isArchived: false },
-    take: 1,
+    orderBy: { createdAt: "asc" },
   },
 } as const;
 
@@ -74,6 +74,50 @@ export class PrismaUserRepository implements UserRepository {
       include: USER_WITH_ROLES_INCLUDE,
     });
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
+  }
+
+  async findManyByEmail(email: string): Promise<User[]> {
+    const prismaUsers = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          {
+            guardians: {
+              some: { email },
+            },
+          },
+          {
+            staffs: {
+              some: { email },
+            },
+          },
+        ],
+      },
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+
+    return prismaUsers.map((user) => PrismaUserMapper.toDomain(user));
+  }
+
+  async findManyByPhoneNumber(phoneNumber: string): Promise<User[]> {
+    const prismaUsers = await this.prisma.user.findMany({
+      where: {
+        OR: [
+          {
+            guardians: {
+              some: { phoneNumber },
+            },
+          },
+          {
+            staffs: {
+              some: { phoneNumber },
+            },
+          },
+        ],
+      },
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+
+    return prismaUsers.map((user) => PrismaUserMapper.toDomain(user));
   }
 
   async findByClerkUid(clerkUid: string): Promise<User | null> {

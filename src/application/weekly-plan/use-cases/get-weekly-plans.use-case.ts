@@ -17,7 +17,9 @@ export class GetWeeklyPlansUseCase {
     private readonly weeklyPlanRepository: WeeklyPlanRepository,
   ) {}
 
-  async execute(input: GetWeeklyPlansInput): Promise<PaginatedResult<WeeklyPlan>> {
+  async execute(
+    input: GetWeeklyPlansInput,
+  ): Promise<PaginatedResult<WeeklyPlan>> {
     return this.weeklyPlanRepository.findByCampusId(
       input.campusId,
       input.params,

@@ -58,6 +58,15 @@ export abstract class GuardianRepository {
   ): Promise<Guardian | null>;
 
   /**
+   * Find any guardian profile by user ID within a campus, including archived
+   * profiles. Use only for staff/admin profile lifecycle flows.
+   */
+  abstract findAnyByUserIdInCampus(
+    userId: string,
+    campusId: string,
+  ): Promise<Guardian | null>;
+
+  /**
    * Find non-archived campuses where the user has an active guardian profile.
    */
   abstract findActiveCampusesByUserId(userId: string): Promise<Campus[]>;

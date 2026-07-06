@@ -5,6 +5,7 @@ import { StudentRepository } from "../../ports/student.repository";
 import { GuardianRepository } from "../../ports/guardian.repository";
 
 export interface UnlinkStudentFromGuardianInput {
+  campusId: string;
   guardianId: string;
   studentId: string;
 }
@@ -31,16 +32,16 @@ export class UnlinkStudentFromGuardianUseCase {
       );
 
       const guardian = await this.guardianRepository.findById(input.guardianId);
-      if (!guardian) {
+      if (!guardian || guardian.campusId !== input.campusId) {
         throw new NotFoundException(
-          `Guardian with ID ${input.guardianId} not found`,
+          `Guardian with ID ${input.guardianId} not found in this campus`,
         );
       }
 
       const student = await this.studentRepository.findById(input.studentId);
-      if (!student) {
+      if (!student || student.campusId !== input.campusId) {
         throw new NotFoundException(
-          `Student with ID ${input.studentId} not found`,
+          `Student with ID ${input.studentId} not found in this campus`,
         );
       }
 

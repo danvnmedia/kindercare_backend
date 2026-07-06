@@ -95,7 +95,9 @@ describe("Role permission mutation use cases", () => {
 
   it("rejects invalid permission IDs before entering the UoW", async () => {
     roleRepo.findById.mockResolvedValue(makeRole());
-    permissionRepo.findByIds.mockResolvedValue([makePermission("student.read")]);
+    permissionRepo.findByIds.mockResolvedValue([
+      makePermission("student.read"),
+    ]);
     const useCase = new AssignPermissionsToRoleUseCase(
       roleRepo,
       permissionRepo,

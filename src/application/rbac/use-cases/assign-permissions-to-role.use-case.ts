@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  Logger,
-} from "@nestjs/common";
+import { Injectable, Inject, Logger } from "@nestjs/common";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { PermissionRepository } from "../ports/permission.repository";
 import { RoleRepository } from "@/application/user-management/ports/role.repository";
@@ -59,9 +55,7 @@ export class AssignPermissionsToRoleUseCase {
       .sort();
 
     if (addedPermissionIds.length === 0) {
-      this.logger.log(
-        `No new permissions to assign to role ${roleId}`,
-      );
+      this.logger.log(`No new permissions to assign to role ${roleId}`);
       return;
     }
 
@@ -71,10 +65,7 @@ export class AssignPermissionsToRoleUseCase {
     ].sort();
 
     await this.unitOfWork.run(async (tx) => {
-      const inserted = await tx.addRolePermissions(
-        roleId,
-        addedPermissionIds,
-      );
+      const inserted = await tx.addRolePermissions(roleId, addedPermissionIds);
 
       if (inserted > 0) {
         await tx.recordAudit({
@@ -83,12 +74,9 @@ export class AssignPermissionsToRoleUseCase {
           targetType: "role",
           targetId: roleId,
           campusId,
-          context: buildPermissionMutationContext(
-            role,
-            campusId,
-            currentUser,
-            { addedPermissionIds },
-          ),
+          context: buildPermissionMutationContext(role, campusId, currentUser, {
+            addedPermissionIds,
+          }),
           beforeValue: { permissionIds: beforePermissionIds },
           afterValue: { permissionIds: afterPermissionIds },
         });

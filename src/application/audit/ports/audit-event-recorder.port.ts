@@ -37,7 +37,12 @@ export type AuditTargetType =
   | "campus_setting"
   | "post_history_status"
   | "post_approval_request"
-  | "weekly_plan";
+  | "weekly_plan"
+  | "student_health_profile"
+  | "student_health_checkup"
+  | "student_health_instruction"
+  | "student_health_event"
+  | "medication_request";
 
 /**
  * Input payload for a single audit-event write.

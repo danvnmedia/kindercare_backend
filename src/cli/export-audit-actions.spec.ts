@@ -34,16 +34,16 @@ describe("buildAuditActionsExport", () => {
   });
 
   // Locked count — bump deliberately when adding a new action so the FE
-  // template registry change-log stays auditable. v1 shipped 19 (admin-audit-log);
-  // class-staff lifecycle (assign/remove/change-role) added 3 in
-  // @doc/specs/subject-removal-classstaff-role-refactor; direct role
-  // assignment (grant/revoke) added 2 in
-  // @doc/specs/direct-role-assignment-via-uow; meal-menu lifecycle added 6 in
-  // @doc/specs/meal-menu-backend; weekly-plan lifecycle added 5 in
-  // @doc/specs/weekly-plan-daily-schedule.
-  it("emits exactly 35 actions (30 existing + 5 weekly-plan)", () => {
+  // template registry change-log stays auditable. v1 shipped 19
+  // (admin-audit-log); class-staff lifecycle added 3; direct role assignment
+  // added 2; role lifecycle added 3; staff-type lifecycle added 4; meal-menu
+  // lifecycle added 6; weekly-plan lifecycle added 5; student-health profile
+  // updates added 1; student-health checkup lifecycle added 2; student-health
+  // instruction lifecycle added 2; student-health event lifecycle added 2;
+  // medication request lifecycle added 1.
+  it("emits exactly 50 actions including medication requests", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(35);
+    expect(result.actions).toHaveLength(50);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {
@@ -55,8 +55,10 @@ describe("buildAuditActionsExport", () => {
     expect(result.actions[5]).toBe("EDIT_STUDENT_PROFILE");
     expect(result.actions[8]).toBe("ARCHIVE_STUDENT");
     expect(result.actions[14]).toBe("CREATE_STUDENT");
-    expect(result.actions[17]).toBe("LINK_GUARDIAN_TO_STUDENT");
-    expect(result.actions[18]).toBe("UNLINK_GUARDIAN_FROM_STUDENT");
+    expect(result.actions[17]).toBe("ATTACH_EXISTING_GUARDIAN_IDENTITY");
+    expect(result.actions[18]).toBe("ATTACH_EXISTING_STAFF_IDENTITY");
+    expect(result.actions[19]).toBe("LINK_GUARDIAN_TO_STUDENT");
+    expect(result.actions[20]).toBe("UNLINK_GUARDIAN_FROM_STUDENT");
   });
 
   it("every emitted action is a member of the AuditAction union", () => {

@@ -1,0 +1,11 @@
+export enum StudentHealthConditionCategory {
+  EYE = "EYE",
+  ENT = "ENT",
+  RESPIRATORY = "RESPIRATORY",
+  SKIN = "SKIN",
+  DIGESTIVE = "DIGESTIVE",
+  CARDIAC = "CARDIAC",
+  NEUROLOGICAL = "NEUROLOGICAL",
+  MOBILITY = "MOBILITY",
+  OTHER = "OTHER",
+}

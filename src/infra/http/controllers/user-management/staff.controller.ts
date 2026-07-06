@@ -23,6 +23,7 @@ import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { User } from "@/domain/user-management/user.entity";
 import {
   CreateStaffRequest,
+  CreateOrAttachStaffResponse,
   UpdateStaffRequest,
   StaffResponse,
 } from "../../dtos/user-management/staff";
@@ -36,6 +37,7 @@ import {
 
 // Use Cases
 import { CreateStaffUseCase } from "@/application/user-management/use-cases/staff/create-staff.use-case";
+import { CreateOrAttachStaffUseCase } from "@/application/user-management/use-cases/staff/create-or-attach-staff.use-case";
 import { GetStaffByIdUseCase } from "@/application/user-management/use-cases/staff/get-staff-by-id.use-case";
 import { GetAllStaffUseCase } from "@/application/user-management/use-cases/staff/get-all-staff.use-case";
 import { UpdateStaffUseCase } from "@/application/user-management/use-cases/staff/update-staff.use-case";
@@ -49,6 +51,7 @@ import { RestoreStaffUseCase } from "@/application/user-management/use-cases/sta
 export class StaffController {
   constructor(
     private readonly createStaffUseCase: CreateStaffUseCase,
+    private readonly createOrAttachStaffUseCase: CreateOrAttachStaffUseCase,
     private readonly getStaffByIdUseCase: GetStaffByIdUseCase,
     private readonly getAllStaffUseCase: GetAllStaffUseCase,
     private readonly updateStaffUseCase: UpdateStaffUseCase,
@@ -79,6 +82,43 @@ export class StaffController {
     @CurrentUser() currentUser: User,
   ) {
     return await this.createStaffUseCase.execute(
+      {
+        campusId,
+        fullName: dto.fullName,
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        staffTypeIds: dto.staffTypeIds,
+        address: dto.address,
+        dateOfBirth: dto.dateOfBirth,
+        gender: dto.gender as Gender | undefined,
+      },
+      currentUser,
+    );
+  }
+
+  @Post("create-or-attach")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Staff create-or-attach completed successfully",
+    type: CreateOrAttachStaffResponse,
+  })
+  @ApiOperation({
+    summary: "Create or attach a staff account",
+    description:
+      "Creates a target-campus staff profile by either provisioning a new staff identity or attaching to an eligible existing identity.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    description: "Campus UUID to scope the staff create-or-attach operation",
+    required: true,
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async createOrAttach(
+    @CampusContext() campusId: string,
+    @Body() dto: CreateStaffRequest,
+    @CurrentUser() currentUser: User,
+  ) {
+    return await this.createOrAttachStaffUseCase.execute(
       {
         campusId,
         fullName: dto.fullName,
@@ -153,7 +193,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Update staff",
     description:
-      "Update staff information within the specified campus. Email and phone number are synced to Clerk and enforce campus-scoped uniqueness. If staffType is changed, the associated user role will also be updated accordingly.",
+      "Update staff profile information within the specified campus. For linked staff identities, fullName, email, and phoneNumber changes are rejected and must use a dedicated identity-change flow. Staff type changes update StaffType-derived role grants while preserving manual grants.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -197,7 +237,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Archive staff (soft delete)",
     description:
-      "Archives a staff member within the specified campus (soft delete). The staff member's linked user account will also be deactivated.",
+      "Archives only the campus staff profile. Linked User and Clerk identities remain active unless changed through global identity administration; StaffType-derived grants for this profile are removed.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -227,7 +267,7 @@ export class StaffController {
   @ApiOperation({
     summary: "Restore archived staff",
     description:
-      "Restores a previously archived staff member within the specified campus. The staff member's linked user account will also be reactivated.",
+      "Restores only the campus staff profile and recreates StaffType-derived grants. This does not unlock or reactivate the linked global identity.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

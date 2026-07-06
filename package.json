@@ -53,6 +53,7 @@
     "cli:list-admins": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts list",
     "cli:delete-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts delete",
     "export:audit-actions": "ts-node -r tsconfig-paths/register src/cli/export-audit-actions.ts",
+    "seed:health-center": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-health-center.ts",
     "seed:students": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-students.ts"
   },
   "dependencies": {

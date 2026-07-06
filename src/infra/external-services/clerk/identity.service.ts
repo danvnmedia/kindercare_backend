@@ -8,6 +8,7 @@ import {
 import { type ClerkClient, type User } from "@clerk/backend";
 import {
   IdentityPort,
+  IdentityLookupResult,
   ProvisionIdentityInput,
   ProvisionIdentityResult,
   UpdateIdentityInput,
@@ -64,6 +65,24 @@ export class IdentityService extends IdentityPort {
         "Failed to create user account. Please try again or contact support.",
       );
     }
+  }
+
+  async findIdentitiesByEmail(email: string): Promise<IdentityLookupResult[]> {
+    const result = await this.clerkClient.users.getUserList({
+      emailAddress: [email],
+    });
+
+    return result.data.map((user) => ({ clerkUid: user.id }));
+  }
+
+  async findIdentitiesByPhoneNumber(
+    phoneNumber: string,
+  ): Promise<IdentityLookupResult[]> {
+    const result = await this.clerkClient.users.getUserList({
+      phoneNumber: [phoneNumber],
+    });
+
+    return result.data.map((user) => ({ clerkUid: user.id }));
   }
 
   async inviteUser(email: string): Promise<void> {

@@ -85,6 +85,46 @@ describe("weekly-plan audit vocab additions", () => {
   });
 });
 
+describe("student-health audit vocab additions", () => {
+  const studentHealthActions = [
+    "UPDATE_STUDENT_HEALTH_PROFILE",
+    "CREATE_STUDENT_HEALTH_CHECKUP",
+    "UPDATE_STUDENT_HEALTH_CHECKUP",
+    "CREATE_STUDENT_HEALTH_INSTRUCTION",
+    "UPDATE_STUDENT_HEALTH_INSTRUCTION",
+    "CREATE_STUDENT_HEALTH_EVENT",
+    "UPDATE_STUDENT_HEALTH_EVENT",
+  ] as const;
+
+  it("registers every student-health audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...studentHealthActions]),
+    );
+  });
+
+  it("maps every student-health action to ADMIN visibility", () => {
+    for (const action of studentHealthActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
+describe("medication audit vocab additions", () => {
+  const medicationActions = ["CREATE_MEDICATION_REQUEST"] as const;
+
+  it("registers every medication audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...medicationActions]),
+    );
+  });
+
+  it("maps every medication action to ADMIN visibility", () => {
+    for (const action of medicationActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
 describe("StaffType audit vocab additions", () => {
   const staffTypeActions = [
     "CREATE_STAFF_TYPE",
@@ -103,5 +143,35 @@ describe("StaffType audit vocab additions", () => {
     for (const action of staffTypeActions) {
       expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
     }
+  });
+});
+
+describe("global identity lifecycle audit vocab additions", () => {
+  const identityActions = [
+    "LOCK_GLOBAL_IDENTITY",
+    "UNLOCK_GLOBAL_IDENTITY",
+    "DELETE_GLOBAL_IDENTITY",
+  ] as const;
+
+  it("registers every global identity lifecycle audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...identityActions]),
+    );
+  });
+
+  it("maps every global identity lifecycle action to ADMIN visibility", () => {
+    for (const action of identityActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
+describe("guardian existing identity attach audit vocab addition", () => {
+  it("registers the guardian existing identity attach action", () => {
+    expect(AUDIT_ACTIONS).toContain("ATTACH_EXISTING_GUARDIAN_IDENTITY");
+  });
+
+  it("maps guardian existing identity attach to ADMIN visibility", () => {
+    expect(ACTION_VISIBILITY.ATTACH_EXISTING_GUARDIAN_IDENTITY).toBe("ADMIN");
   });
 });

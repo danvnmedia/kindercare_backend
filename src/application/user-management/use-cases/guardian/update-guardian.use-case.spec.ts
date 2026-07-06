@@ -1,19 +1,13 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import { NotFoundException } from "@nestjs/common";
 
 import { UpdateGuardianUseCase } from "./update-guardian.use-case";
 import { GuardianRepository } from "../../ports/guardian.repository";
-import { UserRepository } from "../../ports/user.repository";
-import { IdentityPort } from "@/application/ports/identity.port";
 import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
-import {
-  createGuardian,
-  createMockGuardianRepository,
-  createMockUserRepository,
-} from "@/test-utils";
+import { createGuardian, createMockGuardianRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 
@@ -41,15 +35,12 @@ function buildActor(): User {
 describe("UpdateGuardianUseCase", () => {
   let useCase: UpdateGuardianUseCase;
   let guardianRepo: jest.Mocked<GuardianRepository>;
-  let userRepo: jest.Mocked<UserRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
-  let identityPort: jest.Mocked<IdentityPort>;
   let actor: User;
 
   beforeEach(() => {
     guardianRepo = createMockGuardianRepository();
-    userRepo = createMockUserRepository();
     mockTx = {
       updateGuardian: jest.fn().mockResolvedValue({ id: "guardian-1" }),
       recordAudit: jest.fn().mockResolvedValue(undefined),
@@ -57,19 +48,9 @@ describe("UpdateGuardianUseCase", () => {
     unitOfWork = {
       run: jest.fn((task) => task(mockTx)),
     } as unknown as jest.Mocked<UnitOfWorkPort>;
-    identityPort = {
-      createUser: jest.fn(),
-      updateUser: jest.fn().mockResolvedValue(undefined),
-      deleteUser: jest.fn(),
-    } as unknown as jest.Mocked<IdentityPort>;
     actor = buildActor();
 
-    useCase = new UpdateGuardianUseCase(
-      guardianRepo,
-      userRepo,
-      unitOfWork,
-      identityPort,
-    );
+    useCase = new UpdateGuardianUseCase(guardianRepo, unitOfWork);
   });
 
   describe("DB-only path (no User account)", () => {
@@ -85,7 +66,6 @@ describe("UpdateGuardianUseCase", () => {
 
       await useCase.execute("guardian-1", { occupation: "Engineer" }, actor);
 
-      expect(identityPort.updateUser).not.toHaveBeenCalled();
       expect(mockTx.updateGuardian).toHaveBeenCalledTimes(1);
       expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
 
@@ -120,8 +100,8 @@ describe("UpdateGuardianUseCase", () => {
     });
   });
 
-  describe("Clerk-saga path", () => {
-    it("emits audit AFTER Clerk + updateGuardian succeed", async () => {
+  describe("linked identity field restrictions", () => {
+    it("rejects linked guardian email changes before DB writes", async () => {
       const guardian = createGuardian({
         id: "guardian-1",
         campusId: "campus-1",
@@ -130,52 +110,6 @@ describe("UpdateGuardianUseCase", () => {
         userId: "user-1",
       });
       guardianRepo.findById.mockResolvedValue(guardian);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
-
-      await useCase.execute(
-        "guardian-1",
-        { email: "carol.new@example.com" },
-        actor,
-      );
-
-      expect(identityPort.updateUser).toHaveBeenCalledTimes(1);
-      expect(mockTx.updateGuardian).toHaveBeenCalledTimes(1);
-      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
-      const payload = mockTx.recordAudit.mock.calls[0]![0];
-      expect(payload.beforeValue).toEqual({ email: "carol@example.com" });
-      expect(payload.afterValue).toEqual({ email: "carol.new@example.com" });
-    });
-
-    it("AC-4 — recorder failure triggers Clerk revert", async () => {
-      const guardian = createGuardian({
-        id: "guardian-1",
-        fullName: "Carol Pham",
-        email: "carol@example.com",
-        userId: "user-1",
-      });
-      guardianRepo.findById.mockResolvedValue(guardian);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
-      mockTx.recordAudit.mockRejectedValue(new Error("audit fail"));
 
       await expect(
         useCase.execute(
@@ -183,45 +117,53 @@ describe("UpdateGuardianUseCase", () => {
           { email: "carol.new@example.com" },
           actor,
         ),
-      ).rejects.toThrow(BadRequestException);
-
-      // Clerk updated once (initial), then reverted once (compensation) — 2 total
-      expect(identityPort.updateUser).toHaveBeenCalledTimes(2);
-      expect(identityPort.updateUser.mock.calls[1]![1]).toEqual({
-        email: "carol@example.com",
+      ).rejects.toMatchObject({
+        response: {
+          code: "SHARED_IDENTITY_UPDATE_RESTRICTED",
+        },
       });
-    });
-
-    it("Clerk failure short-circuits before DB tx + audit", async () => {
-      const guardian = createGuardian({
-        id: "guardian-1",
-        fullName: "Carol Pham",
-        userId: "user-1",
-      });
-      guardianRepo.findById.mockResolvedValue(guardian);
-      userRepo.findById.mockResolvedValue(
-        User.reconstitute(
-          {
-            clerkUid: "user_clerk1234567",
-            isActive: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          "user-1",
-        ),
-      );
-      identityPort.updateUser.mockRejectedValueOnce(new Error("clerk down"));
-
-      await expect(
-        useCase.execute(
-          "guardian-1",
-          { email: "carol.new@example.com" },
-          actor,
-        ),
-      ).rejects.toThrow(BadRequestException);
 
       expect(unitOfWork.run).not.toHaveBeenCalled();
-      expect(mockTx.recordAudit).not.toHaveBeenCalled();
+      expect(mockTx.updateGuardian).not.toHaveBeenCalled();
+    });
+
+    it("rejects linked guardian phone and fullName changes", async () => {
+      const guardian = createGuardian({
+        id: "guardian-1",
+        fullName: "Carol Pham",
+        phoneNumber: "+15550000001",
+        userId: "user-1",
+      });
+      guardianRepo.findById.mockResolvedValue(guardian);
+
+      await expect(
+        useCase.execute(
+          "guardian-1",
+          { phoneNumber: "+15550000002", fullName: "Carol New" },
+          actor,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: "SHARED_IDENTITY_UPDATE_RESTRICTED",
+        },
+      });
+
+      expect(unitOfWork.run).not.toHaveBeenCalled();
+    });
+
+    it("allows linked guardian non-identity field changes without identity sync", async () => {
+      const guardian = createGuardian({
+        id: "guardian-1",
+        fullName: "Carol Pham",
+        occupation: null,
+        userId: "user-1",
+      });
+      guardianRepo.findById.mockResolvedValue(guardian);
+
+      await useCase.execute("guardian-1", { occupation: "Engineer" }, actor);
+
+      expect(mockTx.updateGuardian).toHaveBeenCalledTimes(1);
+      expect(mockTx.recordAudit).toHaveBeenCalledTimes(1);
     });
   });
 

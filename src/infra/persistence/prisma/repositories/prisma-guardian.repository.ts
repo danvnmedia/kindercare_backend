@@ -153,6 +153,30 @@ export class PrismaGuardianRepository implements GuardianRepository {
       : null;
   }
 
+  async findAnyByUserIdInCampus(
+    userId: string,
+    campusId: string,
+  ): Promise<Guardian | null> {
+    const prismaGuardian = await this.prisma.guardian.findFirst({
+      where: {
+        userId,
+        campusId,
+      },
+      include: {
+        children: {
+          include: {
+            student: true,
+            guardianRelationship: true,
+          },
+        },
+      },
+    });
+
+    return prismaGuardian
+      ? PrismaGuardianMapper.toDomain(prismaGuardian)
+      : null;
+  }
+
   async findActiveCampusesByUserId(userId: string): Promise<Campus[]> {
     const guardians = await this.prisma.guardian.findMany({
       where: {

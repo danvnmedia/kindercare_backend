@@ -36,6 +36,16 @@ export abstract class UserRepository {
   abstract findByEmail(email: string): Promise<User | null>;
 
   /**
+   * Find all users whose linked Staff or Guardian profiles match an email.
+   */
+  abstract findManyByEmail(email: string): Promise<User[]>;
+
+  /**
+   * Find all users whose linked Staff or Guardian profiles match a phone number.
+   */
+  abstract findManyByPhoneNumber(phoneNumber: string): Promise<User[]>;
+
+  /**
    * Find user by Clerk UID
    */
   abstract findByClerkUid(clerkUid: string): Promise<User | null>;

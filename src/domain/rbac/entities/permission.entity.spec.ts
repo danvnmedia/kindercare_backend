@@ -5,12 +5,15 @@ describe("PermissionEntity", () => {
     it("should accept valid permission ID format", () => {
       const validIds = [
         "student.create",
+        "student_health.read",
         "class.read",
         "guardian.delete",
         "staff_type.list",
         "grade_level.update",
         "weekly_plan.create",
         "absence_request.list",
+        "medication_request.read",
+        "medication_administration.create",
       ];
 
       validIds.forEach((id) => {
@@ -62,12 +65,15 @@ describe("PermissionEntity", () => {
     it("should accept valid module names", () => {
       const validModules = [
         "student",
+        "student_health",
         "class",
         "guardian",
         "staff_type",
         "grade_level",
         "weekly_plan",
         "absence_request",
+        "medication_request",
+        "medication_administration",
       ];
 
       validModules.forEach((module) => {

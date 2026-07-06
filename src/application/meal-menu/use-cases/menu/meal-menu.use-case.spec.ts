@@ -70,8 +70,7 @@ function createTargetedMealMenu(
 ): MealMenu {
   const targetType = overrides.targetType ?? "campus";
   const gradeLevelId =
-    overrides.gradeLevelId ??
-    (targetType === "grade" ? GRADE_LEVEL_ID : null);
+    overrides.gradeLevelId ?? (targetType === "grade" ? GRADE_LEVEL_ID : null);
   const classId =
     overrides.classId ?? (targetType === "class" ? CLASS_ID : null);
 

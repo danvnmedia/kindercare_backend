@@ -19,7 +19,8 @@ export class UpdateGuardianRequest {
   // ========== Personal Information ==========
 
   @ApiPropertyOptional({
-    description: "Guardian full name",
+    description:
+      "Guardian full name. Rejected for linked guardian identities; use a dedicated identity-change flow.",
     example: "Nguyễn Thị B",
     minLength: 2,
     maxLength: 100,
@@ -50,7 +51,8 @@ export class UpdateGuardianRequest {
   gender?: Gender;
 
   @ApiPropertyOptional({
-    description: "Guardian phone number",
+    description:
+      "Guardian phone number. Rejected for linked guardian identities; use a dedicated identity-change flow.",
     example: "+84912345678",
   })
   @IsOptional()
@@ -59,7 +61,8 @@ export class UpdateGuardianRequest {
   phoneNumber?: string;
 
   @ApiPropertyOptional({
-    description: "Guardian email",
+    description:
+      "Guardian email. Rejected for linked guardian identities; use a dedicated identity-change flow.",
     example: "guardian@example.com",
   })
   @ValidateIf((o) => o.email !== undefined)

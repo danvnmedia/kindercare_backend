@@ -9,10 +9,7 @@ import { User } from "@/domain/user-management/user.entity";
 import { RoleEntity } from "../../../../domain/user-management/role.entity";
 import { RoleRepository } from "../../ports/role.repository";
 import { RoleNotFoundException } from "../../../../domain/user-management/exceptions/role-not-found.exception";
-import {
-  buildRoleAuditContext,
-  pickRoleAuditFields,
-} from "./role-audit";
+import { buildRoleAuditContext, pickRoleAuditFields } from "./role-audit";
 
 export interface DeleteRoleInput {
   campusId: string;

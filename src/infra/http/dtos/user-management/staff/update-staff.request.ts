@@ -15,7 +15,8 @@ import { IsAdultDateOfBirth, IsE164Phone } from "@/core/validators";
 
 export class UpdateStaffRequest {
   @ApiProperty({
-    description: "Staff full name",
+    description:
+      "Staff full name. Rejected for linked staff identities; use a dedicated identity-change flow.",
     example: "Nguyễn Văn A",
     minLength: 2,
     maxLength: 100,
@@ -29,7 +30,7 @@ export class UpdateStaffRequest {
 
   @ApiProperty({
     description:
-      "Staff email (synced to Clerk; enforces campus-scoped uniqueness)",
+      "Staff email. Rejected for linked staff identities; use a dedicated identity-change flow.",
     example: "staff@example.com",
     required: false,
   })
@@ -39,7 +40,7 @@ export class UpdateStaffRequest {
 
   @ApiProperty({
     description:
-      "Staff phone number in E.164 format (synced to Clerk; enforces campus-scoped uniqueness)",
+      "Staff phone number in E.164 format. Rejected for linked staff identities; use a dedicated identity-change flow.",
     example: "+84912345678",
     required: false,
   })
@@ -96,5 +97,4 @@ export class UpdateStaffRequest {
   @IsOptional()
   @IsEnum(Gender, { message: "Gender must be MALE, FEMALE, or OTHER" })
   gender?: Gender;
-
 }

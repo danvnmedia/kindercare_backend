@@ -36,7 +36,9 @@ export class ReplaceRolePermissionsUseCase {
     currentUser: User,
   ): Promise<void> {
     const { roleId, campusId } = input;
-    const finalPermissionIds = normalizePermissionIds(input.permissionIds).sort();
+    const finalPermissionIds = normalizePermissionIds(
+      input.permissionIds,
+    ).sort();
 
     this.logger.log(
       `Replacing permissions for role ${roleId} with ${finalPermissionIds.length} permission(s)`,
@@ -75,12 +77,10 @@ export class ReplaceRolePermissionsUseCase {
         targetType: "role",
         targetId: roleId,
         campusId,
-        context: buildPermissionMutationContext(
-          role,
-          campusId,
-          currentUser,
-          { addedPermissionIds, removedPermissionIds },
-        ),
+        context: buildPermissionMutationContext(role, campusId, currentUser, {
+          addedPermissionIds,
+          removedPermissionIds,
+        }),
         beforeValue: { permissionIds: beforePermissionIds },
         afterValue: { permissionIds: finalPermissionIds },
       });

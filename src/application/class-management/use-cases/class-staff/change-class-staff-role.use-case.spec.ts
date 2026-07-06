@@ -91,9 +91,7 @@ describe("ChangeClassStaffRoleUseCase", () => {
     } as unknown as jest.Mocked<ClassRepository>;
 
     mockTx = {
-      updateClassStaff: jest
-        .fn()
-        .mockResolvedValue({ classId, staffId }),
+      updateClassStaff: jest.fn().mockResolvedValue({ classId, staffId }),
       recordAudit: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<TransactionContext>;
 

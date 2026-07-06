@@ -65,6 +65,11 @@ export interface TransactionContext {
   ): Promise<{ id: string }>;
 
   /**
+   * Delete a User entity within the current transaction.
+   */
+  deleteUser(id: string): Promise<void>;
+
+  /**
    * Assign roles to a user with campus + provenance context.
    *
    * @param userId - The user to assign roles to

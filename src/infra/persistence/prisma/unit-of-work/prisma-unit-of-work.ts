@@ -73,6 +73,7 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
       // User operations
       createUser: userOps.createUser.bind(userOps),
       updateUser: userOps.updateUser.bind(userOps),
+      deleteUser: userOps.deleteUser.bind(userOps),
       assignRoles: userOps.assignRoles.bind(userOps),
       revokeRolesByProvenance: userOps.revokeRolesByProvenance.bind(userOps),
       revokeRoles: userOps.revokeRoles.bind(userOps),

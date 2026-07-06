@@ -60,6 +60,7 @@ describe("UpdateStudentGuardianRelationshipUseCase", () => {
 
   const createMockRelationshipType = (
     overrides: Partial<{
+      campusId: string;
       id: string;
       name: string;
       isArchived: boolean;
@@ -67,7 +68,7 @@ describe("UpdateStudentGuardianRelationshipUseCase", () => {
   ): GuardianRelationshipType => {
     return GuardianRelationshipType.create(
       {
-        campusId,
+        campusId: overrides.campusId ?? campusId,
         name: overrides.name ?? "Mother",
         description: null,
         order: 1,
@@ -117,6 +118,7 @@ describe("UpdateStudentGuardianRelationshipUseCase", () => {
       findByPhoneNumberInCampus: jest.fn(),
       findByUserId: jest.fn(),
       findByUserIdInCampus: jest.fn(),
+      findAnyByUserIdInCampus: jest.fn(),
       findByCampusId: jest.fn(),
       findByIds: jest.fn(),
       findAll: jest.fn(),
@@ -225,6 +227,30 @@ describe("UpdateStudentGuardianRelationshipUseCase", () => {
         useCase.execute({ studentId, guardianId, campusId, relationshipId }),
       ).rejects.toThrow(
         `Guardian relationship type "Deprecated" is archived and cannot be used`,
+      );
+
+      expect(mockStudentRepository.findById).not.toHaveBeenCalled();
+      expect(
+        mockStudentRepository.updateGuardianRelationship,
+      ).not.toHaveBeenCalled();
+    });
+
+    it("should throw NotFoundException when relationship type belongs to a different campus", async () => {
+      const relationshipType = createMockRelationshipType({
+        campusId: differentCampusId,
+      });
+      mockGuardianRelationshipTypeRepository.findById.mockResolvedValue(
+        relationshipType,
+      );
+
+      await expect(
+        useCase.execute({ studentId, guardianId, campusId, relationshipId }),
+      ).rejects.toThrow(NotFoundException);
+
+      await expect(
+        useCase.execute({ studentId, guardianId, campusId, relationshipId }),
+      ).rejects.toThrow(
+        `Guardian relationship type with ID "${relationshipId}" not found in this campus`,
       );
 
       expect(mockStudentRepository.findById).not.toHaveBeenCalled();
