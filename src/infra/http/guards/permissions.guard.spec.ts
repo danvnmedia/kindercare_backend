@@ -100,6 +100,20 @@ describe("PermissionsGuard", () => {
     expect(requestContext.getUser).toHaveBeenCalledTimes(1);
   });
 
+  it("allows post.manage as an implied CMS review permission", async () => {
+    reflector.getAllAndOverride.mockReturnValue(["post.review"]);
+    const role = createRole({
+      permissions: [permission("post.manage")],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(role, DEFAULT_CAMPUS_ID_A)],
+    });
+    const requestContext = mockRequestContext(user);
+    const guard = new PermissionsGuard(reflector, requestContext);
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(true);
+  });
+
   it("denies medication permission assigned only to another campus", async () => {
     reflector.getAllAndOverride.mockReturnValue(["medication_request.read"]);
     const role = createRole({

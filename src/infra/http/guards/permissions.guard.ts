@@ -84,9 +84,13 @@ export class PermissionsGuard implements CanActivate {
       }
     }
 
-    // Check if user has ANY of the required permissions (OR logic)
-    const hasRequiredPermission = requiredPermissions.some((permission) =>
-      userPermissionIds.has(permission),
+    // Check if user has ANY of the required permissions (OR logic).
+    // Keep CMS review aligned with post use-case authorization: post.manage
+    // includes moderation/review capability.
+    const hasRequiredPermission = requiredPermissions.some(
+      (permission) =>
+        userPermissionIds.has(permission) ||
+        (permission === "post.review" && userPermissionIds.has("post.manage")),
     );
 
     if (!hasRequiredPermission) {
