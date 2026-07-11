@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Body,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -13,6 +15,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
 } from "@nestjs/swagger";
 import {
   StandardRequestParam,
@@ -35,7 +38,13 @@ import {
   CommentResponse,
   GetCommentsResponse,
 } from "@/infra/http/dtos/comment";
-import { CampusContext, CurrentUser, RequireCampusAccess } from "../decorators";
+import {
+  CampusContext,
+  CmsPublicRead,
+  CmsStaffOnly,
+  CurrentUser,
+  RequireCampusAccess,
+} from "../decorators";
 import { User } from "@/domain/user-management/user.entity";
 import { PostComment } from "@/domain/content-management";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
@@ -59,6 +68,7 @@ export class CommentController {
   ) {}
 
   @Get("posts/:postId/comments")
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -70,9 +80,22 @@ export class CommentController {
     description: "The ID of the post",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    type: Number,
+    description: "Number of root comments to return",
+    example: 10,
+  })
+  @ApiQuery({
+    name: "offset",
+    required: false,
+    type: Number,
+    description: "Number of root comments to skip",
+    example: 0,
+  })
   @StandardResponse({
     type: GetCommentsResponse,
-    isPaginated: true,
     allowedSortFields: ["createdAt", "updatedAt"],
     allowedFilterFields: ["userId", "isDeleted"],
   })
@@ -86,6 +109,7 @@ export class CommentController {
   }
 
   @Get("posts/:postId/management-comments")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")
@@ -103,6 +127,8 @@ export class CommentController {
   }
 
   @Post("posts/:postId/management-comments")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")
@@ -110,6 +136,7 @@ export class CommentController {
   @StandardResponse({
     type: CommentResponse,
     message: "Management note created successfully",
+    status: HttpStatus.CREATED,
   })
   async createManagementComment(
     @Param("postId") postId: string,
@@ -128,6 +155,7 @@ export class CommentController {
   }
 
   @Delete("posts/:postId/management-comments/:commentId")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")
@@ -151,6 +179,8 @@ export class CommentController {
   }
 
   @Post("posts/:postId/comments")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -163,6 +193,7 @@ export class CommentController {
   @StandardResponse({
     type: CommentResponse,
     message: "Comment created successfully",
+    status: HttpStatus.CREATED,
   })
   async createComment(
     @Param("postId") postId: string,
@@ -181,6 +212,8 @@ export class CommentController {
   }
 
   @Post("comments/:commentId/replies")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -193,6 +226,7 @@ export class CommentController {
   @StandardResponse({
     type: CommentResponse,
     message: "Reply created successfully",
+    status: HttpStatus.CREATED,
   })
   async createReply(
     @Param("commentId") commentId: string,
@@ -211,6 +245,7 @@ export class CommentController {
   }
 
   @Patch("comments/:commentId")
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -239,6 +274,7 @@ export class CommentController {
   }
 
   @Delete("comments/:commentId")
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")

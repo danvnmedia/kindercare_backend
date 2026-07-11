@@ -49,16 +49,16 @@ export class TogglePostReactionUseCase {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
 
-      const setting =
-        await this.campusSettingRepository.findByCampusId(campusId);
-      if (setting && !setting.allowReactions) {
-        throw new ForbiddenException("Reactions are disabled for this campus");
-      }
-
       if (!post.canReceiveEngagement()) {
         throw new BadRequestException(
           "Cannot react to this post. Post must be published and not deleted.",
         );
+      }
+
+      const setting =
+        await this.campusSettingRepository.findByCampusId(campusId);
+      if (setting && !setting.allowReactions) {
+        throw new ForbiddenException("Reactions are disabled for this campus");
       }
 
       const existingReaction =
@@ -68,11 +68,8 @@ export class TogglePostReactionUseCase {
         );
 
       let hasReacted: boolean;
-      let reactionCount: number;
-
       if (existingReaction) {
         await this.postReactionRepository.delete(postId, currentUser.id);
-        reactionCount = await this.postReactionRepository.countByPost(postId);
         hasReacted = false;
         this.logger.log(`Reaction removed for post: ${postId}`);
       } else {
@@ -80,12 +77,28 @@ export class TogglePostReactionUseCase {
           postId,
           userId: currentUser.id,
         });
-        await this.postReactionRepository.save(reaction);
-        reactionCount = await this.postReactionRepository.countByPost(postId);
+        try {
+          await this.postReactionRepository.save(reaction);
+        } catch (error) {
+          if (
+            !this.isUniqueConstraintError(error) ||
+            !(await this.postReactionRepository.existsByPostAndUser(
+              postId,
+              currentUser.id,
+            ))
+          ) {
+            throw error;
+          }
+          this.logger.warn(
+            `Concurrent reaction add reconciled for post: ${postId}, user: ${currentUser.id}`,
+          );
+        }
         hasReacted = true;
         this.logger.log(`Reaction added for post: ${postId}`);
       }
 
+      const reactionCount =
+        await this.postReactionRepository.countByPost(postId);
       return { hasReacted, reactionCount };
     } catch (error) {
       this.logger.error(
@@ -94,5 +107,14 @@ export class TogglePostReactionUseCase {
       );
       throw error;
     }
+  }
+
+  private isUniqueConstraintError(error: unknown): boolean {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "P2002"
+    );
   }
 }

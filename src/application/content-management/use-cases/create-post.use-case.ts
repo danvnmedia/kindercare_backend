@@ -1,11 +1,12 @@
+import { createHash } from "crypto";
 import {
   Injectable,
   Inject,
   BadRequestException,
+  ConflictException,
   Logger,
 } from "@nestjs/common";
 import { Post, PostAudience, PostStatus } from "@/domain/content-management";
-import { PostRepository } from "../ports/post.repository";
 import { PostCategoryRepository } from "../ports/post-category.repository";
 import { AudienceType } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
@@ -21,6 +22,7 @@ import {
 
 export interface CreatePostInput {
   campusId: string;
+  clientMutationId: string;
   title: string;
   content?: PostContent;
   publishAt?: Date;
@@ -36,8 +38,6 @@ export class CreatePostUseCase {
   private readonly logger = new Logger(CreatePostUseCase.name);
 
   constructor(
-    @Inject("POST_REPOSITORY")
-    private readonly postRepository: PostRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
     @Inject("CLASS_REPOSITORY")
@@ -53,7 +53,28 @@ export class CreatePostUseCase {
         `Creating post: ${input.title} by user ${currentUser.id}`,
       );
 
-      this.validateInput(input);
+      this.validateIdempotencyScope(input);
+      const requestPayloadHash = this.hashRequestPayload(input);
+
+      const existingRecord = await this.unitOfWork.run((tx) =>
+        tx.findPostByClientMutationId(
+          input.campusId,
+          currentUser.id,
+          input.clientMutationId,
+        ),
+      );
+      if (existingRecord) {
+        this.assertPayloadMatches(
+          existingRecord.requestPayloadHash,
+          requestPayloadHash,
+        );
+        this.logger.log(
+          `Post create replayed: ${existingRecord.post.id.toString()}`,
+        );
+        return existingRecord.post;
+      }
+
+      this.validateCreatePayload(input);
 
       // Validate that audience targets belong to the specified campus
       await validateAudiencesBelongToCampus(input.audiences, input.campusId, {
@@ -69,25 +90,42 @@ export class CreatePostUseCase {
 
       const post = this.createPostEntity(input, author);
 
-      const createdPost = await this.unitOfWork.run(async (tx) => {
-        const saved = await tx.createPost(post, {
-          categoryIds: input.categoryIds,
-        });
-        await tx.recordAudit({
-          actorId: currentUser.id,
-          action: "CREATE_POST",
-          targetType: "post",
-          targetId: saved.id.toString(),
-          campusId: input.campusId,
-          context: {
-            actorName: currentUser.profile?.fullName ?? null,
-            targetName: saved.title,
-          },
-          afterValue: this.toAuditSnapshot(saved),
-        });
-        return saved;
-      });
-      this.logger.log(`Post created: ${createdPost.id.toString()}`);
+      const { post: createdPost, created } = await this.unitOfWork.run(
+        async (tx) => {
+          const result = await tx.createPostIdempotently(post, {
+            categoryIds: input.categoryIds,
+            clientMutationId: input.clientMutationId,
+            requestPayloadHash,
+          });
+
+          if (!result.created) {
+            this.assertPayloadMatches(
+              result.requestPayloadHash,
+              requestPayloadHash,
+            );
+            return result;
+          }
+
+          await tx.recordAudit({
+            actorId: currentUser.id,
+            action: "CREATE_POST",
+            targetType: "post",
+            targetId: result.post.id.toString(),
+            campusId: input.campusId,
+            context: {
+              actorName: currentUser.profile?.fullName ?? null,
+              targetName: result.post.title,
+            },
+            afterValue: this.toAuditSnapshot(result.post),
+          });
+          return result;
+        },
+      );
+      this.logger.log(
+        created
+          ? `Post created: ${createdPost.id.toString()}`
+          : `Post create replayed: ${createdPost.id.toString()}`,
+      );
 
       return createdPost;
     } catch (error) {
@@ -96,16 +134,95 @@ export class CreatePostUseCase {
     }
   }
 
-  private validateInput(input: CreatePostInput): void {
+  private validateIdempotencyScope(input: CreatePostInput): void {
     if (!input.campusId) {
       throw new BadRequestException("Campus ID is required");
     }
 
+    if (!input.clientMutationId) {
+      throw new BadRequestException("Client mutation ID is required");
+    }
+  }
+
+  private hashRequestPayload(input: CreatePostInput): string {
+    const audiences = (input.audiences ?? [])
+      .map((audience) => ({
+        audienceId:
+          audience.audienceId ??
+          (audience.audienceType === AudienceType.ALL ? input.campusId : null),
+        audienceType: audience.audienceType,
+      }))
+      .sort((left, right) =>
+        this.compareCanonical(
+          `${left.audienceType}:${left.audienceId}`,
+          `${right.audienceType}:${right.audienceId}`,
+        ),
+      );
+    const categoryIds = input.categoryIds
+      ? [...input.categoryIds].sort((left, right) =>
+          this.compareCanonical(left, right),
+        )
+      : null;
+    const canonicalPayload = this.canonicalJson({
+      audiences,
+      campusId: input.campusId,
+      categoryIds,
+      content: input.content ?? null,
+      publishAt: input.publishAt ?? null,
+      title: input.title?.trim() ?? null,
+    });
+
+    return createHash("sha256").update(canonicalPayload).digest("hex");
+  }
+
+  private canonicalJson(value: unknown): string {
+    return JSON.stringify(this.canonicalize(value));
+  }
+
+  private canonicalize(value: unknown): unknown {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime())
+        ? value.toString()
+        : value.toISOString();
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((item) => this.canonicalize(item));
+    }
+
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value)
+          .filter(([, item]) => item !== undefined)
+          .sort(([left], [right]) => this.compareCanonical(left, right))
+          .map(([key, item]) => [key, this.canonicalize(item)]),
+      );
+    }
+
+    return value;
+  }
+
+  private compareCanonical(left: string, right: string): number {
+    return left < right ? -1 : left > right ? 1 : 0;
+  }
+
+  private assertPayloadMatches(
+    persistedHash: string,
+    requestHash: string,
+  ): void {
+    if (persistedHash !== requestHash) {
+      throw new ConflictException(
+        "Client mutation ID was already used with a different request payload",
+      );
+    }
+  }
+
+  private validateCreatePayload(input: CreatePostInput): void {
     if (!input.title || input.title.trim().length === 0) {
       throw new BadRequestException("Post title cannot be empty");
     }
 
-    if (input.audiences.length === 0) {
+    if (!input.audiences?.length) {
       throw new BadRequestException("Post must have at least one audience");
     }
   }

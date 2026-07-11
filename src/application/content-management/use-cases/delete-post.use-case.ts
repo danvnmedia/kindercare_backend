@@ -1,24 +1,20 @@
 import {
   Injectable,
-  Inject,
+  ConflictException,
   NotFoundException,
   ForbiddenException,
   Logger,
 } from "@nestjs/common";
-import { PostRepository } from "../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
-import { userHasPostPermission } from "./authorization/post-permission.helper";
+import { PostStatus } from "@/domain/content-management";
+import { userCanManagePost } from "./authorization/post-permission.helper";
 
 @Injectable()
 export class DeletePostUseCase {
   private readonly logger = new Logger(DeletePostUseCase.name);
 
-  constructor(
-    @Inject("POST_REPOSITORY")
-    private readonly postRepository: PostRepository,
-    private readonly unitOfWork: UnitOfWorkPort,
-  ) {}
+  constructor(private readonly unitOfWork: UnitOfWorkPort) {}
 
   async execute(
     campusId: string,
@@ -28,33 +24,27 @@ export class DeletePostUseCase {
     try {
       this.logger.log(`Deleting post: ${postId}`);
 
-      const post = await this.postRepository.findById(postId);
-
-      if (!post) {
-        throw new NotFoundException(`Post with ID ${postId} not found`);
-      }
-
-      // Verify the post belongs to the specified campus
-      if (post.campusId !== campusId) {
-        throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
-        );
-      }
-
-      const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const canDelete = userHasPostPermission(
-        currentUser,
-        campusId,
-        "post.delete",
-      );
-
-      if (!isAuthor && !canDelete) {
-        throw new ForbiddenException(
-          "You are not authorized to delete this post",
-        );
-      }
-
       await this.unitOfWork.run(async (tx) => {
+        const post = await tx.findPostByIdForUpdate(postId);
+        if (!post) {
+          throw new NotFoundException(`Post with ID ${postId} not found`);
+        }
+        if (post.campusId !== campusId) {
+          throw new ForbiddenException(
+            "You do not have access to this post in the specified campus",
+          );
+        }
+        if (!userCanManagePost(currentUser, campusId, post.authorId)) {
+          throw new ForbiddenException(
+            "You are not authorized to delete this post",
+          );
+        }
+        if (post.status === PostStatus.PENDING_REVIEW) {
+          throw new ConflictException(
+            "Pending-review posts cannot be deleted. Revise or resolve the approval request first.",
+          );
+        }
+
         await tx.deletePost(postId);
         await tx.recordAudit({
           actorId: currentUser.id,

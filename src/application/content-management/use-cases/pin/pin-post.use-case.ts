@@ -1,15 +1,13 @@
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  ForbiddenException,
   BadRequestException,
+  ForbiddenException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
-import { PostRepository } from "../../ports/post.repository";
-import { CampusSettingRepository } from "../../ports/campus-setting.repository";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { CampusSetting, Post, PostStatus } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
-import { Post, PostStatus, CampusSetting } from "@/domain/content-management";
 import { userHasPostPermission } from "../authorization/post-permission.helper";
 
 export interface PinPostInput {
@@ -20,12 +18,7 @@ export interface PinPostInput {
 export class PinPostUseCase {
   private readonly logger = new Logger(PinPostUseCase.name);
 
-  constructor(
-    @Inject("POST_REPOSITORY")
-    private readonly postRepository: PostRepository,
-    @Inject("CAMPUS_SETTING_REPOSITORY")
-    private readonly campusSettingRepository: CampusSettingRepository,
-  ) {}
+  constructor(private readonly unitOfWork: UnitOfWorkPort) {}
 
   async execute(
     campusId: string,
@@ -33,70 +26,57 @@ export class PinPostUseCase {
     input: PinPostInput,
     currentUser: User,
   ): Promise<Post> {
-    try {
-      this.logger.log(`Pinning post: ${postId}`);
+    this.logger.log(`Pinning post: ${postId}`);
 
-      if (!userHasPostPermission(currentUser, campusId, "post.manage")) {
-        throw new ForbiddenException("You do not have permission to pin posts");
-      }
+    if (!userHasPostPermission(currentUser, campusId, "post.manage")) {
+      throw new ForbiddenException("You do not have permission to pin posts");
+    }
 
-      // Find the post
-      const post = await this.postRepository.findById(postId);
+    const now = new Date();
+    const updatedPost = await this.unitOfWork.run(async (tx) => {
+      await tx.lockPostPinCapacity(campusId);
+      const post = await tx.findPostByIdForUpdate(postId);
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
-
-      // Verify the post belongs to the specified campus
       if (post.campusId !== campusId) {
         throw new ForbiddenException(
           "You do not have access to this post in the specified campus",
         );
       }
-
-      // Validate post is published
       if (post.status !== PostStatus.PUBLISHED) {
         throw new BadRequestException(
           `Cannot pin a post with status ${post.status}. Only published posts can be pinned.`,
         );
       }
-
-      // Check if already pinned
       if (post.isPinned && !post.isPinExpired()) {
         throw new BadRequestException("Post is already pinned");
       }
-
-      // Get campus settings for max pinned posts limit
-      let campusSettings = await this.campusSettingRepository.findByCampusId(
-        post.campusId,
-      );
-      if (!campusSettings) {
-        // Create default settings if none exist
-        campusSettings = CampusSetting.create({ campusId: post.campusId });
+      if (input.pinnedUntil && input.pinnedUntil <= now) {
+        throw new BadRequestException("Pin expiration must be in the future");
       }
 
-      // Count current pinned posts
-      const currentPinnedCount = await this.postRepository.countPinnedByCampus(
-        post.campusId,
+      const campusSettings =
+        (await tx.findCampusSettingByCampusIdForUpdate(campusId)) ??
+        CampusSetting.create({ campusId });
+      const currentPinnedCount = await tx.countEffectivePinnedPosts(
+        campusId,
+        now,
       );
-
-      // Check limit
       if (currentPinnedCount >= campusSettings.maxPinnedPosts) {
         throw new BadRequestException(
           `Cannot pin more posts. Maximum ${campusSettings.maxPinnedPosts} pinned posts allowed. Unpin another post first.`,
         );
       }
 
-      // Pin the post using entity method
-      post.pin(currentUser.id, input.pinnedUntil);
+      return tx.updatePostPin(postId, {
+        isPinned: true,
+        pinnedById: currentUser.id,
+        pinnedUntil: input.pinnedUntil ?? null,
+      });
+    });
 
-      // Save
-      const updatedPost = await this.postRepository.update(postId, post);
-
-      this.logger.log(`Post pinned successfully: ${postId}`);
-      return updatedPost;
-    } catch (error) {
-      this.logger.error(`Failed to pin post: ${error.message}`, error.stack);
-      throw error;
-    }
+    this.logger.log(`Post pinned successfully: ${postId}`);
+    return updatedPost;
   }
 }

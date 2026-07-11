@@ -1,5 +1,6 @@
 import { FileRepository } from "@/application/file-management/ports/file.repository";
 import { Attachment } from "@/domain/content-management";
+import { FilePurpose } from "@/domain/file-management/enums/file-purpose.enum";
 import { User } from "@/domain/user-management/user.entity";
 import {
   BadRequestException,
@@ -11,7 +12,14 @@ import {
 } from "@nestjs/common";
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
-import { userHasPostPermission } from "./authorization/post-permission.helper";
+import {
+  userCanManagePost,
+  userHasPostPermission,
+} from "./authorization/post-permission.helper";
+import {
+  assertAttachmentMutationAllowed,
+  rethrowAttachmentMutationError,
+} from "./attachment-workflow.helper";
 
 export interface AddAttachmentInput {
   postId: string;
@@ -54,21 +62,27 @@ export class AddAttachmentUseCase {
         );
       }
 
-      const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const canUpdate = userHasPostPermission(
-        currentUser,
-        input.campusId,
-        "post.update",
-      );
-
-      if (!isAuthor && !canUpdate) {
+      if (
+        !userCanManagePost(
+          currentUser,
+          input.campusId,
+          post.authorId.toString(),
+        )
+      ) {
         throw new ForbiddenException(
           "You are not authorized to add attachments to this post",
         );
       }
 
-      // Verify file exists and belongs to the same campus
-      // Note: Repository already excludes soft-deleted files
+      assertAttachmentMutationAllowed(post);
+
+      const canAttachAnyFile = userHasPostPermission(
+        currentUser,
+        input.campusId,
+        "post.manage",
+      );
+
+      // Repeat these checks in appendToPost under row locks to prevent races.
       const file = await this.fileRepository.findById(input.fileId);
       if (!file) {
         throw new NotFoundException(`File with ID ${input.fileId} not found`);
@@ -79,10 +93,22 @@ export class AddAttachmentUseCase {
         );
       }
 
-      // Verify file is available (uploaded or processed, and not deleted)
       if (!file.isAvailable()) {
         throw new BadRequestException(
-          "File must be uploaded and not deleted to be attached to a post",
+          "File must be available to be attached to a post",
+        );
+      }
+      if (file.purpose !== FilePurpose.POST_ATTACHMENT) {
+        throw new BadRequestException(
+          "Only files uploaded for post attachments can be attached",
+        );
+      }
+      if (
+        file.uploadedBy.toString() !== currentUser.id.toString() &&
+        !canAttachAnyFile
+      ) {
+        throw new ForbiddenException(
+          "Only the uploader or a user with post.manage can attach this file",
         );
       }
 
@@ -102,8 +128,14 @@ export class AddAttachmentUseCase {
         order: 0,
       });
 
-      const createdAttachment =
-        await this.attachmentRepository.appendToPost(attachment);
+      const createdAttachment = await this.attachmentRepository.appendToPost(
+        attachment,
+        {
+          changedById: currentUser.id,
+          reason: "Attachment added",
+          canAttachAnyFile,
+        },
+      );
       this.logger.log(`Attachment added: ${createdAttachment.id.toString()}`);
 
       return createdAttachment;
@@ -112,7 +144,7 @@ export class AddAttachmentUseCase {
         `Failed to add attachment: ${error.message}`,
         error.stack,
       );
-      throw error;
+      rethrowAttachmentMutationError(error);
     }
   }
 }

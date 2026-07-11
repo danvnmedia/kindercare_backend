@@ -2,7 +2,7 @@
 title: Parent Access Model And Campus Discovery
 description: Specification for parent relationship-based campus discovery and reusable parent access authorization semantics.
 createdAt: '2026-06-28T23:47:52.693Z'
-updatedAt: '2026-06-29T00:27:52.619Z'
+updatedAt: '2026-07-10T22:05:02.177Z'
 tags:
   - spec
   - approved
@@ -24,7 +24,7 @@ Related context:
 - @doc/architecture/rbac-system
 - @doc/patterns/guards-pattern
 - @doc/specs/2026-06-26/parent-request-center-absence-requests-backend
-- @doc/research/parent-request-center-absence-requests-backend-research
+- @doc/archive/research/parent-request-center-absence-requests-backend-research
 
 ## Locked Decisions
 

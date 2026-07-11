@@ -5,6 +5,7 @@ import { PrismaQueryService } from "@/core/modules/standard-response/services/pr
 import {
   PostApprovalRequest,
   ApprovalStatus,
+  PostStatus,
 } from "@/domain/content-management";
 import { Injectable } from "@nestjs/common";
 import { PrismaPostApprovalRequestMapper } from "../mapper/prisma-post-approval-request.mapper";
@@ -22,10 +23,7 @@ export class PrismaPostApprovalRequestRepository
   async findById(id: string): Promise<PostApprovalRequest | null> {
     const prismaRequest = await this.prisma.postApprovalRequest.findUnique({
       where: { id },
-      include: {
-        submittedBy: true,
-        reviewedBy: true,
-      },
+      include: PrismaPostApprovalRequestMapper.include,
     });
     return prismaRequest
       ? PrismaPostApprovalRequestMapper.toDomain(prismaRequest)
@@ -35,13 +33,8 @@ export class PrismaPostApprovalRequestRepository
   async findByPostId(postId: string): Promise<PostApprovalRequest[]> {
     const prismaRequests = await this.prisma.postApprovalRequest.findMany({
       where: { postId },
-      include: {
-        submittedBy: true,
-        reviewedBy: true,
-      },
-      orderBy: {
-        submittedAt: "desc",
-      },
+      include: PrismaPostApprovalRequestMapper.include,
+      orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
     });
     return PrismaPostApprovalRequestMapper.toDomainArray(prismaRequests);
   }
@@ -51,13 +44,8 @@ export class PrismaPostApprovalRequestRepository
   ): Promise<PostApprovalRequest | null> {
     const prismaRequest = await this.prisma.postApprovalRequest.findFirst({
       where: { postId },
-      include: {
-        submittedBy: true,
-        reviewedBy: true,
-      },
-      orderBy: {
-        submittedAt: "desc",
-      },
+      include: PrismaPostApprovalRequestMapper.include,
+      orderBy: [{ submittedAt: "desc" }, { createdAt: "desc" }, { id: "desc" }],
     });
     return prismaRequest
       ? PrismaPostApprovalRequestMapper.toDomain(prismaRequest)
@@ -71,27 +59,29 @@ export class PrismaPostApprovalRequestRepository
     params.allowedFilterFields = ["submittedById"];
     params.allowedSortFields = ["submittedAt", "createdAt"];
 
-    // First get post IDs for this campus
-    const postIds = await this.prisma.post.findMany({
-      where: { campusId },
-      select: { id: true },
-    });
-    const campusPostIds = postIds.map((p) => p.id);
+    const currentPendingRequestIds =
+      await this.findCurrentPendingRequestIds(campusId);
 
-    return await this.queryService.executeQuery<PostApprovalRequest>(
+    return this.queryService.executeQuery<PostApprovalRequest>(
       this.prisma,
       "postApprovalRequest",
       params,
       {
         where: {
-          postId: { in: campusPostIds },
+          id: { in: currentPendingRequestIds },
           status: ApprovalStatus.PENDING,
+          post: {
+            campusId,
+            isDeleted: false,
+            status: PostStatus.PENDING_REVIEW,
+          },
         },
-        include: {
-          submittedBy: true,
-          reviewedBy: true,
-        },
-        orderBy: { submittedAt: "desc" },
+        include: PrismaPostApprovalRequestMapper.include,
+        orderBy: [
+          { submittedAt: "desc" },
+          { createdAt: "desc" },
+          { id: "desc" },
+        ],
       },
       PrismaPostApprovalRequestMapper,
     );
@@ -102,47 +92,46 @@ export class PrismaPostApprovalRequestRepository
     status: ApprovalStatus,
     params: StandardRequest,
   ): Promise<PaginatedResult<PostApprovalRequest>> {
+    if (status === ApprovalStatus.PENDING) {
+      return this.findPendingByCampus(campusId, params);
+    }
+
     params.allowedFilterFields = ["submittedById", "reviewedById"];
     params.allowedSortFields = ["submittedAt", "reviewedAt", "createdAt"];
 
-    // First get post IDs for this campus
-    const postIds = await this.prisma.post.findMany({
-      where: { campusId },
-      select: { id: true },
-    });
-    const campusPostIds = postIds.map((p) => p.id);
-
-    return await this.queryService.executeQuery<PostApprovalRequest>(
+    return this.queryService.executeQuery<PostApprovalRequest>(
       this.prisma,
       "postApprovalRequest",
       params,
       {
         where: {
-          postId: { in: campusPostIds },
+          post: { campusId },
           status,
         },
-        include: {
-          submittedBy: true,
-          reviewedBy: true,
-        },
-        orderBy: { submittedAt: "desc" },
+        include: PrismaPostApprovalRequestMapper.include,
+        orderBy: [
+          { submittedAt: "desc" },
+          { createdAt: "desc" },
+          { id: "desc" },
+        ],
       },
       PrismaPostApprovalRequestMapper,
     );
   }
 
   async countPendingByCampus(campusId: string): Promise<number> {
-    // First get post IDs for this campus
-    const postIds = await this.prisma.post.findMany({
-      where: { campusId },
-      select: { id: true },
-    });
-    const campusPostIds = postIds.map((p) => p.id);
+    const currentPendingRequestIds =
+      await this.findCurrentPendingRequestIds(campusId);
 
-    return await this.prisma.postApprovalRequest.count({
+    return this.prisma.postApprovalRequest.count({
       where: {
-        postId: { in: campusPostIds },
+        id: { in: currentPendingRequestIds },
         status: ApprovalStatus.PENDING,
+        post: {
+          campusId,
+          isDeleted: false,
+          status: PostStatus.PENDING_REVIEW,
+        },
       },
     });
   }
@@ -151,10 +140,7 @@ export class PrismaPostApprovalRequestRepository
     const prismaData = PrismaPostApprovalRequestMapper.toPrisma(request);
     const created = await this.prisma.postApprovalRequest.create({
       data: prismaData,
-      include: {
-        submittedBy: true,
-        reviewedBy: true,
-      },
+      include: PrismaPostApprovalRequestMapper.include,
     });
     return PrismaPostApprovalRequestMapper.toDomain(created);
   }
@@ -164,11 +150,38 @@ export class PrismaPostApprovalRequestRepository
     const updated = await this.prisma.postApprovalRequest.update({
       where: { id: request.id },
       data: prismaData,
-      include: {
-        submittedBy: true,
-        reviewedBy: true,
-      },
+      include: PrismaPostApprovalRequestMapper.include,
     });
     return PrismaPostApprovalRequestMapper.toDomain(updated);
+  }
+
+  private async findCurrentPendingRequestIds(
+    campusId: string,
+  ): Promise<string[]> {
+    const posts = await this.prisma.post.findMany({
+      where: {
+        campusId,
+        isDeleted: false,
+        status: PostStatus.PENDING_REVIEW,
+      },
+      select: {
+        approvalRequests: {
+          orderBy: [
+            { submittedAt: "desc" },
+            { createdAt: "desc" },
+            { id: "desc" },
+          ],
+          take: 1,
+          select: { id: true, status: true },
+        },
+      },
+    });
+
+    return posts.flatMap(({ approvalRequests }) => {
+      const latestRequest = approvalRequests[0];
+      return latestRequest?.status === ApprovalStatus.PENDING
+        ? [latestRequest.id]
+        : [];
+    });
   }
 }

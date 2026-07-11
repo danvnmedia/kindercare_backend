@@ -1,26 +1,77 @@
 import {
+  Guardian as PrismaGuardian,
+  Post as PrismaPost,
   PostApprovalRequest as PrismaPostApprovalRequest,
-  User as PrismaUser,
   Prisma,
+  Staff as PrismaStaff,
+  User as PrismaUser,
 } from "@prisma/client";
 import {
   PostApprovalRequest,
   ApprovalStatus,
 } from "@/domain/content-management";
 
-/**
- * Prisma PostApprovalRequest model with optional user relations.
- */
-type PrismaPostApprovalRequestWithRelations = PrismaPostApprovalRequest & {
-  submittedBy?: PrismaUser | null;
-  reviewedBy?: PrismaUser | null;
+type PrismaApprovalUserProfile = Pick<
+  PrismaStaff | PrismaGuardian,
+  "campusId" | "fullName"
+>;
+
+type PrismaApprovalUserWithProfiles = PrismaUser & {
+  staffs?: PrismaApprovalUserProfile[];
+  guardians?: PrismaApprovalUserProfile[];
 };
+
+export interface PostApprovalUserSummary {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+/**
+ * Prisma PostApprovalRequest model with optional response relations.
+ */
+export type PrismaPostApprovalRequestWithRelations =
+  PrismaPostApprovalRequest & {
+    post?: Pick<PrismaPost, "campusId"> | null;
+    submittedBy?: PrismaApprovalUserWithProfiles | null;
+    reviewedBy?: PrismaApprovalUserWithProfiles | null;
+  };
 
 /**
  * Mapper for converting between Prisma PostApprovalRequest and domain PostApprovalRequest entity.
  * Handles JSON content snapshots and approval workflow state.
  */
 export class PrismaPostApprovalRequestMapper {
+  static include = {
+    post: {
+      select: { campusId: true },
+    },
+    submittedBy: {
+      include: {
+        staffs: {
+          select: { campusId: true, fullName: true },
+          where: { isArchived: false },
+        },
+        guardians: {
+          select: { campusId: true, fullName: true },
+          where: { isArchived: false },
+        },
+      },
+    },
+    reviewedBy: {
+      include: {
+        staffs: {
+          select: { campusId: true, fullName: true },
+          where: { isArchived: false },
+        },
+        guardians: {
+          select: { campusId: true, fullName: true },
+          where: { isArchived: false },
+        },
+      },
+    },
+  } satisfies Prisma.PostApprovalRequestInclude;
+
   /**
    * Convert Prisma model to Domain entity.
    * @param prismaRequest - The Prisma PostApprovalRequest model.
@@ -29,7 +80,7 @@ export class PrismaPostApprovalRequestMapper {
   static toDomain(
     prismaRequest: PrismaPostApprovalRequestWithRelations,
   ): PostApprovalRequest {
-    return PostApprovalRequest.create(
+    const request = PostApprovalRequest.create(
       {
         postId: prismaRequest.postId,
         submittedById: prismaRequest.submittedById,
@@ -47,6 +98,29 @@ export class PrismaPostApprovalRequestMapper {
       },
       prismaRequest.id,
     );
+
+    const responseProps = request as unknown as {
+      props: {
+        submittedBy?: PostApprovalUserSummary;
+        reviewedBy?: PostApprovalUserSummary;
+      };
+    };
+    const campusId = prismaRequest.post?.campusId;
+
+    // StandardResponseInterceptor serializes entity props, so relation summaries
+    // must be attached there rather than as infrastructure-only entity fields.
+    responseProps.props.submittedBy = this.toUserSummary(
+      prismaRequest.submittedBy,
+      campusId,
+      prismaRequest.submittedById,
+    );
+    responseProps.props.reviewedBy = this.toUserSummary(
+      prismaRequest.reviewedBy,
+      campusId,
+      prismaRequest.reviewedById ?? undefined,
+    );
+
+    return request;
   }
 
   /**
@@ -123,5 +197,32 @@ export class PrismaPostApprovalRequestMapper {
     return prismaRequests.map((prismaRequest) =>
       PrismaPostApprovalRequestMapper.toDomain(prismaRequest),
     );
+  }
+
+  private static toUserSummary(
+    user: PrismaApprovalUserWithProfiles | null | undefined,
+    campusId?: string,
+    fallbackId?: string,
+  ): PostApprovalUserSummary | undefined {
+    const id = user?.id ?? fallbackId;
+    if (!id) {
+      return undefined;
+    }
+
+    const profile =
+      campusId && user
+        ? [...(user.staffs ?? []), ...(user.guardians ?? [])].find(
+            (candidate) => candidate.campusId === campusId,
+          )
+        : undefined;
+    const [firstName, ...remainingNames] =
+      profile?.fullName.trim().split(/\s+/) ?? [];
+    const lastName = remainingNames.join(" ");
+
+    return {
+      id,
+      ...(firstName ? { firstName } : {}),
+      ...(lastName ? { lastName } : {}),
+    };
   }
 }

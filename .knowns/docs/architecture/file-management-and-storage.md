@@ -2,7 +2,7 @@
 title: File Management and Storage
 description: File upload lifecycle, storage abstraction, CMS attachments, and the presigned R2 upload flow
 createdAt: '2026-05-05T17:48:59.131Z'
-updatedAt: '2026-07-01T00:00:00.000Z'
+updatedAt: '2026-07-10T21:24:54.806Z'
 tags:
   - architecture
   - file
@@ -304,3 +304,12 @@ Manual deployed browser smoke is still required for real R2 bucket CORS, deploye
 | `src/infra/storage/local-storage.service.ts` | dev-only local adapter |
 | `src/application/content-management/use-cases/add-attachment.use-case.ts` | CMS attachment validation |
 | `config/r2-cors.example.json` | R2 CORS baseline |
+
+
+## CMS API Alignment Snapshot 2026-07-11
+
+The CMS file-upload campus contract is header-scoped: `POST /files/initiate-upload` receives campus through `X-Campus-Id`; `campusId` is not accepted in the strict JSON DTO. The controller forwards the resolved campus to `UploadFileUseCase`.
+
+The aligned CMS contract also retains comment authors and stable public-comment pagination, persists workflow comments as history reasons, validates category limits/order consistently, returns resulting post state from attachment reorder, documents list limit `10`, and explicitly aligns CMS POST runtime/OpenAPI status `201`.
+
+Validation: backend build and focused alignment tests passed. Full-suite execution encountered unrelated audit-action fixture drift in `src/cli/export-audit-actions.spec.ts`.

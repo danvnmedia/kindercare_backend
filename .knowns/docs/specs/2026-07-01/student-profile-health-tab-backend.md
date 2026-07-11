@@ -2,7 +2,7 @@
 title: Student Profile Health Tab Backend
 description: 'Backend specification for Student Profile Health V1: health profile snapshot, checkups, health instructions for teachers, and health history events.'
 createdAt: '2026-06-30T19:01:32.157Z'
-updatedAt: '2026-06-30T19:14:08.650Z'
+updatedAt: '2026-07-10T22:05:08.460Z'
 tags:
   - spec
   - approved
@@ -33,9 +33,9 @@ V1 explicitly does not include parent medical request submission, enrollment hea
 
 Supporting research:
 
-- @doc/research/student-profile-health-tab-fullstack-research
-- @doc/research/student-health-management-backend-research
-- @doc/frontend-handoff/student-health-management-frontend-handoff
+- @doc/archive/research/student-profile-health-tab-fullstack-research
+- @doc/archive/research/student-health-management-backend-research
+- @doc/archive/frontend-handoff/student-health-management-frontend-handoff
 
 ## Locked Decisions
 

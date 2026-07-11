@@ -1,27 +1,33 @@
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  ForbiddenException,
   BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
-import { Post, PostAudience } from "@/domain/content-management";
-import { PostRepository } from "../ports/post.repository";
-import { PostCategoryRepository } from "../ports/post-category.repository";
-import { AudienceType } from "@/domain/content-management";
-import { User } from "@/domain/user-management/user.entity";
-import { ClassRepository } from "@/application/class-management/ports/class.repository";
 
-import { PostContent } from "@/domain/content-management/entities/post.entity";
+import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import {
+  AudienceType,
+  Post,
+  PostAudience,
+  PostHistoryStatus,
+  PostStatus,
+} from "@/domain/content-management";
+import { PostContent } from "@/domain/content-management/entities/post.entity";
+import { User } from "@/domain/user-management/user.entity";
+
+import { PostCategoryRepository } from "../ports/post-category.repository";
 import {
   extractTextFromTiptap,
   validateAudiencesBelongToCampus,
 } from "../utils";
+import { userCanManagePost } from "./authorization/post-permission.helper";
 
 export interface UpdatePostInput {
-  campusId: string; // For verifying request comes from correct campus
+  campusId: string;
   title?: string;
   content?: PostContent;
   publishAt?: Date;
@@ -37,8 +43,6 @@ export class UpdatePostUseCase {
   private readonly logger = new Logger(UpdatePostUseCase.name);
 
   constructor(
-    @Inject("POST_REPOSITORY")
-    private readonly postRepository: PostRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
     @Inject("POST_CATEGORY_REPOSITORY")
@@ -53,30 +57,75 @@ export class UpdatePostUseCase {
   ): Promise<Post> {
     try {
       this.logger.log(`Updating post: ${postId}`);
-
-      const post = await this.postRepository.findById(postId);
-
-      if (!post) {
-        throw new NotFoundException(`Post with ID ${postId} not found`);
-      }
-
-      // Verify the request campus matches the post's campus
-      if (post.campusId !== input.campusId) {
-        throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
+      if (!this.hasUpdates(input)) {
+        throw new BadRequestException(
+          "At least one post field must be updated",
         );
       }
 
-      this.checkAuthorization(post, currentUser);
-
-      await this.validateCategoryIds(input.categoryIds, post.campusId);
-      const beforeValue = this.toAuditSnapshot(post);
-      await this.updatePostProperties(post, input);
-
       const updatedPost = await this.unitOfWork.run(async (tx) => {
+        const post = await tx.findPostByIdForUpdate(postId);
+        if (!post) {
+          throw new NotFoundException(`Post with ID ${postId} not found`);
+        }
+        if (post.campusId !== input.campusId) {
+          throw new ForbiddenException(
+            "You do not have access to this post in the specified campus",
+          );
+        }
+        if (!userCanManagePost(currentUser, input.campusId, post.authorId)) {
+          throw new ForbiddenException(
+            "You are not authorized to update this post",
+          );
+        }
+        if (post.status === PostStatus.PENDING_REVIEW) {
+          throw new BadRequestException(
+            "Pending-review posts cannot be edited; revise the post first",
+          );
+        }
+        if (post.status === PostStatus.ARCHIVED) {
+          throw new BadRequestException("Archived posts cannot be edited");
+        }
+        const pendingRequest =
+          await tx.findPendingPostApprovalRequestForUpdate(postId);
+        if (pendingRequest) {
+          throw new BadRequestException(
+            "Posts with a pending approval request cannot be edited",
+          );
+        }
+
+        await this.validateCategoryIds(input.categoryIds, input.campusId);
+        if (input.audiences) {
+          await validateAudiencesBelongToCampus(
+            input.audiences,
+            input.campusId,
+            { classRepository: this.classRepository },
+          );
+        }
+
+        const beforeValue = this.toAuditSnapshot(post);
+        const previousStatus = post.status;
+        await this.updatePostProperties(post, input);
+
+        if (previousStatus === PostStatus.PUBLISHED) {
+          post.moveToDraft();
+          post.unpin();
+        }
+
         const saved = await tx.updatePost(postId, post, {
           categoryIds: input.categoryIds,
         });
+        if (previousStatus !== saved.status) {
+          await tx.createPostHistoryStatus(
+            PostHistoryStatus.create({
+              postId,
+              changedById: currentUser.id,
+              previousStatus,
+              newStatus: saved.status,
+              reason: "Published post edited; review required again",
+            }),
+          );
+        }
         await tx.recordAudit({
           actorId: currentUser.id,
           action: "UPDATE_POST",
@@ -86,19 +135,30 @@ export class UpdatePostUseCase {
           context: {
             actorName: currentUser.profile?.fullName ?? null,
             targetName: saved.title,
+            requiresResubmission: previousStatus === PostStatus.PUBLISHED,
           },
           beforeValue,
           afterValue: this.toAuditSnapshot(saved),
         });
         return saved;
       });
-      this.logger.log(`Post updated: ${updatedPost.id.toString()}`);
 
+      this.logger.log(`Post updated: ${updatedPost.id.toString()}`);
       return updatedPost;
     } catch (error) {
       this.logger.error(`Failed to update post: ${error.message}`, error.stack);
       throw error;
     }
+  }
+
+  private hasUpdates(input: UpdatePostInput): boolean {
+    return (
+      input.title !== undefined ||
+      input.content !== undefined ||
+      input.publishAt !== undefined ||
+      input.audiences !== undefined ||
+      input.categoryIds !== undefined
+    );
   }
 
   private toAuditSnapshot(post: Post): Record<string, unknown> {
@@ -107,18 +167,8 @@ export class UpdatePostUseCase {
       status: post.status,
       publishAt: post.publishAt?.toISOString() ?? null,
       contentVersion: post.contentVersion,
+      isPinned: post.isPinned,
     };
-  }
-
-  private checkAuthorization(post: Post, user: User): void {
-    const isAuthor = post.authorId.toString() === user.id.toString();
-    const isAdmin = user.hasSystemRole();
-
-    if (!isAuthor && !isAdmin) {
-      throw new ForbiddenException(
-        "You are not authorized to update this post",
-      );
-    }
   }
 
   private async validateCategoryIds(
@@ -138,7 +188,6 @@ export class UpdatePostUseCase {
       (category) =>
         !category || category.campusId !== campusId || category.isArchived,
     );
-
     if (invalidCategory !== undefined) {
       throw new BadRequestException(
         "One or more post categories are invalid for this campus",
@@ -150,11 +199,10 @@ export class UpdatePostUseCase {
     post: Post,
     input: UpdatePostInput,
   ): Promise<void> {
-    if (input.title) {
+    if (input.title !== undefined) {
       post.updateTitle(input.title);
     }
     if (input.content !== undefined) {
-      // Extract plain text from JSON content for search
       const contentText = input.content
         ? extractTextFromTiptap(input.content)
         : null;
@@ -164,32 +212,27 @@ export class UpdatePostUseCase {
       post.updatePublishDate(input.publishAt);
     }
     if (input.audiences) {
-      // Validate that new audiences belong to the post's campus
-      await validateAudiencesBelongToCampus(input.audiences, post.campusId, {
-        classRepository: this.classRepository,
-      });
+      post.setAudiences(
+        input.audiences.map((audience) => {
+          let audienceId: string;
+          if (audience.audienceId) {
+            audienceId = audience.audienceId;
+          } else if (audience.audienceType === AudienceType.ALL) {
+            audienceId = post.campusId;
+          } else {
+            throw new BadRequestException(
+              `audienceId is required for ${audience.audienceType} audience type`,
+            );
+          }
 
-      const audiences = input.audiences.map((audience) => {
-        // For ALL type, use campusId as audienceId if not provided
-        let audienceId: string;
-        if (audience.audienceId) {
-          audienceId = audience.audienceId;
-        } else if (audience.audienceType === AudienceType.ALL) {
-          audienceId = post.campusId;
-        } else {
-          throw new ForbiddenException(
-            `audienceId is required for ${audience.audienceType} audience type`,
-          );
-        }
-
-        return PostAudience.create({
-          postId: post.id,
-          campusId: post.campusId,
-          audienceType: audience.audienceType,
-          audienceId,
-        });
-      });
-      post.setAudiences(audiences);
+          return PostAudience.create({
+            postId: post.id,
+            campusId: post.campusId,
+            audienceType: audience.audienceType,
+            audienceId,
+          });
+        }),
+      );
     }
   }
 }

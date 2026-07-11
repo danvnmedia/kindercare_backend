@@ -8,7 +8,11 @@ import {
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
-import { userHasPostPermission } from "./authorization/post-permission.helper";
+import { userCanManagePost } from "./authorization/post-permission.helper";
+import {
+  assertAttachmentMutationAllowed,
+  rethrowAttachmentMutationError,
+} from "./attachment-workflow.helper";
 
 @Injectable()
 export class RemoveAttachmentUseCase {
@@ -44,20 +48,18 @@ export class RemoveAttachmentUseCase {
         );
       }
 
-      const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const canUpdate = userHasPostPermission(
-        currentUser,
-        campusId,
-        "post.update",
-      );
-
-      if (!isAuthor && !canUpdate) {
+      if (!userCanManagePost(currentUser, campusId, post.authorId.toString())) {
         throw new ForbiddenException(
           "You are not authorized to remove attachments from this post",
         );
       }
 
-      await this.attachmentRepository.removeAndCompact(postId, attachmentId);
+      assertAttachmentMutationAllowed(post);
+
+      await this.attachmentRepository.removeAndCompact(postId, attachmentId, {
+        changedById: currentUser.id,
+        reason: "Attachment removed",
+      });
       this.logger.log(
         `Attachment removed and order compacted: ${attachmentId}`,
       );
@@ -66,7 +68,7 @@ export class RemoveAttachmentUseCase {
         `Failed to remove attachment: ${error.message}`,
         error.stack,
       );
-      throw error;
+      rethrowAttachmentMutationError(error);
     }
   }
 }

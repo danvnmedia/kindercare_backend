@@ -2,7 +2,7 @@
 title: Staff Multi-Campus Existing Account Backend Research
 description: Backend research and spec-shaping notes for supporting one staff identity across multiple campus-scoped staff profiles.
 createdAt: '2026-07-01T01:37:37.054Z'
-updatedAt: '2026-07-01T01:37:37.054Z'
+updatedAt: '2026-07-10T22:05:03.556Z'
 tags:
   - research
   - staff
@@ -10,6 +10,7 @@ tags:
   - identity
   - rbac
   - backend-spec
+  - archived
 ---
 
 # Staff Multi-Campus Existing Account Backend Research
@@ -52,7 +53,7 @@ Staff should reuse those identity-resolution decisions where possible, but it sh
 
 ## Recommended Spec Shape
 
-Create a dedicated staff spec, likely `specs/2026-07-01/staff-multi-campus-existing-account`, and reference `@doc/research/identity-profile-split-backend-research` plus the guardian spec for shared identity decisions.
+Create a dedicated staff spec, likely `specs/2026-07-01/staff-multi-campus-existing-account`, and reference `@doc/archive/research/identity-profile-split-backend-research` plus the guardian spec for shared identity decisions.
 
 Core decisions to lock:
 
@@ -67,7 +68,7 @@ Core decisions to lock:
 
 ## Related Docs
 
-- @doc/research/identity-profile-split-backend-research
+- @doc/archive/research/identity-profile-split-backend-research
 - @doc/specs/2026-07-01/parent-multi-campus-existing-account
 - @doc/specs/2026-06-27/staff-type-rbac-hardening
 - @doc/architecture/rbac-system

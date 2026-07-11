@@ -86,6 +86,7 @@ export class CreateCommentReplyUseCase {
       const reply = PostComment.create({
         postId: parentComment.postId,
         userId: currentUser.id,
+        user: currentUser,
         content: input.content,
         depth: parentComment.depth + 1,
         parentCommentId: parentComment.id,

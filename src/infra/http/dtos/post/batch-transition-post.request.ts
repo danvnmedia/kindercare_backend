@@ -1,5 +1,14 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEnum, IsOptional, IsString, IsUUID } from "class-validator";
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
+import { Expose, Type } from "class-transformer";
 import { PostTransitionAction } from "@/domain/content-management/enums/post-transition-action.enum";
 import { PostResponse } from "./post.response";
 
@@ -33,39 +42,53 @@ export class BatchTransitionPostRequest {
 
 export class BatchTransitionPostErrorResponse {
   @ApiProperty()
+  @Expose()
   code: string;
 
   @ApiProperty()
+  @Expose()
   message: string;
 
   @ApiProperty()
+  @Expose()
   statusCode: number;
 }
 
 export class BatchTransitionPostResultResponse {
   @ApiProperty()
+  @Expose()
   postId: string;
 
   @ApiProperty()
+  @Expose()
   success: boolean;
 
   @ApiProperty({ type: PostResponse, required: false })
+  @Expose()
+  @Type(() => PostResponse)
   post?: PostResponse;
 
   @ApiProperty({ type: BatchTransitionPostErrorResponse, required: false })
+  @Expose()
+  @Type(() => BatchTransitionPostErrorResponse)
   error?: BatchTransitionPostErrorResponse;
 }
 
 export class BatchTransitionPostResponse {
   @ApiProperty()
+  @Expose()
   total: number;
 
   @ApiProperty()
+  @Expose()
   succeeded: number;
 
   @ApiProperty()
+  @Expose()
   failed: number;
 
   @ApiProperty({ type: [BatchTransitionPostResultResponse] })
+  @Expose()
+  @Type(() => BatchTransitionPostResultResponse)
   results: BatchTransitionPostResultResponse[];
 }

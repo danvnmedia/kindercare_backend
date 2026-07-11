@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
+import { StandardPaginationDto } from "@/core/modules/standard-response/dto/standard-response.dto";
 import { UserResponse } from "../user.response";
 
 /**
@@ -136,7 +137,14 @@ export class GetCommentsResponse {
   comments: CommentWithRepliesResponse[];
 
   @ApiProperty({
-    description: "Total count of all comments (including deleted)",
+    description: "Pagination metadata for root comments",
+    type: StandardPaginationDto,
+  })
+  @Expose()
+  pagination: StandardPaginationDto;
+
+  @ApiProperty({
+    description: "Total count of public comments (including deleted)",
     example: 25,
   })
   @Expose()

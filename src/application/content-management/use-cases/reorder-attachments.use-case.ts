@@ -5,11 +5,17 @@ import {
   ForbiddenException,
   Logger,
   BadRequestException,
+  ConflictException,
 } from "@nestjs/common";
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
+import { Post } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
-import { userHasPostPermission } from "./authorization/post-permission.helper";
+import { userCanManagePost } from "./authorization/post-permission.helper";
+import {
+  assertAttachmentMutationAllowed,
+  rethrowAttachmentMutationError,
+} from "./attachment-workflow.helper";
 
 export interface ReorderAttachmentsInput {
   postId: string;
@@ -31,7 +37,7 @@ export class ReorderAttachmentsUseCase {
   async execute(
     input: ReorderAttachmentsInput,
     currentUser: User,
-  ): Promise<void> {
+  ): Promise<Post> {
     try {
       this.logger.log(`Reordering attachments for post: ${input.postId}`);
       const post = await this.postRepository.findById(input.postId);
@@ -47,26 +53,33 @@ export class ReorderAttachmentsUseCase {
         );
       }
 
-      const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const canUpdate = userHasPostPermission(
-        currentUser,
-        input.campusId,
-        "post.update",
-      );
-
-      if (!isAuthor && !canUpdate) {
+      if (
+        !userCanManagePost(
+          currentUser,
+          input.campusId,
+          post.authorId.toString(),
+        )
+      ) {
         throw new ForbiddenException(
           "You are not authorized to reorder attachments for this post",
         );
       }
 
+      assertAttachmentMutationAllowed(post);
+
       const attachments = await this.attachmentRepository.findByPostId(
         input.postId,
       );
+      const currentOrders = attachments.map(({ id, order }) => ({
+        id: id.toString(),
+        order,
+      }));
       if (attachments.length !== input.orders.length) {
-        throw new BadRequestException(
-          "The number of attachments in the request does not match the number of attachments for the post.",
-        );
+        throw new ConflictException({
+          message:
+            "The request must contain the complete current attachment set.",
+          currentOrders,
+        });
       }
 
       const attachmentIds = attachments.map((att) => att.id.toString());
@@ -82,9 +95,11 @@ export class ReorderAttachmentsUseCase {
         orderIdSet.size !== attachmentIdSet.size ||
         orderIds.some((id) => !attachmentIdSet.has(id))
       ) {
-        throw new BadRequestException(
-          "Some attachment ids in the request do not belong to the post.",
-        );
+        throw new ConflictException({
+          message:
+            "The request must contain the complete current attachment set.",
+          currentOrders,
+        });
       }
 
       const requestedOrders = input.orders.map((item) => item.order);
@@ -102,14 +117,22 @@ export class ReorderAttachmentsUseCase {
         );
       }
 
-      await this.attachmentRepository.updateOrder(input.postId, input.orders);
+      await this.attachmentRepository.updateOrder(input.postId, input.orders, {
+        changedById: currentUser.id,
+        reason: "Attachments reordered",
+      });
+      const resultingPost = await this.postRepository.findById(input.postId);
+      if (!resultingPost) {
+        throw new NotFoundException(`Post with ID ${input.postId} not found`);
+      }
       this.logger.log(`Attachments reordered for post: ${input.postId}`);
+      return resultingPost;
     } catch (error) {
       this.logger.error(
         `Failed to reorder attachments: ${error.message}`,
         error.stack,
       );
-      throw error;
+      rethrowAttachmentMutationError(error);
     }
   }
 }

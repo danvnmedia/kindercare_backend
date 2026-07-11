@@ -2,7 +2,7 @@
 title: Parent Multi-Campus Existing Account
 description: Specification for creating or attaching campus-scoped guardian profiles to one shared parent identity across multiple campuses.
 createdAt: '2026-07-01T01:21:35.226Z'
-updatedAt: '2026-07-01T02:43:33.721Z'
+updatedAt: '2026-07-10T22:05:01.271Z'
 tags:
   - spec
   - approved
@@ -19,7 +19,7 @@ tags:
 
 Support one parent login across multiple campuses by letting authorized staff create a campus-scoped `Guardian` profile that either provisions a new parent identity or attaches to an existing eligible parent `User`. Parent runtime access remains relationship-based: once the selected-campus guardian profile is active and linked to children, the parent discovers that campus through `GET /guardians/me/campuses` and accesses parent self-service features only through active guardian-student relationships.
 
-This spec is scoped to backend behavior for create-or-attach, shared-identity safety, and guardian-student campus isolation. It builds on @doc/research/parent-multi-campus-existing-account-backend-research and the existing parent access model in @doc/specs/2026-06-28/parent-access-model-and-campus-discovery.
+This spec is scoped to backend behavior for create-or-attach, shared-identity safety, and guardian-student campus isolation. It builds on @doc/archive/research/parent-multi-campus-existing-account-backend-research and the existing parent access model in @doc/specs/2026-06-28/parent-access-model-and-campus-discovery.
 
 ## Locked Decisions
 
@@ -181,7 +181,7 @@ This spec is scoped to backend behavior for create-or-attach, shared-identity sa
 
 ## Technical Notes
 
-- Relevant research: @doc/research/parent-multi-campus-existing-account-backend-research.
+- Relevant research: @doc/archive/research/parent-multi-campus-existing-account-backend-research.
 - Parent access pattern: @doc/patterns/guards-pattern#parent-self-service-relationship-access.
 - Existing parent campus discovery spec: @doc/specs/2026-06-28/parent-access-model-and-campus-discovery.
 - Canonical shared identity/profile lifecycle semantics are defined by @doc/specs/2026-07-01/identity-profile-split-hardening; this spec should run after, or be implemented against, that lifecycle hardening.

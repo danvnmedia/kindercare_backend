@@ -70,7 +70,7 @@ export class GetPostCommentsUseCase {
 
       // Get total and active counts
       const [totalCount, activeCount] = await Promise.all([
-        this.postCommentRepository.countByPost(postId),
+        this.postCommentRepository.countPublicByPost(postId),
         this.postCommentRepository.countActivePublicByPost(postId),
       ]);
 

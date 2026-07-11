@@ -47,6 +47,7 @@ export class CreateManagementCommentUseCase {
     const comment = PostComment.create({
       postId: input.postId,
       userId: currentUser.id,
+      user: currentUser,
       content: input.content,
       depth: 0,
       parentCommentId: null,

@@ -2,12 +2,13 @@
 title: Weekly Plan Daily Schedule Frontend Handoff
 description: Frontend-to-backend handoff for the Weekly Plan Daily Schedule feature
 createdAt: '2026-06-18T02:27:18.948Z'
-updatedAt: '2026-06-25T16:34:58.274Z'
+updatedAt: '2026-07-10T22:05:09.676Z'
 tags:
   - frontend-handoff
   - weekly-plan
   - schedule
   - api
+  - archived
 ---
 
 ## Purpose

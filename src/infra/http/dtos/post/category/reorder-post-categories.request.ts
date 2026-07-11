@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { ArrayMinSize, IsArray, IsUUID } from "class-validator";
+import { ArrayMinSize, ArrayUnique, IsArray, IsUUID } from "class-validator";
 
 export class ReorderPostCategoriesRequest {
   @ApiProperty({
@@ -11,9 +11,12 @@ export class ReorderPostCategoriesRequest {
       "123e4567-e89b-12d3-a456-426614174003",
     ],
     type: [String],
+    minItems: 1,
+    uniqueItems: true,
   })
   @IsArray()
   @ArrayMinSize(1)
+  @ArrayUnique()
   @IsUUID("4", { each: true })
   ids: string[];
 }

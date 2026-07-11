@@ -47,16 +47,16 @@ export class GetPostReactionStatusUseCase {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
 
-      const setting =
-        await this.campusSettingRepository.findByCampusId(campusId);
-      if (setting && !setting.allowReactions) {
-        return { hasReacted: false, reactionCount: 0 };
-      }
-
       if (!post.canReceiveEngagement()) {
         throw new BadRequestException(
           "Cannot view reactions for this post. Post must be published and not deleted.",
         );
+      }
+
+      const setting =
+        await this.campusSettingRepository.findByCampusId(campusId);
+      if (setting && !setting.allowReactions) {
+        return { hasReacted: false, reactionCount: 0 };
       }
 
       const [hasReacted, reactionCount] = await Promise.all([

@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Body,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -70,6 +72,8 @@ import {
   CampusContext,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
+  CmsPublicRead,
+  CmsStaffOnly,
 } from "../decorators";
 import { User } from "@/domain/user-management/user.entity";
 import { Post as PostEntity } from "@/domain/content-management/entities/post.entity";
@@ -110,6 +114,8 @@ export class PostController {
   ) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.create", "post.manage")
@@ -122,6 +128,7 @@ export class PostController {
   })
   @StandardResponse({
     type: PostResponse,
+    status: HttpStatus.CREATED,
   })
   async create(
     @CampusContext() campusId: string,
@@ -133,6 +140,7 @@ export class PostController {
   }
 
   @Get()
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.list", "post.manage")
@@ -157,7 +165,6 @@ export class PostController {
       "title",
       "status",
       "publishAt",
-      "audiences",
       "authorId",
       "categoryId",
       "isPinned",
@@ -174,6 +181,7 @@ export class PostController {
   }
 
   @Get("facets")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.list", "post.manage")
@@ -197,6 +205,7 @@ export class PostController {
   }
 
   @Get("pending-approval")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.review", "post.manage")
@@ -222,6 +231,7 @@ export class PostController {
   }
 
   @Get("pinned")
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -244,6 +254,7 @@ export class PostController {
   }
 
   @Get(":id")
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -266,6 +277,7 @@ export class PostController {
   }
 
   @Patch(":id")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.update", "post.manage")
@@ -293,6 +305,7 @@ export class PostController {
   }
 
   @Delete(":id")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.delete", "post.manage")
@@ -315,6 +328,8 @@ export class PostController {
   }
 
   @Post(":id/attachments")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.update", "post.manage")
@@ -327,6 +342,7 @@ export class PostController {
   })
   @StandardResponse({
     type: AttachmentResponse,
+    status: HttpStatus.CREATED,
   })
   async addAttachment(
     @CampusContext() campusId: string,
@@ -345,6 +361,7 @@ export class PostController {
   }
 
   @Delete(":id/attachments/:attachmentId")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.update", "post.manage")
@@ -373,6 +390,7 @@ export class PostController {
   }
 
   @Patch(":id/attachments/reorder")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.update", "post.manage")
@@ -384,14 +402,14 @@ export class PostController {
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   @StandardResponse({
-    type: null,
+    type: PostResponse,
   })
   async reorderAttachments(
     @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() reorderAttachmentsDto: ReorderAttachmentsRequest,
     @CurrentUser() user: User,
-  ): Promise<void> {
+  ): Promise<PostEntity> {
     return this.reorderAttachmentsUseCase.execute(
       {
         postId: id,
@@ -403,6 +421,8 @@ export class PostController {
   }
 
   @Post("batch-transition")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.update", "post.review", "post.manage")
@@ -415,6 +435,7 @@ export class PostController {
   })
   @StandardResponse({
     type: BatchTransitionPostResponse,
+    status: HttpStatus.CREATED,
   })
   async batchTransitionPosts(
     @CampusContext() campusId: string,
@@ -431,6 +452,8 @@ export class PostController {
   }
 
   @Post(":id/transition")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.update", "post.review", "post.manage")
@@ -443,6 +466,7 @@ export class PostController {
   })
   @StandardResponse({
     type: PostResponse,
+    status: HttpStatus.CREATED,
   })
   async transitionPost(
     @CampusContext() campusId: string,
@@ -460,6 +484,7 @@ export class PostController {
   }
 
   @Get(":id/history")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -482,6 +507,7 @@ export class PostController {
   }
 
   @Get(":id/approval-history")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.review", "post.manage")
@@ -501,6 +527,8 @@ export class PostController {
   }
 
   @Post(":id/heart")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -513,6 +541,7 @@ export class PostController {
   })
   @StandardResponse({
     type: PostReactionResponse,
+    status: HttpStatus.CREATED,
   })
   async toggleHeart(
     @CampusContext() campusId: string,
@@ -523,6 +552,7 @@ export class PostController {
   }
 
   @Get(":id/heart")
+  @CmsPublicRead()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.read", "post.manage")
@@ -547,6 +577,8 @@ export class PostController {
   // --- Pinning Endpoints ---
 
   @Post(":id/pin")
+  @HttpCode(HttpStatus.CREATED)
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")
@@ -559,6 +591,7 @@ export class PostController {
   })
   @StandardResponse({
     type: PostResponse,
+    status: HttpStatus.CREATED,
   })
   async pinPost(
     @CampusContext() campusId: string,
@@ -570,6 +603,7 @@ export class PostController {
   }
 
   @Delete(":id/pin")
+  @CmsStaffOnly()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")

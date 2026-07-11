@@ -1,4 +1,5 @@
-import { SetMetadata } from "@nestjs/common";
+import { applyDecorators, SetMetadata } from "@nestjs/common";
+import { CmsPublicRead } from "./cms-route-visibility.decorator";
 
 /**
  * Metadata key for permissions
@@ -19,4 +20,7 @@ export const PERMISSIONS_KEY = "permissions";
  * @param permissions - Permission IDs required (e.g., 'student.create', 'class.read')
  */
 export const Permissions = (...permissions: string[]) =>
-  SetMetadata(PERMISSIONS_KEY, permissions);
+  applyDecorators(
+    SetMetadata(PERMISSIONS_KEY, permissions),
+    ...(permissions.includes("post.read") ? [CmsPublicRead()] : []),
+  );

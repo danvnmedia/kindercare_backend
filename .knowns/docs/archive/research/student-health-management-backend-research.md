@@ -2,7 +2,7 @@
 title: Student Health Management Backend Research
 description: Backend research notes for planned Student Health Management, parent medical requests, enrollment health intake, and student health history continuity.
 createdAt: '2026-06-30T09:52:17.342Z'
-updatedAt: '2026-06-30T09:52:17.342Z'
+updatedAt: '2026-07-10T22:05:04.455Z'
 tags:
   - research
   - student-health
@@ -10,6 +10,7 @@ tags:
   - parent-request
   - backend-spec
   - campus
+  - archived
 ---
 
 # Student Health Management Backend Research

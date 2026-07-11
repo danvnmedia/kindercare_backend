@@ -794,14 +794,16 @@ model StudentAttendanceLog {
 // ==========================================
 
 model Post {
-  id             String    @id @default(uuid()) @db.Uuid
-  authorId       String    @map("author_id") @db.Uuid
-  title          String
-  content        Json?
-  contentText    String?   @map("content_text") @db.Text
-  contentVersion Int       @default(1) @map("content_version")
-  status         String    @default("DRAFT")
-  publishAt      DateTime? @map("publish_at") @db.Timestamptz(6)
+  id                 String    @id @default(uuid()) @db.Uuid
+  authorId           String    @map("author_id") @db.Uuid
+  title              String
+  content            Json?
+  contentText        String?   @map("content_text") @db.Text
+  contentVersion     Int       @default(1) @map("content_version")
+  clientMutationId   String    @default(dbgenerated("gen_random_uuid()")) @map("client_mutation_id") @db.Uuid
+  requestPayloadHash String    @default(dbgenerated("encode(sha256(convert_to('{}', 'UTF8')), 'hex')")) @map("request_payload_hash") @db.VarChar(64)
+  status             String    @default("DRAFT")
+  publishAt          DateTime? @map("publish_at") @db.Timestamptz(6)
 
   // Pinning fields
   isPinned    Boolean   @default(false) @map("is_pinned")
@@ -834,6 +836,7 @@ model Post {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([campusId, authorId, clientMutationId])
   @@index([campusId])
   @@index([authorId])
   @@index([status])
@@ -918,7 +921,8 @@ model PostCategory {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([campusId, name])
+  // Expression unique index on `(campus_id, lower(btrim(name)))` and partial
+  // active-order unique index are owned by migration SQL; Prisma cannot model them.
   @@index([campusId, isArchived])
   @@index([campusId, order])
   @@map("post_category")
@@ -1011,6 +1015,8 @@ model PostApprovalRequest {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  // Partial unique index `post_approval_request_one_pending_per_post_key`
+  // is owned by migration SQL; Prisma cannot model partial unique indexes.
   @@index([postId])
   @@index([status, submittedAt])
   @@index([submittedById])

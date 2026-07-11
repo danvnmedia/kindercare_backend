@@ -8,7 +8,10 @@ export function userHasPostPermission(
   campusId: string,
   permissionId: string,
 ): boolean {
-  if (user.hasSystemRole()) {
+  const hasGlobalSystemRole = user
+    .getGlobalRoles()
+    .some((role) => RoleEntity.isSystemRole(role));
+  if (hasGlobalSystemRole) {
     return true;
   }
 
@@ -19,4 +22,15 @@ export function userHasPostPermission(
         RoleEntity.hasPermissionById(role, permissionId) ||
         RoleEntity.hasPermissionById(role, POST_PERMISSION_MANAGE),
     );
+}
+
+export function userCanManagePost(
+  user: User,
+  campusId: string,
+  authorId: string,
+): boolean {
+  return (
+    user.id.toString() === authorId.toString() ||
+    userHasPostPermission(user, campusId, POST_PERMISSION_MANAGE)
+  );
 }

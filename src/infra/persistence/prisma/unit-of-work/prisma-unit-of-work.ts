@@ -120,8 +120,36 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
 
       // Content-management operations
       createPost: contentManagementOps.createPost.bind(contentManagementOps),
+      findPostByIdForUpdate:
+        contentManagementOps.findPostByIdForUpdate.bind(contentManagementOps),
+      findPostByClientMutationId:
+        contentManagementOps.findPostByClientMutationId.bind(
+          contentManagementOps,
+        ),
+      createPostIdempotently:
+        contentManagementOps.createPostIdempotently.bind(contentManagementOps),
       updatePost: contentManagementOps.updatePost.bind(contentManagementOps),
+      lockPostPinCapacity:
+        contentManagementOps.lockPostPinCapacity.bind(contentManagementOps),
+      countEffectivePinnedPosts:
+        contentManagementOps.countEffectivePinnedPosts.bind(
+          contentManagementOps,
+        ),
+      updatePostPin:
+        contentManagementOps.updatePostPin.bind(contentManagementOps),
       deletePost: contentManagementOps.deletePost.bind(contentManagementOps),
+      lockPostCategoryCampus:
+        contentManagementOps.lockPostCategoryCampus.bind(contentManagementOps),
+      findPostCategoryByIdForUpdate:
+        contentManagementOps.findPostCategoryByIdForUpdate.bind(
+          contentManagementOps,
+        ),
+      findActivePostCategoriesForUpdate:
+        contentManagementOps.findActivePostCategoriesForUpdate.bind(
+          contentManagementOps,
+        ),
+      findPostCategoryByName:
+        contentManagementOps.findPostCategoryByName.bind(contentManagementOps),
       createPostCategory:
         contentManagementOps.createPostCategory.bind(contentManagementOps),
       updatePostCategory:
@@ -140,6 +168,22 @@ export class PrismaUnitOfWork extends UnitOfWorkPort {
         ),
       updatePostApprovalRequest:
         contentManagementOps.updatePostApprovalRequest.bind(
+          contentManagementOps,
+        ),
+      findLatestPostApprovalRequestForUpdate:
+        contentManagementOps.findLatestPostApprovalRequestForUpdate.bind(
+          contentManagementOps,
+        ),
+      findPendingPostApprovalRequestForUpdate:
+        contentManagementOps.findPendingPostApprovalRequestForUpdate.bind(
+          contentManagementOps,
+        ),
+      updatePostApprovalRequestIfPending:
+        contentManagementOps.updatePostApprovalRequestIfPending.bind(
+          contentManagementOps,
+        ),
+      findCampusSettingByCampusIdForUpdate:
+        contentManagementOps.findCampusSettingByCampusIdForUpdate.bind(
           contentManagementOps,
         ),
 

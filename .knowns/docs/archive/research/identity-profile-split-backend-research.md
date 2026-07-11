@@ -2,7 +2,7 @@
 title: Identity Profile Split Backend Research
 description: Backend research for a dedicated identity/profile split hardening spec covering guardian, staff, current auth shape, and future student login support.
 createdAt: '2026-07-01T01:33:45.682Z'
-updatedAt: '2026-07-01T01:33:45.682Z'
+updatedAt: '2026-07-10T22:05:01.254Z'
 tags:
   - research
   - identity
@@ -12,13 +12,14 @@ tags:
   - student
   - auth
   - backend-spec
+  - archived
 ---
 
 # Identity Profile Split Backend Research
 
 ## Purpose
 
-Research the current backend identity/profile shape before writing a dedicated spec for an Identity/Profile Split. This builds on @doc/research/parent-multi-campus-existing-account-backend-research and @doc/specs/2026-07-01/parent-multi-campus-existing-account, but broadens the scope from parent guardian attach to global identity lifecycle, staff profiles, and future student-login support.
+Research the current backend identity/profile shape before writing a dedicated spec for an Identity/Profile Split. This builds on @doc/archive/research/parent-multi-campus-existing-account-backend-research and @doc/specs/2026-07-01/parent-multi-campus-existing-account, but broadens the scope from parent guardian attach to global identity lifecycle, staff profiles, and future student-login support.
 
 ## Executive Findings
 

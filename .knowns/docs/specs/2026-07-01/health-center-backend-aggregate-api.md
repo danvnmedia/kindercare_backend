@@ -2,7 +2,7 @@
 title: Health Center Backend Aggregate API
 description: Specification for a read-only Health Center daily aggregate backend API.
 createdAt: '2026-07-01T04:34:48.608Z'
-updatedAt: '2026-07-01T04:52:40.000Z'
+updatedAt: '2026-07-10T22:04:58.959Z'
 tags:
   - spec
   - approved
@@ -20,7 +20,7 @@ Build a read-only, campus-scoped Health Center aggregate API for the Health Cent
 
 Supporting context:
 
-- @doc/research/health-center-backend-research
+- @doc/archive/research/health-center-backend-research
 - @doc/specs/2026-07-01/student-profile-health-tab-backend
 
 ## Locked Decisions

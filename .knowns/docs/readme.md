@@ -2,7 +2,7 @@
 title: README
 description: Documentation index — start here. Map of every doc with one-line summaries grouped by topic.
 createdAt: '2026-01-03T19:51:45.975Z'
-updatedAt: '2026-06-25T16:35:23.768Z'
+updatedAt: '2026-07-10T22:04:58.033Z'
 tags:
   - index
   - overview
@@ -96,7 +96,7 @@ General docs should not link to SDD specs or task records. When spec-derived beh
 
 | Doc | What it covers |
 |-----|----------------|
-| @doc/prds/post-and-content-management | Original PRD for Post CMS - Facebook-style posts, approval workflow |
+| @doc/archive/prds/post-and-content-management | Original PRD for Post CMS - Facebook-style posts, approval workflow |
 | @doc/prds/frontend-multi-campus-migration-guide | Frontend guide for adopting the multi-campus headers and types |
 
 ---

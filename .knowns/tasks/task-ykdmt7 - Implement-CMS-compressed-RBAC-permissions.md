@@ -7,9 +7,9 @@ labels:
   - cms
   - rbac
 createdAt: '2026-07-01T14:18:12.900Z'
-updatedAt: '2026-07-01T14:27:41.407Z'
+updatedAt: '2026-07-10T22:04:57.133Z'
 timeSpent: 0
-spec: frontend-handoff/cms-rbac-compressed-permissions-handoff
+spec: archive/frontend-handoff/cms-rbac-compressed-permissions-handoff
 ---
 # Implement CMS compressed RBAC permissions
 

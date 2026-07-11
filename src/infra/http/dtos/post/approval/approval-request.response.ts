@@ -76,12 +76,12 @@ export class ApprovalRequestResponse {
   @Expose()
   contentSnapshot?: Record<string, unknown>;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: "The user who submitted the approval request.",
   })
   @Expose()
   @Type(() => UserSummaryResponse)
-  submittedBy?: UserSummaryResponse;
+  submittedBy: UserSummaryResponse;
 
   @ApiProperty({
     description: "The date the approval request was submitted.",

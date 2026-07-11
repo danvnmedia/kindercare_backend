@@ -15,12 +15,12 @@ export class CreatePostCategoryRequest {
     description: "Category name",
     example: "Announcements",
     minLength: 1,
-    maxLength: 100,
+    maxLength: 60,
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(60)
   name: string;
 
   @ApiProperty({
@@ -40,16 +40,17 @@ export class CreatePostCategoryRequest {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(16)
   icon?: string;
 
   @ApiPropertyOptional({
     description:
-      "Display order (must be non-negative). If not provided, will be auto-assigned to the next available order.",
+      "Display order (must be at least 1). If not provided, will be auto-assigned to the next available order.",
     example: 1,
-    minimum: 0,
+    minimum: 1,
   })
   @IsOptional()
   @IsInt()
-  @Min(0)
+  @Min(1)
   order?: number;
 }

@@ -2,7 +2,7 @@
 title: Parent Multi-Campus Existing Account Backend Research
 description: Backend research and spec-shaping notes for supporting one parent identity across multiple campus-scoped guardian profiles.
 createdAt: '2026-06-30T23:24:32.228Z'
-updatedAt: '2026-06-30T23:24:32.228Z'
+updatedAt: '2026-07-10T22:05:06.779Z'
 tags:
   - research
   - parent-access
@@ -10,16 +10,17 @@ tags:
   - guardian
   - identity
   - backend-spec
+  - archived
 ---
 
 # Parent Multi-Campus Existing Account Backend Research
 
 ## Purpose
 
-Backend research for shaping the spec from @doc/frontend-handoff/parent-multi-campus-existing-account-frontend-handoff. The frontend handoff is useful, but several behaviors must be corrected against backend architecture and current implementation.
+Backend research for shaping the spec from @doc/archive/frontend-handoff/parent-multi-campus-existing-account-frontend-handoff. The frontend handoff is useful, but several behaviors must be corrected against backend architecture and current implementation.
 
 Related context:
-- @doc/frontend-handoff/parent-multi-campus-existing-account-frontend-handoff
+- @doc/archive/frontend-handoff/parent-multi-campus-existing-account-frontend-handoff
 - @doc/specs/2026-06-28/parent-access-model-and-campus-discovery
 - @doc/patterns/guards-pattern#parent-self-service-relationship-access
 - @doc/architecture/multi-campus-architecture

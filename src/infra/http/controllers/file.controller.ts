@@ -9,6 +9,8 @@ import {
   ClassSerializerInterceptor,
   UseGuards,
   Delete,
+  HttpCode,
+  HttpStatus,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -89,6 +91,7 @@ export class FileController {
   }
 
   @Post("initiate-upload")
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("file.create")
@@ -100,6 +103,7 @@ export class FileController {
   })
   @StandardResponse({
     type: InitiateUploadResponse,
+    status: HttpStatus.CREATED,
   })
   async initiateUpload(
     @Body()
@@ -137,6 +141,7 @@ export class FileController {
   }
 
   @Post(":id/complete")
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("file.create")
@@ -144,6 +149,7 @@ export class FileController {
   @ApiOperation({ summary: "Complete a file upload" })
   @StandardResponse({
     type: FileResponse,
+    status: HttpStatus.CREATED,
   })
   async completeUpload(
     @Param("id", ParseUUIDPipe) id: string,

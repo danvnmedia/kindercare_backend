@@ -2,7 +2,7 @@
 title: Weekly Plan Daily Schedule
 description: Specification for class-specific weekly plans with daily schedule blocks
 createdAt: '2026-06-18T12:20:30.858Z'
-updatedAt: '2026-06-18T12:21:26.958Z'
+updatedAt: '2026-07-10T22:05:09.258Z'
 tags:
   - spec
   - approved
@@ -17,7 +17,7 @@ Weekly Plan Daily Schedule adds a backend API and persistence model for class-sp
 
 Each active Weekly Plan belongs to exactly one campus, one class, and one canonical Monday `weekStartDate`. A plan may include an optional week-level `theme` and a flat list of daily schedule blocks. Each block has a day of week, start/end time, and one or more ordered activities.
 
-Supporting context: @doc/research/weekly-plan-daily-schedule-backend-research and @doc/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff.
+Supporting context: @doc/archive/research/weekly-plan-daily-schedule-backend-research and @doc/archive/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff.
 
 ## Locked Decisions
 

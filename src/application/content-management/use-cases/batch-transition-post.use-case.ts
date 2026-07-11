@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
   Injectable,
   Logger,
 } from "@nestjs/common";
@@ -44,22 +45,27 @@ export class BatchTransitionPostUseCase {
     user: User,
     comment?: string,
   ): Promise<BatchTransitionPostOutput> {
-    const uniquePostIds = [...new Set(postIds)];
-
-    if (uniquePostIds.length === 0) {
+    if (postIds.length === 0) {
       throw new BadRequestException("At least one post is required");
     }
 
-    if (uniquePostIds.length > BatchTransitionPostUseCase.MAX_BATCH_SIZE) {
+    if (postIds.length > BatchTransitionPostUseCase.MAX_BATCH_SIZE) {
       throw new BadRequestException(
         `Batch transitions are limited to ${BatchTransitionPostUseCase.MAX_BATCH_SIZE} posts`,
       );
     }
 
+    const uniquePostIds = [...new Set(postIds)];
     const requiredPermission = this.getRequiredPermission(action);
     if (!userHasPostPermission(user, campusId, requiredPermission)) {
       throw new ForbiddenException(
         `You do not have permission to ${action} posts`,
+      );
+    }
+
+    if (action === PostTransitionAction.REJECT && !comment?.trim()) {
+      throw new BadRequestException(
+        "A comment is required when rejecting posts",
       );
     }
 
@@ -76,18 +82,17 @@ export class BatchTransitionPostUseCase {
         );
         results.push({ postId, success: true, post });
       } catch (error) {
-        const statusCode = this.getStatusCode(error);
+        const mappedError = this.mapError(error);
+        if (mappedError.statusCode >= 500) {
+          this.logger.error(
+            `Batch post transition ${action} failed for post ${postId}`,
+            error instanceof Error ? error.stack : undefined,
+          );
+        }
         results.push({
           postId,
           success: false,
-          error: {
-            code: this.getErrorCode(error),
-            message:
-              error instanceof Error
-                ? error.message
-                : "Failed to transition post",
-            statusCode,
-          },
+          error: mappedError,
         });
       }
     }
@@ -118,16 +123,67 @@ export class BatchTransitionPostUseCase {
     }
   }
 
-  private getStatusCode(error: unknown): number {
-    if (typeof error === "object" && error && "getStatus" in error) {
-      const getStatus = (error as { getStatus?: () => number }).getStatus;
-      if (typeof getStatus === "function") return getStatus.call(error);
+  private mapError(error: unknown): BatchTransitionPostError {
+    if (!(error instanceof HttpException) || error.getStatus() >= 500) {
+      return {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to transition post",
+        statusCode: 500,
+      };
     }
-    return 500;
+
+    const response = error.getResponse();
+    return {
+      code: this.getHttpErrorCode(error, response),
+      message: this.getHttpErrorMessage(error, response),
+      statusCode: error.getStatus(),
+    };
   }
 
-  private getErrorCode(error: unknown): string {
-    const name = error instanceof Error ? error.name : "Error";
-    return name.replace(/Exception$/, "").toUpperCase() || "ERROR";
+  private getHttpErrorCode(
+    error: HttpException,
+    response: string | object,
+  ): string {
+    if (this.isRecord(response)) {
+      if (typeof response.code === "string") {
+        return this.normalizeErrorCode(response.code);
+      }
+      if (typeof response.error === "string") {
+        return this.normalizeErrorCode(response.error);
+      }
+    }
+
+    return this.normalizeErrorCode(error.name.replace(/Exception$/, ""));
+  }
+
+  private getHttpErrorMessage(
+    error: HttpException,
+    response: string | object,
+  ): string {
+    if (typeof response === "string") return response;
+    if (this.isRecord(response)) {
+      if (typeof response.message === "string") return response.message;
+      if (
+        Array.isArray(response.message) &&
+        response.message.every((value) => typeof value === "string")
+      ) {
+        return response.message.join(", ");
+      }
+    }
+    return error.message;
+  }
+
+  private normalizeErrorCode(value: string): string {
+    return (
+      value
+        .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+        .replace(/[^a-zA-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .toUpperCase() || "HTTP_ERROR"
+    );
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
   }
 }

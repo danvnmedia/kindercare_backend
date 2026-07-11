@@ -2,7 +2,7 @@
 title: Staff Multi-Campus Existing Account
 description: Specification for creating or attaching campus-scoped staff profiles to one shared staff identity across multiple campuses with RBAC-safe lifecycle behavior.
 createdAt: '2026-07-01T02:02:29.691Z'
-updatedAt: '2026-07-01T02:42:53.375Z'
+updatedAt: '2026-07-10T22:05:03.180Z'
 tags:
   - spec
   - approved
@@ -19,7 +19,7 @@ tags:
 
 Support one authenticated identity being used as staff in multiple campuses. Staff admins need a safe way to create a new staff login or attach an existing internal identity to a new campus-specific staff profile without duplicating Clerk accounts, leaking cross-campus profile details, or leaving archived staff with campus access.
 
-This spec is separate from `@doc/specs/2026-07-01/parent-multi-campus-existing-account` because staff access is RBAC-based and StaffType membership creates campus-scoped role grants. It uses `@doc/research/staff-multi-campus-existing-account-backend-research` as supporting backend context.
+This spec is separate from `@doc/specs/2026-07-01/parent-multi-campus-existing-account` because staff access is RBAC-based and StaffType membership creates campus-scoped role grants. It uses `@doc/archive/research/staff-multi-campus-existing-account-backend-research` as supporting backend context.
 
 ## Locked Decisions
 
@@ -164,8 +164,8 @@ This spec is separate from `@doc/specs/2026-07-01/parent-multi-campus-existing-a
 
 ## Technical Notes
 
-- Current backend research is in `@doc/research/staff-multi-campus-existing-account-backend-research`.
-- Shared identity/profile split context is in `@doc/research/identity-profile-split-backend-research` and the canonical lifecycle/auth spec is @doc/specs/2026-07-01/identity-profile-split-hardening.
+- Current backend research is in `@doc/archive/research/staff-multi-campus-existing-account-backend-research`.
+- Shared identity/profile split context is in `@doc/archive/research/identity-profile-split-backend-research` and the canonical lifecycle/auth spec is @doc/specs/2026-07-01/identity-profile-split-hardening.
 - Guardian matching and response decisions are in `@doc/specs/2026-07-01/parent-multi-campus-existing-account` and should be reused where the behavior is identity-generic.
 - StaffType default-role and provenance constraints are covered by `@doc/specs/2026-06-27/staff-type-rbac-hardening` and `@doc/architecture/rbac-system`.
 - Existing schema is capable of one `User` having many campus-scoped `Staff` profiles via `Staff.userId` plus `@@unique([campusId, userId])`.

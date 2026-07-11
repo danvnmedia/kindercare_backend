@@ -31,6 +31,7 @@ import {
 import { Reflector } from "@nestjs/core";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { RequestContext } from "../context/request-context.service";
+import { canGuardianReadCmsRoute } from "./cms-route-visibility.guard";
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -63,6 +64,10 @@ export class PermissionsGuard implements CanActivate {
 
     // Get campus context from RequestContext (set by CampusGuard)
     const campusId = this.requestContext.campusId;
+
+    if (canGuardianReadCmsRoute(this.reflector, context, user, campusId)) {
+      return true;
+    }
 
     // Get roles that apply to the current campus context
     // This includes globally assigned roles (campusId = null) + campus-specific roles

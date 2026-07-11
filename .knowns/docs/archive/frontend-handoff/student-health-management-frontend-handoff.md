@@ -2,7 +2,7 @@
 title: Student Health Tab Backend Handoff
 description: Backend-to-frontend handoff for the Student Profile Health tab, summarizing implemented backend support, current API contracts, data fields, backend validations, frontend responsibilities, and follow-up gaps.
 createdAt: '2026-06-30T09:42:07.493Z'
-updatedAt: '2026-06-30T18:30:01.476Z'
+updatedAt: '2026-07-10T22:05:08.922Z'
 tags:
   - frontend-handoff
   - backend-contract
@@ -11,6 +11,7 @@ tags:
   - student-profile
   - api
   - campus
+  - archived
 ---
 
 # Student Health Tab Backend Handoff

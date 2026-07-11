@@ -16,6 +16,8 @@ import {
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { FilterSchemaDto } from "@/core/modules/standard-response/dto/filter-schema.dto";
+import { userHasPostPermission } from "@/application/content-management/use-cases/authorization/post-permission.helper";
 
 @Injectable()
 export class PrismaPostRepository implements PostRepository {
@@ -169,7 +171,7 @@ export class PrismaPostRepository implements PostRepository {
         id,
         campusId,
         isDeleted: false,
-        ...this.buildViewerVisibilityWhere(viewer),
+        ...this.buildViewerVisibilityWhere(viewer, campusId),
       },
       include: {
         author: {
@@ -204,13 +206,12 @@ export class PrismaPostRepository implements PostRepository {
     scope?: Record<string, any>,
     viewer?: User,
   ): Promise<PaginatedResult<Post>> {
-    const categoryIdFilter = query.filterInfo?.filters?.categoryId;
-    const audienceTypeFilter = this.getStringFilterValue(
-      query.filterInfo?.filters?.audienceType,
-    );
-    const classIdFilter = this.getStringFilterValue(
-      query.filterInfo?.filters?.classId,
-    );
+    const filters = this.extractAndSanitizeCustomFilters(query);
+    const campusId =
+      typeof scope?.campusId === "string" ? scope.campusId : undefined;
+    const categoryIdFilter = filters.categoryId;
+    const audienceTypeFilter = this.getStringFilterValue(filters.audienceType);
+    const classIdFilter = this.getStringFilterValue(filters.classId);
     const searchTerm = this.getSearchTerm(query);
 
     query.allowedFilterFields = [
@@ -219,11 +220,10 @@ export class PrismaPostRepository implements PostRepository {
       "contentText",
       "type",
       "status",
+      "publishAt",
       "authorId",
       "isPinned",
       "campusId",
-      "audienceType",
-      "classId",
     ];
     query.allowedSortFields = [
       "createdAt",
@@ -231,11 +231,12 @@ export class PrismaPostRepository implements PostRepository {
       "title",
       "publishAt",
       "isPinned",
+      "status",
     ];
 
     const where = {
       isDeleted: false,
-      ...this.buildViewerVisibilityWhere(viewer),
+      ...this.buildViewerVisibilityWhere(viewer, campusId),
       ...(categoryIdFilter
         ? {
             categories: {
@@ -315,7 +316,7 @@ export class PrismaPostRepository implements PostRepository {
     const baseWhere: Prisma.PostWhereInput = {
       campusId,
       isDeleted: false,
-      ...this.buildViewerVisibilityWhere(viewer),
+      ...this.buildViewerVisibilityWhere(viewer, campusId),
       ...(statusWhere ? { status: statusWhere } : {}),
       ...(categoryIdFilter
         ? {
@@ -386,27 +387,70 @@ export class PrismaPostRepository implements PostRepository {
     };
   }
 
-  private buildViewerVisibilityWhere(viewer?: User): Record<string, any> {
-    if (!viewer || viewer.profile?.type !== "guardian") return {};
+  private buildViewerVisibilityWhere(
+    viewer?: User,
+    campusId?: string,
+  ): Prisma.PostWhereInput {
+    if (!viewer) return {};
 
-    const guardianId = viewer.profile.id;
+    if (
+      viewer.hasSystemRole() ||
+      (campusId && userHasPostPermission(viewer, campusId, "post.review"))
+    ) {
+      return {};
+    }
+
+    const guardianProfiles = viewer.profiles.filter(
+      (profile) => profile.type === "guardian",
+    );
+    const hasStaffProfileInCampus = viewer.profiles.some(
+      (profile) => profile.type === "staff" && profile.campusId === campusId,
+    );
+
+    if (hasStaffProfileInCampus || guardianProfiles.length === 0) {
+      return {
+        AND: [
+          {
+            OR: [
+              { status: PostStatus.PUBLISHED },
+              { authorId: viewer.id.toString() },
+            ],
+          },
+        ],
+      };
+    }
+
+    const guardianProfile = guardianProfiles.find(
+      (profile) => profile.campusId === campusId,
+    );
+    if (!guardianProfile || !campusId) {
+      return { id: { in: [] } };
+    }
 
     return {
       AND: [
+        { status: PostStatus.PUBLISHED },
         {
           OR: [
-            { audiences: { some: { type: AudienceType.ALL } } },
+            {
+              audiences: {
+                some: { type: AudienceType.ALL, campusId },
+              },
+            },
             {
               audiences: {
                 some: {
                   type: AudienceType.CLASS,
+                  campusId,
                   class: {
+                    campusId,
                     enrollments: {
                       some: {
                         endDate: null,
                         student: {
+                          campusId,
                           guardians: {
-                            some: { guardianId },
+                            some: { guardianId: guardianProfile.id },
                           },
                         },
                       },
@@ -419,6 +463,47 @@ export class PrismaPostRepository implements PostRepository {
         },
       ],
     };
+  }
+
+  private extractAndSanitizeCustomFilters(
+    query: StandardRequestDto,
+  ): Record<string, unknown> {
+    let filters: Record<string, unknown> = {};
+
+    if (
+      query.filterInfo?.filters &&
+      Object.keys(query.filterInfo.filters).length > 0
+    ) {
+      filters = { ...query.filterInfo.filters };
+    } else if (query.filter && typeof query.filter === "string") {
+      try {
+        const parsed = JSON.parse(query.filter) as unknown;
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          !Array.isArray(parsed)
+        ) {
+          filters = { ...(parsed as Record<string, unknown>) };
+        }
+      } catch {
+        filters = {};
+      }
+    }
+
+    const customFilters = {
+      categoryId: filters.categoryId,
+      audienceType: filters.audienceType,
+      classId: filters.classId,
+    };
+
+    delete filters.categoryId;
+    delete filters.audienceType;
+    delete filters.classId;
+
+    query.filterInfo = { filters: filters as FilterSchemaDto["filters"] };
+    query.filter = undefined;
+
+    return customFilters;
   }
 
   private getSearchTerm(query: StandardRequestDto): string | null {
@@ -511,7 +596,7 @@ export class PrismaPostRepository implements PostRepository {
         isPinned: true,
         isDeleted: false,
         AND: [
-          this.buildViewerVisibilityWhere(viewer),
+          this.buildViewerVisibilityWhere(viewer, campusId),
           { OR: [{ pinnedUntil: null }, { pinnedUntil: { gt: now } }] },
         ],
       },

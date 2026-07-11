@@ -226,6 +226,7 @@ export class PostComment extends Entity<PostCommentProps> {
     const commentProps: PostCommentProps = {
       postId: props.postId,
       userId: props.userId,
+      user: props.user,
       parentCommentId: props.parentCommentId ?? null,
       depth,
       content: props.content.trim(),

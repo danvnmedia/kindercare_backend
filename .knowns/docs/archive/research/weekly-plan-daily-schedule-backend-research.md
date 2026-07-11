@@ -2,19 +2,20 @@
 title: Weekly Plan Daily Schedule Backend Research
 description: Backend research and spec-shaping notes for Weekly Plan Daily Schedule based on the frontend handoff and existing backend architecture
 createdAt: '2026-06-18T11:41:56.807Z'
-updatedAt: '2026-06-25T16:35:47.993Z'
+updatedAt: '2026-07-10T22:05:09.249Z'
 tags:
   - research
   - weekly-plan
   - schedule
   - backend-spec
+  - archived
 ---
 
 # Weekly Plan Daily Schedule Backend Research
 
 ## Purpose
 
-Research notes for shaping a backend spec from @doc/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff. The frontend handoff is useful product/API context, but it is not the backend source of truth. Backend implementation should follow this repo's Clean Architecture, multi-campus, RBAC, audit, standard response, and Prisma migration conventions.
+Research notes for shaping a backend spec from @doc/archive/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff. The frontend handoff is useful product/API context, but it is not the backend source of truth. Backend implementation should follow this repo's Clean Architecture, multi-campus, RBAC, audit, standard response, and Prisma migration conventions.
 
 ## Source Context
 
@@ -49,7 +50,7 @@ Reusable precedents:
 
 Relevant docs:
 
-- @doc/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff
+- @doc/archive/frontend-handoff/weekly-plan-daily-schedule-frontend-handoff
 - @doc/architecture/multi-campus-architecture
 - @doc/architecture/rbac-system
 - @doc/architecture/audit-trail-soft-delete-patterns

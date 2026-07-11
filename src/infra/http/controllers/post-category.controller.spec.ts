@@ -1,5 +1,12 @@
 import "reflect-metadata";
-import { GUARDS_METADATA } from "@nestjs/common/constants";
+import { HttpStatus, ParseUUIDPipe, RequestMethod } from "@nestjs/common";
+import {
+  GUARDS_METADATA,
+  HTTP_CODE_METADATA,
+  METHOD_METADATA,
+  ROUTE_ARGS_METADATA,
+} from "@nestjs/common/constants";
+import { DECORATORS } from "@nestjs/swagger/dist/constants";
 
 import { REQUIRE_CAMPUS_ACCESS_KEY } from "../decorators";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
@@ -11,7 +18,9 @@ function handler(name: keyof PostCategoryController) {
   return PostCategoryController.prototype[name];
 }
 
-function permissionsFor(name: keyof PostCategoryController): string[] | undefined {
+function permissionsFor(
+  name: keyof PostCategoryController,
+): string[] | undefined {
   return Reflect.getMetadata(PERMISSIONS_KEY, handler(name));
 }
 
@@ -21,6 +30,18 @@ function guardsFor(name: keyof PostCategoryController): unknown[] {
 
 function campusMetadataFor(name: keyof PostCategoryController): unknown {
   return Reflect.getMetadata(REQUIRE_CAMPUS_ACCESS_KEY, handler(name));
+}
+
+function idParamPipeFor(name: "update" | "delete"): ParseUUIDPipe | undefined {
+  const args = Reflect.getMetadata(
+    ROUTE_ARGS_METADATA,
+    PostCategoryController,
+    name,
+  ) as Record<string, { data?: string; pipes?: unknown[] }> | undefined;
+  const idParam = Object.values(args ?? {}).find((arg) => arg.data === "id");
+  return idParam?.pipes?.find(
+    (pipe): pipe is ParseUUIDPipe => pipe instanceof ParseUUIDPipe,
+  );
 }
 
 describe("PostCategoryController RBAC route metadata", () => {
@@ -34,7 +55,7 @@ describe("PostCategoryController RBAC route metadata", () => {
   });
 
   it.each([
-    ["findAll", ["post.list", "post.manage"]],
+    ["findAll", ["post.create", "post.list", "post.manage"]],
     ["create", ["post.manage"]],
     ["update", ["post.manage"]],
     ["delete", ["post.manage"]],
@@ -47,16 +68,39 @@ describe("PostCategoryController RBAC route metadata", () => {
     },
   );
 
-  it.each([
-    "findAll",
-    "create",
-    "update",
-    "delete",
-    "reorder",
-  ] as Array<keyof PostCategoryController>)(
-    "%s requires campus context",
+  it.each(["findAll", "create", "update", "delete", "reorder"] as Array<
+    keyof PostCategoryController
+  >)("%s requires campus context", (methodName) => {
+    expect(campusMetadataFor(methodName)).toEqual({});
+  });
+
+  it.each(["create", "reorder"] as const)(
+    "%s documents Nest's default POST 201 status",
     (methodName) => {
-      expect(campusMetadataFor(methodName)).toEqual({});
+      const route = handler(methodName);
+      const responses = Reflect.getMetadata(
+        DECORATORS.API_RESPONSE,
+        route,
+      ) as Record<string, unknown>;
+
+      expect(Reflect.getMetadata(METHOD_METADATA, route)).toBe(
+        RequestMethod.POST,
+      );
+      expect(Reflect.getMetadata(HTTP_CODE_METADATA, route)).toBe(
+        HttpStatus.CREATED,
+      );
+      expect(responses).toHaveProperty(String(HttpStatus.CREATED));
+      expect(responses).not.toHaveProperty(String(HttpStatus.OK));
+    },
+  );
+
+  it.each(["update", "delete"] as const)(
+    "%s validates category IDs as UUID v4",
+    (methodName) => {
+      const pipe = idParamPipeFor(methodName);
+
+      expect(pipe).toBeInstanceOf(ParseUUIDPipe);
+      expect((pipe as unknown as { version: string }).version).toBe("4");
     },
   );
 });

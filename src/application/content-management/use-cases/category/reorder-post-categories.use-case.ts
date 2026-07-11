@@ -1,12 +1,11 @@
 import {
-  Injectable,
-  Inject,
   BadRequestException,
+  ConflictException,
+  Injectable,
   Logger,
 } from "@nestjs/common";
-import { PostCategory } from "@/domain/content-management";
-import { PostCategoryRepository } from "../../ports/post-category.repository";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
+import { PostCategory } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface ReorderPostCategoriesInput {
@@ -18,57 +17,85 @@ export interface ReorderPostCategoriesInput {
 export class ReorderPostCategoriesUseCase {
   private readonly logger = new Logger(ReorderPostCategoriesUseCase.name);
 
-  constructor(
-    @Inject("POST_CATEGORY_REPOSITORY")
-    private readonly postCategoryRepository: PostCategoryRepository,
-    private readonly unitOfWork: UnitOfWorkPort,
-  ) {}
+  constructor(private readonly unitOfWork: UnitOfWorkPort) {}
 
   async execute(
     input: ReorderPostCategoriesInput,
     currentUser: User,
   ): Promise<PostCategory[]> {
     this.logger.log(`Reordering ${input.ids.length} post categories`);
-
-    // Step 1: Validate all IDs exist
-    const missingIds: string[] = [];
-    for (const id of input.ids) {
-      const category = await this.postCategoryRepository.findById(id);
-      if (!category) {
-        missingIds.push(id);
-      }
-    }
-
-    if (missingIds.length > 0) {
+    if (input.ids.length === 0) {
       throw new BadRequestException(
-        `Post category(ies) not found: ${missingIds.join(", ")}`,
+        "At least one post category ID is required",
       );
     }
+    if (new Set(input.ids).size !== input.ids.length) {
+      throw new BadRequestException("Post category IDs must be unique");
+    }
 
-    // Step 2: Reorder categories within the campus
-    const beforeValue = { ids: [...input.ids] };
-    const reorderedCategories = await this.unitOfWork.run(async (tx) => {
-      const saved = await tx.reorderPostCategories(input.campusId, input.ids);
-      await tx.recordAudit({
-        actorId: currentUser.id,
-        action: "REORDER_POST_CATEGORIES",
-        targetType: "post_category",
-        targetId: saved[0]?.id.toString() ?? input.ids[0],
-        campusId: input.campusId,
-        context: {
-          actorName: currentUser.profile?.fullName ?? null,
-          orderedIds: input.ids,
-        },
-        beforeValue,
-        afterValue: { ids: saved.map((category) => category.id.toString()) },
+    try {
+      const reordered = await this.unitOfWork.run(async (tx) => {
+        await tx.lockPostCategoryCampus(input.campusId);
+        const active = await tx.findActivePostCategoriesForUpdate(
+          input.campusId,
+        );
+        const activeIds = active.map((category) => category.id.toString());
+        if (!this.hasSameIds(input.ids, activeIds)) {
+          throw new ConflictException(
+            "Post category order is stale; refresh the active categories and retry",
+          );
+        }
+
+        const saved = await tx.reorderPostCategories(input.campusId, input.ids);
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "REORDER_POST_CATEGORIES",
+          targetType: "post_category",
+          targetId: input.ids[0],
+          campusId: input.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            orderedIds: input.ids,
+          },
+          beforeValue: { ids: activeIds },
+          afterValue: { ids: input.ids },
+        });
+        return saved;
       });
-      return saved;
-    });
 
-    this.logger.log(
-      `Successfully reordered ${reorderedCategories.length} post categories`,
+      this.logger.log(`Successfully reordered ${reordered.length} categories`);
+      return reordered;
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+      if (this.isTransactionConflict(error)) {
+        throw new ConflictException(
+          "Post category order changed during reorder; refresh and retry",
+        );
+      }
+      throw error;
+    }
+  }
+
+  private hasSameIds(left: string[], right: string[]): boolean {
+    if (left.length !== right.length) return false;
+    const rightIds = new Set(right);
+    return left.every((id) => rightIds.has(id));
+  }
+
+  private isTransactionConflict(error: unknown): boolean {
+    if (
+      error instanceof Error &&
+      error.message.includes("active set changed")
+    ) {
+      return true;
+    }
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      ["P2034", "55P03"].includes(String((error as { code?: unknown }).code))
     );
-
-    return reorderedCategories;
   }
 }

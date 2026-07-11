@@ -7,6 +7,20 @@ export interface CreatePostOptions {
   categoryIds?: string[];
 }
 
+export interface IdempotentCreatePostOptions extends CreatePostOptions {
+  clientMutationId: string;
+  requestPayloadHash: string;
+}
+
+export interface IdempotentPostRecord {
+  post: Post;
+  requestPayloadHash: string;
+}
+
+export interface IdempotentCreatePostResult extends IdempotentPostRecord {
+  created: boolean;
+}
+
 export interface UpdatePostOptions {
   categoryIds?: string[];
 }

@@ -110,4 +110,29 @@ describe("PrismaUserMapper", () => {
     expect(user.profiles).toEqual([]);
     expect(user.profile).toBeNull();
   });
+
+  it("projects only profiles from the requested campus", () => {
+    const user = PrismaUserMapper.toDomainForCampus(
+      {
+        ...userRow,
+        userRoles: [],
+        staffs: [
+          staffRow,
+          { ...staffRow, id: "staff-2", campusId: "campus-b" },
+        ],
+        guardians: [guardianRow],
+      } as any,
+      "campus-b",
+    );
+
+    expect(user.profiles).toEqual([
+      expect.objectContaining({ id: "staff-2", campusId: "campus-b" }),
+      expect.objectContaining({ id: "guardian-1", campusId: "campus-b" }),
+    ]);
+    expect(user.profiles).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "staff-1", campusId: "campus-a" }),
+      ]),
+    );
+  });
 });

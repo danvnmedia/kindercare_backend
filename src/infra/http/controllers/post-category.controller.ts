@@ -6,6 +6,9 @@ import {
   Delete,
   Body,
   Param,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -62,7 +65,7 @@ export class PostCategoryController {
   @Get()
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
-  @Permissions("post.list", "post.manage")
+  @Permissions("post.create", "post.list", "post.manage")
   @StandardResponse({
     message: "Post categories retrieved successfully",
     type: PostCategoryResponse,
@@ -82,17 +85,24 @@ export class PostCategoryController {
   async findAll(
     @CampusContext() campusId: string,
     @StandardRequestParam() query: StandardRequestDto,
+    @CurrentUser() user: User,
   ) {
-    return await this.getAllPostCategoriesUseCase.execute(campusId, query);
+    return await this.getAllPostCategoriesUseCase.execute(
+      campusId,
+      query,
+      user,
+    );
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")
   @StandardResponse({
     message: "Post category created successfully",
     type: PostCategoryResponse,
+    status: HttpStatus.CREATED,
   })
   @ApiOperation({
     summary: "Create a new post category",
@@ -147,7 +157,7 @@ export class PostCategoryController {
   })
   async update(
     @CampusContext() campusId: string,
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
     @Body() dto: UpdatePostCategoryRequest,
     @CurrentUser() user: User,
   ) {
@@ -187,13 +197,14 @@ export class PostCategoryController {
   })
   async delete(
     @CampusContext() campusId: string,
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
     @CurrentUser() user: User,
   ) {
     return await this.deletePostCategoryUseCase.execute(id, campusId, user);
   }
 
   @Post("reorder")
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
   @Permissions("post.manage")
@@ -201,6 +212,7 @@ export class PostCategoryController {
     message: "Post categories reordered successfully",
     type: PostCategoryResponse,
     isArray: true,
+    status: HttpStatus.CREATED,
   })
   @ApiOperation({
     summary: "Reorder post categories",

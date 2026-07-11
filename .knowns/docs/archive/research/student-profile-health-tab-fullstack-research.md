@@ -2,13 +2,14 @@
 title: Student Profile Health Tab Fullstack Research
 description: Fullstack research input for a Student Profile Health tab spec, combining backend support/gaps with frontend route, component, and data integration findings.
 createdAt: '2026-06-30T18:37:09.643Z'
-updatedAt: '2026-06-30T18:37:09.643Z'
+updatedAt: '2026-07-10T22:05:08.450Z'
 tags:
   - health
   - student-health
   - student-profile
   - backend-spec
   - frontend
+  - archived
 ---
 
 # Student Profile Health Tab Fullstack Research
@@ -21,8 +22,8 @@ The immediate user request is to create a `kn-spec` for the Student Health tab a
 
 ## Source Context
 
-- @doc/frontend-handoff/student-health-management-frontend-handoff
-- @doc/research/student-health-management-backend-research
+- @doc/archive/frontend-handoff/student-health-management-frontend-handoff
+- @doc/archive/research/student-health-management-backend-research
 - Frontend repo: `/Users/howznguyen/Workspaces/DHA-Enterprise/kindercare_frontend`
 - Frontend docs inspected:
   - `.knowns/docs/specs/2026-07-01/student-profile-health-tab.md`

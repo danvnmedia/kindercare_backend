@@ -35,6 +35,14 @@ class CreateAudienceDto {
 
 export class CreatePostRequest {
   @ApiProperty({
+    description:
+      "Client-generated UUID used to safely replay this create request",
+    example: "8c05d3f1-7430-42b8-b6cf-9c235af23e15",
+  })
+  @IsUUID()
+  clientMutationId: string;
+
+  @ApiProperty({
     description: "The title of the post",
     example: "Welcome to our school",
   })

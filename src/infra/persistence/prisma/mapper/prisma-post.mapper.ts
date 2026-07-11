@@ -21,18 +21,32 @@ import {
 import { PrismaUserMapper } from "./prisma-user.mapper";
 import { PostContent } from "@/domain/content-management/entities/post.entity";
 
-type PrismaUserWithProfile = PrismaUser & {
-  guardian?: PrismaGuardian | null;
-  staff?: PrismaStaff | null;
+type PrismaUserWithProfiles = PrismaUser & {
+  guardians?: PrismaGuardian[];
+  staffs?: PrismaStaff[];
 };
 
 type PrismaPostCategoryLinkWithCategory = PrismaPostCategoryLink & {
   category: PrismaPostCategory;
 };
 
+type PrismaPostAudienceWithClass = PrismaPostAudience & {
+  class?: { id: string; name: string } | null;
+};
+
+type PostAudienceReadProps = {
+  postId: string;
+  campusId: string;
+  audienceType: AudienceType;
+  audienceId: string;
+  type: AudienceType;
+  classId?: string;
+  class?: { id: string; name: string };
+};
+
 export type PrismaPostWithRelations = PrismaPost & {
-  author: PrismaUserWithProfile;
-  audiences: PrismaPostAudience[];
+  author: PrismaUserWithProfiles;
+  audiences: PrismaPostAudienceWithClass[];
   attachments: PrismaAttachmentWithFile[];
   categories?: PrismaPostCategoryLinkWithCategory[];
 };
@@ -46,7 +60,10 @@ export class PrismaPostMapper {
       {
         campusId: prismaPost.campusId,
         authorId: prismaPost.authorId,
-        author: PrismaUserMapper.toDomain(prismaPost.author),
+        author: PrismaUserMapper.toDomainForCampus(
+          prismaPost.author,
+          prismaPost.campusId,
+        ),
         title: prismaPost.title,
         content: prismaPost.content as PostContent,
         contentText: prismaPost.contentText,
@@ -59,7 +76,9 @@ export class PrismaPostMapper {
         requiresApproval: prismaPost.requiresApproval,
         isDeleted: prismaPost.isDeleted,
         deletedAt: prismaPost.deletedAt,
-        audiences: [],
+        audiences: prismaPost.audiences.map((audience) =>
+          PrismaPostMapper.toDomainPostAudience(audience),
+        ),
         attachments: PrismaAttachmentMapper.toDomainArray(
           prismaPost.attachments,
         ),
@@ -172,6 +191,47 @@ export class PrismaPostMapper {
     return prismaPosts.map((prismaPost) =>
       PrismaPostMapper.toDomain(prismaPost),
     );
+  }
+
+  private static toDomainPostAudience(
+    prismaPostAudience: PrismaPostAudienceWithClass,
+  ): PostAudience {
+    const audienceType = prismaPostAudience.type as AudienceType;
+    let audienceId: string;
+
+    switch (audienceType) {
+      case AudienceType.ALL:
+        audienceId = prismaPostAudience.campusId;
+        break;
+      case AudienceType.CLASS:
+        if (!prismaPostAudience.classId) {
+          throw new Error(
+            `Post audience ${prismaPostAudience.id} is CLASS but has no classId`,
+          );
+        }
+        audienceId = prismaPostAudience.classId;
+        break;
+      default:
+        throw new Error(
+          `Unsupported post audience type: ${prismaPostAudience.type}`,
+        );
+    }
+
+    const props: PostAudienceReadProps = {
+      postId: prismaPostAudience.postId,
+      campusId: prismaPostAudience.campusId,
+      audienceType,
+      audienceId,
+      type: audienceType,
+      ...(audienceType === AudienceType.CLASS
+        ? {
+            classId: prismaPostAudience.classId ?? undefined,
+            class: prismaPostAudience.class ?? undefined,
+          }
+        : {}),
+    };
+
+    return PostAudience.create(props, prismaPostAudience.id);
   }
 
   static toPrismaPostAudience(postAudience: PostAudience) {

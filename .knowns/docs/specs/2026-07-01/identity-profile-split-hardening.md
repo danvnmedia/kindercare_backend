@@ -2,7 +2,7 @@
 title: Identity Profile Split Hardening
 description: Specification for hardening global identity versus campus profile lifecycle, staff access, auth profile projection, student account flag behavior, and super-admin identity operations.
 createdAt: '2026-07-01T01:52:46.033Z'
-updatedAt: '2026-07-01T02:24:27.969Z'
+updatedAt: '2026-07-10T22:04:59.859Z'
 tags:
   - spec
   - approved
@@ -26,7 +26,7 @@ Harden the backend around a clear split between global login identity and campus
 
 This spec intentionally covers lifecycle/auth hardening, not create-or-attach implementation. Guardian create-or-attach remains covered by @doc/specs/2026-07-01/parent-multi-campus-existing-account, and staff create-or-attach remains covered by @doc/specs/2026-07-01/staff-multi-campus-existing-account. Both create-or-attach specs should rely on the lifecycle semantics defined here.
 
-Supporting research: @doc/research/identity-profile-split-backend-research.
+Supporting research: @doc/archive/research/identity-profile-split-backend-research.
 
 ## Locked Decisions
 
@@ -180,7 +180,7 @@ Supporting research: @doc/research/identity-profile-split-backend-research.
 
 ## Technical Notes
 
-- Current research details live in @doc/research/identity-profile-split-backend-research.
+- Current research details live in @doc/archive/research/identity-profile-split-backend-research.
 - Related parent/guardian attach spec: @doc/specs/2026-07-01/parent-multi-campus-existing-account.
 - Related staff attach spec: @doc/specs/2026-07-01/staff-multi-campus-existing-account.
 - Existing schema already supports `User` to many `Staff`/`Guardian` profiles through `@@unique([campusId, userId])`; `Student` has no identity link today.

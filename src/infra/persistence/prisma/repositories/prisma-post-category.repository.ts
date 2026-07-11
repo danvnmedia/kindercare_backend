@@ -36,6 +36,7 @@ export class PrismaPostCategoryRepository implements PostCategoryRepository {
       params,
       {
         where: { campusId },
+        orderBy: [{ order: "asc" }, { id: "asc" }],
       },
       PrismaPostCategoryMapper,
     );

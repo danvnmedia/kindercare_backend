@@ -1,4 +1,4 @@
-import { SetMetadata } from "@nestjs/common";
+import { HttpStatus, SetMetadata } from "@nestjs/common";
 import { ApiQuery, ApiResponse } from "@nestjs/swagger";
 import { createStandardResponseClass } from "../dto/standard-response.dto";
 
@@ -13,6 +13,7 @@ export interface StandardResponseOptions {
   maxLimit?: number;
   allowedSortFields?: string[];
   allowedFilterFields?: string[];
+  status?: HttpStatus;
 }
 
 export const STANDARD_RESPONSE_KEY = "standard_response";
@@ -34,7 +35,7 @@ export function StandardResponse(options: StandardResponseOptions) {
     const isArray = options.isArray || false;
     const allowedSortFields = options.allowedSortFields || [];
     const allowedFilterFields = options.allowedFilterFields || [];
-    const defaultLimit = options.defaultLimit || 20;
+    const defaultLimit = options.defaultLimit || 10;
     const maxLimit = options.maxLimit || 50;
 
     const ResponseClass = createStandardResponseClass(
@@ -44,7 +45,7 @@ export function StandardResponse(options: StandardResponseOptions) {
     );
 
     ApiResponse({
-      status: 200,
+      status: options.status ?? HttpStatus.OK,
       description: message,
       type: ResponseClass,
     })(target as object, propertyKey, descriptor);

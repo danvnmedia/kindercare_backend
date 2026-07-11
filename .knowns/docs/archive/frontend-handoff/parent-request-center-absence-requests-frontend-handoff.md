@@ -2,7 +2,7 @@
 title: Parent Request Center Absence Requests Frontend Handoff
 description: Frontend-to-backend handoff for Parent Request Center Absence Requests, updated with implemented frontend surfaces and parent self-service auth follow-up.
 createdAt: '2026-06-26T15:25:50.525Z'
-updatedAt: '2026-06-27T17:19:09.751Z'
+updatedAt: '2026-07-10T22:05:07.910Z'
 tags:
   - frontend-handoff
   - parent-request-center
@@ -10,6 +10,7 @@ tags:
   - api
   - auth
   - follow-up
+  - archived
 ---
 
 ## Purpose

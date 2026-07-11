@@ -2,19 +2,20 @@
 title: Parent Request Center Absence Requests Backend Research
 description: Backend research and spec-shaping notes for Parent Request Center Absence Requests based on the frontend handoff and existing backend architecture.
 createdAt: '2026-06-26T15:47:07.258Z'
-updatedAt: '2026-06-26T15:47:07.258Z'
+updatedAt: '2026-07-10T22:05:07.479Z'
 tags:
   - research
   - parent-request-center
   - absence-requests
   - backend-spec
+  - archived
 ---
 
 # Parent Request Center Absence Requests Backend Research
 
 ## Purpose
 
-Prepare backend spec input for @doc/frontend-handoff/parent-request-center-absence-requests-frontend-handoff.
+Prepare backend spec input for @doc/archive/frontend-handoff/parent-request-center-absence-requests-frontend-handoff.
 
 The frontend wants Parent Request Center v1 with Absence Requests as the only active workflow. Parents/guardians submit absence requests for linked children in the current campus; admins list, filter, approve, or deny those requests. Medical Instructions are out of scope except for a disabled/coming-later frontend state.
 

@@ -2,7 +2,7 @@
 title: Parent Request Center Absence Requests Backend
 description: Specification for backend support of Parent Request Center absence requests.
 createdAt: '2026-06-26T16:21:02.751Z'
-updatedAt: '2026-06-26T16:24:23.815Z'
+updatedAt: '2026-07-10T22:05:02.174Z'
 tags:
   - spec
   - approved
@@ -18,7 +18,7 @@ Build backend support for Parent Request Center absence requests. Parents can se
 
 This is a new backend vertical slice named `absence-request` with route base `absence-requests`. V1 stores and reviews absence requests only; it must not create, update, or infer attendance records.
 
-Supporting research: @doc/research/parent-request-center-absence-requests-backend-research
+Supporting research: @doc/archive/research/parent-request-center-absence-requests-backend-research
 
 ## Locked Decisions
 
