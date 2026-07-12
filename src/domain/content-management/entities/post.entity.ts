@@ -457,10 +457,14 @@ export class Post extends Entity<PostProps> {
 
   /**
    * Check if post can receive reactions/comments.
-   * Only published, non-deleted posts can receive engagement.
+   * Scheduled posts cannot receive engagement before their publish date.
    */
-  public canReceiveEngagement(): boolean {
-    return this.isPublished() && !this.props.isDeleted;
+  public canReceiveEngagement(now = new Date()): boolean {
+    return (
+      this.isPublished() &&
+      !this.props.isDeleted &&
+      (!this.props.publishAt || this.props.publishAt <= now)
+    );
   }
 
   /**

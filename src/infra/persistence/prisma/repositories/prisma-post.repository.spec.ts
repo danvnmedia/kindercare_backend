@@ -192,7 +192,13 @@ describe("PrismaPostRepository", () => {
           campusId: "campus-2",
           isDeleted: false,
           AND: [
-            { status: PostStatus.PUBLISHED },
+            {
+              status: PostStatus.PUBLISHED,
+              OR: [
+                { publishAt: null },
+                { publishAt: { lte: expect.any(Date) } },
+              ],
+            },
             {
               OR: [
                 {
@@ -248,8 +254,52 @@ describe("PrismaPostRepository", () => {
           isPinned: true,
           AND: expect.arrayContaining([
             expect.objectContaining({
-              AND: expect.arrayContaining([{ status: PostStatus.PUBLISHED }]),
+              status: PostStatus.PUBLISHED,
+              OR: [
+                { publishAt: null },
+                { publishAt: { lte: expect.any(Date) } },
+              ],
             }),
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("keeps future-scheduled posts out of pinned reads for managers", async () => {
+    const viewer = createUser({
+      profiles: [staffProfile("manager-campus-1", "campus-1")],
+      roleAssignments: [
+        createRoleAssignment(
+          createRole({
+            permissions: [
+              {
+                id: "post.manage",
+                module: "post",
+                description: null,
+                createdAt: new Date(),
+              },
+            ],
+          }),
+          "campus-1",
+        ),
+      ],
+    });
+    postDelegate.findMany.mockResolvedValue([]);
+
+    await repository.findPinnedByCampus("campus-1", viewer);
+
+    expect(postDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              status: PostStatus.PUBLISHED,
+              OR: [
+                { publishAt: null },
+                { publishAt: { lte: expect.any(Date) } },
+              ],
+            },
           ]),
         }),
       }),
@@ -284,7 +334,13 @@ describe("PrismaPostRepository", () => {
         AND: [
           {
             OR: [
-              { status: PostStatus.PUBLISHED },
+              {
+                status: PostStatus.PUBLISHED,
+                OR: [
+                  { publishAt: null },
+                  { publishAt: { lte: expect.any(Date) } },
+                ],
+              },
               { authorId: "staff-user-1" },
             ],
           },
@@ -320,6 +376,84 @@ describe("PrismaPostRepository", () => {
     },
   );
 
+  it("does not let a campus A system role grant unpublished visibility in campus B", async () => {
+    const viewer = createUser({
+      id: "staff-user-1",
+      profiles: [staffProfile("staff-campus-2", "campus-2")],
+      roleAssignments: [
+        createRoleAssignment(
+          createRole({ campusId: "campus-1", isSystemRole: true }),
+          "campus-1",
+        ),
+        createRoleAssignment(
+          createRole({
+            campusId: "campus-2",
+            permissions: [
+              {
+                id: "post.read",
+                module: "post",
+                description: null,
+                createdAt: new Date(),
+              },
+            ],
+          }),
+          "campus-2",
+        ),
+      ],
+    });
+
+    await repository.findMany({}, { campusId: "campus-2" }, viewer);
+
+    const [, , , options] = queryService.executeQuery.mock.calls[0];
+    expect(options!.where).toEqual(
+      expect.objectContaining({
+        AND: [
+          {
+            OR: [
+              {
+                status: PostStatus.PUBLISHED,
+                OR: [
+                  { publishAt: null },
+                  { publishAt: { lte: expect.any(Date) } },
+                ],
+              },
+              { authorId: "staff-user-1" },
+            ],
+          },
+        ],
+      }),
+    );
+  });
+
+  it("allows a globally assigned system role unpublished visibility in campus B", async () => {
+    const viewer = createUser({
+      profiles: [staffProfile("staff-campus-2", "campus-2")],
+      roleAssignments: [
+        createRoleAssignment(createRole({ isSystemRole: true })),
+        createRoleAssignment(
+          createRole({
+            campusId: "campus-2",
+            permissions: [
+              {
+                id: "post.read",
+                module: "post",
+                description: null,
+                createdAt: new Date(),
+              },
+            ],
+          }),
+          "campus-2",
+        ),
+      ],
+    });
+
+    await repository.findMany({}, { campusId: "campus-2" }, viewer);
+
+    const [, , , options] = queryService.executeQuery.mock.calls[0];
+    expect(options!.where).not.toHaveProperty("OR");
+    expect(options!.where).not.toHaveProperty("AND");
+  });
+
   it("fails closed when the guardian has no active profile in the requested campus", async () => {
     const viewer = createUser({
       profiles: [guardianProfile("guardian-campus-1", "campus-1")],
@@ -350,7 +484,12 @@ describe("PrismaPostRepository", () => {
     });
     expect(options!.where).toEqual(
       expect.objectContaining({
-        AND: expect.arrayContaining([{ status: PostStatus.PUBLISHED }]),
+        AND: expect.arrayContaining([
+          expect.objectContaining({
+            status: PostStatus.PUBLISHED,
+            OR: [{ publishAt: null }, { publishAt: { lte: expect.any(Date) } }],
+          }),
+        ]),
       }),
     );
   });

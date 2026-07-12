@@ -31,7 +31,19 @@ function publishedPost(): Post {
 }
 
 describe("ArchivePostUseCase", () => {
-  const author = createUser({ id: AUTHOR_ID });
+  const author = createUser({
+    id: AUTHOR_ID,
+    roleAssignments: [
+      createRoleAssignment(
+        createRole({
+          permissions: [
+            createPermission({ id: "post.update", module: "post" }),
+          ],
+        }),
+        DEFAULT_CAMPUS_ID_A,
+      ),
+    ],
+  });
   const updaterOnly = createUser({
     id: USER_ID,
     roleAssignments: [

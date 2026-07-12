@@ -17,7 +17,11 @@ function createFileRepositoryMock(): jest.Mocked<FileRepository> {
     findByCampus: jest.fn(),
     existsByIdAndCampus: jest.fn(),
     findByKey: jest.fn(),
-    findStalePending: jest.fn(),
+    findCleanupCandidates: jest.fn(),
+    transitionStatus: jest.fn(),
+    claimStaleForCleanup: jest.fn(),
+    completeCleanup: jest.fn(),
+    softDeleteIfUnattached: jest.fn(),
   } as unknown as jest.Mocked<FileRepository>;
 }
 

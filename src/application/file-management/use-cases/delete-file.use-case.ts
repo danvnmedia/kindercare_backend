@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -39,14 +40,25 @@ export class DeleteFileUseCase {
     if (file.uploadedBy !== deletedBy && !canDeleteAny) {
       return left(
         new ForbiddenException(
-          "Only the uploader or a user with file delete permission can delete this file.",
+          "Only the uploader or a user with file.manage can delete this file.",
         ),
       );
     }
 
-    // Soft delete - mark as deleted but keep the file in storage for potential recovery
-    file.markAsDeleted();
-    await this.fileRepository.update(file);
+    const result = await this.fileRepository.softDeleteIfUnattached(
+      file.id,
+      campusId,
+    );
+    if (result === "ATTACHED") {
+      return left(
+        new ConflictException(
+          "Attached files cannot be deleted. Remove the post attachment first.",
+        ),
+      );
+    }
+    if (result === "NOT_FOUND") {
+      return left(new NotFoundException("File not found."));
+    }
 
     return right(undefined);
   }

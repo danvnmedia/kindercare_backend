@@ -1,7 +1,9 @@
 import {
+  getRequiredPostTransitionPermission,
   userCanManagePost,
   userHasPostPermission,
 } from "./post-permission.helper";
+import { PostTransitionAction } from "@/domain/content-management/enums";
 import { Role } from "@/domain/user-management/role.entity";
 import { User } from "@/domain/user-management/user.entity";
 
@@ -76,6 +78,24 @@ describe("userHasPostPermission", () => {
         "post.review",
       ),
     ).toBe(false);
+  });
+});
+
+describe("getRequiredPostTransitionPermission", () => {
+  it.each([PostTransitionAction.APPROVE, PostTransitionAction.REJECT])(
+    "maps %s to post.review",
+    (action) => {
+      expect(getRequiredPostTransitionPermission(action)).toBe("post.review");
+    },
+  );
+
+  it.each([
+    PostTransitionAction.ARCHIVE,
+    PostTransitionAction.PUBLISH,
+    PostTransitionAction.REVISE,
+    PostTransitionAction.SUBMIT,
+  ])("maps %s to post.update", (action) => {
+    expect(getRequiredPostTransitionPermission(action)).toBe("post.update");
   });
 });
 

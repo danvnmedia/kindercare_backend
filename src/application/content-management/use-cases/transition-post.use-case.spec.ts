@@ -1,8 +1,14 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
 
 import { Post } from "@/domain/content-management";
 import { PostTransitionAction } from "@/domain/content-management/enums";
-import { DEFAULT_CAMPUS_ID_A, createUser } from "@/test-utils";
+import {
+  DEFAULT_CAMPUS_ID_A,
+  createPermission,
+  createRole,
+  createRoleAssignment,
+  createUser,
+} from "@/test-utils";
 
 import { ApprovePostUseCase } from "./approve-post.use-case";
 import { ArchivePostUseCase } from "./archive-post.use-case";
@@ -24,7 +30,21 @@ const post = Post.create(
 );
 
 describe("TransitionPostUseCase", () => {
-  const user = createUser({ id: USER_ID });
+  const userWithPermissions = (...permissionIds: string[]) =>
+    createUser({
+      id: USER_ID,
+      roleAssignments: [
+        createRoleAssignment(
+          createRole({
+            permissions: permissionIds.map((id) =>
+              createPermission({ id, module: "post" }),
+            ),
+          }),
+          DEFAULT_CAMPUS_ID_A,
+        ),
+      ],
+    });
+  const user = userWithPermissions("post.update", "post.review");
   let approve: { execute: jest.Mock };
   let archive: { execute: jest.Mock };
   let publish: { execute: jest.Mock };
@@ -80,6 +100,51 @@ describe("TransitionPostUseCase", () => {
         user,
         "Transition context",
       );
+    },
+  );
+
+  it.each([PostTransitionAction.APPROVE, PostTransitionAction.REJECT])(
+    "requires post.review for %s",
+    async (action) => {
+      await expect(
+        useCase.execute(
+          DEFAULT_CAMPUS_ID_A,
+          POST_ID,
+          action,
+          userWithPermissions("post.update"),
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    },
+  );
+
+  it.each([
+    PostTransitionAction.ARCHIVE,
+    PostTransitionAction.PUBLISH,
+    PostTransitionAction.REVISE,
+    PostTransitionAction.SUBMIT,
+  ])("requires post.update for %s", async (action) => {
+    await expect(
+      useCase.execute(
+        DEFAULT_CAMPUS_ID_A,
+        POST_ID,
+        action,
+        userWithPermissions("post.review"),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it.each(Object.values(PostTransitionAction))(
+    "lets post.manage perform %s",
+    async (action) => {
+      await expect(
+        useCase.execute(
+          DEFAULT_CAMPUS_ID_A,
+          POST_ID,
+          action,
+          userWithPermissions("post.manage"),
+          action === PostTransitionAction.REJECT ? "Reason" : undefined,
+        ),
+      ).resolves.toBe(post);
     },
   );
 

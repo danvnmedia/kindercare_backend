@@ -132,6 +132,44 @@ describe("BatchTransitionPostUseCase", () => {
     expect(transitionPostUseCase.execute).not.toHaveBeenCalled();
   });
 
+  it("maps revise to post.update instead of post.review", async () => {
+    const reviewerOnly = createUser({
+      id: USER_ID,
+      roleAssignments: [
+        createRoleAssignment(
+          createRole({
+            permissions: [
+              createPermission({ id: "post.review", module: "post" }),
+            ],
+          }),
+          DEFAULT_CAMPUS_ID_A,
+        ),
+      ],
+    });
+
+    await expect(
+      useCase.execute(
+        DEFAULT_CAMPUS_ID_A,
+        [POST_ID_A],
+        PostTransitionAction.REVISE,
+        reviewerOnly,
+      ),
+    ).rejects.toThrow("permission to revise posts");
+    expect(transitionPostUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it("rejects unknown actions before processing any post", async () => {
+    await expect(
+      useCase.execute(
+        DEFAULT_CAMPUS_ID_A,
+        [POST_ID_A],
+        "unknown" as PostTransitionAction,
+        user,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(transitionPostUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it("rejects a blank batch rejection comment before processing any post", async () => {
     await expect(
       useCase.execute(

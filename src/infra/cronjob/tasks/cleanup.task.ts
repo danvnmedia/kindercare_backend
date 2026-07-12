@@ -18,7 +18,7 @@ export class CleanupTask {
       const result = await this.cleanupStalePendingUploadsUseCase.execute();
 
       this.logger.log(
-        `Cleanup task completed successfully: stalePending=${result.scanned}, markedError=${result.markedError}, objectsDeleted=${result.objectsDeleted}`,
+        `Cleanup task completed: candidates=${result.scanned}, markedError=${result.markedError}, objectsDeleted=${result.objectsDeleted}, cleanupFinalized=${result.cleanupFinalized}, finalizationConflicts=${result.finalizationConflicts}, finalizationFailures=${result.finalizationFailures}`,
       );
     } catch (error) {
       this.logger.error("Cleanup task failed", error);
@@ -36,7 +36,7 @@ export class CleanupTask {
       });
 
       this.logger.log(
-        `Daily cleanup task completed successfully: stalePending=${result.scanned}, markedError=${result.markedError}, objectsDeleted=${result.objectsDeleted}`,
+        `Daily cleanup task completed: candidates=${result.scanned}, markedError=${result.markedError}, objectsDeleted=${result.objectsDeleted}, cleanupFinalized=${result.cleanupFinalized}, finalizationConflicts=${result.finalizationConflicts}, finalizationFailures=${result.finalizationFailures}`,
       );
     } catch (error) {
       this.logger.error("Daily cleanup task failed", error);

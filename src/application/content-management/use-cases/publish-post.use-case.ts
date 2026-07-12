@@ -14,7 +14,10 @@ import {
 } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
-import { userCanManagePost } from "./authorization/post-permission.helper";
+import {
+  userCanManagePost,
+  userHasPostPermission,
+} from "./authorization/post-permission.helper";
 
 @Injectable()
 export class PublishPostUseCase {
@@ -30,6 +33,11 @@ export class PublishPostUseCase {
   ): Promise<Post> {
     try {
       this.logger.log(`Publishing post: ${postId}`);
+      if (!userHasPostPermission(currentUser, campusId, "post.update")) {
+        throw new ForbiddenException(
+          "You do not have permission to publish posts",
+        );
+      }
 
       const updatedPost = await this.unitOfWork.run(async (tx) => {
         const post = await tx.findPostByIdForUpdate(postId);

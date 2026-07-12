@@ -1,3 +1,4 @@
+import { PostTransitionAction } from "@/domain/content-management/enums";
 import { RoleEntity } from "@/domain/user-management/role.entity";
 import { User } from "@/domain/user-management/user.entity";
 
@@ -22,6 +23,23 @@ export function userHasPostPermission(
         RoleEntity.hasPermissionById(role, permissionId) ||
         RoleEntity.hasPermissionById(role, POST_PERMISSION_MANAGE),
     );
+}
+
+export function getRequiredPostTransitionPermission(
+  action: PostTransitionAction,
+): "post.review" | "post.update" | null {
+  switch (action) {
+    case PostTransitionAction.APPROVE:
+    case PostTransitionAction.REJECT:
+      return "post.review";
+    case PostTransitionAction.ARCHIVE:
+    case PostTransitionAction.PUBLISH:
+    case PostTransitionAction.REVISE:
+    case PostTransitionAction.SUBMIT:
+      return "post.update";
+    default:
+      return null;
+  }
 }
 
 export function userCanManagePost(

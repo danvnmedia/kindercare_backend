@@ -181,8 +181,17 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
   // File permissions
   { id: "file.create", module: "file", description: "Upload a file" },
   { id: "file.read", module: "file", description: "View/download file" },
-  { id: "file.delete", module: "file", description: "Delete a file" },
+  {
+    id: "file.delete",
+    module: "file",
+    description: "Delete files uploaded by the current user",
+  },
   { id: "file.list", module: "file", description: "List all files" },
+  {
+    id: "file.manage",
+    module: "file",
+    description: "Delete eligible files uploaded by any user",
+  },
 
   // Role permissions
   { id: "role.create", module: "role", description: "Create a new role" },

@@ -6,7 +6,13 @@ import {
   PostApprovalRequest,
   PostStatus,
 } from "@/domain/content-management";
-import { DEFAULT_CAMPUS_ID_A, createUser } from "@/test-utils";
+import {
+  DEFAULT_CAMPUS_ID_A,
+  createPermission,
+  createRole,
+  createRoleAssignment,
+  createUser,
+} from "@/test-utils";
 
 import { RevisePostUseCase } from "./revise-post.use-case";
 
@@ -38,7 +44,19 @@ function pendingRequest(): PostApprovalRequest {
 }
 
 describe("RevisePostUseCase", () => {
-  const author = createUser({ id: AUTHOR_ID });
+  const author = createUser({
+    id: AUTHOR_ID,
+    roleAssignments: [
+      createRoleAssignment(
+        createRole({
+          permissions: [
+            createPermission({ id: "post.update", module: "post" }),
+          ],
+        }),
+        DEFAULT_CAMPUS_ID_A,
+      ),
+    ],
+  });
   let tx: {
     findPostByIdForUpdate: jest.Mock;
     findLatestPostApprovalRequestForUpdate: jest.Mock;

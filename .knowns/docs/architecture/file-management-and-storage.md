@@ -2,7 +2,7 @@
 title: File Management and Storage
 description: File upload lifecycle, storage abstraction, CMS attachments, and the presigned R2 upload flow
 createdAt: '2026-05-05T17:48:59.131Z'
-updatedAt: '2026-07-10T21:24:54.806Z'
+updatedAt: '2026-07-12T04:29:33.637Z'
 tags:
   - architecture
   - file
@@ -313,3 +313,53 @@ The CMS file-upload campus contract is header-scoped: `POST /files/initiate-uplo
 The aligned CMS contract also retains comment authors and stable public-comment pagination, persists workflow comments as history reasons, validates category limits/order consistently, returns resulting post state from attachment reorder, documents list limit `10`, and explicitly aligns CMS POST runtime/OpenAPI status `201`.
 
 Validation: backend build and focused alignment tests passed. Full-suite execution encountered unrelated audit-action fixture drift in `src/cli/export-audit-actions.spec.ts`.
+
+
+## CMS cross-repository validation batch 1 — 2026-07-12
+
+Status: blocked.
+
+Confirmed upload route shape remains initiate, direct storage PUT, then complete. Campus is transported by X-Campus-Id; POST attachment upload initiation omits campusId from JSON.
+
+Blockers found:
+
+- file.delete currently acts as delete-any within the selected campus rather than separating owner deletion from elevated deletion.
+- Attached files can be soft-deleted without checking Attachment references.
+- Embedded attachment serialization can omit the required read URL.
+- Complete-upload and stale pending cleanup have a state race capable of leaving metadata and object storage inconsistent.
+
+Other risks: URL signing failure after persisting UPLOADED is non-retryable; file delete bypasses the standard response envelope; initiation and completion lack endpoint throttling or quotas.
+
+
+## CMS upload executable-flow review batch 3 — 2026-07-12
+
+Verdict: blocked after successful request-contract trace.
+
+The frontend and backend agree on X-Campus-Id, initiate-upload JSON, presigned PUT, complete, post create or update, attachment add, and reorder. Required production environment includes frontend API and R2 host allowlists, backend R2 credentials and bucket, CORS origin, bucket PUT CORS, Clerk configuration, migrated DB, active campus, and seeded permissions.
+
+Release gates:
+
+- Every embedded attachment must receive a backend-resolved read URL; standalone GET /files URL generation is insufficient.
+- File owner deletion and elevated delete-any must use distinct authorization semantics.
+- Files referenced by attachments must not be soft-deleted directly.
+- Complete-upload and stale cleanup require an atomic status claim or compare-and-set.
+- URL-signing failure after persisting UPLOADED needs recoverable behavior.
+- Uploaded unattached objects need a physical cleanup policy.
+
+No cross-repository E2E harness currently proves R2, browser CORS, rendering, download, cleanup, or concurrency behavior.
+
+
+## CMS release hardening implementation wave 1 — 2026-07-12
+
+Implemented:
+
+- Post responses hydrate embedded attachment read URLs through a per-response deduplicating interceptor with bounded signing concurrency.
+- file.delete is owner-scoped; new file.manage provides elevated delete-any authority.
+- Attached files cannot be soft-deleted.
+- Completion uses conditional PENDING-to-UPLOADED transition and returns idempotent success when another completion wins.
+- Cleanup claims stale rows atomically, retries stale ERROR rows, prevents concurrent cleanup workers, and soft-deletes successfully cleaned records.
+- Attachment signing failures return service-unavailable semantics.
+
+Deployment requirement: run permission seeding and assign file.manage only to trusted elevated roles before relying on administrative delete-any. Mutation responses that fail URL signing after commit remain retry-sensitive; clients should refetch authoritative state before retrying.
+
+Validation: targeted file/attachment suites and backend build passed. Final review follows this update.

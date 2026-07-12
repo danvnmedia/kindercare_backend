@@ -10,6 +10,7 @@ import { PostCommentRepository } from "../../ports/post-comment.repository";
 import { PostComment } from "@/domain/content-management";
 import { PostCommentType } from "@/domain/content-management/entities/post-comment.entity";
 import { User } from "@/domain/user-management/user.entity";
+import { userHasPostPermission } from "../authorization/post-permission.helper";
 
 @Injectable()
 export class DeletePostCommentUseCase {
@@ -59,6 +60,7 @@ export class DeletePostCommentUseCase {
         comment,
         currentUser,
         post.authorId,
+        campusId,
       );
       if (!canDelete) {
         throw new ForbiddenException(
@@ -83,14 +85,14 @@ export class DeletePostCommentUseCase {
     comment: PostComment,
     user: User,
     postAuthorId: string,
+    campusId: string,
   ): boolean {
     // Comment owner can delete
     if (comment.userId === user.id) {
       return true;
     }
 
-    // Check if user has system role (admin bypass)
-    if (user.hasSystemRole()) {
+    if (userHasPostPermission(user, campusId, "post.manage")) {
       return true;
     }
 

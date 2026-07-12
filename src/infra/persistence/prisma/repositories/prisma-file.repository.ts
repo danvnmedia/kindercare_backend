@@ -7,6 +7,7 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
+import { SoftDeleteFileResult } from "@/application/file-management/ports/file.repository";
 
 @Injectable()
 export class PrismaFileRepository implements FileRepository {
@@ -110,10 +111,10 @@ export class PrismaFileRepository implements FileRepository {
     return file ? PrismaFileMapper.toDomain(file) : null;
   }
 
-  async findStalePending(cutoff: Date, limit: number): Promise<File[]> {
+  async findCleanupCandidates(cutoff: Date, limit: number): Promise<File[]> {
     const files = await this.prisma.file.findMany({
       where: {
-        status: FileStatus.PENDING,
+        status: { in: [FileStatus.PENDING, FileStatus.ERROR] },
         isDeleted: false,
         updatedAt: { lt: cutoff },
       },
@@ -121,5 +122,81 @@ export class PrismaFileRepository implements FileRepository {
       take: limit,
     });
     return files.map(PrismaFileMapper.toDomain);
+  }
+
+  async transitionStatus(
+    id: string,
+    expectedStatus: FileStatus,
+    nextStatus: FileStatus,
+  ): Promise<boolean> {
+    const result = await this.prisma.file.updateMany({
+      where: { id, status: expectedStatus, isDeleted: false },
+      data: { status: nextStatus },
+    });
+    return result.count === 1;
+  }
+
+  async claimStaleForCleanup(
+    id: string,
+    expectedStatus: FileStatus,
+    cutoff: Date,
+  ): Promise<Date | null> {
+    if (
+      expectedStatus !== FileStatus.PENDING &&
+      expectedStatus !== FileStatus.ERROR
+    ) {
+      return null;
+    }
+
+    const leaseToken = new Date();
+    const result = await this.prisma.file.updateMany({
+      where: {
+        id,
+        status: expectedStatus,
+        isDeleted: false,
+        updatedAt: { lt: cutoff },
+      },
+      data: { status: FileStatus.ERROR, updatedAt: leaseToken },
+    });
+    return result.count === 1 ? leaseToken : null;
+  }
+
+  async completeCleanup(id: string, leaseToken: Date): Promise<boolean> {
+    const result = await this.prisma.file.updateMany({
+      where: {
+        id,
+        status: FileStatus.ERROR,
+        isDeleted: false,
+        updatedAt: leaseToken,
+      },
+      data: { isDeleted: true },
+    });
+    return result.count === 1;
+  }
+
+  async softDeleteIfUnattached(
+    id: string,
+    campusId: string,
+  ): Promise<SoftDeleteFileResult> {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM file WHERE id = ${id}::uuid FOR UPDATE`;
+      const file = await tx.file.findFirst({
+        where: { id, campusId, isDeleted: false },
+        select: { id: true },
+      });
+      if (!file) return "NOT_FOUND";
+
+      const attachment = await tx.attachment.findFirst({
+        where: { fileId: id },
+        select: { id: true },
+      });
+      if (attachment) return "ATTACHED";
+
+      const result = await tx.file.updateMany({
+        where: { id, campusId, isDeleted: false },
+        data: { isDeleted: true },
+      });
+      return result.count === 1 ? "DELETED" : "NOT_FOUND";
+    });
   }
 }

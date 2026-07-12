@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -86,11 +87,13 @@ import {
   StandardRequest,
   PaginatedResult,
 } from "@/core/modules/standard-response";
+import { PostAttachmentUrlInterceptor } from "../interceptors/post-attachment-url.interceptor";
 
 @ApiTags("Content Management")
 @ApiBearerAuth("JWT")
 @Controller("posts")
 @UseGuards(ClerkAuthGuard)
+@UseInterceptors(PostAttachmentUrlInterceptor)
 export class PostController {
   constructor(
     private readonly createPostUseCase: CreatePostUseCase,

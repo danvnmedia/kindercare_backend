@@ -14,7 +14,10 @@ import {
 } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
-import { userCanManagePost } from "./authorization/post-permission.helper";
+import {
+  userCanManagePost,
+  userHasPostPermission,
+} from "./authorization/post-permission.helper";
 
 @Injectable()
 export class ArchivePostUseCase {
@@ -30,6 +33,11 @@ export class ArchivePostUseCase {
   ): Promise<Post> {
     try {
       this.logger.log(`Archiving post: ${postId}`);
+      if (!userHasPostPermission(currentUser, campusId, "post.update")) {
+        throw new ForbiddenException(
+          "You do not have permission to archive posts",
+        );
+      }
 
       const updatedPost = await this.unitOfWork.run(async (tx) => {
         const post = await tx.findPostByIdForUpdate(postId);

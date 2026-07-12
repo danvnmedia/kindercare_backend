@@ -1,7 +1,18 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { Expose, Type } from "class-transformer";
+import { Expose, Transform, TransformFnParams, Type } from "class-transformer";
 import { StandardPaginationDto } from "@/core/modules/standard-response/dto/standard-response.dto";
 import { UserResponse } from "../user.response";
+
+export const DELETED_COMMENT_CONTENT = "[deleted]";
+
+export function maskDeletedCommentContent({
+  obj,
+  value,
+}: TransformFnParams): string {
+  return (obj as { isDeleted?: boolean }).isDeleted
+    ? DELETED_COMMENT_CONTENT
+    : value;
+}
 
 /**
  * Response DTO for a comment with nested replies
@@ -57,6 +68,7 @@ export class CommentResponse {
     example: "This is a great post!",
   })
   @Expose()
+  @Transform(maskDeletedCommentContent)
   content: string;
 
   @ApiProperty({

@@ -17,7 +17,10 @@ import {
 } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
-import { userCanManagePost } from "./authorization/post-permission.helper";
+import {
+  userCanManagePost,
+  userHasPostPermission,
+} from "./authorization/post-permission.helper";
 
 const REVISION_REASON = "Post revised before approval";
 
@@ -35,6 +38,11 @@ export class RevisePostUseCase {
   ): Promise<Post> {
     try {
       this.logger.log(`Revising post: ${postId}`);
+      if (!userHasPostPermission(currentUser, campusId, "post.update")) {
+        throw new ForbiddenException(
+          "You do not have permission to revise posts",
+        );
+      }
 
       const updatedPost = await this.unitOfWork.run(async (tx) => {
         const post = await tx.findPostByIdForUpdate(postId);

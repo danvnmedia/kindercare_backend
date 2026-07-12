@@ -2,7 +2,7 @@
 title: Content Management System
 description: 'Post lifecycle: status state-machine, audience targeting, attachments, approval workflow, comments, reactions, pinning, and the campus settings switchboard'
 createdAt: '2026-05-05T17:47:17.286Z'
-updatedAt: '2026-07-01T00:00:00.000Z'
+updatedAt: '2026-07-12T05:39:54.717Z'
 tags:
   - architecture
   - content-management
@@ -307,3 +307,90 @@ Known completed validation from loose docs:
 [32m[Nest] 15988  - [39m05:29:35 01/07/2026 [32m    LOG[39m [38;5;3m[RemoveUsersFromRoleUseCase] [39m[32mRevoking role role-1 from 2 user(s) in campus campus-1[39m
 [32m[Nest] 15988  - [39m05:29:35 01/07/2026 [32m    LOG[39m [38;5;3m[RemoveUsersFromRoleUseCase] [39m[32mRevoked role role-1 from user user-1 in campus campus-1[39m
 [32m[Nest] 15988  - [39m05:29:35 01/07/2026 [32m    LOG[39m [38;5;3m[RemoveUsersFromRoleUseCase] [39m[32mRevoked role role-1 from user user-2 in campus campus-1[39m completed without error output and confirmed dedup behavior.
+
+
+## CMS cross-repository validation batch 1 — 2026-07-12
+
+Status: blocked.
+
+Parallel audits compared backend CMS routes, DTOs, serializers, categories, child resources, permissions, and frontend consumers.
+
+Release-blocking findings:
+
+- Single post transition accepts post.review for submit, revise, publish, and archive. Action-specific authorization must require post.update for update-class transitions and post.review for approve or reject.
+- Public reply creation accepts management-comment parent IDs because parent comment type is not checked.
+- Deleted public comment responses preserve original content instead of masking it.
+- Embedded post attachment responses do not reliably include file URLs.
+- File deletion permits destructive campus-wide deletion for file.delete holders and does not reject files referenced by post attachments.
+- Upload completion and stale-upload cleanup can race on PENDING state.
+
+Important follow-ups:
+
+- Restore category flow is absent despite domain unarchive support. Category pin, default, and usage-count capabilities are absent end to end.
+- Frontend pinning is incomplete; only unpin is wired and cache reconciliation is missing.
+- Frontend reply depth allows one level beyond backend rules.
+- Comment pagination newest ordering, comment length guards, archive cache updates, direct CMS route gates, and create-versus-list permission assumptions need correction.
+
+Validation evidence reported by parallel reviewers: backend build passed; targeted suites passed in independent groups, including 23 suites and 199 tests, 14 suites and 146 tests, and RBAC 7 suites and 125 tests. Frontend TypeScript and targeted ESLint passed, with one existing campus-provider hooks warning. These passing tests do not cover the blockers above.
+
+
+## CMS executable validation batch 2 — 2026-07-12
+
+Status: blocked despite successful compilation.
+
+Backend validation:
+
+- npm run build passed.
+- Full unit suite: 215 suites passed, 1 failed; 1832 tests passed, 1 failed, 1 skipped. Failure is src/cli/export-audit-actions.spec.ts because the assertion expects 55 actions while the export now returns 70. This is not CMS-specific, but prevents a green repository suite.
+- E2E ran zero tests because test/jest-e2e.json is missing.
+- Knowns docs validation passed structurally with 53 informational missing-reference findings.
+- Knowns SDD validation passed structurally with the same 53 informational findings.
+
+Passing targeted CMS suites from batch 1 do not cover the release blockers recorded above.
+
+
+## CMS independent release review batch 3 — 2026-07-12
+
+Verdict: blocked. Independent adversarial review confirmed all six batch-1 release blockers. Narrow regression suites passed but do not exercise these failures.
+
+Additional common-flow blockers:
+
+- Future-scheduled posts become PUBLISHED and visible before publishAt because public visibility checks status without requiring publishAt less than or equal to the current time.
+- post.manage does not authorize deletion of another author comment in the public moderation use case, despite the compressed permission handoff promising moderation capability.
+
+Upload happy-path calibration:
+
+- Selected campus header, initiate-upload body, direct R2 PUT, completion, post create or update, attachment add, reorder, and retry payloads align.
+- The flow is not release-ready because a refetched post attachment lacks a backend-resolved file URL, causing frontend image and download consumers to omit it.
+
+Must-fix order:
+
+1. Resolve attachment read URLs in every embedded PostResponse.
+2. Enforce scheduled visibility using publishAt.
+3. Separate transition permissions by action.
+4. Reject public replies to non-public parents and mask deleted content.
+5. Correct file owner versus elevated deletion and reject attached-file deletion.
+6. Make upload completion and cleanup state transitions atomic.
+7. Include post.manage in public comment moderation.
+
+Live R2, CORS, CSP, migration, seeded role assignment, and DB concurrency validation remain unexecuted.
+
+
+## CMS release hardening implementation wave 1 — 2026-07-12
+
+Implemented:
+
+- Public visibility and engagement now require publishAt to be absent or due.
+- Single and batch transitions enforce action-specific permissions: approve/reject use post.review; submit/revise/publish/archive use post.update; post.manage remains implied.
+- post.manage now supports campus-scoped public-comment moderation.
+- Public replies reject non-public parent comments.
+- Deleted comment content is masked as [deleted] at the response boundary while persisted audit content remains unchanged.
+
+Validation: combined targeted backend run passed 13 suites and 143 tests; backend build passed. Independent post/RBAC and comment privacy reviews found no P1/P2/P3 findings.
+
+
+## CMS release hardening final closeout — 2026-07-12
+
+Release-hardening AC-8 through AC-13 are implemented and checked. Cross-campus review confirmed unpublished visibility cannot be broadened by a system role assigned in another campus. Targeted CMS/security tests and build pass.
+
+Repository-wide backend unit validation retains one unrelated stale export-audit-actions count assertion: expected 55, actual 70. E2E remains unavailable because test/jest-e2e.json is absent. These are repository validation gaps, not failures in the changed CMS suites.

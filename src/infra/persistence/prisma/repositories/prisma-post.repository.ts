@@ -393,13 +393,14 @@ export class PrismaPostRepository implements PostRepository {
   ): Prisma.PostWhereInput {
     if (!viewer) return {};
 
-    if (
-      viewer.hasSystemRole() ||
-      (campusId && userHasPostPermission(viewer, campusId, "post.review"))
-    ) {
+    if (campusId && userHasPostPermission(viewer, campusId, "post.review")) {
       return {};
     }
 
+    const publicVisibilityWhere: Prisma.PostWhereInput = {
+      status: PostStatus.PUBLISHED,
+      OR: [{ publishAt: null }, { publishAt: { lte: new Date() } }],
+    };
     const guardianProfiles = viewer.profiles.filter(
       (profile) => profile.type === "guardian",
     );
@@ -411,10 +412,7 @@ export class PrismaPostRepository implements PostRepository {
       return {
         AND: [
           {
-            OR: [
-              { status: PostStatus.PUBLISHED },
-              { authorId: viewer.id.toString() },
-            ],
+            OR: [publicVisibilityWhere, { authorId: viewer.id.toString() }],
           },
         ],
       };
@@ -429,7 +427,7 @@ export class PrismaPostRepository implements PostRepository {
 
     return {
       AND: [
-        { status: PostStatus.PUBLISHED },
+        publicVisibilityWhere,
         {
           OR: [
             {
@@ -597,6 +595,10 @@ export class PrismaPostRepository implements PostRepository {
         isDeleted: false,
         AND: [
           this.buildViewerVisibilityWhere(viewer, campusId),
+          {
+            status: PostStatus.PUBLISHED,
+            OR: [{ publishAt: null }, { publishAt: { lte: now } }],
+          },
           { OR: [{ pinnedUntil: null }, { pinnedUntil: { gt: now } }] },
         ],
       },

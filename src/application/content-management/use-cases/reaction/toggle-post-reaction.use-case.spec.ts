@@ -133,6 +133,18 @@ describe("TogglePostReactionUseCase", () => {
     ).rejects.toBe(failure);
   });
 
+  it("refuses engagement before a scheduled publishAt", async () => {
+    const scheduled = post(false);
+    scheduled.publish(new Date(Date.now() + 60_000));
+    postRepository.findVisibleById.mockResolvedValue(scheduled);
+
+    await expect(
+      useCase.execute(DEFAULT_CAMPUS_ID_A, POST_ID, guardian),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(reactionRepository.findByPostAndUser).not.toHaveBeenCalled();
+  });
+
   it("uses guardian-scoped visibility and refuses an unpublished result", async () => {
     postRepository.findVisibleById.mockResolvedValue(post(false));
     settingRepository.findByCampusId.mockResolvedValue(

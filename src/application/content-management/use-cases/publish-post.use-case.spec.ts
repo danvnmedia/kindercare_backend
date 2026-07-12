@@ -2,7 +2,13 @@ import { Logger } from "@nestjs/common";
 
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { CampusSetting, Post, PostStatus } from "@/domain/content-management";
-import { DEFAULT_CAMPUS_ID_A, createUser } from "@/test-utils";
+import {
+  DEFAULT_CAMPUS_ID_A,
+  createPermission,
+  createRole,
+  createRoleAssignment,
+  createUser,
+} from "@/test-utils";
 
 import { PublishPostUseCase } from "./publish-post.use-case";
 
@@ -21,7 +27,19 @@ function draftPost(): Post {
 }
 
 describe("PublishPostUseCase", () => {
-  const author = createUser({ id: AUTHOR_ID });
+  const author = createUser({
+    id: AUTHOR_ID,
+    roleAssignments: [
+      createRoleAssignment(
+        createRole({
+          permissions: [
+            createPermission({ id: "post.update", module: "post" }),
+          ],
+        }),
+        DEFAULT_CAMPUS_ID_A,
+      ),
+    ],
+  });
   let tx: {
     findPostByIdForUpdate: jest.Mock;
     findPendingPostApprovalRequestForUpdate: jest.Mock;

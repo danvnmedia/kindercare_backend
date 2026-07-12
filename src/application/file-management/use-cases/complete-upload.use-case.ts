@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,6 +8,7 @@ import {
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Either, left, right } from "@/core/types/either";
 import { File } from "@/domain/file-management/entities/file.entity";
+import { FileStatus } from "@/domain/file-management/enums/file-status.enum";
 import { FileRepository } from "../ports/file.repository";
 import { StorageService } from "../ports/storage.service";
 
@@ -49,6 +51,11 @@ export class CompleteUploadUseCase {
       );
     }
 
+    if (file.isUploaded() || file.isProcessed()) {
+      const url = await this.storageService.getSignedUrl(file.key);
+      return right({ file, url });
+    }
+
     if (!file.isPending()) {
       return left(
         new BadRequestException("Only pending files can be completed."),
@@ -81,10 +88,35 @@ export class CompleteUploadUseCase {
       );
     }
 
-    file.markAsUploaded();
-    const updatedFile = await this.fileRepository.update(file);
-    const url = await this.storageService.getSignedUrl(updatedFile.key);
+    const claimed = await this.fileRepository.transitionStatus(
+      file.id,
+      FileStatus.PENDING,
+      FileStatus.UPLOADED,
+    );
+    if (!claimed) {
+      const currentFile = await this.fileRepository.findByIdAndCampus(
+        file.id,
+        campusId,
+      );
+      if (
+        currentFile &&
+        currentFile.uploadedBy === uploadedBy &&
+        (currentFile.isUploaded() || currentFile.isProcessed())
+      ) {
+        const url = await this.storageService.getSignedUrl(currentFile.key);
+        return right({ file: currentFile, url });
+      }
 
-    return right({ file: updatedFile, url });
+      return left(
+        new ConflictException(
+          "Upload completion lost its pending-file claim to another lifecycle transition.",
+        ),
+      );
+    }
+
+    file.markAsUploaded();
+    const url = await this.storageService.getSignedUrl(file.key);
+
+    return right({ file, url });
   }
 }

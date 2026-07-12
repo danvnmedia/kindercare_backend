@@ -75,6 +75,8 @@ import { ClassManagementModule } from "./class-management.module";
 import { FileManagementModule } from "./file-management/file-management.module";
 import { CampusModule } from "./campus.module";
 import { RequestContextModule } from "../context/request-context.module";
+import { StorageModule } from "@/infra/storage/storage.module";
+import { PostAttachmentUrlInterceptor } from "../interceptors/post-attachment-url.interceptor";
 
 @Module({
   imports: [
@@ -87,6 +89,7 @@ import { RequestContextModule } from "../context/request-context.module";
     FileManagementModule, // For FILE_REPOSITORY
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
     RequestContextModule, // Provides RequestContext for CampusGuard
+    StorageModule,
   ],
   controllers: [
     PostController,
@@ -95,9 +98,10 @@ import { RequestContextModule } from "../context/request-context.module";
     CommentController,
   ],
   providers: [
-    // Guards
+    // Guards and interceptors
     CampusGuard,
     RolesGuard,
+    PostAttachmentUrlInterceptor,
     // Post Use Cases
     CreatePostUseCase,
     UpdatePostUseCase,

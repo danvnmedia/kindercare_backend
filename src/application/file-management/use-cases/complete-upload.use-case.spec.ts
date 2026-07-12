@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   NotFoundException,
 } from "@nestjs/common";
@@ -21,7 +22,11 @@ function createFileRepositoryMock(): jest.Mocked<FileRepository> {
     findByCampus: jest.fn(),
     existsByIdAndCampus: jest.fn(),
     findByKey: jest.fn(),
-    findStalePending: jest.fn(),
+    findCleanupCandidates: jest.fn(),
+    transitionStatus: jest.fn(),
+    claimStaleForCleanup: jest.fn(),
+    completeCleanup: jest.fn(),
+    softDeleteIfUnattached: jest.fn(),
   } as unknown as jest.Mocked<FileRepository>;
 }
 
@@ -34,7 +39,9 @@ function createStorageServiceMock(): jest.Mocked<StorageService> {
   } as jest.Mocked<StorageService>;
 }
 
-function createFile(overrides: Partial<Parameters<typeof File.create>[0]> = {}) {
+function createFile(
+  overrides: Partial<Parameters<typeof File.create>[0]> = {},
+) {
   return File.create(
     {
       key: "files/campus-1/attachment/file-1-photo.png",
@@ -59,18 +66,20 @@ describe("CompleteUploadUseCase", () => {
     storageService = createStorageServiceMock();
     useCase = new CompleteUploadUseCase(fileRepository, storageService);
 
-    fileRepository.update.mockImplementation(async (file) => file);
     storageService.getObjectMetadata.mockResolvedValue({
       exists: true,
       contentLength: 123,
       contentType: "image/png",
     });
-    storageService.getSignedUrl.mockResolvedValue("https://cdn.example.test/photo.png");
+    storageService.getSignedUrl.mockResolvedValue(
+      "https://cdn.example.test/photo.png",
+    );
   });
 
   it("marks a pending uploaded object as UPLOADED and returns its URL", async () => {
     const file = createFile();
     fileRepository.findByIdAndCampus.mockResolvedValue(file);
+    fileRepository.transitionStatus.mockResolvedValue(true);
 
     const result = await useCase.execute({
       fileId: new UniqueEntityID("file-1"),
@@ -81,12 +90,54 @@ describe("CompleteUploadUseCase", () => {
     expect(result.isRight()).toBe(true);
     expect(storageService.getObjectMetadata).toHaveBeenCalledWith(file.key);
     expect(file.status).toBe(FileStatus.UPLOADED);
-    expect(fileRepository.update).toHaveBeenCalledWith(file);
+    expect(fileRepository.transitionStatus).toHaveBeenCalledWith(
+      "file-1",
+      FileStatus.PENDING,
+      FileStatus.UPLOADED,
+    );
     expect(storageService.getSignedUrl).toHaveBeenCalledWith(file.key);
     expect(result.value).toMatchObject({
       file,
       url: "https://cdn.example.test/photo.png",
     });
+  });
+
+  it("returns idempotent success when another completion wins the claim", async () => {
+    const pendingFile = createFile();
+    const uploadedFile = createFile({ status: FileStatus.UPLOADED });
+    fileRepository.findByIdAndCampus
+      .mockResolvedValueOnce(pendingFile)
+      .mockResolvedValueOnce(uploadedFile);
+    fileRepository.transitionStatus.mockResolvedValue(false);
+
+    const result = await useCase.execute({
+      fileId: new UniqueEntityID("file-1"),
+      campusId: "campus-1",
+      uploadedBy: "user-1",
+    });
+
+    expect(result.isRight()).toBe(true);
+    expect(result.value).toMatchObject({ file: uploadedFile });
+    expect(storageService.getSignedUrl).toHaveBeenCalledWith(uploadedFile.key);
+  });
+
+  it("returns conflict when stale cleanup wins the claim", async () => {
+    const pendingFile = createFile();
+    const errorFile = createFile({ status: FileStatus.ERROR });
+    fileRepository.findByIdAndCampus
+      .mockResolvedValueOnce(pendingFile)
+      .mockResolvedValueOnce(errorFile);
+    fileRepository.transitionStatus.mockResolvedValue(false);
+
+    const result = await useCase.execute({
+      fileId: new UniqueEntityID("file-1"),
+      campusId: "campus-1",
+      uploadedBy: "user-1",
+    });
+
+    expect(result.isLeft()).toBe(true);
+    expect(result.value).toBeInstanceOf(ConflictException);
+    expect(storageService.getSignedUrl).not.toHaveBeenCalled();
   });
 
   it("rejects completion when file is not found in the campus", async () => {
@@ -120,7 +171,7 @@ describe("CompleteUploadUseCase", () => {
     expect(fileRepository.update).not.toHaveBeenCalled();
   });
 
-  it("rejects completion when file is not PENDING", async () => {
+  it("returns a fresh URL when completion previously persisted UPLOADED", async () => {
     const file = createFile({ status: FileStatus.UPLOADED });
     fileRepository.findByIdAndCampus.mockResolvedValue(file);
 
@@ -130,10 +181,10 @@ describe("CompleteUploadUseCase", () => {
       uploadedBy: "user-1",
     });
 
-    expect(result.isLeft()).toBe(true);
-    expect(result.value).toBeInstanceOf(BadRequestException);
+    expect(result.isRight()).toBe(true);
     expect(storageService.getObjectMetadata).not.toHaveBeenCalled();
-    expect(fileRepository.update).not.toHaveBeenCalled();
+    expect(fileRepository.transitionStatus).not.toHaveBeenCalled();
+    expect(storageService.getSignedUrl).toHaveBeenCalledWith(file.key);
   });
 
   it("rejects completion when the storage object is missing", async () => {
@@ -198,7 +249,9 @@ describe("CompleteUploadUseCase", () => {
   it("does not mark the file UPLOADED when storage metadata lookup fails", async () => {
     const file = createFile();
     fileRepository.findByIdAndCampus.mockResolvedValue(file);
-    storageService.getObjectMetadata.mockRejectedValue(new Error("R2 unavailable"));
+    storageService.getObjectMetadata.mockRejectedValue(
+      new Error("R2 unavailable"),
+    );
 
     await expect(
       useCase.execute({

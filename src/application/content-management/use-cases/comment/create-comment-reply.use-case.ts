@@ -10,6 +10,7 @@ import { PostCommentRepository } from "../../ports/post-comment.repository";
 import { PostRepository } from "../../ports/post.repository";
 import { CampusSettingRepository } from "../../ports/campus-setting.repository";
 import { PostComment } from "@/domain/content-management";
+import { PostCommentType } from "@/domain/content-management/entities/post-comment.entity";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface CreateCommentReplyInput {
@@ -43,7 +44,10 @@ export class CreateCommentReplyUseCase {
       const parentComment = await this.postCommentRepository.findById(
         input.parentCommentId,
       );
-      if (!parentComment) {
+      if (
+        !parentComment ||
+        parentComment.commentType !== PostCommentType.PUBLIC
+      ) {
         throw new NotFoundException(
           `Comment with ID ${input.parentCommentId} not found`,
         );

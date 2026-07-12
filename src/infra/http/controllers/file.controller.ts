@@ -36,6 +36,7 @@ import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
 import { User } from "@/domain/user-management/user.entity";
 import { File } from "@/domain/file-management/entities/file.entity";
 import { RoleEntity } from "@/domain/user-management/role.entity";
+import { isGlobalAdmin } from "../context/campus-context";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { PermissionsGuard } from "../guards/permissions.guard";
 import { Permissions } from "../decorators/permissions.decorator";
@@ -197,7 +198,7 @@ export class FileController {
   @Delete(":id")
   @RequireCampusAccess()
   @UseGuards(PermissionsGuard)
-  @Permissions("file.delete")
+  @Permissions("file.delete", "file.manage")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Soft delete a file" })
   async delete(
@@ -210,10 +211,10 @@ export class FileController {
       campusId,
       deletedBy: user.id.toString(),
       canDeleteAny:
-        user.hasSystemRole() ||
+        isGlobalAdmin(user) ||
         user
           .getRolesForCampus(campusId)
-          .some((role) => RoleEntity.hasPermissionById(role, "file.delete")),
+          .some((role) => RoleEntity.hasPermissionById(role, "file.manage")),
     });
 
     if (result.isLeft()) {

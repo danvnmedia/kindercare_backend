@@ -9,7 +9,10 @@ import { PostTransitionAction } from "@/domain/content-management/enums";
 import { Post } from "@/domain/content-management/entities/post.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { TransitionPostUseCase } from "./transition-post.use-case";
-import { userHasPostPermission } from "./authorization/post-permission.helper";
+import {
+  getRequiredPostTransitionPermission,
+  userHasPostPermission,
+} from "./authorization/post-permission.helper";
 
 export interface BatchTransitionPostError {
   code: string;
@@ -56,7 +59,10 @@ export class BatchTransitionPostUseCase {
     }
 
     const uniquePostIds = [...new Set(postIds)];
-    const requiredPermission = this.getRequiredPermission(action);
+    const requiredPermission = getRequiredPostTransitionPermission(action);
+    if (!requiredPermission) {
+      throw new BadRequestException("Invalid post transition action");
+    }
     if (!userHasPostPermission(user, campusId, requiredPermission)) {
       throw new ForbiddenException(
         `You do not have permission to ${action} posts`,
@@ -110,17 +116,6 @@ export class BatchTransitionPostUseCase {
       failed,
       results,
     };
-  }
-
-  private getRequiredPermission(action: PostTransitionAction): string {
-    switch (action) {
-      case PostTransitionAction.APPROVE:
-      case PostTransitionAction.REJECT:
-      case PostTransitionAction.REVISE:
-        return "post.review";
-      default:
-        return "post.update";
-    }
   }
 
   private mapError(error: unknown): BatchTransitionPostError {
