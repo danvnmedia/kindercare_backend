@@ -1,84 +1,95 @@
+import { isDeepStrictEqual } from "node:util";
+
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
-  ForbiddenException,
   BadRequestException,
+  ForbiddenException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
-import { PostRepository } from "../ports/post.repository";
-import { PostHistoryStatusRepository } from "../ports/post-history-status.repository";
-import { PostApprovalRequestRepository } from "../ports/post-approval-request.repository";
-import { User } from "@/domain/user-management/user.entity";
+
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
-  PostStatus,
   Post,
+  PostApprovalRequest,
   PostHistoryStatus,
+  PostStatus,
 } from "@/domain/content-management";
+import { User } from "@/domain/user-management/user.entity";
+
+import { userHasPostPermission } from "./authorization/post-permission.helper";
 
 @Injectable()
 export class ApprovePostUseCase {
   private readonly logger = new Logger(ApprovePostUseCase.name);
 
-  constructor(
-    @Inject("POST_REPOSITORY")
-    private readonly postRepository: PostRepository,
-    @Inject("POST_HISTORY_STATUS_REPOSITORY")
-    private readonly postHistoryStatusRepository: PostHistoryStatusRepository,
-    @Inject("POST_APPROVAL_REQUEST_REPOSITORY")
-    private readonly postApprovalRequestRepository: PostApprovalRequestRepository,
-  ) {}
+  constructor(private readonly unitOfWork: UnitOfWorkPort) {}
 
   async execute(
     campusId: string,
     postId: string,
     currentUser: User,
+    comment?: string,
   ): Promise<Post> {
     try {
       this.logger.log(`Approving post: ${postId}`);
-      const post = await this.postRepository.findById(postId);
-
-      if (!post) {
-        throw new NotFoundException(`Post with ID ${postId} not found`);
-      }
-
-      // Verify the request campus matches the post's campus
-      if (post.campusId !== campusId) {
+      if (!userHasPostPermission(currentUser, campusId, "post.review")) {
         throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
+          "You do not have permission to approve posts",
         );
       }
 
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
-        throw new ForbiddenException("Only administrators can approve posts");
-      }
+      const updatedPost = await this.unitOfWork.run(async (tx) => {
+        const post = await tx.findPostByIdForUpdate(postId);
+        if (!post) {
+          throw new NotFoundException(`Post with ID ${postId} not found`);
+        }
+        if (post.campusId !== campusId) {
+          throw new ForbiddenException(
+            "You do not have access to this post in the specified campus",
+          );
+        }
+        if (post.status !== PostStatus.PENDING_REVIEW) {
+          throw new BadRequestException(
+            `Cannot approve a post with status ${post.status}`,
+          );
+        }
 
-      if (post.status !== PostStatus.PENDING_REVIEW) {
-        throw new BadRequestException(
-          `Cannot approve a post with status ${post.status}`,
-        );
-      }
+        const approvalRequest =
+          await tx.findLatestPostApprovalRequestForUpdate(postId);
+        this.assertCurrentPendingSnapshot(post, approvalRequest);
 
-      // Find and update the approval request if exists
-      const approvalRequest =
-        await this.postApprovalRequestRepository.findLatestByPostId(postId);
-      if (approvalRequest && approvalRequest.isPending()) {
+        const beforeValue = this.toAuditSnapshot(post);
         approvalRequest.approve(currentUser.id);
-        await this.postApprovalRequestRepository.update(approvalRequest);
-      }
+        post.approve(post.publishAt ?? new Date());
 
-      const previousStatus = post.status;
-      post.approve();
-      const updatedPost = await this.postRepository.update(postId, post);
-
-      const history = PostHistoryStatus.create({
-        postId: postId,
-        changedById: currentUser.id,
-        previousStatus,
-        newStatus: PostStatus.APPROVED,
+        await tx.updatePostApprovalRequestIfPending(approvalRequest);
+        const saved = await tx.updatePost(postId, post);
+        await tx.createPostHistoryStatus(
+          PostHistoryStatus.create({
+            postId,
+            changedById: currentUser.id,
+            previousStatus: PostStatus.PENDING_REVIEW,
+            newStatus: PostStatus.PUBLISHED,
+            reason: comment?.trim() || undefined,
+          }),
+        );
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "APPROVE_POST",
+          targetType: "post",
+          targetId: postId,
+          campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            targetName: saved.title,
+            approvalRequestId: approvalRequest.id.toString(),
+          },
+          beforeValue,
+          afterValue: this.toAuditSnapshot(saved),
+        });
+        return saved;
       });
-      await this.postHistoryStatusRepository.create(history);
 
       this.logger.log(`Post approved: ${postId}`);
       return updatedPost;
@@ -89,5 +100,33 @@ export class ApprovePostUseCase {
       );
       throw error;
     }
+  }
+
+  private assertCurrentPendingSnapshot(
+    post: Post,
+    request: PostApprovalRequest | null,
+  ): asserts request is PostApprovalRequest {
+    if (!request || !request.isPending()) {
+      throw new BadRequestException(
+        "The latest approval request is missing or no longer pending",
+      );
+    }
+    if (
+      request.titleSnapshot !== post.title ||
+      !isDeepStrictEqual(request.contentSnapshot, post.content)
+    ) {
+      throw new BadRequestException(
+        "Post content no longer matches the submitted approval snapshot",
+      );
+    }
+  }
+
+  private toAuditSnapshot(post: Post): Record<string, unknown> {
+    return {
+      title: post.title,
+      status: post.status,
+      publishAt: post.publishAt?.toISOString() ?? null,
+      contentVersion: post.contentVersion,
+    };
   }
 }

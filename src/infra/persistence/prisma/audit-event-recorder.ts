@@ -136,6 +136,25 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
         // defaults are captured in context/beforeValue/afterValue by callers.
         return { targetName: null };
       }
+      case "post": {
+        const row = await tx.post.findUnique({
+          where: { id: targetId },
+          select: { title: true },
+        });
+        return { targetName: row?.title ?? null };
+      }
+      case "post_category": {
+        const row = await tx.postCategory.findUnique({
+          where: { id: targetId },
+          select: { name: true },
+        });
+        return { targetName: row?.name ?? null };
+      }
+      case "campus_setting":
+      case "post_history_status":
+      case "post_approval_request": {
+        return { targetName: null };
+      }
       case "weekly_plan": {
         const row = await tx.weeklyPlan.findUnique({
           where: { id: targetId },

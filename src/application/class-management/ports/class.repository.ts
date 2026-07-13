@@ -22,6 +22,13 @@ import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto"
  * `schoolYear` remain domain entities so they flatten correctly through the
  * interceptor's Entity-shape path (same flow as the existing `ClassResponse`).
  */
+export class ClassDeletionConflictError extends Error {
+  constructor() {
+    super("Class cannot be deleted while it is referenced by existing records");
+    this.name = ClassDeletionConflictError.name;
+  }
+}
+
 export interface ClassListItemView {
   id: string;
   name: string;

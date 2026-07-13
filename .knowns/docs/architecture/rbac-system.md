@@ -2,7 +2,7 @@
 title: RBAC System
 description: Permissions, Roles, UserRole assignments with campus scoping, system-role bypass, and StaffType default-role auto-assignment
 createdAt: '2026-05-05T17:46:08.624Z'
-updatedAt: '2026-06-01T00:01:02.122Z'
+updatedAt: '2026-07-12T05:39:54.026Z'
 tags:
   - architecture
   - rbac
@@ -327,3 +327,37 @@ When extending the system, **always check campus ownership** at use case boundar
 | `src/application/rbac/use-cases/seed-permissions.use-case.ts` | The catalogue |
 | `src/infra/http/guards/permissions.guard.ts` | Decision logic |
 | `src/infra/http/context/campus-context.ts` | `isGlobalAdmin` bypass |
+
+
+## CMS RBAC validation snapshot — 2026-07-12
+
+Status: blocked.
+
+Confirmed compressed permission contract:
+
+- post.update is required for submit, revise, publish, and archive.
+- post.review is required for approve and reject.
+- post.manage implies CMS administration and moderation.
+
+Current implementation mismatches:
+
+- The single transition route accepts post.update, post.review, or post.manage for every action; author ownership then permits review-only users to run update-class transitions.
+- Batch revise maps to post.review.
+- Public comment deletion does not include campus-scoped post.manage moderation.
+- Generic PermissionsGuard, application global-system-role bypass, and frontend system-role classification do not share one scope rule.
+- Frontend direct route gates are missing on All Posts, Drafts, and My Posts, and post.create is incorrectly treated as enough for pages that call GET /posts.
+- Permission action catalogs omit review even though post.review is seeded and used.
+
+Backend remains authoritative and no cross-campus data bypass was demonstrated. FE route omissions still expose inaccessible shells and actions, producing avoidable 403 responses.
+
+
+## CMS release hardening final security closeout — 2026-07-12
+
+Cross-campus authority was re-reviewed and hardened:
+
+- Elevated file deletion accepts only a globally assigned system role or campus-applicable file.manage.
+- Campus-scoped system roles do not grant delete-any in another campus.
+- Unpublished post visibility uses campus-safe post.review or post.manage; only global system roles bypass.
+- User.hasSystemRole now reflects its documented global-only bypass semantics.
+
+Cross-campus denial and global-role success regressions pass. Deployment still requires permission seeding and intentional file.manage role assignment.

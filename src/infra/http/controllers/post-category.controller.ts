@@ -6,22 +6,28 @@ import {
   Delete,
   Body,
   Param,
-  Query,
+  ParseUUIDPipe,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from "@nestjs/common";
 import {
+  ApiBearerAuth,
   ApiOperation,
   ApiTags,
   ApiParam,
-  ApiQuery,
   ApiHeader,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../decorators";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
 import { StandardRequestDto } from "@/core/modules/standard-response/dto/standard-request.dto";
@@ -45,6 +51,7 @@ import {
 
 @Controller("post-categories")
 @ApiTags("Post Categories")
+@ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
 export class PostCategoryController {
   constructor(
@@ -57,6 +64,8 @@ export class PostCategoryController {
 
   @Get()
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.create", "post.list", "post.manage")
   @StandardResponse({
     message: "Post categories retrieved successfully",
     type: PostCategoryResponse,
@@ -76,15 +85,24 @@ export class PostCategoryController {
   async findAll(
     @CampusContext() campusId: string,
     @StandardRequestParam() query: StandardRequestDto,
+    @CurrentUser() user: User,
   ) {
-    return await this.getAllPostCategoriesUseCase.execute(campusId, query);
+    return await this.getAllPostCategoriesUseCase.execute(
+      campusId,
+      query,
+      user,
+    );
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post category created successfully",
     type: PostCategoryResponse,
+    status: HttpStatus.CREATED,
   })
   @ApiOperation({
     summary: "Create a new post category",
@@ -100,18 +118,24 @@ export class PostCategoryController {
   async create(
     @CampusContext() campusId: string,
     @Body() dto: CreatePostCategoryRequest,
+    @CurrentUser() user: User,
   ) {
-    return await this.createPostCategoryUseCase.execute({
-      campusId,
-      name: dto.name,
-      color: dto.color,
-      icon: dto.icon,
-      order: dto.order,
-    });
+    return await this.createPostCategoryUseCase.execute(
+      {
+        campusId,
+        name: dto.name,
+        color: dto.color,
+        icon: dto.icon,
+        order: dto.order,
+      },
+      user,
+    );
   }
 
   @Patch(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post category updated successfully",
     type: PostCategoryResponse,
@@ -133,14 +157,24 @@ export class PostCategoryController {
   })
   async update(
     @CampusContext() campusId: string,
-    @Param("id") id: string,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
     @Body() dto: UpdatePostCategoryRequest,
+    @CurrentUser() user: User,
   ) {
-    return await this.updatePostCategoryUseCase.execute(id, dto);
+    return await this.updatePostCategoryUseCase.execute(
+      id,
+      {
+        ...dto,
+        campusId,
+      },
+      user,
+    );
   }
 
   @Delete(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post category archived successfully",
     type: PostCategoryResponse,
@@ -161,16 +195,24 @@ export class PostCategoryController {
     description: "Post Category UUID",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
-  async delete(@CampusContext() campusId: string, @Param("id") id: string) {
-    return await this.deletePostCategoryUseCase.execute(id, campusId);
+  async delete(
+    @CampusContext() campusId: string,
+    @Param("id", new ParseUUIDPipe({ version: "4" })) id: string,
+    @CurrentUser() user: User,
+  ) {
+    return await this.deletePostCategoryUseCase.execute(id, campusId, user);
   }
 
   @Post("reorder")
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Post categories reordered successfully",
     type: PostCategoryResponse,
     isArray: true,
+    status: HttpStatus.CREATED,
   })
   @ApiOperation({
     summary: "Reorder post categories",
@@ -186,10 +228,14 @@ export class PostCategoryController {
   async reorder(
     @CampusContext() campusId: string,
     @Body() dto: ReorderPostCategoriesRequest,
+    @CurrentUser() user: User,
   ) {
-    return await this.reorderPostCategoriesUseCase.execute({
-      ...dto,
-      campusId,
-    });
+    return await this.reorderPostCategoriesUseCase.execute(
+      {
+        ...dto,
+        campusId,
+      },
+      user,
+    );
   }
 }

@@ -1,61 +1,54 @@
 import {
-  Injectable,
-  Inject,
-  NotFoundException,
   ForbiddenException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from "@nestjs/common";
-import { PostRepository } from "../../ports/post.repository";
-import { User } from "@/domain/user-management/user.entity";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { Post } from "@/domain/content-management";
+import { User } from "@/domain/user-management/user.entity";
+import { userHasPostPermission } from "../authorization/post-permission.helper";
 
 @Injectable()
 export class UnpinPostUseCase {
   private readonly logger = new Logger(UnpinPostUseCase.name);
 
-  constructor(
-    @Inject("POST_REPOSITORY")
-    private readonly postRepository: PostRepository,
-  ) {}
+  constructor(private readonly unitOfWork: UnitOfWorkPort) {}
 
   async execute(
     campusId: string,
     postId: string,
     currentUser: User,
   ): Promise<Post> {
-    try {
-      this.logger.log(`Unpinning post: ${postId}`);
+    this.logger.log(`Unpinning post: ${postId}`);
 
-      // Validate admin permission
-      const isAdmin = currentUser.hasSystemRole();
-      if (!isAdmin) {
-        throw new ForbiddenException("Only administrators can unpin posts");
-      }
+    if (!userHasPostPermission(currentUser, campusId, "post.manage")) {
+      throw new ForbiddenException("You do not have permission to unpin posts");
+    }
 
-      // Find the post
-      const post = await this.postRepository.findById(postId);
+    const updatedPost = await this.unitOfWork.run(async (tx) => {
+      await tx.lockPostPinCapacity(campusId);
+      const post = await tx.findPostByIdForUpdate(postId);
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
-
-      // Verify the post belongs to the specified campus
       if (post.campusId !== campusId) {
         throw new ForbiddenException(
           "You do not have access to this post in the specified campus",
         );
       }
+      if (!post.isPinned) {
+        return post;
+      }
 
-      // Unpin the post using entity method (idempotent - returns early if not pinned)
-      post.unpin();
+      return tx.updatePostPin(postId, {
+        isPinned: false,
+        pinnedById: null,
+        pinnedUntil: null,
+      });
+    });
 
-      // Save
-      const updatedPost = await this.postRepository.update(postId, post);
-
-      this.logger.log(`Post unpinned successfully: ${postId}`);
-      return updatedPost;
-    } catch (error) {
-      this.logger.error(`Failed to unpin post: ${error.message}`, error.stack);
-      throw error;
-    }
+    this.logger.log(`Post unpinned successfully: ${postId}`);
+    return updatedPost;
   }
 }

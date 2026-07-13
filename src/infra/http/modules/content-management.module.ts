@@ -20,6 +20,7 @@ import {
   ArchivePostUseCase,
   GetPostHistoryUseCase,
   TransitionPostUseCase,
+  BatchTransitionPostUseCase,
   GetCampusSettingUseCase,
   UpdateCampusSettingUseCase,
 } from "@/application/content-management/use-cases";
@@ -29,6 +30,9 @@ import {
   UpdatePostCommentUseCase,
   DeletePostCommentUseCase,
   GetPostCommentsUseCase,
+  GetManagementCommentsUseCase,
+  CreateManagementCommentUseCase,
+  DeleteManagementCommentUseCase,
 } from "@/application/content-management/use-cases/comment";
 import {
   CreatePostCategoryUseCase,
@@ -64,11 +68,15 @@ import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
 import { StandardResponseModule } from "@/core/modules/standard-response/standard-response.module";
 import { RolesGuard } from "../guards/roles.guard";
+import { CampusGuard } from "../guards/campus.guard";
 import { AuthModule } from "./auth.module";
 import { UserManagementModule } from "./user-management.module";
 import { ClassManagementModule } from "./class-management.module";
 import { FileManagementModule } from "./file-management/file-management.module";
 import { CampusModule } from "./campus.module";
+import { RequestContextModule } from "../context/request-context.module";
+import { StorageModule } from "@/infra/storage/storage.module";
+import { PostAttachmentUrlInterceptor } from "../interceptors/post-attachment-url.interceptor";
 
 @Module({
   imports: [
@@ -76,10 +84,12 @@ import { CampusModule } from "./campus.module";
     ClerkModule,
     StandardResponseModule,
     AuthModule,
-    UserManagementModule, // For USER_REPOSITORY, STUDENT_REPOSITORY
-    ClassManagementModule, // For CLASS_REPOSITORY, GRADE_LEVEL_REPOSITORY
+    UserManagementModule, // For USER_REPOSITORY
+    ClassManagementModule, // For CLASS_REPOSITORY
     FileManagementModule, // For FILE_REPOSITORY
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
+    RequestContextModule, // Provides RequestContext for CampusGuard
+    StorageModule,
   ],
   controllers: [
     PostController,
@@ -88,7 +98,10 @@ import { CampusModule } from "./campus.module";
     CommentController,
   ],
   providers: [
+    // Guards and interceptors
+    CampusGuard,
     RolesGuard,
+    PostAttachmentUrlInterceptor,
     // Post Use Cases
     CreatePostUseCase,
     UpdatePostUseCase,
@@ -106,6 +119,7 @@ import { CampusModule } from "./campus.module";
     ArchivePostUseCase,
     GetPostHistoryUseCase,
     TransitionPostUseCase,
+    BatchTransitionPostUseCase,
     // Campus Setting Use Cases
     GetCampusSettingUseCase,
     UpdateCampusSettingUseCase,
@@ -124,6 +138,9 @@ import { CampusModule } from "./campus.module";
     UpdatePostCommentUseCase,
     DeletePostCommentUseCase,
     GetPostCommentsUseCase,
+    GetManagementCommentsUseCase,
+    CreateManagementCommentUseCase,
+    DeleteManagementCommentUseCase,
     // Approval Use Cases
     GetPendingApprovalsUseCase,
     GetPostApprovalHistoryUseCase,

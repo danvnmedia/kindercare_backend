@@ -3,15 +3,18 @@ import {
   Inject,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from "@nestjs/common";
 import { PostRepository } from "../../ports/post.repository";
 import { PostCommentRepository } from "../../ports/post-comment.repository";
+import { CampusSettingRepository } from "../../ports/campus-setting.repository";
 import { PostComment } from "@/domain/content-management";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface CreatePostCommentInput {
   postId: string;
+  campusId: string;
   content: string;
 }
 
@@ -24,6 +27,8 @@ export class CreatePostCommentUseCase {
     private readonly postRepository: PostRepository,
     @Inject("POST_COMMENT_REPOSITORY")
     private readonly postCommentRepository: PostCommentRepository,
+    @Inject("CAMPUS_SETTING_REPOSITORY")
+    private readonly campusSettingRepository: CampusSettingRepository,
   ) {}
 
   async execute(
@@ -35,9 +40,20 @@ export class CreatePostCommentUseCase {
         `Creating comment on post: ${input.postId} by user: ${currentUser.id}`,
       );
 
-      const post = await this.postRepository.findById(input.postId);
+      const post = await this.postRepository.findVisibleById(
+        input.postId,
+        input.campusId,
+        currentUser,
+      );
       if (!post) {
         throw new NotFoundException(`Post with ID ${input.postId} not found`);
+      }
+
+      const setting = await this.campusSettingRepository.findByCampusId(
+        input.campusId,
+      );
+      if (setting && !setting.allowParentComments) {
+        throw new ForbiddenException("Comments are disabled for this campus");
       }
 
       if (!post.canReceiveEngagement()) {
@@ -49,6 +65,7 @@ export class CreatePostCommentUseCase {
       const comment = PostComment.create({
         postId: input.postId,
         userId: currentUser.id,
+        user: currentUser,
         content: input.content,
         depth: 0,
         parentCommentId: null,

@@ -13,6 +13,14 @@ const MEAL_MENU_PERMISSION_IDS = [
   "meal_menu_config.update",
 ];
 
+const FILE_PERMISSION_IDS = [
+  "file.create",
+  "file.read",
+  "file.delete",
+  "file.list",
+  "file.manage",
+];
+
 const WEEKLY_PLAN_PERMISSION_IDS = [
   "weekly_plan.list",
   "weekly_plan.read",
@@ -116,6 +124,19 @@ describe("SeedPermissionsUseCase", () => {
     expect(
       repository.save.mock.calls.map(([permission]) => permission.id),
     ).toEqual(MEAL_MENU_PERMISSION_IDS);
+  });
+
+  it("separates owner file.delete from elevated file.manage", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(expect.arrayContaining(FILE_PERMISSION_IDS));
+    expect(
+      permissions.find(({ id }) => id === "file.delete")?.description,
+    ).toContain("current user");
+    expect(
+      permissions.find(({ id }) => id === "file.manage")?.description,
+    ).toContain("any user");
   });
 
   it("includes all weekly-plan permission IDs in the system catalog", () => {

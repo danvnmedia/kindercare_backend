@@ -14,12 +14,12 @@ export class UpdatePostCategoryRequest {
     description: "Category name",
     example: "Announcements",
     minLength: 1,
-    maxLength: 100,
+    maxLength: 60,
   })
   @IsOptional()
   @IsString()
   @MinLength(1)
-  @MaxLength(100)
+  @MaxLength(60)
   name?: string;
 
   @ApiPropertyOptional({
@@ -40,15 +40,16 @@ export class UpdatePostCategoryRequest {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(16)
   icon?: string | null;
 
   @ApiPropertyOptional({
-    description: "Display order (must be non-negative)",
+    description: "Display order (must be at least 1)",
     example: 1,
-    minimum: 0,
+    minimum: 1,
   })
   @IsOptional()
   @IsInt()
-  @Min(0)
+  @Min(1)
   order?: number;
 }

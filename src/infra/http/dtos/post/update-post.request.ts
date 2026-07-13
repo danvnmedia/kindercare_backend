@@ -5,20 +5,32 @@ import {
   IsOptional,
   IsDate,
   IsArray,
+  ArrayMinSize,
   ValidateNested,
   IsUUID,
   IsObject,
+  ValidateIf,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { AudienceType } from "@/domain/content-management";
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 class UpdateAudienceDto {
+  @ApiProperty({
+    description: "The audience type",
+    enum: AudienceType,
+    example: "CLASS",
+  })
   @IsEnum(AudienceType)
   audienceType: AudienceType;
 
+  @ApiPropertyOptional({
+    description: "The audience ID (required for CLASS; optional for ALL)",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @ValidateIf((o) => o.audienceType !== AudienceType.ALL)
   @IsUUID()
-  audienceId: string;
+  audienceId?: string;
 }
 
 export class UpdatePostRequest {
@@ -64,9 +76,21 @@ export class UpdatePostRequest {
     type: [UpdateAudienceDto],
     required: false,
   })
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => UpdateAudienceDto)
   audiences?: UpdateAudienceDto[];
+
+  @ApiProperty({
+    description: "Category IDs to associate with the post",
+    type: [String],
+    example: ["c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f"],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  categoryIds?: string[];
 }

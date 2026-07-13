@@ -10,6 +10,10 @@ import {
   DEFAULT_CAMPUS_ID_B,
 } from "@/test-utils";
 
+import {
+  CMS_ROUTE_VISIBILITY_KEY,
+  CmsRouteVisibility,
+} from "../decorators/cms-route-visibility.decorator";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { RequestContext } from "../context/request-context.service";
 import { PermissionsGuard } from "./permissions.guard";
@@ -22,6 +26,19 @@ function permission(id: string): Permission {
     module,
     description: null,
     createdAt: new Date(),
+  };
+}
+
+function guardianProfile(campusId: string) {
+  return {
+    type: "guardian" as const,
+    id: `guardian-${campusId}`,
+    campusId,
+    fullName: "Guardian",
+    email: "guardian@example.com",
+    phoneNumber: null,
+    dateOfBirth: null,
+    gender: null,
   };
 }
 
@@ -98,6 +115,54 @@ describe("PermissionsGuard", () => {
     );
 
     expect(requestContext.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows post.manage as an implied CMS review permission", async () => {
+    reflector.getAllAndOverride.mockReturnValue(["post.review"]);
+    const role = createRole({
+      permissions: [permission("post.manage")],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(role, DEFAULT_CAMPUS_ID_A)],
+    });
+    const requestContext = mockRequestContext(user);
+    const guard = new PermissionsGuard(reflector, requestContext);
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(true);
+  });
+
+  it("allows a matching-campus guardian on an explicit public CMS route", async () => {
+    reflector.getAllAndOverride.mockImplementation((key: string) => {
+      if (key === CMS_ROUTE_VISIBILITY_KEY) {
+        return CmsRouteVisibility.PUBLIC_READ;
+      }
+      if (key === PERMISSIONS_KEY) return ["post.list", "post.manage"];
+      return undefined;
+    });
+    const user = createUser({
+      profiles: [guardianProfile(DEFAULT_CAMPUS_ID_A)],
+    });
+    const guard = new PermissionsGuard(reflector, mockRequestContext(user));
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(true);
+  });
+
+  it("denies a guardian on an explicit staff-only post.read route", async () => {
+    reflector.getAllAndOverride.mockImplementation((key: string) => {
+      if (key === CMS_ROUTE_VISIBILITY_KEY) {
+        return CmsRouteVisibility.STAFF_ONLY;
+      }
+      if (key === PERMISSIONS_KEY) return ["post.read", "post.manage"];
+      return undefined;
+    });
+    const user = createUser({
+      profiles: [guardianProfile(DEFAULT_CAMPUS_ID_A)],
+    });
+    const guard = new PermissionsGuard(reflector, mockRequestContext(user));
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(
+      false,
+    );
   });
 
   it("denies medication permission assigned only to another campus", async () => {

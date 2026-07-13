@@ -8,6 +8,11 @@ import {
 import { AttachmentRepository } from "../ports/attachment.repository";
 import { PostRepository } from "../ports/post.repository";
 import { User } from "@/domain/user-management/user.entity";
+import { userCanManagePost } from "./authorization/post-permission.helper";
+import {
+  assertAttachmentMutationAllowed,
+  rethrowAttachmentMutationError,
+} from "./attachment-workflow.helper";
 
 @Injectable()
 export class RemoveAttachmentUseCase {
@@ -43,35 +48,27 @@ export class RemoveAttachmentUseCase {
         );
       }
 
-      const isAuthor = post.authorId.toString() === currentUser.id.toString();
-      const isAdmin = currentUser.hasSystemRole();
-
-      if (!isAuthor && !isAdmin) {
+      if (!userCanManagePost(currentUser, campusId, post.authorId.toString())) {
         throw new ForbiddenException(
           "You are not authorized to remove attachments from this post",
         );
       }
 
-      await this.attachmentRepository.delete(attachmentId);
-      this.logger.log(`Attachment removed: ${attachmentId}`);
+      assertAttachmentMutationAllowed(post);
 
-      // Reorder remaining attachments
-      const remainingAttachments =
-        await this.attachmentRepository.findByPostId(postId);
-      const reorderPromises = remainingAttachments
-        .sort((a, b) => a.order - b.order)
-        .map((att, index) => ({ id: att.id.toString(), order: index }));
-
-      if (reorderPromises.length > 0) {
-        await this.attachmentRepository.updateOrder(postId, reorderPromises);
-        this.logger.log(`Reordered attachments for post ${postId}`);
-      }
+      await this.attachmentRepository.removeAndCompact(postId, attachmentId, {
+        changedById: currentUser.id,
+        reason: "Attachment removed",
+      });
+      this.logger.log(
+        `Attachment removed and order compacted: ${attachmentId}`,
+      );
     } catch (error) {
       this.logger.error(
         `Failed to remove attachment: ${error.message}`,
         error.stack,
       );
-      throw error;
+      rethrowAttachmentMutationError(error);
     }
   }
 }

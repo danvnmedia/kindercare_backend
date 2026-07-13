@@ -12,10 +12,9 @@ export class PrismaPostReactionRepository implements PostReactionRepository {
     postId: string,
     userId: string,
   ): Promise<PostReaction | null> {
-    const prismaReaction = await this.prisma.postReaction.findFirst({
+    const prismaReaction = await this.prisma.postReaction.findUnique({
       where: {
-        postId,
-        userId,
+        postId_userId: { postId, userId },
       },
     });
     return prismaReaction
@@ -56,10 +55,17 @@ export class PrismaPostReactionRepository implements PostReactionRepository {
 
   async save(reaction: PostReaction): Promise<PostReaction> {
     const prismaData = PrismaPostReactionMapper.toPrisma(reaction);
-    const created = await this.prisma.postReaction.create({
-      data: prismaData,
+    const saved = await this.prisma.postReaction.upsert({
+      where: {
+        postId_userId: {
+          postId: reaction.postId,
+          userId: reaction.userId,
+        },
+      },
+      create: prismaData,
+      update: {},
     });
-    return PrismaPostReactionMapper.toDomain(created);
+    return PrismaPostReactionMapper.toDomain(saved);
   }
 
   async delete(postId: string, userId: string): Promise<void> {

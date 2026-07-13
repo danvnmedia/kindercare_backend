@@ -1,5 +1,12 @@
 import { AuditEventInput } from "@/application/audit";
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
+import {
+  CampusSetting,
+  Post,
+  PostApprovalRequest,
+  PostCategory,
+  PostHistoryStatus,
+} from "@/domain/content-management";
 import { MealMenu, MealMenuConfig } from "@/domain/meal-menu";
 import { WeeklyPlan } from "@/domain/weekly-plan";
 import {
@@ -8,6 +15,13 @@ import {
   UpdateRoleData,
 } from "@/domain/user-management/role.entity";
 import { StaffType } from "@/domain/user-management/entities/staff-type.entity";
+import {
+  CreatePostOptions,
+  IdempotentCreatePostOptions,
+  IdempotentCreatePostResult,
+  IdempotentPostRecord,
+  UpdatePostOptions,
+} from "../content-management/ports/post.repository";
 import { RoleAssignmentInput } from "../user-management/ports/user.repository";
 
 /**
@@ -335,6 +349,116 @@ export interface TransactionContext {
    * Upsert meal-menu config defaults within the current transaction.
    */
   upsertMealMenuConfig(config: MealMenuConfig): Promise<MealMenuConfig>;
+
+  createPost(post: Post, options?: CreatePostOptions): Promise<Post>;
+
+  /**
+   * Lock and return the current post row for a workflow mutation.
+   * Callers must perform status checks only after this read.
+   */
+  findPostByIdForUpdate(id: string): Promise<Post | null>;
+
+  findPostByClientMutationId(
+    campusId: string,
+    authorId: string,
+    clientMutationId: string,
+  ): Promise<IdempotentPostRecord | null>;
+
+  /**
+   * Return the existing post for the scoped mutation key, or create it once.
+   * Implementations must serialize competing requests for the same key.
+   */
+  createPostIdempotently(
+    post: Post,
+    options: IdempotentCreatePostOptions,
+  ): Promise<IdempotentCreatePostResult>;
+
+  updatePost(
+    id: string,
+    post: Post,
+    options?: UpdatePostOptions,
+  ): Promise<Post>;
+
+  /** Serialize pin-capacity decisions for one campus. */
+  lockPostPinCapacity(campusId: string): Promise<void>;
+
+  /** Count currently effective pins inside the active transaction. */
+  countEffectivePinnedPosts(campusId: string, now: Date): Promise<number>;
+
+  /** Update only pin columns; never persist a stale post aggregate. */
+  updatePostPin(
+    id: string,
+    data: {
+      isPinned: boolean;
+      pinnedById: string | null;
+      pinnedUntil: Date | null;
+    },
+  ): Promise<Post>;
+
+  deletePost(id: string): Promise<void>;
+
+  /** Serialize all category mutations for one campus. */
+  lockPostCategoryCampus(campusId: string): Promise<void>;
+
+  /** Return a category only after locking its row. */
+  findPostCategoryByIdForUpdate(id: string): Promise<PostCategory | null>;
+
+  /** Return active categories after locking the campus category set. */
+  findActivePostCategoriesForUpdate(campusId: string): Promise<PostCategory[]>;
+
+  /** Case-insensitive lookup inside the active transaction. */
+  findPostCategoryByName(
+    campusId: string,
+    name: string,
+  ): Promise<PostCategory | null>;
+
+  createPostCategory(category: PostCategory): Promise<PostCategory>;
+
+  updatePostCategory(category: PostCategory): Promise<PostCategory>;
+
+  deletePostCategory(id: string): Promise<void>;
+
+  reorderPostCategories(
+    campusId: string,
+    ids: string[],
+  ): Promise<PostCategory[]>;
+
+  upsertCampusSetting(setting: CampusSetting): Promise<CampusSetting>;
+
+  createPostHistoryStatus(
+    status: PostHistoryStatus,
+  ): Promise<PostHistoryStatus>;
+
+  createPostApprovalRequest(
+    request: PostApprovalRequest,
+  ): Promise<PostApprovalRequest>;
+
+  updatePostApprovalRequest(
+    request: PostApprovalRequest,
+  ): Promise<PostApprovalRequest>;
+
+  /** Lock the latest approval request for a post, if one exists. */
+  findLatestPostApprovalRequestForUpdate(
+    postId: string,
+  ): Promise<PostApprovalRequest | null>;
+
+  /** Lock and return the latest pending request, including stale older rows. */
+  findPendingPostApprovalRequestForUpdate(
+    postId: string,
+  ): Promise<PostApprovalRequest | null>;
+
+  /**
+   * Persist a review decision only while the stored request remains pending.
+   * Implementations must fail when another reviewer already decided it.
+   */
+  updatePostApprovalRequestIfPending(
+    request: PostApprovalRequest,
+  ): Promise<PostApprovalRequest>;
+
+  /** Lock and return the campus setting used to decide approval policy. */
+  findCampusSettingByCampusIdForUpdate(
+    campusId: string,
+  ): Promise<CampusSetting | null>;
 
   /**
    * Create a weekly plan and its block/activity rows within the current transaction.

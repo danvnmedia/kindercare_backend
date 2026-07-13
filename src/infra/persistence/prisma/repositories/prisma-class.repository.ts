@@ -3,9 +3,11 @@ import {
   Class as PrismaClass,
   GradeLevel as PrismaGradeLevel,
   SchoolYear as PrismaSchoolYear,
+  Prisma,
 } from "@prisma/client";
 import { PrismaService } from "../prisma.service";
 import {
+  ClassDeletionConflictError,
   ClassListItemView,
   ClassRepository,
 } from "@/application/class-management/ports/class.repository";
@@ -271,8 +273,18 @@ export class PrismaClassRepository implements ClassRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.class.delete({
-      where: { id },
-    });
+    try {
+      await this.prisma.class.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
+        throw new ClassDeletionConflictError();
+      }
+      throw error;
+    }
   }
 }

@@ -5,12 +5,19 @@ services:
       dockerfile: Dockerfile.prod
     env_file:
       - .env
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-kindercare_backend}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - PORT=${APP_PORT:-8000}
+      - SEED_SUPER_ADMIN_CLERK_UID=${SEED_SUPER_ADMIN_CLERK_UID:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
-    command: node dist/src/main.js
+    command: npm run start:prod
     networks:
       - kindercare-network
 

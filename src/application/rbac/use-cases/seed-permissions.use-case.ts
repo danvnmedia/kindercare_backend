@@ -198,12 +198,31 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
   { id: "post.update", module: "post", description: "Update post information" },
   { id: "post.delete", module: "post", description: "Delete a post" },
   { id: "post.list", module: "post", description: "List all posts" },
+  {
+    id: "post.review",
+    module: "post",
+    description: "Review and approve posts",
+  },
+  {
+    id: "post.manage",
+    module: "post",
+    description: "Manage CMS administration settings and moderation",
+  },
 
   // File permissions
   { id: "file.create", module: "file", description: "Upload a file" },
   { id: "file.read", module: "file", description: "View/download file" },
-  { id: "file.delete", module: "file", description: "Delete a file" },
+  {
+    id: "file.delete",
+    module: "file",
+    description: "Delete files uploaded by the current user",
+  },
   { id: "file.list", module: "file", description: "List all files" },
+  {
+    id: "file.manage",
+    module: "file",
+    description: "Delete eligible files uploaded by any user",
+  },
 
   // Role permissions
   { id: "role.create", module: "role", description: "Create a new role" },

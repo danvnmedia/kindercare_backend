@@ -7,6 +7,7 @@ export * from "./post-query.request";
 export * from "./reorder-attachments.request";
 export * from "./update-post.request";
 export * from "./transition-post.request";
+export * from "./batch-transition-post.request";
 export * from "./pin-post.request";
 export * from "./approval";
 export * from "./category";

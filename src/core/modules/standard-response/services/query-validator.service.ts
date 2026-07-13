@@ -91,10 +91,12 @@ export class QueryValidatorService {
       maxLimit?: number;
     },
   ): StandardRequest {
-    const sanitized: StandardRequest = {
+    const sanitized: StandardRequest & { search?: string; q?: string } = {
       limit: typeof query.limit === "number" ? query.limit : undefined,
       offset: typeof query.offset === "number" ? query.offset : undefined,
       sort: typeof query.sort === "string" ? query.sort : undefined,
+      search: typeof query.search === "string" ? query.search : undefined,
+      q: typeof query.q === "string" ? query.q : undefined,
       filter: typeof query.filter === "string" ? query.filter : undefined,
       filterInfo: undefined,
       sortInfo: undefined,

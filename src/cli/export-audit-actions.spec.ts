@@ -44,10 +44,10 @@ describe("buildAuditActionsExport", () => {
   // medication request lifecycle added 1; school-year grade correction added 1;
   // school-year lifecycle run/decision/preview/commit added 9;
   // historical record correction/export/retention lifecycle added 6; future
-  // school-year enrollment cancellation added 1.
-  it("emits exactly 72 actions including enrollment cancellation", () => {
+  // school-year enrollment cancellation added 1; CMS lifecycle added 15.
+  it("emits exactly 87 actions including enrollment cancellation and CMS lifecycle", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(72);
+    expect(result.actions).toHaveLength(87);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {

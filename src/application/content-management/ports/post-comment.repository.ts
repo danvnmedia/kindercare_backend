@@ -23,6 +23,8 @@ export abstract class PostCommentRepository {
     params: StandardRequest,
   ): Promise<PaginatedResult<PostComment>>;
 
+  abstract findManagementNotesByPostId(postId: string): Promise<PostComment[]>;
+
   /**
    * Find root-level comments (depth = 0) for a post with pagination
    * Used for initial comment list display
@@ -44,9 +46,16 @@ export abstract class PostCommentRepository {
   abstract countByPost(postId: string): Promise<number>;
 
   /**
+   * Count public comments for a post, including deleted public comments.
+   */
+  abstract countPublicByPost(postId: string): Promise<number>;
+
+  /**
    * Count active (non-deleted) comments for a post
    */
   abstract countActiveByPost(postId: string): Promise<number>;
+
+  abstract countActivePublicByPost(postId: string): Promise<number>;
 
   /**
    * Save a new comment

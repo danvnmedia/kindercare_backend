@@ -80,11 +80,44 @@ export class BulkRecordAttendanceUseCase {
       log: StudentAttendanceLog;
     }> = [];
 
+    // Step 2a: Batch-load students and existing attendances to avoid N+1 queries
+    const uniqueStudentIds = [
+      ...new Set(input.records.map((r) => r.studentId)),
+    ];
+    const students = await this.studentRepository.findByIds(uniqueStudentIds);
+    const studentById = new Map(
+      students.map((student) => [student.id, student]),
+    );
+
+    const existingAttendances = await Promise.all(
+      uniqueStudentIds.map(async (studentId) => ({
+        studentId,
+        attendance: await this.attendanceRepository.findByStudentAndDate(
+          studentId,
+          input.date,
+        ),
+      })),
+    );
+    const existingByStudentId = new Map(
+      existingAttendances.map((entry) => [entry.studentId, entry.attendance]),
+    );
+    const seenStudentIds = new Set<string>();
+
     // Step 2: Validate each record and prepare for creation
     for (const record of input.records) {
       try {
+        // Guard duplicate student IDs in the same bulk request
+        if (seenStudentIds.has(record.studentId)) {
+          skipped.push({
+            studentId: record.studentId,
+            reason: "Duplicate student in request payload",
+          });
+          continue;
+        }
+        seenStudentIds.add(record.studentId);
+
         // Validate student exists and belongs to campus
-        const student = await this.studentRepository.findById(record.studentId);
+        const student = studentById.get(record.studentId);
         if (!student) {
           skipped.push({
             studentId: record.studentId,
@@ -101,11 +134,7 @@ export class BulkRecordAttendanceUseCase {
         }
 
         // Check for existing attendance
-        const existingAttendance =
-          await this.attendanceRepository.findByStudentAndDate(
-            record.studentId,
-            input.date,
-          );
+        const existingAttendance = existingByStudentId.get(record.studentId);
         if (existingAttendance) {
           skipped.push({
             studentId: record.studentId,

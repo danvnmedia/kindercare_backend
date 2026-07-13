@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
       - "${DEBUG_PORT:-9229}:9229"
     env_file:
       - .env
@@ -13,16 +13,22 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-kindercare_backend}?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
-      - PORT=3000
+      - PORT=${APP_PORT:-8000}
+      # Seeding options:
+      # SEED_DATABASE=true - Always run seed on startup
+      # SEED_ON_EMPTY=true - Only seed if database is empty (recommended for dev)
+      - SEED_ON_EMPTY=${SEED_ON_EMPTY:-true}
+      # Default true for local Docker so new RBAC permissions/roles are backfilled on existing dev DBs.
+      - SEED_DATABASE=${SEED_DATABASE:-true}
+      - SEED_SUPER_ADMIN_CLERK_UID=${SEED_SUPER_ADMIN_CLERK_UID:-}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_started
     volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run start:dev
+      - uploads_data:/app/uploads
+    command: npm run start:prod
     networks:
       - kindercare-network
 
@@ -61,3 +67,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

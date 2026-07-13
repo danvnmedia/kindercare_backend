@@ -36,6 +36,12 @@ type PrismaUserRoleWithRole = PrismaUserRole & {
   };
 };
 
+type PrismaUserWithRelations = PrismaUser & {
+  userRoles?: PrismaUserRoleWithRole[];
+  guardians?: PrismaGuardian[];
+  staffs?: PrismaStaff[];
+};
+
 export class PrismaUserMapper {
   /**
    * Map guardian data to UserProfile
@@ -73,13 +79,7 @@ export class PrismaUserMapper {
    * Convert Prisma model to Domain entity (full)
    * Supports eager-loaded roles with campus context
    */
-  static toDomain(
-    prismaUser: PrismaUser & {
-      userRoles?: PrismaUserRoleWithRole[];
-      guardians?: PrismaGuardian[];
-      staffs?: PrismaStaff[];
-    },
-  ): User {
+  static toDomain(prismaUser: PrismaUserWithRelations): User {
     const roleAssignments: UserRoleAssignment[] =
       prismaUser.userRoles?.map((ur) => ({
         role: PrismaRoleMapper.toDomain(ur.role),
@@ -94,18 +94,35 @@ export class PrismaUserMapper {
         this.mapGuardianToProfile(guardian),
       ) ?? [];
     const profiles: UserProfile[] = [...staffProfiles, ...guardianProfiles];
+    const profile = profiles[0] ?? null;
 
     return User.reconstitute(
       {
         clerkUid: prismaUser.clerkUid,
         isActive: prismaUser.isActive,
+        name: profile?.fullName,
+        email: profile?.email ?? undefined,
         roleAssignments,
         profiles,
+        profile,
         createdAt: prismaUser.createdAt,
         updatedAt: prismaUser.updatedAt,
       },
       prismaUser.id,
     );
+  }
+
+  static toDomainForCampus(
+    prismaUser: PrismaUserWithRelations,
+    campusId: string,
+  ): User {
+    return this.toDomain({
+      ...prismaUser,
+      guardians: prismaUser.guardians?.filter(
+        (guardian) => guardian.campusId === campusId,
+      ),
+      staffs: prismaUser.staffs?.filter((staff) => staff.campusId === campusId),
+    });
   }
 
   /**

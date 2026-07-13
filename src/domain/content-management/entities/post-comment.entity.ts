@@ -1,6 +1,7 @@
 import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
+import { User } from "@/domain/user-management/user.entity";
 
 /**
  * Maximum nesting depth for comments.
@@ -13,6 +14,11 @@ export const MAX_COMMENT_DEPTH = 3;
  */
 export const MAX_COMMENT_LENGTH = 1000;
 
+export enum PostCommentType {
+  PUBLIC = "PUBLIC",
+  MANAGEMENT = "MANAGEMENT",
+}
+
 /**
  * Properties of the PostComment entity.
  * Comments support nesting via parentCommentId and depth tracking.
@@ -20,9 +26,11 @@ export const MAX_COMMENT_LENGTH = 1000;
 export interface PostCommentProps {
   postId: string;
   userId: string;
+  user?: User;
   parentCommentId: string | null;
   depth: number;
   content: string;
+  commentType: PostCommentType;
   isDeleted: boolean;
   deletedAt: Date | null;
   deletedById: string | null;
@@ -46,6 +54,10 @@ export class PostComment extends Entity<PostCommentProps> {
     return this.props.userId;
   }
 
+  get user(): User | undefined {
+    return this.props.user;
+  }
+
   get parentCommentId(): string | null {
     return this.props.parentCommentId;
   }
@@ -56,6 +68,10 @@ export class PostComment extends Entity<PostCommentProps> {
 
   get content(): string {
     return this.props.content;
+  }
+
+  get commentType(): PostCommentType {
+    return this.props.commentType;
   }
 
   get isDeleted(): boolean {
@@ -166,6 +182,8 @@ export class PostComment extends Entity<PostCommentProps> {
       | "deletedById"
       | "parentCommentId"
       | "depth"
+      | "user"
+      | "commentType"
     >,
     id?: string,
   ): PostComment {
@@ -208,9 +226,11 @@ export class PostComment extends Entity<PostCommentProps> {
     const commentProps: PostCommentProps = {
       postId: props.postId,
       userId: props.userId,
+      user: props.user,
       parentCommentId: props.parentCommentId ?? null,
       depth,
       content: props.content.trim(),
+      commentType: props.commentType ?? PostCommentType.PUBLIC,
       isDeleted: props.isDeleted ?? false,
       deletedAt: props.deletedAt ?? null,
       deletedById: props.deletedById ?? null,

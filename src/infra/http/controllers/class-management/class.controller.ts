@@ -13,8 +13,9 @@ import {
   ApiOperation,
   ApiTags,
   ApiParam,
-  ApiQuery,
   ApiHeader,
+  ApiBearerAuth,
+  ApiQuery,
 } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
@@ -78,6 +79,7 @@ import { parseDateOnly } from "@/application/class-management/date-only";
 
 @Controller("classes")
 @ApiTags("Classes")
+@ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
 export class ClassController {
   constructor(

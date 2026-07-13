@@ -9,7 +9,13 @@ import {
   Query,
   UseGuards,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam, ApiHeader } from "@nestjs/swagger";
+import {
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+  ApiHeader,
+  ApiBearerAuth,
+} from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 
@@ -40,6 +46,7 @@ import { RestoreStaffUseCase } from "@/application/user-management/use-cases/sta
 
 @Controller("staff")
 @ApiTags("Staff")
+@ApiBearerAuth("JWT")
 @UseGuards(ClerkAuthGuard)
 export class StaffController {
   constructor(

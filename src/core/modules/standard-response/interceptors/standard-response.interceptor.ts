@@ -70,7 +70,7 @@ function isValueObject(data: unknown): data is ValueObject<any> {
 }
 
 @Injectable()
-export class StandardResponseInterceptor<T = any> implements NestInterceptor {
+export class StandardResponseInterceptor implements NestInterceptor {
   constructor(
     private reflector: Reflector,
     private queryValidatorService: QueryValidatorService,
@@ -189,7 +189,7 @@ export class StandardResponseInterceptor<T = any> implements NestInterceptor {
                 try {
                   const getterValue = entity[getterName];
                   result[getterName] = processData(getterValue);
-                } catch (error) {
+                } catch {
                   // Skip getters that might throw errors
                 }
               }

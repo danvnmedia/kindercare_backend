@@ -7,13 +7,15 @@ import {
 } from "@nestjs/swagger";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../decorators";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { RolesGuard } from "../guards/roles.guard";
-import { Roles } from "../decorators/roles.decorator";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 
 import {
   CampusSettingResponse,
@@ -36,6 +38,8 @@ export class CampusSettingController {
 
   @Get()
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Campus settings retrieved successfully",
     type: CampusSettingResponse,
@@ -59,8 +63,8 @@ export class CampusSettingController {
 
   @Patch()
   @RequireCampusAccess()
-  @UseGuards(RolesGuard)
-  @Roles("admin", "super_admin")
+  @UseGuards(PermissionsGuard)
+  @Permissions("post.manage")
   @StandardResponse({
     message: "Campus settings updated successfully",
     type: CampusSettingResponse,
@@ -79,7 +83,8 @@ export class CampusSettingController {
   async updateCampusSettings(
     @CampusContext() campusId: string,
     @Body() dto: UpdateCampusSettingRequest,
+    @CurrentUser() user: User,
   ): Promise<CampusSetting> {
-    return this.updateCampusSettingUseCase.execute(campusId, dto);
+    return this.updateCampusSettingUseCase.execute(campusId, dto, user);
   }
 }

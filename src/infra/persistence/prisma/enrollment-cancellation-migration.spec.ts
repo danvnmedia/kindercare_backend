@@ -6,7 +6,7 @@ describe("enrollment cancellation migration", () => {
     process.cwd(),
     "prisma/migrations/20260711153000_add_enrollment_cancellation_status/migration.sql",
   );
-  const migration = readFileSync(migrationPath, "utf8");
+  const migration = readFileSync(migrationPath, "utf8").replace(/\r\n?/g, "\n");
 
   it("adds nullable cancellation facts without a cancellation backfill", () => {
     expect(migration).toContain('ADD COLUMN "cancelled_at" TIMESTAMPTZ(6)');

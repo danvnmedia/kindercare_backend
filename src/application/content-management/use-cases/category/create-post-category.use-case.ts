@@ -1,12 +1,16 @@
 import {
-  Injectable,
-  Inject,
-  ConflictException,
   BadRequestException,
+  ConflictException,
+  Injectable,
   Logger,
 } from "@nestjs/common";
+import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import { PostCategory } from "@/domain/content-management";
-import { PostCategoryRepository } from "../../ports/post-category.repository";
+import { User } from "@/domain/user-management/user.entity";
+import {
+  isUniqueConstraintError,
+  normalizePostCategoryFields,
+} from "./post-category-validation";
 
 export interface CreatePostCategoryInput {
   campusId: string;
@@ -20,63 +24,113 @@ export interface CreatePostCategoryInput {
 export class CreatePostCategoryUseCase {
   private readonly logger = new Logger(CreatePostCategoryUseCase.name);
 
-  constructor(
-    @Inject("POST_CATEGORY_REPOSITORY")
-    private readonly postCategoryRepository: PostCategoryRepository,
-  ) {}
+  constructor(private readonly unitOfWork: UnitOfWorkPort) {}
 
-  async execute(input: CreatePostCategoryInput): Promise<PostCategory> {
+  async execute(
+    input: CreatePostCategoryInput,
+    currentUser: User,
+  ): Promise<PostCategory> {
+    let normalizedInput: CreatePostCategoryInput;
     try {
-      this.logger.log(`Creating post category: ${input.name}`);
+      normalizedInput = normalizePostCategoryFields(input);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : "Invalid post category",
+      );
+    }
+    this.logger.log(`Creating post category: ${normalizedInput.name}`);
 
-      // Step 1: Check for duplicate name within campus
-      const existingByName =
-        await this.postCategoryRepository.findByNameInCampus(
-          input.campusId,
-          input.name,
+    try {
+      const savedCategory = await this.unitOfWork.run(async (tx) => {
+        await tx.lockPostCategoryCampus(normalizedInput.campusId);
+        const active = await tx.findActivePostCategoriesForUpdate(
+          normalizedInput.campusId,
         );
-      if (existingByName) {
-        throw new ConflictException(
-          `Category "${input.name}" already exists in this campus`,
-        );
-      }
+        const insertionOrder = normalizedInput.order ?? active.length + 1;
+        this.assertOrderInRange(insertionOrder, active.length + 1);
 
-      // Step 2: Determine order value (auto-calculate if not provided)
-      let order: number;
-      if (input.order !== undefined) {
-        order = input.order;
-      } else {
-        // Auto-calculate: next order after the current maximum
-        const maxOrder = await this.postCategoryRepository.getMaxOrder(
-          input.campusId,
+        const duplicate = await tx.findPostCategoryByName(
+          normalizedInput.campusId,
+          normalizedInput.name,
         );
-        order = maxOrder + 1;
-        this.logger.log(`Auto-assigned order: ${order}`);
-      }
+        if (duplicate) {
+          throw new ConflictException(
+            `Category "${normalizedInput.name}" already exists in this campus`,
+          );
+        }
 
-      // Step 3: Create domain entity (validation happens in factory)
-      const category = PostCategory.create({
-        campusId: input.campusId,
-        name: input.name,
-        color: input.color,
-        icon: input.icon ?? null,
-        order,
+        const category = PostCategory.create({
+          campusId: normalizedInput.campusId,
+          name: normalizedInput.name,
+          color: normalizedInput.color,
+          icon: normalizedInput.icon ?? null,
+          order: active.length + 1,
+        });
+        let saved = await tx.createPostCategory(category);
+
+        if (insertionOrder !== active.length + 1) {
+          const ids = active.map((item) => item.id.toString());
+          ids.splice(insertionOrder - 1, 0, saved.id.toString());
+          const reordered = await tx.reorderPostCategories(
+            normalizedInput.campusId,
+            ids,
+          );
+          saved =
+            reordered.find(
+              (item) => item.id.toString() === saved.id.toString(),
+            ) ?? saved;
+        }
+
+        await tx.recordAudit({
+          actorId: currentUser.id,
+          action: "CREATE_POST_CATEGORY",
+          targetType: "post_category",
+          targetId: saved.id.toString(),
+          campusId: normalizedInput.campusId,
+          context: {
+            actorName: currentUser.profile?.fullName ?? null,
+            targetName: saved.name,
+          },
+          afterValue: this.toAuditSnapshot(saved),
+        });
+        return saved;
       });
 
-      // Step 4: Save to repository
-      const savedCategory = await this.postCategoryRepository.save(category);
       this.logger.log(`Post category created: ${savedCategory.id}`);
-
       return savedCategory;
     } catch (error) {
-      this.logger.error(
-        `Failed to create post category: ${error.message}`,
-        error.stack,
-      );
-      if (error instanceof ConflictException) {
+      if (
+        error instanceof ConflictException ||
+        error instanceof BadRequestException
+      ) {
         throw error;
       }
-      throw new BadRequestException(error.message);
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          `Category "${normalizedInput.name}" already exists in this campus`,
+        );
+      }
+      throw new BadRequestException(
+        error instanceof Error ? error.message : "Failed to create category",
+      );
     }
+  }
+
+  private assertOrderInRange(order: number, maximum: number): void {
+    if (!Number.isInteger(order) || order < 1 || order > maximum) {
+      throw new BadRequestException(
+        `Category order must be an integer between 1 and ${maximum}`,
+      );
+    }
+  }
+
+  private toAuditSnapshot(category: PostCategory): Record<string, unknown> {
+    return {
+      name: category.name,
+      color: category.color,
+      icon: category.icon,
+      order: category.order,
+      isArchived: category.isArchived,
+    };
   }
 }

@@ -27,7 +27,7 @@ export class PrismaPostCategoryRepository implements PostCategoryRepository {
     campusId: string,
     params: StandardRequest,
   ): Promise<PaginatedResult<PostCategory>> {
-    params.allowedFilterFields = ["name", "isArchived", "order"];
+    params.allowedFilterFields = ["name", "isArchived", "isActive", "order"];
     params.allowedSortFields = ["createdAt", "updatedAt", "order", "name"];
 
     return await this.queryService.executeQuery<PostCategory>(
@@ -36,6 +36,7 @@ export class PrismaPostCategoryRepository implements PostCategoryRepository {
       params,
       {
         where: { campusId },
+        orderBy: [{ order: "asc" }, { id: "asc" }],
       },
       PrismaPostCategoryMapper,
     );
@@ -106,20 +107,25 @@ export class PrismaPostCategoryRepository implements PostCategoryRepository {
   }
 
   async reorder(campusId: string, ids: string[]): Promise<PostCategory[]> {
-    // Update each category's order based on its position in the array
-    const updatePromises = ids.map((id, index) =>
-      this.prisma.postCategory.update({
-        where: { id },
-        data: { order: index + 1, updatedAt: new Date() },
-      }),
-    );
+    const now = new Date();
 
-    await Promise.all(updatePromises);
+    const reorderedCategories = await this.prisma.$transaction(async (tx) => {
+      for (const [index, id] of ids.entries()) {
+        const result = await tx.postCategory.updateMany({
+          where: { id, campusId },
+          data: { order: index + 1, updatedAt: now },
+        });
+        if (result.count !== 1) {
+          throw new Error(
+            `Post category ${id} not found in campus ${campusId}`,
+          );
+        }
+      }
 
-    // Fetch and return the reordered categories
-    const reorderedCategories = await this.prisma.postCategory.findMany({
-      where: { campusId, id: { in: ids } },
-      orderBy: { order: "asc" },
+      return tx.postCategory.findMany({
+        where: { campusId, id: { in: ids } },
+        orderBy: { order: "asc" },
+      });
     });
 
     return PrismaPostCategoryMapper.toDomainArray(reorderedCategories);

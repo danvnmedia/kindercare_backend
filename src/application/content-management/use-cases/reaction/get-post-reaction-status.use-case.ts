@@ -2,16 +2,17 @@ import {
   Injectable,
   Inject,
   NotFoundException,
-  ForbiddenException,
+  BadRequestException,
   Logger,
 } from "@nestjs/common";
 import { PostRepository } from "../../ports/post.repository";
 import { PostReactionRepository } from "../../ports/post-reaction.repository";
+import { CampusSettingRepository } from "../../ports/campus-setting.repository";
 import { User } from "@/domain/user-management/user.entity";
 
 export interface PostReactionStatusResult {
-  hearted: boolean;
-  count: number;
+  hasReacted: boolean;
+  reactionCount: number;
 }
 
 @Injectable()
@@ -23,6 +24,8 @@ export class GetPostReactionStatusUseCase {
     private readonly postRepository: PostRepository,
     @Inject("POST_REACTION_REPOSITORY")
     private readonly postReactionRepository: PostReactionRepository,
+    @Inject("CAMPUS_SETTING_REPOSITORY")
+    private readonly campusSettingRepository: CampusSettingRepository,
   ) {}
 
   async execute(
@@ -35,28 +38,37 @@ export class GetPostReactionStatusUseCase {
         `Getting reaction status for post: ${postId}, user: ${currentUser.id}`,
       );
 
-      const post = await this.postRepository.findById(postId);
+      const post = await this.postRepository.findVisibleById(
+        postId,
+        campusId,
+        currentUser,
+      );
       if (!post) {
         throw new NotFoundException(`Post with ID ${postId} not found`);
       }
 
-      // Verify the post belongs to the specified campus
-      if (post.campusId !== campusId) {
-        throw new ForbiddenException(
-          "You do not have access to this post in the specified campus",
+      if (!post.canReceiveEngagement()) {
+        throw new BadRequestException(
+          "Cannot view reactions for this post. Post must be published and not deleted.",
         );
       }
 
-      const [hearted, count] = await Promise.all([
+      const setting =
+        await this.campusSettingRepository.findByCampusId(campusId);
+      if (setting && !setting.allowReactions) {
+        return { hasReacted: false, reactionCount: 0 };
+      }
+
+      const [hasReacted, reactionCount] = await Promise.all([
         this.postReactionRepository.existsByPostAndUser(postId, currentUser.id),
         this.postReactionRepository.countByPost(postId),
       ]);
 
       this.logger.log(
-        `Reaction status for post ${postId}: hearted=${hearted}, count=${count}`,
+        `Reaction status for post ${postId}: hasReacted=${hasReacted}, reactionCount=${reactionCount}`,
       );
 
-      return { hearted, count };
+      return { hasReacted, reactionCount };
     } catch (error) {
       this.logger.error(
         `Failed to get reaction status: ${error.message}`,

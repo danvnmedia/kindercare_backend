@@ -2,8 +2,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Install dependencies for native modules
-RUN apk add --no-cache python3 make g++
+# Install dependencies for native modules and dos2unix for line ending conversion
+RUN apk add --no-cache python3 make g++ dos2unix netcat-openbsd
 
 # Copy package files
 COPY package*.json ./
@@ -14,15 +14,15 @@ RUN npm install
 # Copy application code
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client and build app
 RUN npx prisma generate
-
+RUN npm run build
 
 COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN dos2unix /usr/local/bin/entrypoint.sh && chmod +x /usr/local/bin/entrypoint.sh
 
-# Expose port
-EXPOSE 3000
+# Default port, can be overridden via PORT env var
+EXPOSE 8000
 EXPOSE 9229
 
 # Use entrypoint script

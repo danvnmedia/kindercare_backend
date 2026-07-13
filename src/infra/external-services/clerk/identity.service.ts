@@ -3,6 +3,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
 } from "@nestjs/common";
 import { type ClerkClient, type User } from "@clerk/backend";
 import {
@@ -15,6 +16,8 @@ import {
 
 @Injectable()
 export class IdentityService extends IdentityPort {
+  private readonly logger = new Logger(IdentityService.name);
+
   constructor(
     @Inject("ClerkClient") private readonly clerkClient: ClerkClient,
   ) {
@@ -56,7 +59,11 @@ export class IdentityService extends IdentityPort {
       });
       return { clerkUid: created.id };
     } catch (err) {
-      throw new ConflictException("Error when provisioning user: " + err);
+      // Log detailed error for debugging, return generic message to client
+      this.logger.error("Error provisioning user in Clerk", err);
+      throw new ConflictException(
+        "Failed to create user account. Please try again or contact support.",
+      );
     }
   }
 
@@ -84,7 +91,11 @@ export class IdentityService extends IdentityPort {
         emailAddress: email,
       });
     } catch (err) {
-      throw new ConflictException("Error when inviting user: " + err);
+      // Log detailed error for debugging, return generic message to client
+      this.logger.error("Error inviting user in Clerk", err);
+      throw new ConflictException(
+        "Failed to send invitation. Please try again or contact support.",
+      );
     }
   }
 

@@ -81,6 +81,7 @@ export class AttendanceController {
       status: dto.status,
       checkinAt: dto.checkinAt ? new Date(dto.checkinAt) : undefined,
       note: dto.note,
+      imageFileId: dto.imageFileId,
     });
     return StudentAttendanceResponse.fromDomain(result.summary);
   }
@@ -115,6 +116,7 @@ export class AttendanceController {
         status: r.status,
         checkinAt: r.checkinAt ? new Date(r.checkinAt) : undefined,
         note: r.note,
+        imageFileId: r.imageFileId,
       })),
     });
     return {

@@ -15,6 +15,8 @@ export const StandardRequestParam = createParamDecorator(
     if (query.limit) parsedQuery.limit = Number(query.limit);
     if (query.offset) parsedQuery.offset = Number(query.offset);
     if (query.sort) parsedQuery.sort = query.sort;
+    if (query.search) parsedQuery.search = query.search;
+    if (query.q) parsedQuery.q = query.q;
     if (query.filter) parsedQuery.filter = query.filter;
 
     // Validate query parameters

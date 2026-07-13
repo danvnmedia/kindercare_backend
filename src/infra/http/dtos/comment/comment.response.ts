@@ -1,5 +1,18 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Expose, Type } from "class-transformer";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { Expose, Transform, TransformFnParams, Type } from "class-transformer";
+import { StandardPaginationDto } from "@/core/modules/standard-response/dto/standard-response.dto";
+import { UserResponse } from "../user.response";
+
+export const DELETED_COMMENT_CONTENT = "[deleted]";
+
+export function maskDeletedCommentContent({
+  obj,
+  value,
+}: TransformFnParams): string {
+  return (obj as { isDeleted?: boolean }).isDeleted
+    ? DELETED_COMMENT_CONTENT
+    : value;
+}
 
 /**
  * Response DTO for a comment with nested replies
@@ -26,6 +39,13 @@ export class CommentResponse {
   @Expose()
   userId: string;
 
+  @ApiPropertyOptional({
+    description: "The user who created the comment",
+  })
+  @Expose()
+  @Type(() => UserResponse)
+  user?: UserResponse;
+
   @ApiProperty({
     description: "The ID of the parent comment (null for root comments)",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
@@ -48,6 +68,7 @@ export class CommentResponse {
     example: "This is a great post!",
   })
   @Expose()
+  @Transform(maskDeletedCommentContent)
   content: string;
 
   @ApiProperty({
@@ -128,7 +149,14 @@ export class GetCommentsResponse {
   comments: CommentWithRepliesResponse[];
 
   @ApiProperty({
-    description: "Total count of all comments (including deleted)",
+    description: "Pagination metadata for root comments",
+    type: StandardPaginationDto,
+  })
+  @Expose()
+  pagination: StandardPaginationDto;
+
+  @ApiProperty({
+    description: "Total count of public comments (including deleted)",
     example: 25,
   })
   @Expose()

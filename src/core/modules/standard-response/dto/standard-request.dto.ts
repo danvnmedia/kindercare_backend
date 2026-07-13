@@ -33,7 +33,7 @@ export enum FilterOperator {
 export class StandardRequestDto {
   @ApiProperty({
     description: "Number of items to return",
-    example: 20,
+    example: 10,
     required: false,
   })
   @IsOptional()

@@ -1,12 +1,15 @@
 import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
+import { File } from "@/domain/file-management/entities/file.entity";
 
 export interface AttachmentProps {
   postId: string;
   fileId: string;
   comment?: string | null;
   order: number;
+  /** The related file entity - populated when fetched with relations */
+  file?: File | null;
   createdAt: Date;
   updatedAt?: Date | null;
 }
@@ -28,6 +31,10 @@ export class Attachment extends Entity<AttachmentProps> {
     return this.props.order;
   }
 
+  get file(): File | null | undefined {
+    return this.props.file;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -37,13 +44,21 @@ export class Attachment extends Entity<AttachmentProps> {
   }
 
   static create(
-    props: Optional<AttachmentProps, "createdAt" | "updatedAt" | "comment">,
+    props: Optional<
+      AttachmentProps,
+      "createdAt" | "updatedAt" | "comment" | "file"
+    >,
     id?: string,
   ): Attachment {
+    if (!Number.isInteger(props.order) || props.order < 0) {
+      throw new Error("Attachment order must be a non-negative integer");
+    }
+
     return new Attachment(
       {
         ...props,
         comment: props.comment ?? null,
+        file: props.file ?? null,
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? null,
       },

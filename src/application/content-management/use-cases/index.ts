@@ -14,6 +14,7 @@ export * from "./revise-post.use-case";
 export * from "./archive-post.use-case";
 export * from "./get-post-history.use-case";
 export * from "./transition-post.use-case";
+export * from "./batch-transition-post.use-case";
 export * from "./campus-setting";
 export * from "./category";
 export * from "./reaction";

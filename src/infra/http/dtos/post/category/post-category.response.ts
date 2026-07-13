@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
 
 export class PostCategoryResponse {
   @Expose()
@@ -29,6 +29,14 @@ export class PostCategoryResponse {
   @Expose()
   @ApiProperty({ example: false })
   isArchived: boolean;
+
+  @Expose()
+  @Transform(({ obj }) => !obj.isArchived, { toClassOnly: true })
+  @ApiProperty({
+    example: true,
+    description: "Compatibility alias for !isArchived",
+  })
+  isActive: boolean;
 
   @Expose()
   @ApiProperty({ example: "2025-01-01T00:00:00.000Z" })

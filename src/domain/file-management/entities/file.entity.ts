@@ -2,6 +2,8 @@ import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
 import { FileStatus } from "../enums/file-status.enum";
+import { FilePurpose } from "../enums/file-purpose.enum";
+import { FileAudienceType } from "../enums/file-audience-type.enum";
 
 export interface FileProps {
   // Storage Details
@@ -14,6 +16,13 @@ export interface FileProps {
   mimeType: string;
   size: bigint;
   extension: string | null;
+
+  // File Purpose/Context
+  purpose: FilePurpose;
+  audienceType: FileAudienceType | null; // ALL or CLASS storage grouping
+  audienceId: string | null; // The specific class ID (null for ALL or GENERAL)
+  classId: string | null; // Direct relation to class
+  gradeLevelId: string | null; // Direct relation to grade level
 
   // Lifecycle
   status: FileStatus;
@@ -57,6 +66,26 @@ export class File extends Entity<FileProps> {
 
   get extension() {
     return this.props.extension;
+  }
+
+  get purpose() {
+    return this.props.purpose;
+  }
+
+  get audienceType() {
+    return this.props.audienceType;
+  }
+
+  get audienceId() {
+    return this.props.audienceId;
+  }
+
+  get classId() {
+    return this.props.classId;
+  }
+
+  get gradeLevelId() {
+    return this.props.gradeLevelId;
   }
 
   get status() {
@@ -176,6 +205,11 @@ export class File extends Entity<FileProps> {
       | "storageProvider"
       | "extension"
       | "isDeleted"
+      | "purpose"
+      | "audienceType"
+      | "audienceId"
+      | "classId"
+      | "gradeLevelId"
     >,
     id?: string,
   ) {
@@ -187,6 +221,11 @@ export class File extends Entity<FileProps> {
         extension: props.extension ?? File.extractExtension(props.filename),
         status: props.status ?? FileStatus.PENDING,
         isDeleted: props.isDeleted ?? false,
+        purpose: props.purpose ?? FilePurpose.GENERAL,
+        audienceType: props.audienceType ?? null,
+        audienceId: props.audienceId ?? null,
+        classId: props.classId ?? null,
+        gradeLevelId: props.gradeLevelId ?? null,
         createdAt: props.createdAt ?? new Date(),
         updatedAt: props.updatedAt ?? new Date(),
       },

@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { PostStatus } from "@/domain/content-management/enums/post-status.enum";
-import { Expose } from "class-transformer";
+import { Expose, Transform } from "class-transformer";
 
 export class PostHistoryResponse {
   @ApiProperty({
@@ -78,32 +78,46 @@ export class PostHistoryStatusResponse {
   postId: string;
 
   @ApiProperty({
-    description: "The ID of the user.",
+    description: "The ID of the user who changed the status.",
     example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
   })
   @Expose()
-  userId: string;
+  changedById: string;
 
   @ApiProperty({
-    description: "The status of the post.",
+    description: "The status before the transition.",
     enum: PostStatus,
     example: PostStatus.DRAFT,
+    nullable: true,
   })
   @Expose()
-  status: PostStatus;
+  previousStatus: PostStatus | null;
 
   @ApiProperty({
-    description: "A comment for the status.",
-    example: "This is a comment.",
-    required: false,
+    description: "The status after the transition.",
+    enum: PostStatus,
+    example: PostStatus.PUBLISHED,
   })
   @Expose()
-  comment?: string | null;
+  newStatus: PostStatus;
 
   @ApiProperty({
-    description: "The date the status was created.",
+    description: "The reason for the status transition.",
+    example: "Approved for publication.",
+    nullable: true,
+  })
+  @Expose()
+  reason: string | null;
+
+  @ApiProperty({
+    description: "The date the status changed.",
     example: "2021-01-01T00:00:00.000Z",
   })
   @Expose()
-  createdAt: Date;
+  @Transform(
+    ({ obj }: { obj: { changedAt?: Date; createdAt?: Date } }) =>
+      obj.changedAt ?? obj.createdAt,
+    { toClassOnly: true },
+  )
+  changedAt: Date;
 }

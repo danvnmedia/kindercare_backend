@@ -178,12 +178,13 @@ export class User extends Entity<UserProps> {
   }
 
   /**
-   * Check if user has any system role (grants global admin bypass)
+   * Check if user has a globally assigned system role (grants global admin bypass)
    */
   public hasSystemRole(): boolean {
     return (
       this.props.roleAssignments?.some(
-        (assignment) => assignment.role.isSystemRole,
+        (assignment) =>
+          assignment.campusId === null && assignment.role.isSystemRole,
       ) ?? false
     );
   }

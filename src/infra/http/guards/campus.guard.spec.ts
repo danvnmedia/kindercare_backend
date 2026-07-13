@@ -14,6 +14,11 @@ import { CampusGuard } from "./campus.guard";
 import { CampusRepository } from "@/application/campus/ports/campus.repository";
 import { RequestContext } from "../context/request-context.service";
 import {
+  CMS_ROUTE_VISIBILITY_KEY,
+  CmsRouteVisibility,
+} from "../decorators/cms-route-visibility.decorator";
+import { REQUIRE_CAMPUS_ACCESS_KEY } from "../decorators/require-campus-access.decorator";
+import {
   createCampus,
   createUser,
   createRole,
@@ -553,6 +558,46 @@ describe("CampusGuard", () => {
 
       expect(result).toBe(true);
       expect(mockRequestContext.getUser).not.toHaveBeenCalled();
+    });
+
+    it("should allow a guardian public CMS route only for the requested profile campus", async () => {
+      const campus = createCampus({ id: validUUID_B });
+      const guardianUser = createUser({
+        id: "guardian-user-1",
+        profiles: [
+          createGuardianProfile(validUUID),
+          createGuardianProfile(validUUID_B),
+        ],
+      });
+
+      mockRequestContext = createMockRequestContext("clerk-guardian-1");
+      mockRequestContext.getUser.mockResolvedValue(guardianUser);
+      guard = new CampusGuard(
+        mockReflector,
+        mockCampusRepository,
+        mockRequestContext,
+      );
+
+      mockReflector.getAllAndOverride.mockImplementation((key: string) => {
+        if (key === REQUIRE_CAMPUS_ACCESS_KEY) {
+          return { required: true, checkUserAccess: true };
+        }
+        if (key === CMS_ROUTE_VISIBILITY_KEY) {
+          return CmsRouteVisibility.PUBLIC_READ;
+        }
+        return undefined;
+      });
+      mockCampusRepository.findById.mockResolvedValue(campus);
+
+      const context = createMockContext(
+        { "x-campus-id": validUUID_B },
+        {},
+        {},
+        "clerk-guardian-1",
+      );
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+      expect(mockRequestContext.setCampusId).toHaveBeenCalledWith(validUUID_B);
     });
 
     it("should deny campus role access when the user has no active staff profile in the campus", async () => {

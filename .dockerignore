@@ -107,7 +107,6 @@ Thumbs.db
 .prettierrc*
 .eslintrc*
 .editorconfig
-tsconfig.build.json
 
 # Prisma development files
 prisma/dev.db*

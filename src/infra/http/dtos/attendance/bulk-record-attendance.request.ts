@@ -52,6 +52,15 @@ export class AttendanceRecordDto {
   @IsString()
   @MaxLength(500)
   note?: string;
+
+  @ApiProperty({
+    description: "Image file ID for attendance photo",
+    example: "123e4567-e89b-12d3-a456-426614174002",
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  imageFileId?: string;
 }
 
 export class BulkRecordAttendanceRequest {

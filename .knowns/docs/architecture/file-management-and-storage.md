@@ -1,8 +1,8 @@
 ---
 title: File Management and Storage
-description: File upload lifecycle, storage abstraction, attachments, and the signed-URL upload flow
+description: File upload lifecycle, storage abstraction, CMS attachments, and the presigned R2 upload flow
 createdAt: '2026-05-05T17:48:59.131Z'
-updatedAt: '2026-05-05T17:48:59.131Z'
+updatedAt: '2026-07-12T04:29:33.637Z'
 tags:
   - architecture
   - file
@@ -15,204 +15,351 @@ tags:
 
 > File upload, storage, and attachment handling. Source under `src/domain/file-management/`, `src/application/file-management/`, `src/infra/storage/`.
 
+## Current Contract
+
+The current production flow is server-owned and two-phase:
+
+1. Client validates/transforms the final file bytes.
+2. Client calls `POST /files/initiate-upload` with metadata and business context.
+3. Backend validates filename/MIME/size, derives the object key, creates a `PENDING` `File` row, then requests a presigned upload URL.
+4. If signing fails, backend marks the row `ERROR`.
+5. Client uploads bytes directly to storage via `PUT`.
+6. Client calls `POST /files/:id/complete`.
+7. Backend checks campus, uploader, pending status, storage object existence, size, and content type before marking `UPLOADED`.
+8. CMS links uploaded files to posts via `Attachment` rows.
+
+Clients must not send `uploadPath`, bucket, or object key. New folder/layout needs must be implemented as server-side mapping in `UploadFileUseCase`.
+
 ## Two Roles
 
-The system separates **storage** (where bytes live) from **file metadata** (a database row tracking ownership, status, and references):
+The system separates storage bytes from DB metadata:
 
-- `File` — Prisma row in the `file` table. Has `key`, `bucket`, `mimeType`, `size`, `status`, `uploadedBy`, `campusId`.
-- `Attachment` — link between a `File` and a `Post` (with order). One file can be attached to many posts.
-- `StorageService` — port for putting/getting bytes (currently `LocalStorageService`; replaceable with S3/GCS).
+- `File` — campus-scoped DB row tracking key, metadata, owner, purpose, audience, status, soft-delete state.
+- `Attachment` — CMS link between `Post` and `File`, with display order/comment.
+- `StorageService` — port for upload URL, read URL, delete, and object metadata checks.
 
-```
-File row                          Storage backend
-─────────                         ───────────────
-{ id, key, status: PENDING }      (no bytes yet)
-       │
-       │  client uploads via signed URL
-       ▼
-{ status: UPLOADED }              key = "files/{campusId}/{id}-{filename}"
-
-Attachment row references File.id
+```text
+Client → POST /files/initiate-upload → File(PENDING) + presigned PUT URL
+Client → PUT bytes to storage
+Client → POST /files/:id/complete → metadata verified → File(UPLOADED)
+CMS    → add attachment by fileId → rejects unavailable/cross-campus files
 ```
 
 ## Schema
 
+Current `File` model includes storage, ownership, purpose/audience routing, soft-delete, timestamps, and indexes. Keep this doc aligned with `prisma/schema.prisma` when fields change.
+
 ```prisma
 model File {
-  id              String  @id @default(uuid()) @db.Uuid
-  key             String  @unique           // path/identifier in the storage backend
+  id              String   @id @default(uuid()) @db.Uuid
+  key             String   @unique
   bucket          String?
-  storageProvider String  @default("LOCAL") // LOCAL | S3 | …
+  storageProvider String   @default("LOCAL") @map("storage_provider")
   filename        String
-  mimeType        String
+  mimeType        String   @map("mime_type")
   size            BigInt
   extension       String?
-  status          String  @default("PENDING")    // PENDING | UPLOADED | PROCESSED | ERROR
-  uploadedBy      String  @db.Uuid
-  isDeleted       Boolean @default(false)
-  campusId        String  @db.Uuid
-  uploader        User    @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
-  campus          Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  status          String   @default("PENDING")
+  purpose         String   @default("GENERAL")
+  audienceType    String?  @map("audience_type")
+  audienceId      String?  @map("audience_id") @db.Uuid
+  classId         String?  @map("class_id") @db.Uuid
+  gradeLevelId    String?  @map("grade_level_id") @db.Uuid
+  status          String   @default("PENDING")
+  uploadedBy      String   @map("uploaded_by") @db.Uuid
+  isDeleted       Boolean  @default(false) @map("is_deleted")
+  campusId        String   @map("campus_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
   attachments     Attachment[]
-  attendanceLogImages StudentAttendanceLog[] @relation("AttendanceLogImage")
+
+  @@index([campusId])
+  @@index([uploadedBy])
+  @@index([status])
+  @@index([purpose])
+  @@index([audienceType, audienceId])
 }
 
 model Attachment {
   id      String @id @default(uuid()) @db.Uuid
-  postId  String @db.Uuid
-  fileId  String @db.Uuid
+  postId  String @map("post_id") @db.Uuid
+  fileId  String @map("file_id") @db.Uuid
   comment String?
   order   Int    @default(0)
+
   post    Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   file    File @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
   @@unique([postId, order])
+  @@unique([postId, fileId])
 }
 ```
 
 Notes:
 
-- `File.size` is `BigInt` to handle large media without overflow.
-- `Attachment.fileId` uses `onDelete: Restrict` — you can't hard-delete a file that's still attached anywhere. Soft-delete via `File.isDeleted` instead.
-- `Attachment` cascades from `Post`. If a post is hard-deleted, its attachments go too (the underlying file rows survive — they may be attached elsewhere or used in attendance logs).
+- `File.size` is `BigInt`.
+- `Attachment.fileId` uses `onDelete: Restrict`; soft-delete files instead of hard-deleting attached rows.
+- `Attachment` cascades from `Post`; underlying `File` rows survive.
 
 ## Upload Lifecycle
 
-The flow is **two-phase**: backend issues a signed URL → client PUTs the bytes → backend marks the file `UPLOADED`.
-
-```
-┌──────────┐  POST /files/upload  ┌─────────┐  signed URL  ┌─────────┐
-│ Client   │ ────────────────────▶│ Backend │ ────────────▶│ Client  │
-└──────────┘                      └─────────┘              └─────────┘
-                                                                │
-                                                                │ PUT bytes
-                                                                ▼
-                                                          ┌────────────┐
-                                                          │  Storage   │
-                                                          └────────────┘
-                                                                │
-                                          POST /files/:id/complete │
-                                                                ▼
-                                                          ┌─────────┐
-                                                          │ Backend │ status = UPLOADED
-                                                          └─────────┘
-```
-
 ### `UploadFileUseCase`
 
-```typescript
-const fileId = new UniqueEntityID().toString();
-const key = `files/${campusId}/${fileId}-${filename}`;
+Current behavior:
 
-const file = File.create({
-  key, filename, mimeType, size: BigInt(size),
-  uploadedBy, campusId,
-  bucket: bucket ?? process.env.STORAGE_BUCKET ?? null,
-  storageProvider: storageProvider ?? "LOCAL",
-}, fileId);
+- Accepts `filename`, `mimeType`, `size`, `uploadedBy`, required `campusId`, optional `purpose`, `audienceType`, `audienceId`. Audience context is optional; upload is a universal campus-scoped primitive for class images/banners, student images/banners, attendance/bulk images, medical/meal images, school images/banners, avatars, and CMS attachments.
+- Validates upload security rules via `validateFileUpload()`.
+- Derives key as `files/{campusId}/{derivedPath}/{fileId}-{sanitizedFilename}`.
+- Records `storageProvider` as `R2` only when full R2 env is configured; otherwise `LOCAL`.
+- Creates the `PENDING` row before requesting a signed URL.
+- Marks the row `ERROR` if URL signing fails.
 
-const uploadUrl = await this.storageService.getUploadSignedUrl(key, mimeType);
-await this.fileRepository.create(file);   // status = PENDING
+Derived path mapping:
 
-return right({ file, uploadUrl });
-```
+| Input | Path |
+|---|---|
+| `POST_ATTACHMENT` | `attachment` |
+| `PROFILE_PHOTO` | `profile` |
+| `ATTENDANCE_IMAGE` | `attendance` |
+| `GENERAL + CLASS + audienceId` | `class/{audienceId}` |
+| `GENERAL + ALL` | `all` |
+| fallback | `purpose.toLowerCase()` |
 
-The use case returns an `Either<Error, { file, uploadUrl }>`. The controller maps `Right` to a 200 with the URL the client should `PUT` to.
+`campusId` is always required. File upload audience scope is intentionally narrow: omit `audienceType` or use `ALL` for campus-wide files; use `CLASS + audienceId` only when the file should be grouped under a specific class. CLASS `audienceId` is validated before `File.create()`: the target class must exist and belong to the same campus. CLASS also populates `classId` for direct filtering. The file upload API contract exposes only `ALL` and `CLASS`; any other submitted audience value is invalid.
 
 ### `CompleteUploadUseCase`
 
-After the client PUTs successfully, it calls back to flip the `File.status` from `PENDING` → `UPLOADED`. Until that happens, attachments to this file are rejected (the `AddAttachmentUseCase` calls `file.isAvailable()`).
+Completion order:
 
-`File.isAvailable()` returns `status === UPLOADED && !isDeleted`. A file can also be `PROCESSED` (post-thumbnailing, etc.) — same effect.
+1. Find file by `fileId + campusId`.
+2. Reject if missing.
+3. Reject if `uploadedBy` differs from current user.
+4. Reject unless status is `PENDING`.
+5. Call `StorageService.getObjectMetadata(key)`.
+6. Reject if object missing.
+7. Reject if storage size differs from initiated size, when available.
+8. Reject if storage content type differs from initiated MIME type, when available.
+9. Mark `UPLOADED` and persist.
+10. Resolve read URL via `StorageService.getSignedUrl(key)`.
+
+Until completion, CMS attachments reject the file because `File.isAvailable()` is false.
 
 ### Status enum
 
-`FileStatus` (`src/domain/file-management/enums/file-status.enum.ts`):
-
 | Status | Meaning |
-|--------|---------|
-| `PENDING` | Row exists, bytes not yet stored |
-| `UPLOADED` | Bytes stored; available for attachment |
-| `PROCESSED` | Backend post-processing complete (e.g. thumbnail generated) |
-| `ERROR` | Upload or processing failed; client should retry |
+|---|---|
+| `PENDING` | Row exists; bytes not yet verified |
+| `UPLOADED` | Bytes verified; file can be attached/read |
+| `PROCESSED` | Post-processing complete; also available |
+| `ERROR` | Initiation/cleanup/processing failed |
 
 ## Storage Port
 
 `src/application/file-management/ports/storage.service.ts`:
 
 ```typescript
+export interface StoredObjectMetadata {
+  exists: boolean;
+  contentLength?: number;
+  contentType?: string;
+  eTag?: string;
+}
+
 export abstract class StorageService {
   abstract getUploadSignedUrl(key: string, contentType: string, expiresIn?: number): Promise<string>;
   abstract delete(key: string): Promise<void>;
   abstract getSignedUrl(key: string, expiresIn?: number): Promise<string>;
+  abstract getObjectMetadata(key: string): Promise<StoredObjectMetadata>;
 }
 ```
 
-The port is intentionally minimal. Three operations: get a write URL, get a read URL, delete. No streaming, no metadata.
+## Storage Implementations
 
-## Local Storage Adapter
+`StorageModule` selects R2 when Cloudflare R2 env is fully configured. Partial R2 env fails startup. Production requires full R2 env; local storage is development-only fallback.
 
-`src/infra/storage/local-storage.service.ts` is the current implementation. It writes to `./uploads/` (or `UPLOAD_DIR`) and serves via `BASE_URL + key`. It's not a true signed URL — anyone with the URL can read or write. Acceptable for development, **not for production**.
+Required production backend env:
 
-To swap to S3 or GCS:
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_R2_ACCESS_KEY`
+- `CLOUDFLARE_R2_SECRET_KEY`
+- `CLOUDFLARE_R2_BUCKET`
+- `R2_PUBLIC_DOMAIN` optional; if set, read URLs are public bearer-style URLs.
 
-1. Implement `StorageService` with the cloud SDK.
-2. Bind in `StorageModule.providers` (`{ provide: StorageService, useClass: S3StorageService }`).
-3. Set `STORAGE_BUCKET` env var; the `UploadFileUseCase` already reads it.
+Operational requirements:
 
-No use case or domain code changes — that's the point of the port.
+- Apply `config/r2-cors.example.json` to the bucket with real frontend origins.
+- Browser upload CORS needs `PUT`, `OPTIONS`, and `Content-Type`.
+- Frontend CSP `connect-src` must include presigned upload hosts.
+- Frontend image config must allow returned read URL hosts.
+- Public `R2_PUBLIC_DOMAIN` mode should be used only for public/shared media; use signed reads for private media.
+
+`LocalStorageService` is not a realistic browser direct-upload path. It is acceptable only for dev/unit-level paths unless a local upload receiver is added.
 
 ## Campus Scoping
 
-Every `File` belongs to a campus. The `key` includes the campus ID for organisational clarity:
+Every `File` belongs to a campus. Keys include `campusId` for organization, but authorization is enforced by DB lookups and use cases.
 
-```
-files/{campusId}/{fileId}-{filename}
-```
+`AddAttachmentUseCase` rejects attaching a file to a post in another campus, even if the caller can access both campuses.
 
-`AddAttachmentUseCase` rejects attaching a file to a post in a **different** campus, even if the calling user has access to both. This prevents accidental cross-campus content sharing through file references.
+## CMS Attachment Rules
 
-## Image Files in Attendance
+`AddAttachmentUseCase` currently:
 
-`StudentAttendanceLog.imageFileId` references a `File` for drop-off photos. The repository uses `onDelete: SetNull` so deleting the file doesn't break the log; the log just shows "image unavailable".
+1. Loads the post.
+2. Verifies post campus equals request campus.
+3. Requires post author or system-role admin.
+4. Loads the file.
+5. Requires file campus equals post campus.
+6. Requires `file.isAvailable()` (`UPLOADED` or `PROCESSED`, not deleted).
+7. Rejects duplicate file attachment on the same post; DB enforces `@@unique([postId, fileId])` for concurrency safety.
+8. Creates `Attachment` with `order: 0`; repository `appendToPost()` owns transactional append/order behavior under a post row lock.
 
-## Soft Delete
+If `addAttachment` fails after upload completion, the file can remain uploaded but unattached. Cleanup/remediation for uploaded-orphan files is a remaining product/ops decision.
 
-`File.isDeleted` flags the row as removed. The bytes can still be in storage — separate cleanup is required (see [@doc/architecture/queue-and-cronjob](architecture/queue-and-cronjob) for the cron-based approach).
+Attachment removal must remove the `Attachment` row for existing CMS attachments; it must not delete the underlying `File` row directly because the schema restricts hard file deletion while attachments exist. Frontend edit-mode bulk delete mirrors this rule: existing images call remove-attachment, while newly uploaded unattached images may call file delete.
 
-The repository excludes `isDeleted: true` rows from `findById` by default, so soft-deleted files immediately stop being attachable.
+## Soft Delete and Cleanup
+
+`File.isDeleted` flags the DB row as removed. Repositories exclude deleted rows from normal reads.
+
+Scheduled cleanup handles abandoned direct uploads:
+
+- Hourly: stale `PENDING` rows older than 1 hour, batch 100.
+- Daily: stale `PENDING` rows older than 24 hours, batch 500.
+- Cleanup checks object metadata, deletes existing orphan objects when possible, marks rows `ERROR`, logs delete failures without blocking DB cleanup.
 
 ## File Management Use Cases
 
 | Use case | Endpoint | Purpose |
-|----------|----------|---------|
-| `UploadFileUseCase` | `POST /files/upload` | Issue signed URL + create PENDING row |
-| `CompleteUploadUseCase` | `POST /files/:id/complete` | Mark UPLOADED |
-| `GetFileUseCase` | `GET /files/:id` | Read URL + metadata |
-| `DeleteFileUseCase` | `DELETE /files/:id` | Soft-delete the row |
-
-Hard delete (admin) calls `StorageService.delete(key)` then drops the row — but only when no `Attachment` row references it (Prisma `Restrict` enforces that).
+|---|---|---|
+| `UploadFileUseCase` | `POST /files/initiate-upload` | Create `PENDING` row + issue presigned upload URL |
+| `CompleteUploadUseCase` | `POST /files/:id/complete` | Verify storage object + mark `UPLOADED` |
+| `GetFileUseCase` | `GET /files/:id` | Return metadata + read URL for available files |
+| `DeleteFileUseCase` | `DELETE /files/:id` | Soft-delete row |
+| `CleanupStalePendingUploadsUseCase` | cron | Mark stale pending rows `ERROR`, delete orphan objects |
 
 ## Module Wiring
 
-`FileManagementModule` (`src/infra/http/modules/file-management/file-management.module.ts`) imports `PrismaModule`, `StorageModule`, `RequestContextModule`, `CampusModule`. Exports `FILE_REPOSITORY` so `ContentManagementModule` and `AttendanceModule` can read files.
+`FileManagementModule` imports Prisma, storage, request context, and campus modules. It exports `FILE_REPOSITORY` so CMS and attendance can validate/link files.
+
+## Conventions Alignment
+
+Current upload/CMS implementation mostly follows `@doc/conventions/implementation-checklist` and `@doc/conventions/naming-conventions`:
+
+- Campus scoping is consistently enforced in file completion and CMS attachment linking.
+- Cross-campus references are checked before attaching files to posts.
+- Storage is accessed through an application port, not directly from controllers.
+- Request DTOs use class-validator and controllers use campus/current-user context.
+
+Known convention exceptions/gaps:
+
+- CMS use cases are mixed flat/nested under `src/application/content-management/use-cases/`; avoid churn solely for folder shape unless touching those files for a broader refactor.
+- `campusId` is required for all file uploads. Audience context is optional. When `audienceType` is CLASS, `audienceId` is required and campus ownership is enforced in `UploadFileUseCase`. The public file upload contract exposes only ALL and CLASS audience values.
+- File delete is restricted to the uploader or a system-role admin.
+- Endpoint throttling/quotas for initiate/complete remain pending.
 
 ## Pitfalls
 
-| Mistake | Symptom |
-|---------|---------|
-| Hardcoding the storage provider in a use case | Locks us out of switching backends; depend on the port |
-| Issuing a signed URL without creating the DB row | Orphan bytes in storage; always create row first |
-| Letting the client choose the `key` | Filename collisions, path traversal — always derive `key` server-side |
-| Marking `UPLOADED` before the client has actually PUT the bytes | Attachments to non-existent bytes |
-| Hard-deleting a file with active attachments | Prisma's `Restrict` will throw — soft-delete instead |
-| Sharing files across campuses | Don't — enforce campus match at the use case |
+| Mistake | Result |
+|---|---|
+| Letting client send `uploadPath`/key/bucket | path traversal, layout abuse, storage coupling |
+| Marking `UPLOADED` before metadata verification | attachable DB row with missing/wrong bytes |
+| Signing URL before creating DB row | orphan bytes if DB create fails |
+| Recording `R2` while local storage is active | broken reads/debugging confusion |
+| Skipping campus checks on attachments | cross-campus content leak |
+| Using public read URLs for private files | auth no longer applies after URL issuance |
+
+## Validation Snapshot 2026-07-01
+
+Cross-agent backend review confirmed:
+
+- Initiate → direct R2 PUT → complete flow matches code.
+- Backend owns key derivation; frontend does not send `uploadPath`.
+- Complete upload verifies uploader/campus/status/object metadata before `UPLOADED`.
+- CMS rejects pending/deleted/cross-campus files.
+- Stale pending cleanup is wired hourly/daily.
+
+Validation previously run:
+
+- `npm run build` passed.
+- `npm test -- --runTestsByPath src/application/file-management/use-cases/upload-file.use-case.spec.ts src/application/file-management/use-cases/cleanup-stale-pending-uploads.use-case.spec.ts --runInBand` passed.
+- `npm test -- --runTestsByPath src/application/file-management/use-cases/complete-upload.use-case.spec.ts --runInBand --silent` passed.
+
+Manual deployed browser smoke is still required for real R2 bucket CORS, deployed env, CSP, upload host allowlist, and rendered public/signed read URLs.
 
 ## Reference
 
 | File | Notes |
-|------|-------|
-| `src/domain/file-management/entities/file.entity.ts` | Status helpers, `isAvailable()` |
-| `src/application/file-management/use-cases/upload-file.use-case.ts` | Two-phase upload start |
-| `src/application/file-management/ports/storage.service.ts` | The port |
-| `src/infra/storage/local-storage.service.ts` | Dev implementation |
-| `src/application/content-management/use-cases/add-attachment.use-case.ts` | Attachment validation rules |
+|---|---|
+| `src/domain/file-management/entities/file.entity.ts` | status helpers, availability, soft delete |
+| `src/domain/file-management/enums/file-purpose.enum.ts` | upload purpose values |
+| `src/domain/file-management/enums/file-audience-type.enum.ts` | audience values |
+| `src/application/file-management/use-cases/upload-file.use-case.ts` | initiate flow and key derivation |
+| `src/application/file-management/use-cases/complete-upload.use-case.ts` | metadata verification and finalization |
+| `src/application/file-management/use-cases/cleanup-stale-pending-uploads.use-case.ts` | stale pending cleanup |
+| `src/application/file-management/ports/storage.service.ts` | storage port |
+| `src/infra/storage/storage.module.ts` | R2/local selection and env gating |
+| `src/infra/storage/r2-storage.service.ts` | R2 adapter |
+| `src/infra/storage/local-storage.service.ts` | dev-only local adapter |
+| `src/application/content-management/use-cases/add-attachment.use-case.ts` | CMS attachment validation |
+| `config/r2-cors.example.json` | R2 CORS baseline |
+
+
+## CMS API Alignment Snapshot 2026-07-11
+
+The CMS file-upload campus contract is header-scoped: `POST /files/initiate-upload` receives campus through `X-Campus-Id`; `campusId` is not accepted in the strict JSON DTO. The controller forwards the resolved campus to `UploadFileUseCase`.
+
+The aligned CMS contract also retains comment authors and stable public-comment pagination, persists workflow comments as history reasons, validates category limits/order consistently, returns resulting post state from attachment reorder, documents list limit `10`, and explicitly aligns CMS POST runtime/OpenAPI status `201`.
+
+Validation: backend build and focused alignment tests passed. Full-suite execution encountered unrelated audit-action fixture drift in `src/cli/export-audit-actions.spec.ts`.
+
+
+## CMS cross-repository validation batch 1 — 2026-07-12
+
+Status: blocked.
+
+Confirmed upload route shape remains initiate, direct storage PUT, then complete. Campus is transported by X-Campus-Id; POST attachment upload initiation omits campusId from JSON.
+
+Blockers found:
+
+- file.delete currently acts as delete-any within the selected campus rather than separating owner deletion from elevated deletion.
+- Attached files can be soft-deleted without checking Attachment references.
+- Embedded attachment serialization can omit the required read URL.
+- Complete-upload and stale pending cleanup have a state race capable of leaving metadata and object storage inconsistent.
+
+Other risks: URL signing failure after persisting UPLOADED is non-retryable; file delete bypasses the standard response envelope; initiation and completion lack endpoint throttling or quotas.
+
+
+## CMS upload executable-flow review batch 3 — 2026-07-12
+
+Verdict: blocked after successful request-contract trace.
+
+The frontend and backend agree on X-Campus-Id, initiate-upload JSON, presigned PUT, complete, post create or update, attachment add, and reorder. Required production environment includes frontend API and R2 host allowlists, backend R2 credentials and bucket, CORS origin, bucket PUT CORS, Clerk configuration, migrated DB, active campus, and seeded permissions.
+
+Release gates:
+
+- Every embedded attachment must receive a backend-resolved read URL; standalone GET /files URL generation is insufficient.
+- File owner deletion and elevated delete-any must use distinct authorization semantics.
+- Files referenced by attachments must not be soft-deleted directly.
+- Complete-upload and stale cleanup require an atomic status claim or compare-and-set.
+- URL-signing failure after persisting UPLOADED needs recoverable behavior.
+- Uploaded unattached objects need a physical cleanup policy.
+
+No cross-repository E2E harness currently proves R2, browser CORS, rendering, download, cleanup, or concurrency behavior.
+
+
+## CMS release hardening implementation wave 1 — 2026-07-12
+
+Implemented:
+
+- Post responses hydrate embedded attachment read URLs through a per-response deduplicating interceptor with bounded signing concurrency.
+- file.delete is owner-scoped; new file.manage provides elevated delete-any authority.
+- Attached files cannot be soft-deleted.
+- Completion uses conditional PENDING-to-UPLOADED transition and returns idempotent success when another completion wins.
+- Cleanup claims stale rows atomically, retries stale ERROR rows, prevents concurrent cleanup workers, and soft-deletes successfully cleaned records.
+- Attachment signing failures return service-unavailable semantics.
+
+Deployment requirement: run permission seeding and assign file.manage only to trusted elevated roles before relying on administrative delete-any. Mutation responses that fail URL signing after commit remain retry-sensitive; clients should refetch authoritative state before retrying.
+
+Validation: targeted file/attachment suites and backend build passed. Final review follows this update.

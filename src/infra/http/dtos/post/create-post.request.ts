@@ -5,23 +5,44 @@ import {
   IsOptional,
   IsDate,
   IsArray,
+  ArrayMinSize,
   ValidateNested,
   IsUUID,
   IsObject,
+  ValidateIf,
 } from "class-validator";
 import { Type } from "class-transformer";
 import { AudienceType } from "@/domain/content-management";
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 
 class CreateAudienceDto {
+  @ApiProperty({
+    description: "The audience type",
+    enum: AudienceType,
+    example: "CLASS",
+  })
   @IsEnum(AudienceType)
   audienceType: AudienceType;
 
+  @ApiPropertyOptional({
+    description:
+      "The audience ID (required for CLASS; optional for ALL where campusId from header is used)",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @ValidateIf((o) => o.audienceType !== AudienceType.ALL)
   @IsUUID()
-  audienceId: string;
+  audienceId?: string;
 }
 
 export class CreatePostRequest {
+  @ApiProperty({
+    description:
+      "Client-generated UUID used to safely replay this create request",
+    example: "8c05d3f1-7430-42b8-b6cf-9c235af23e15",
+  })
+  @IsUUID()
+  clientMutationId: string;
+
   @ApiProperty({
     description: "The title of the post",
     example: "Welcome to our school",
@@ -62,7 +83,18 @@ export class CreatePostRequest {
     type: [CreateAudienceDto],
   })
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateAudienceDto)
   audiences: CreateAudienceDto[];
+
+  @ApiPropertyOptional({
+    description: "Category IDs to associate with the post",
+    type: [String],
+    example: ["c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f"],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID("4", { each: true })
+  categoryIds?: string[];
 }

@@ -389,7 +389,6 @@ model Student {
   schoolYearEnrollments         SchoolYearEnrollment[]
   schoolYearLifecycleCandidates SchoolYearLifecycleCandidate[]
   attendanceSummaries           StudentAttendanceSummary[]
-  postAudiences                 PostAudience[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -558,7 +557,6 @@ model GradeLevel {
 
   classes                   Class[]
   mealMenus                 MealMenu[]
-  postAudiences             PostAudience[]
   schoolYearEnrollments     SchoolYearEnrollment[]
   sourceLifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateSourceGrade")
   targetLifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateTargetGrade")
@@ -1090,14 +1088,16 @@ model StudentAttendanceLog {
 // ==========================================
 
 model Post {
-  id             String    @id @default(uuid()) @db.Uuid
-  authorId       String    @map("author_id") @db.Uuid
-  title          String
-  content        Json?
-  contentText    String?   @map("content_text") @db.Text
-  contentVersion Int       @default(1) @map("content_version")
-  status         String    @default("DRAFT")
-  publishAt      DateTime? @map("publish_at") @db.Timestamptz(6)
+  id                 String    @id @default(uuid()) @db.Uuid
+  authorId           String    @map("author_id") @db.Uuid
+  title              String
+  content            Json?
+  contentText        String?   @map("content_text") @db.Text
+  contentVersion     Int       @default(1) @map("content_version")
+  clientMutationId   String    @default(dbgenerated("gen_random_uuid()")) @map("client_mutation_id") @db.Uuid
+  requestPayloadHash String    @default(dbgenerated("encode(sha256(convert_to('{}', 'UTF8')), 'hex')")) @map("request_payload_hash") @db.VarChar(64)
+  status             String    @default("DRAFT")
+  publishAt          DateTime? @map("publish_at") @db.Timestamptz(6)
 
   // Pinning fields
   isPinned    Boolean   @default(false) @map("is_pinned")
@@ -1130,6 +1130,7 @@ model Post {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@unique([campusId, authorId, clientMutationId])
   @@index([campusId])
   @@index([authorId])
   @@index([status])
@@ -1180,27 +1181,21 @@ model PostHistoryStatus {
 }
 
 model PostAudience {
-  id           String  @id @default(uuid()) @db.Uuid
-  type         String
-  postId       String  @map("post_id") @db.Uuid
-  classId      String? @map("class_id") @db.Uuid
-  studentId    String? @map("student_id") @db.Uuid
-  gradeLevelId String? @map("grade_level_id") @db.Uuid
+  id      String  @id @default(uuid()) @db.Uuid
+  type    String
+  postId  String  @map("post_id") @db.Uuid
+  classId String? @map("class_id") @db.Uuid
 
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
 
-  post       Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  class      Class?      @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student    Student?    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  gradeLevel GradeLevel? @relation(fields: [gradeLevelId], references: [id], onDelete: Cascade)
+  post  Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  class Class? @relation(fields: [classId], references: [id], onDelete: Restrict)
 
   @@index([campusId])
   @@index([postId])
   @@index([classId])
-  @@index([studentId])
-  @@index([gradeLevelId])
   @@index([type])
   @@map("post_audience")
 }
@@ -1220,7 +1215,8 @@ model PostCategory {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([campusId, name])
+  // Expression unique index on `(campus_id, lower(btrim(name)))` and partial
+  // active-order unique index are owned by migration SQL; Prisma cannot model them.
   @@index([campusId, isArchived])
   @@index([campusId, order])
   @@map("post_category")
@@ -1263,6 +1259,7 @@ model PostComment {
   parentCommentId String? @map("parent_comment_id") @db.Uuid
   depth           Int     @default(0)
   content         String  @db.Text
+  commentType     String  @default("PUBLIC") @map("comment_type")
 
   // Soft delete
   isDeleted   Boolean   @default(false) @map("is_deleted")
@@ -1279,6 +1276,7 @@ model PostComment {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([postId, createdAt])
+  @@index([postId, commentType, createdAt])
   @@index([postId, parentCommentId])
   @@index([parentCommentId])
   @@index([userId])
@@ -1311,6 +1309,8 @@ model PostApprovalRequest {
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  // Partial unique index `post_approval_request_one_pending_per_post_key`
+  // is owned by migration SQL; Prisma cannot model partial unique indexes.
   @@index([postId])
   @@index([status, submittedAt])
   @@index([submittedById])
@@ -1874,6 +1874,13 @@ model File {
   size      BigInt
   extension String? @map("extension")
 
+  // File Purpose/Context
+  purpose      String  @default("GENERAL")
+  audienceType String? @map("audience_type")
+  audienceId   String? @map("audience_id") @db.Uuid
+  classId      String? @map("class_id") @db.Uuid
+  gradeLevelId String? @map("grade_level_id") @db.Uuid
+
   // Lifecycle
   status     String  @default("PENDING") /// PENDING, UPLOADED, PROCESSED, ERROR
   uploadedBy String  @map("uploaded_by") @db.Uuid
@@ -1897,6 +1904,10 @@ model File {
   @@index([status])
   @@index([key])
   @@index([isDeleted])
+  @@index([purpose])
+  @@index([audienceType, audienceId])
+  @@index([classId])
+  @@index([gradeLevelId])
   @@index([createdAt])
   @@map("file")
 }
@@ -1915,6 +1926,7 @@ model Attachment {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([postId, order])
+  @@unique([postId, fileId])
   @@index([postId])
   @@index([fileId])
   @@map("attachment")

@@ -6,16 +6,9 @@ import {
   Delete,
   Body,
   Param,
-  Query,
   UseGuards,
 } from "@nestjs/common";
-import {
-  ApiOperation,
-  ApiTags,
-  ApiParam,
-  ApiQuery,
-  ApiHeader,
-} from "@nestjs/swagger";
+import { ApiOperation, ApiTags, ApiParam, ApiHeader } from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,

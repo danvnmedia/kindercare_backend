@@ -1,8 +1,50 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { AudienceType, PostStatus } from "@/domain/content-management/enums";
 import { FileResponse } from "../file/file.response";
 import { UserResponse } from "../user.response";
+
+export class PostCategoryReferenceResponse {
+  @ApiProperty({
+    description: "The ID of the category.",
+    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
+  })
+  @Expose()
+  id: string;
+
+  @ApiProperty({
+    description: "The name of the category.",
+    example: "Announcements",
+  })
+  @Expose()
+  name: string;
+
+  @ApiProperty({
+    description: "The hex color code of the category.",
+    example: "#FF5733",
+  })
+  @Expose()
+  color: string;
+
+  @ApiPropertyOptional({
+    description: "The icon identifier for the category.",
+    example: "megaphone",
+    nullable: true,
+  })
+  @Expose()
+  icon: string | null;
+}
+
+class AudienceClassResponse {
+  @ApiProperty({ example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f" })
+  @Expose()
+  id: string;
+
+  @ApiProperty({ example: "Sunflower" })
+  @Expose()
+  name: string;
+}
+
 export class PostAudienceResponse {
   @ApiProperty({
     description: "The ID of the audience.",
@@ -41,21 +83,42 @@ export class PostAudienceResponse {
   @Expose()
   classId?: string;
 
-  @ApiProperty({
-    description: "The ID of the student.",
-    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
-    required: false,
+  @ApiPropertyOptional({
+    description: "The class details (when type is CLASS).",
+    type: AudienceClassResponse,
   })
   @Expose()
-  studentId?: string;
+  @Type(() => AudienceClassResponse)
+  class?: AudienceClassResponse;
+}
 
-  @ApiProperty({
-    description: "The ID of the grade.",
-    example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f",
-    required: false,
-  })
+export class PostClassFacetResponse {
+  @ApiProperty({ example: "c6a8a9b4-7f1a-4f5f-8a9a-9b4a7f1a4f5f" })
   @Expose()
-  gradeId?: string;
+  classId: string;
+
+  @ApiProperty({ example: "Sunflower" })
+  @Expose()
+  className: string;
+
+  @ApiProperty({ example: 12 })
+  @Expose()
+  count: number;
+}
+
+export class PostAudienceFacetsResponse {
+  @ApiProperty({ example: 24 })
+  @Expose()
+  allCount: number;
+
+  @ApiProperty({ example: 18 })
+  @Expose()
+  classCount: number;
+
+  @ApiProperty({ type: [PostClassFacetResponse] })
+  @Expose()
+  @Type(() => PostClassFacetResponse)
+  classes: PostClassFacetResponse[];
 }
 
 export class AttachmentResponse {
@@ -215,6 +278,14 @@ export class PostResponse {
   @Type(() => AttachmentResponse)
   @Expose()
   attachments: AttachmentResponse[];
+
+  @ApiProperty({
+    description: "The categories associated with the post.",
+    type: [PostCategoryReferenceResponse],
+  })
+  @Type(() => PostCategoryReferenceResponse)
+  @Expose()
+  categories: PostCategoryReferenceResponse[];
 
   @ApiProperty({
     description: "The date the post was created.",

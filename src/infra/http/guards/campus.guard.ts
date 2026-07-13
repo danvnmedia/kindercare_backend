@@ -44,6 +44,7 @@ import {
   REQUIRE_CAMPUS_ACCESS_KEY,
   RequireCampusAccessOptions,
 } from "../decorators/require-campus-access.decorator";
+import { canGuardianReadCmsRoute } from "./cms-route-visibility.guard";
 
 @Injectable()
 export class CampusGuard implements CanActivate {
@@ -131,6 +132,14 @@ export class CampusGuard implements CanActivate {
         this.logger.debug(
           `CampusGuard: Global admin ${fullUser.id} accessing campus ${campusId}`,
         );
+        setCampusOnRequest(request, campusId);
+        this.requestContext.setCampusId(campusId);
+        return true;
+      }
+
+      if (
+        canGuardianReadCmsRoute(this.reflector, context, fullUser, campusId)
+      ) {
         setCampusOnRequest(request, campusId);
         this.requestContext.setCampusId(campusId);
         return true;

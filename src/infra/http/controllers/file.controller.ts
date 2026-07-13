@@ -9,6 +9,8 @@ import {
   ClassSerializerInterceptor,
   UseGuards,
   Delete,
+  HttpCode,
+  HttpStatus,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -32,7 +34,12 @@ import { InitiateUploadRequest } from "../dtos/file/initiate-upload.request";
 import { FileResponse } from "../dtos/file/file.response";
 import { InitiateUploadResponse } from "../dtos/file/initiate-upload.response";
 import { User } from "@/domain/user-management/user.entity";
+import { File } from "@/domain/file-management/entities/file.entity";
+import { RoleEntity } from "@/domain/user-management/role.entity";
+import { isGlobalAdmin } from "../context/campus-context";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { Permissions } from "../decorators/permissions.decorator";
 
 /**
  * File Management Controller
@@ -59,16 +66,56 @@ export class FileController {
     private completeUploadUseCase: CompleteUploadUseCase,
   ) {}
 
+  private toFileResponse(file: File, url: string): FileResponse {
+    return {
+      id: file.id.toString(),
+      campusId: file.campusId,
+      key: file.key,
+      url,
+      bucket: file.bucket,
+      storageProvider: file.storageProvider,
+      filename: file.filename,
+      mimeType: file.mimeType,
+      size: Number(file.size),
+      extension: file.extension,
+      purpose: file.purpose,
+      audienceType: file.audienceType,
+      audienceId: file.audienceId,
+      classId: file.classId,
+      gradeLevelId: file.gradeLevelId,
+      status: file.status,
+      isDeleted: file.isDeleted,
+      uploadedBy: file.uploadedBy,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+    };
+  }
+
   @Post("initiate-upload")
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.create")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
-  @ApiOperation({ summary: "Initiate a file upload" })
+  @ApiOperation({
+    summary: "Initiate a file upload",
+    description:
+      "Initiates a file upload and returns a presigned URL. Files are organized by campus, purpose, and audience scope.",
+  })
   @StandardResponse({
     type: InitiateUploadResponse,
+    status: HttpStatus.CREATED,
   })
   async initiateUpload(
     @Body()
-    { filename, mimeType, size, storageProvider }: InitiateUploadRequest,
+    {
+      filename,
+      mimeType,
+      size,
+      purpose,
+      audienceType,
+      audienceId,
+    }: InitiateUploadRequest,
     @CurrentUser() user: User,
     @CampusContext() campusId: string,
   ): Promise<InitiateUploadResponse> {
@@ -76,9 +123,11 @@ export class FileController {
       filename,
       mimeType,
       size,
-      uploadedBy: user.id, // Use User entity's ID (UUID)
+      uploadedBy: user.id.toString(),
       campusId,
-      storageProvider,
+      purpose,
+      audienceType,
+      audienceId,
     });
 
     if (result.isLeft()) {
@@ -86,69 +135,93 @@ export class FileController {
     }
 
     return {
+      fileId: result.value.file.id.toString(),
       key: result.value.file.key,
       uploadUrl: result.value.uploadUrl,
     };
   }
 
   @Post(":id/complete")
+  @HttpCode(HttpStatus.CREATED)
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.create")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Complete a file upload" })
   @StandardResponse({
     type: FileResponse,
+    status: HttpStatus.CREATED,
   })
   async completeUpload(
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
     @CampusContext() campusId: string,
   ) {
     const result = await this.completeUploadUseCase.execute({
       fileId: new UniqueEntityID(id),
       campusId,
+      uploadedBy: user.id.toString(),
     });
 
     if (result.isLeft()) {
       throw result.value;
     }
 
-    return result.value;
+    return this.toFileResponse(result.value.file, result.value.url);
   }
 
   @Get(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.read")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Get a file by ID" })
   @StandardResponse({
     type: FileResponse,
   })
   async get(
-    @Param("id", ParseUUIDPipe) id: string,
     @CampusContext() campusId: string,
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: User,
   ) {
     const result = await this.getFile.execute({
       fileId: new UniqueEntityID(id),
       campusId,
+      requestedBy: user.id.toString(),
+      canReadAny:
+        isGlobalAdmin(user) ||
+        user
+          .getRolesForCampus(campusId)
+          .some((role) => RoleEntity.hasPermissionById(role, "file.manage")),
     });
 
     if (result.isLeft()) {
       throw result.value;
     }
 
-    const { file } = result.value;
-    return file;
+    return this.toFileResponse(result.value.file, result.value.url);
   }
 
   @Delete(":id")
   @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("file.delete", "file.manage")
   @ApiHeader({ name: CAMPUS_ID_HEADER, required: true })
   @ApiOperation({ summary: "Soft delete a file" })
   async delete(
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() user: User,
     @CampusContext() campusId: string,
   ): Promise<void> {
     const result = await this.deleteFile.execute({
       fileId: new UniqueEntityID(id),
       campusId,
+      deletedBy: user.id.toString(),
+      canDeleteAny:
+        isGlobalAdmin(user) ||
+        user
+          .getRolesForCampus(campusId)
+          .some((role) => RoleEntity.hasPermissionById(role, "file.manage")),
     });
 
     if (result.isLeft()) {

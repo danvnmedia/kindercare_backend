@@ -1,7 +1,8 @@
 import {
   Post as PrismaPost,
   PostAudience as PrismaPostAudience,
-  Attachment as PrismaAttachment,
+  PostCategoryLink as PrismaPostCategoryLink,
+  PostCategory as PrismaPostCategory,
   User as PrismaUser,
   Prisma,
   Guardian as PrismaGuardian,
@@ -10,24 +11,44 @@ import {
 import {
   Post,
   PostAudience,
-  Attachment,
   PostStatus,
   AudienceType,
 } from "@/domain/content-management";
-import { User } from "@/domain/user-management/user.entity";
-import { PrismaAttachmentMapper } from "./prisma-attachment.mapper";
+import {
+  PrismaAttachmentMapper,
+  PrismaAttachmentWithFile,
+} from "./prisma-attachment.mapper";
 import { PrismaUserMapper } from "./prisma-user.mapper";
 import { PostContent } from "@/domain/content-management/entities/post.entity";
 
-type PrismaUserWithProfile = PrismaUser & {
-  guardian?: PrismaGuardian | null;
-  staff?: PrismaStaff | null;
+type PrismaUserWithProfiles = PrismaUser & {
+  guardians?: PrismaGuardian[];
+  staffs?: PrismaStaff[];
+};
+
+type PrismaPostCategoryLinkWithCategory = PrismaPostCategoryLink & {
+  category: PrismaPostCategory;
+};
+
+type PrismaPostAudienceWithClass = PrismaPostAudience & {
+  class?: { id: string; name: string } | null;
+};
+
+type PostAudienceReadProps = {
+  postId: string;
+  campusId: string;
+  audienceType: AudienceType;
+  audienceId: string;
+  type: AudienceType;
+  classId?: string;
+  class?: { id: string; name: string };
 };
 
 export type PrismaPostWithRelations = PrismaPost & {
-  author: PrismaUserWithProfile;
-  audiences: PrismaPostAudience[];
-  attachments: PrismaAttachment[];
+  author: PrismaUserWithProfiles;
+  audiences: PrismaPostAudienceWithClass[];
+  attachments: PrismaAttachmentWithFile[];
+  categories?: PrismaPostCategoryLinkWithCategory[];
 };
 
 export class PrismaPostMapper {
@@ -39,7 +60,10 @@ export class PrismaPostMapper {
       {
         campusId: prismaPost.campusId,
         authorId: prismaPost.authorId,
-        author: PrismaUserMapper.toDomain(prismaPost.author),
+        author: PrismaUserMapper.toDomainForCampus(
+          prismaPost.author,
+          prismaPost.campusId,
+        ),
         title: prismaPost.title,
         content: prismaPost.content as PostContent,
         contentText: prismaPost.contentText,
@@ -52,10 +76,18 @@ export class PrismaPostMapper {
         requiresApproval: prismaPost.requiresApproval,
         isDeleted: prismaPost.isDeleted,
         deletedAt: prismaPost.deletedAt,
-        audiences: [],
+        audiences: prismaPost.audiences.map((audience) =>
+          PrismaPostMapper.toDomainPostAudience(audience),
+        ),
         attachments: PrismaAttachmentMapper.toDomainArray(
           prismaPost.attachments,
         ),
+        categories: prismaPost.categories?.map((link) => ({
+          id: link.category.id,
+          name: link.category.name,
+          color: link.category.color,
+          icon: link.category.icon,
+        })),
         createdAt: prismaPost.createdAt,
         updatedAt: prismaPost.updatedAt,
       },
@@ -161,26 +193,65 @@ export class PrismaPostMapper {
     );
   }
 
-  static toPrismaPostAudience(postAudience: PostAudience): PrismaPostAudience {
-    const prismaPostAudience: PrismaPostAudience = {
+  private static toDomainPostAudience(
+    prismaPostAudience: PrismaPostAudienceWithClass,
+  ): PostAudience {
+    const audienceType = prismaPostAudience.type as AudienceType;
+    let audienceId: string;
+
+    switch (audienceType) {
+      case AudienceType.ALL:
+        audienceId = prismaPostAudience.campusId;
+        break;
+      case AudienceType.CLASS:
+        if (!prismaPostAudience.classId) {
+          throw new Error(
+            `Post audience ${prismaPostAudience.id} is CLASS but has no classId`,
+          );
+        }
+        audienceId = prismaPostAudience.classId;
+        break;
+      default:
+        throw new Error(
+          `Unsupported post audience type: ${prismaPostAudience.type}`,
+        );
+    }
+
+    const props: PostAudienceReadProps = {
+      postId: prismaPostAudience.postId,
+      campusId: prismaPostAudience.campusId,
+      audienceType,
+      audienceId,
+      type: audienceType,
+      ...(audienceType === AudienceType.CLASS
+        ? {
+            classId: prismaPostAudience.classId ?? undefined,
+            class: prismaPostAudience.class ?? undefined,
+          }
+        : {}),
+    };
+
+    return PostAudience.create(props, prismaPostAudience.id);
+  }
+
+  static toPrismaPostAudience(postAudience: PostAudience) {
+    const prismaPostAudience: {
+      id: string;
+      type: AudienceType;
+      postId: string;
+      campusId: string;
+      classId: string | null;
+    } = {
       id: postAudience.id.toString(),
       type: postAudience.audienceType,
       postId: postAudience.postId.toString(),
       campusId: postAudience.campusId,
       classId: null,
-      studentId: null,
-      gradeLevelId: null,
     };
 
     switch (postAudience.audienceType) {
       case AudienceType.CLASS:
         prismaPostAudience.classId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.STUDENT:
-        prismaPostAudience.studentId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.GRADE:
-        prismaPostAudience.gradeLevelId = postAudience.audienceId.toString();
         break;
     }
     return prismaPostAudience;
@@ -190,27 +261,22 @@ export class PrismaPostMapper {
    * Convert PostAudience to Prisma create input for nested relations.
    * Note: postId is omitted because Prisma handles it automatically in nested creates.
    */
-  static toPrismaPostAudienceCreate(
-    postAudience: PostAudience,
-  ): Omit<PrismaPostAudience, "postId"> {
-    const result: Omit<PrismaPostAudience, "postId"> = {
+  static toPrismaPostAudienceCreate(postAudience: PostAudience) {
+    const result: {
+      id: string;
+      type: AudienceType;
+      campusId: string;
+      classId: string | null;
+    } = {
       id: postAudience.id.toString(),
       type: postAudience.audienceType,
       campusId: postAudience.campusId,
       classId: null,
-      studentId: null,
-      gradeLevelId: null,
     };
 
     switch (postAudience.audienceType) {
       case AudienceType.CLASS:
         result.classId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.STUDENT:
-        result.studentId = postAudience.audienceId.toString();
-        break;
-      case AudienceType.GRADE:
-        result.gradeLevelId = postAudience.audienceId.toString();
         break;
     }
     return result;

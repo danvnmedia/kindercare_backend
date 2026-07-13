@@ -35,6 +35,7 @@ import {
 } from "@/application/rbac/permission-access";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { RequestContext } from "../context/request-context.service";
+import { canGuardianReadCmsRoute } from "./cms-route-visibility.guard";
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -68,6 +69,10 @@ export class PermissionsGuard implements CanActivate {
     // Get campus context from RequestContext (set by CampusGuard)
     const campusId = this.requestContext.campusId;
 
+    if (canGuardianReadCmsRoute(this.reflector, context, user, campusId)) {
+      return true;
+    }
+
     // Get roles that apply to the current campus context
     // This includes globally assigned roles (campusId = null) + campus-specific roles
     const applicableRoles = user.getRolesForCampus(campusId);
@@ -81,11 +86,12 @@ export class PermissionsGuard implements CanActivate {
 
     const userPermissionIds = getPermissionIdsForCampus(user, campusId);
 
-    // Check if user has ANY of the required permissions (OR logic)
-    const hasRequiredPermission = hasAnyPermission(
-      userPermissionIds,
-      requiredPermissions,
-    );
+    // Keep exact permission checks centralized while preserving the CMS rule
+    // that post.manage includes moderation/review capability.
+    const hasRequiredPermission =
+      hasAnyPermission(userPermissionIds, requiredPermissions) ||
+      (requiredPermissions.includes("post.review") &&
+        userPermissionIds.has("post.manage"));
 
     if (!hasRequiredPermission) {
       this.logger.warn(
