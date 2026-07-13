@@ -21,6 +21,52 @@ interface AdminInput {
   roleId?: string;
 }
 
+export interface ParsedAdminCliArgs {
+  command: string;
+  help?: boolean;
+  email?: string;
+  name?: string;
+  clerkUid?: string;
+  phone?: string;
+  passwordStdin?: boolean;
+  roleId?: string;
+}
+
+export async function readPasswordFromStdin(
+  input: NodeJS.ReadableStream = process.stdin,
+): Promise<string> {
+  let rawPassword = "";
+
+  for await (const chunk of input as AsyncIterable<string | Buffer>) {
+    rawPassword += chunk.toString();
+  }
+
+  const password = rawPassword.replace(/\r?\n$/, "");
+  if (password.length < 8) {
+    throw new Error("Password from stdin must contain at least 8 characters");
+  }
+
+  return password;
+}
+
+function requireClerkSecretKey() {
+  if (!process.env.CLERK_SECRET_KEY) {
+    throw new Error("CLERK_SECRET_KEY is not set in .env file");
+  }
+}
+
+function printClerkApiErrors(error: unknown) {
+  if ((error as any).errors) {
+    console.error("\nClerk API Errors:");
+    (error as any).errors.forEach((err: any) => {
+      console.error(`  - ${err.message} (${err.code})`);
+      if (err.meta) {
+        console.error(`    Meta:`, err.meta);
+      }
+    });
+  }
+}
+
 async function createClerkUser(
   email: string,
   fullName: string,
@@ -31,9 +77,7 @@ async function createClerkUser(
     console.log("Creating user on Clerk...");
 
     // Check if CLERK_SECRET_KEY exists
-    if (!process.env.CLERK_SECRET_KEY) {
-      throw new Error("CLERK_SECRET_KEY is not set in .env file");
-    }
+    requireClerkSecretKey();
 
     // Check if user already exists on Clerk
     console.log(`   Checking if ${email} exists on Clerk...`);
@@ -63,15 +107,7 @@ async function createClerkUser(
     console.error("Error details:", JSON.stringify(error, null, 2));
 
     // Check specific error types
-    if ((error as any).errors) {
-      console.error("\nClerk API Errors:");
-      (error as any).errors.forEach((err: any) => {
-        console.error(`  - ${err.message} (${err.code})`);
-        if (err.meta) {
-          console.error(`    Meta:`, err.meta);
-        }
-      });
-    }
+    printClerkApiErrors(error);
 
     // Common issues
     console.error("\nCommon solutions:");
@@ -276,6 +312,102 @@ async function listAdmins() {
   }
 }
 
+async function getClerkUidByEmail(email: string): Promise<string> {
+  requireClerkSecretKey();
+
+  console.log(`Finding Clerk user by email: ${email}...`);
+  const existingUsers = await clerkClient.users.getUserList({
+    emailAddress: [email],
+  });
+
+  if (existingUsers.totalCount === 0) {
+    throw new Error(`No Clerk user found with email ${email}`);
+  }
+
+  return existingUsers.data[0].id;
+}
+
+async function ensureLocalSuperAdmin(clerkUid: string) {
+  const user = await prisma.user.findUnique({
+    where: { clerkUid },
+    include: {
+      userRoles: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    throw new Error(`User with Clerk UID ${clerkUid} not found in database`);
+  }
+
+  const isSuperAdmin = user.userRoles.some(
+    (ur) => ur.role.isSystemRole === true,
+  );
+  if (!isSuperAdmin) {
+    throw new Error(
+      `User ${clerkUid} is not a Super Admin (no isSystemRole=true role)`,
+    );
+  }
+}
+
+async function updateAdminPassword(input: {
+  clerkUid?: string;
+  email?: string;
+  password: string;
+}) {
+  try {
+    requireClerkSecretKey();
+
+    const clerkUid = input.clerkUid || (await getClerkUidByEmail(input.email!));
+    await ensureLocalSuperAdmin(clerkUid);
+
+    console.log(`Updating Clerk password for Super Admin: ${clerkUid}...`);
+    await clerkClient.users.updateUser(clerkUid, {
+      password: input.password,
+      signOutOfOtherSessions: true,
+    });
+
+    console.log("Super Admin password updated successfully.");
+    console.log("Existing sessions were signed out.\n");
+  } catch (error) {
+    console.error("Failed to update admin password:", (error as Error).message);
+    printClerkApiErrors(error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+async function updateClerkPassword(input: {
+  clerkUid?: string;
+  email?: string;
+  password: string;
+}) {
+  try {
+    requireClerkSecretKey();
+
+    const clerkUid = input.clerkUid || (await getClerkUidByEmail(input.email!));
+
+    console.log(`Updating Clerk password for user: ${clerkUid}...`);
+    await clerkClient.users.updateUser(clerkUid, {
+      password: input.password,
+      signOutOfOtherSessions: true,
+    });
+
+    console.log("Clerk user password updated successfully.");
+    console.log("Existing sessions were signed out.\n");
+  } catch (error) {
+    console.error("Failed to update Clerk password:", (error as Error).message);
+    printClerkApiErrors(error);
+    process.exit(1);
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 async function deleteAdmin(clerkUid: string) {
   try {
     console.log(`Deleting Super Admin account with Clerk UID: ${clerkUid}...`);
@@ -329,11 +461,13 @@ Usage:
   npm run cli:create-admin -- --email=admin@example.com --name="Admin Name"
   npm run cli:list-admins               # List all Super Admins
   npm run cli:delete-admin -- --clerk-uid=user_abc123
+  npm run cli:update-admin-password -- --email=admin@example.com --password-stdin
+  npm run cli:update-clerk-password -- --email=user@example.com --password-stdin
 
 Options:
   --email=<email>         Super Admin email for Clerk (required for create)
   --name=<name>           Full name for Clerk (required for create)
-  --password=<password>   Password for Clerk account (optional, min 8 chars)
+  --password-stdin        Read the Clerk password from stdin (optional for create)
   --role-id=<uuid>        Custom UUID for Super Admin role (optional)
   --clerk-uid=<uid>       Clerk UID (optional for create, required for delete)
   --phone=<phone>         Phone number (optional)
@@ -349,8 +483,8 @@ Super Admin Role:
   - Has campusId=null (global, not campus-scoped)
 
 Examples:
-  # Create Super Admin with password
-  npm run cli:create-admin -- --email=admin@kindercare.com --name="John Doe" --password="SecurePass123!"
+  # Create Super Admin with password read from stdin
+  printf '%s' "$NEW_PASSWORD" | npm run cli:create-admin -- --email=admin@kindercare.com --name="John Doe" --password-stdin
 
   # Create Super Admin with custom role UUID
   npm run cli:create-admin -- --email=admin@kindercare.com --name="John Doe" --role-id="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
@@ -366,33 +500,50 @@ Examples:
 
   # Delete Super Admin by Clerk UID
   npm run cli:delete-admin -- --clerk-uid=user_abc123
+
+  # Update Super Admin password on Clerk
+  printf '%s' "$NEW_PASSWORD" | npm run cli:update-admin-password -- --email=admin@kindercare.com --password-stdin
+  printf '%s' "$NEW_PASSWORD" | npm run cli:update-admin-password -- --clerk-uid=user_abc123 --password-stdin
+
+  # Update any Clerk user password
+  printf '%s' "$NEW_PASSWORD" | npm run cli:update-clerk-password -- --email=user@example.com --password-stdin
+  printf '%s' "$NEW_PASSWORD" | npm run cli:update-clerk-password -- --clerk-uid=user_abc123 --password-stdin
 `);
 }
 
 // Parse command line arguments
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const parsed: any = { command: "create" };
+export function parseArgs(
+  args: string[] = process.argv.slice(2),
+): ParsedAdminCliArgs {
+  const parsed: ParsedAdminCliArgs = { command: "create" };
 
   args.forEach((arg) => {
     if (arg === "--help" || arg === "-h") {
       parsed.help = true;
     } else if (arg.startsWith("--email=")) {
-      parsed.email = arg.split("=")[1];
+      parsed.email = arg.slice("--email=".length);
     } else if (arg.startsWith("--name=")) {
-      parsed.name = arg.split("=")[1];
+      parsed.name = arg.slice("--name=".length);
     } else if (arg.startsWith("--clerk-uid=")) {
-      parsed.clerkUid = arg.split("=")[1];
+      parsed.clerkUid = arg.slice("--clerk-uid=".length);
     } else if (arg.startsWith("--phone=")) {
-      parsed.phone = arg.split("=")[1];
+      parsed.phone = arg.slice("--phone=".length);
     } else if (arg.startsWith("--password=")) {
-      parsed.password = arg.split("=")[1];
+      throw new Error(
+        "Plaintext password arguments are not supported; use --password-stdin",
+      );
+    } else if (arg === "--password-stdin") {
+      parsed.passwordStdin = true;
     } else if (arg.startsWith("--role-id=")) {
-      parsed.roleId = arg.split("=")[1];
+      parsed.roleId = arg.slice("--role-id=".length);
     } else if (arg === "list") {
       parsed.command = "list";
     } else if (arg === "delete") {
       parsed.command = "delete";
+    } else if (arg === "update-password") {
+      parsed.command = "update-password";
+    } else if (arg === "update-clerk-password") {
+      parsed.command = "update-clerk-password";
     }
   });
 
@@ -412,6 +563,38 @@ async function main() {
 
   if (command === "list") {
     await listAdmins();
+  } else if (command === "update-password") {
+    if (!args.passwordStdin || (!args.email && !args.clerkUid)) {
+      console.error(
+        "--password-stdin and either email or Clerk UID are required for update-password command",
+      );
+      console.log(
+        "Usage: printf '%s' \"$NEW_PASSWORD\" | npm run cli:update-admin-password -- --email=admin@example.com --password-stdin\n",
+      );
+      process.exit(1);
+    }
+    const password = await readPasswordFromStdin();
+    await updateAdminPassword({
+      email: args.email,
+      clerkUid: args.clerkUid,
+      password,
+    });
+  } else if (command === "update-clerk-password") {
+    if (!args.passwordStdin || (!args.email && !args.clerkUid)) {
+      console.error(
+        "--password-stdin and either email or Clerk UID are required for update-clerk-password command",
+      );
+      console.log(
+        "Usage: printf '%s' \"$NEW_PASSWORD\" | npm run cli:update-clerk-password -- --email=user@example.com --password-stdin\n",
+      );
+      process.exit(1);
+    }
+    const password = await readPasswordFromStdin();
+    await updateClerkPassword({
+      email: args.email,
+      clerkUid: args.clerkUid,
+      password,
+    });
   } else if (command === "delete") {
     if (!args.clerkUid) {
       console.error("Clerk UID is required for delete command");
@@ -432,18 +615,30 @@ async function main() {
       process.exit(1);
     }
 
+    if (args.clerkUid && args.passwordStdin) {
+      throw new Error(
+        "--password-stdin cannot be used when --clerk-uid references an existing Clerk user",
+      );
+    }
+
+    const password = args.passwordStdin
+      ? await readPasswordFromStdin()
+      : undefined;
+
     await createAdmin({
       email: args.email,
       fullName: args.name,
       clerkUid: args.clerkUid,
       phoneNumber: args.phone,
-      password: args.password,
+      password,
       roleId: args.roleId,
     });
   }
 }
 
-main().catch((error) => {
-  console.error("Unexpected error:", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error("Unexpected error:", error);
+    process.exit(1);
+  });
+}
