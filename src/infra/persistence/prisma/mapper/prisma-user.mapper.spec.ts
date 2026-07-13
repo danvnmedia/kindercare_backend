@@ -134,5 +134,16 @@ describe("PrismaUserMapper", () => {
         expect.objectContaining({ id: "staff-1", campusId: "campus-a" }),
       ]),
     );
+    expect(user.name).toBe("Staff One");
+    expect(user.email).toBe("staff@example.com");
+    expect(user.toPlain()).toMatchObject({
+      name: "Staff One",
+      email: "staff@example.com",
+      profile: {
+        id: "staff-2",
+        campusId: "campus-b",
+        fullName: "Staff One",
+      },
+    });
   });
 });
