@@ -2,7 +2,7 @@
 title: 'Audit Trail & Soft Delete Patterns'
 description: Audit timestamps, audit user fields, isArchived vs isDeleted+deletedAt, history tables, and Clerk identity locking
 createdAt: '2026-05-05T17:44:33.648Z'
-updatedAt: '2026-07-11T16:28:12.219Z'
+updatedAt: '2026-07-13T21:20:41.591Z'
 tags:
   - architecture
   - audit
@@ -267,4 +267,22 @@ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
 ## School-Year Enrollment Cancellation Audit
 
-`cancel-school-year-enrollment.use-case` emits `CANCEL_SCHOOL_YEAR_ENROLLMENT` for the first successful cancellation only. The event is transaction-bound with the parent, affected children, historical finalization, and uncommitted Lifecycle reconciliation. Idempotent replay does not emit a duplicate event. The stable context keys are documented in @doc/references/audit-event-context-shapes.
+`cancel-school-year-enrollment.use-case` emits `CANCEL_SCHOOL_YEAR_ENROLLMENT` exactly once for the first successful cancellation of an upcoming school-year enrollment. The event is recorded in the same transaction as parent cancellation, applicable child cancellation, historical finalization, and School Year Lifecycle reconciliation. An idempotent replay emits no event.
+
+The surrounding audit event uses `targetType: student`, sets `targetId` to the owning `studentId`, and includes the selected `campusId`. Its before/after values include effective status and cancellation time.
+
+The context payload contract is stable and additive unless a feature specification explicitly declares a breaking change:
+
+- `actorName: string | null` — display-name snapshot for the authenticated actor.
+- `studentId: string` — student owning the registration.
+- `schoolYearEnrollmentId: string` — cancelled parent enrollment ID.
+- `schoolYearId: string` — school year owning the parent.
+- `scheduledEnrollmentDate: string` — original parent start date as an ISO timestamp.
+- `cancellationReason: FAMILY_REQUEST | CHANGED_SCHOOL | DUPLICATE_REGISTRATION | DATA_ENTRY_ERROR | OTHER`.
+- `cancellationNote: string | null` — trimmed optional note, at most 500 characters.
+- `affectedChildIds: string[]` — upcoming child placements cancelled with the parent.
+- `affectedChildCount: number` — length of `affectedChildIds`.
+- `lifecycle.noLongerEligibleCandidateIds: string[]` — uncommitted Lifecycle candidates made ineligible.
+- `lifecycle.invalidatedPreviewIds: string[]` — uncommitted Lifecycle previews invalidated by cancellation.
+- `beforeStatus: UPCOMING`.
+- `afterStatus: CANCELLED`.
