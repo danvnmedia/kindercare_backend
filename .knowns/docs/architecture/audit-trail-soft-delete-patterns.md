@@ -2,7 +2,7 @@
 title: 'Audit Trail & Soft Delete Patterns'
 description: Audit timestamps, audit user fields, isArchived vs isDeleted+deletedAt, history tables, and Clerk identity locking
 createdAt: '2026-05-05T17:44:33.648Z'
-updatedAt: '2026-06-25T16:37:30.868Z'
+updatedAt: '2026-07-11T16:28:12.219Z'
 tags:
   - architecture
   - audit
@@ -263,3 +263,8 @@ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 | `src/application/user-management/use-cases/guardian/archive-guardian.use-case.ts` | Archive + Clerk lock |
 | `src/application/user-management/use-cases/guardian/delete-guardian.use-case.ts` | Hard delete + Clerk delete |
 | `src/application/content-management/use-cases/submit-for-review.use-case.ts` | History row pattern |
+
+
+## School-Year Enrollment Cancellation Audit
+
+`cancel-school-year-enrollment.use-case` emits `CANCEL_SCHOOL_YEAR_ENROLLMENT` for the first successful cancellation only. The event is transaction-bound with the parent, affected children, historical finalization, and uncommitted Lifecycle reconciliation. Idempotent replay does not emit a duplicate event. The stable context keys are documented in @doc/references/audit-event-context-shapes.

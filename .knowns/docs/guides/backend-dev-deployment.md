@@ -2,7 +2,7 @@
 title: Backend Dev Deployment
 description: Developer deployment and first-run setup guide for the Kindercare backend, including environment variables, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap.
 createdAt: '2026-06-13T16:03:16.017Z'
-updatedAt: '2026-06-13T16:03:16.017Z'
+updatedAt: '2026-07-12T16:24:53.886Z'
 tags:
   - guide
   - deployment
@@ -36,8 +36,7 @@ Use this guide with the architecture references at the end. Do not rely on the r
 These details matter when deploying from this checkout:
 
 - Docker Compose services are `app`, `postgres`, and `redis`. There is no `app-dev` service.
-- The canonical seed command is `npx prisma db seed`. There is no `npm run prisma:seed` script.
-- `npm run seed:students` currently points to `prisma/seeds/seed-students.ts`, but that file is absent. Do not include it in a deployment runbook until the script is restored.
+- The canonical baseline seed command is `npx prisma db seed`. Optional development fixtures use `npm run seed:students`, `npm run seed:guardians`, or `npm run seed:dev-data`.
 - `npm run clerk:get-token` points to `scripts/get-clerk-token.ts`, but that file is absent in this checkout.
 - `npm run test:e2e` points to `test/jest-e2e.json`, but the `test/` folder is absent in this checkout.
 - The actual compiled entrypoint is `dist/src/main.js`. `docker-compose.prod.yml` uses that path. `package.json` currently has `start:prod` as `node dist/main`, which does not match the build output.
@@ -261,19 +260,19 @@ Important production-like notes:
 
 ## Seed Data
 
-Run this after migrations:
+Run the default bootstrap seed after migrations:
 
 ```bash
 npx prisma db seed
 ```
 
-The seed is idempotent and uses `prisma/seed.ts`. It creates or updates:
+The default seed is idempotent and uses `prisma/seed.ts`. It creates or updates:
 
 | Data | Details |
 | --- | --- |
 | Campuses | `Kindercare My Dinh`, `Kindercare Quan 2`, `Kindercare Nam Do`. |
 | Super Admin role | Global role ID `aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`. |
-| System permissions | Imported from `SYSTEM_PERMISSIONS` in `src/application/rbac/use-cases/seed-permissions.use-case.ts`. |
+| System permissions | Imported from `SYSTEM_PERMISSIONS`. |
 | Super Admin permissions | Grants every system permission to the Super Admin role. |
 
 Seeded campus IDs:
@@ -284,7 +283,89 @@ Seeded campus IDs:
 33333333-3333-4333-8333-333333333333  Kindercare Nam Do
 ```
 
-If `PermissionsGuard` resolves an admin user with an empty permission list, rerun the seed.
+If `PermissionsGuard` resolves an admin user with an empty permission list, rerun the default seed.
+
+### Optional Development Fixtures
+
+The optional database fixtures remain separate from `npx prisma db seed`. Run the default seed first, then choose one database-only command:
+
+```bash
+npm run seed:students
+npm run seed:guardians
+npm run seed:dev-data
+```
+
+- `seed:students` creates 66 deterministic student profiles plus the minimal grade, school-year, class, `SchoolYearEnrollment`, and `Enrollment` rows needed to derive representative `ACTIVE`, `WAITING`, `DEFERRED`, `COMPLETED`, `GRADUATED`, and `WITHDRAWN` phases.
+- `seed:guardians` requires the student fixtures. It creates 15 deterministic guardian profiles, 21 same-campus student links, and these campus-scoped relationship types in order: `Ông`, `Bà`, `Bố`, `Mẹ`, `Anh`, `Chị`, `Cô`, `Dì`, `Chú`, `Bác`.
+- `seed:dev-data` runs both database stages in dependency order.
+- None of these commands calls Clerk.
+
+Database fixture configuration:
+
+| Variable | Purpose |
+| --- | --- |
+| `SEED_STUDENTS_CAMPUS_ID` | Target campus; defaults to Kindercare My Dinh. |
+| `SEED_STUDENTS_CSV` | Override the student fixture CSV path. |
+| `SEED_PARENT_CLERK_UID` | Legacy database-only option that links the primary guardian to a supplied UID without calling Clerk. Prefer the all-guardian provisioning command below. |
+
+Student lifecycle labels are fixture scenarios, not persisted status fields. The seed writes canonical dated enrollment rows and lets `student_with_phase` derive the phase. `isArchived` remains an independent recoverable profile-archive flag.
+
+Fixture IDs come from immutable seed keys, so safe reruns update the same records and preserve student codes. To verify idempotency and projections against a disposable migrated database:
+
+```bash
+SEED_VERIFY_ALLOW_MUTATION=true npm run seed:verify-dev-data
+```
+
+The verifier intentionally refuses to run without `SEED_VERIFY_ALLOW_MUTATION=true` because it runs the optional seed twice.
+
+#### Provision Clerk Accounts For All Guardian Fixtures
+
+Clerk provisioning is a separate opt-in step. Run `seed:dev-data` first, configure a disposable Clerk development/test tenant, and set:
+
+| Variable | Purpose |
+| --- | --- |
+| `NODE_ENV` | Must not be `production`; production is permanently refused. |
+| `CLERK_SECRET_KEY` | Selects the Clerk development/test tenant. |
+| `SEED_CLERK_GUARDIAN_PASSWORD` | Shared development password for all 15 fixture accounts. It is never persisted or printed. |
+
+Then run:
+
+```bash
+npm run seed:provision-guardian-clerk
+```
+
+The command processes all 15 fixtures sequentially. It creates Clerk users with stable family/campus/fixture markers, creates or reuses the matching internal `User` mappings, and links each existing guardian profile. A rerun reuses only correctly marked Clerk users; an unmarked or differently marked email is a safe conflict. If a run stops partway through, completed Clerk accounts and database links remain, and a later rerun resumes.
+
+After a Clerk tenant wipe, rerunning this command recreates the marked guardian users and replaces their stale internal Clerk UIDs without replacing guardian profiles. It does not reconcile staff, administrator, or other non-fixture identities.
+
+#### Preview Or Delete Every User In The Clerk Tenant
+
+The wipe command targets every user in the tenant selected by `CLERK_SECRET_KEY`, including fixture guardians, staff, administrators, and unrelated test users. Use only a disposable Clerk development/test tenant. It permanently refuses `NODE_ENV=production`.
+
+The npm launcher requires a repository-root `.env.local` and loads it with Node's native environment-file support before the CLI starts. At minimum, configure:
+
+```env
+NODE_ENV=development
+CLERK_SECRET_KEY=sk_test_...
+```
+
+Explicitly exported process environment variables take precedence over values in `.env.local`. This ensures an exported `NODE_ENV=production` can never be weakened by the file.
+
+Preview is the default and performs no deletion:
+
+```bash
+npm run clerk:wipe-all-users
+```
+
+Execute the irreversible tenant-wide deletion only with both exact arguments. The first two `--` tokens are npm's forwarding separators; the script receives the final `--execute --confirm ...` arguments:
+
+```bash
+npm run clerk:wipe-all-users -- -- --execute --confirm DELETE_ALL_CLERK_USERS
+```
+
+The command enumerates all Clerk pages before deletion, attempts every discovered user sequentially, continues after individual failures, and reports discovered/deleted/failed totals plus all failed Clerk user IDs. Any partial failure returns a non-zero exit code; an empty tenant succeeds.
+
+This command never queries or changes the application database. Internal `User`, `Guardian`, `Staff`, role, and profile rows remain unchanged and may point to Clerk identities that no longer exist. Guardian fixture links are repaired by rerunning `seed:provision-guardian-clerk`; other identities require their normal provisioning or reconciliation workflow.
 
 ## Admin Bootstrap And Clerk
 
@@ -396,3 +477,4 @@ Then confirm:
 - @doc/architecture/file-management-and-storage
 - @doc/architecture/multi-campus-architecture
 - @doc/patterns/prisma-migration-patterns
+- @doc/guides/seed-and-clerk-cli-reference
