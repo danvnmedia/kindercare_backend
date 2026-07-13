@@ -11,8 +11,7 @@ import {
   DEFAULT_CAMPUS_ID_A,
   DEFAULT_CAMPUS_ID_B,
 } from "@/test-utils";
-import { User, UserRoleAssignment } from "@/domain/user-management/user.entity";
-import { Role, RoleEntity } from "@/domain/user-management/role.entity";
+import { RoleEntity } from "@/domain/user-management/role.entity";
 import {
   hasCampusAccess,
   isGlobalAdmin,

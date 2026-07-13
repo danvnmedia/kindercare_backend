@@ -2,7 +2,7 @@
 title: Backend Dev Deployment
 description: Developer deployment and first-run setup guide for the Kindercare backend, including environment variables, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap.
 createdAt: '2026-06-13T16:03:16.017Z'
-updatedAt: '2026-07-12T16:24:53.886Z'
+updatedAt: '2026-07-13T12:08:27.042Z'
 tags:
   - guide
   - deployment
@@ -33,6 +33,9 @@ Use this guide with the architecture references at the end. Do not rely on the r
 
 ## Current Repo Reality Checks
 
+- npm identity is `kindercare-backend`; the package is private and proprietary (`UNLICENSED`).
+- Fresh Compose deployments default to the `kindercare_backend` database; existing databases are not renamed automatically.
+
 These details matter when deploying from this checkout:
 
 - Docker Compose services are `app`, `postgres`, and `redis`. There is no `app-dev` service.
@@ -46,15 +49,17 @@ These details matter when deploying from this checkout:
 
 Create `.env` from `.env.example`, then fill in all values required by the deployment mode. `.env` is ignored by git and must not be committed.
 
+The database names below are fresh-deployment defaults. Changing `POSTGRES_DB` does not rename a database in an existing PostgreSQL volume; use an explicit database migration/rename procedure and update `DATABASE_URL` instead of recreating or deleting a persistent volume.
+
 | Variable | Required | Used by | Notes |
 | --- | --- | --- | --- |
 | `NODE_ENV` | Recommended | Runtime/process | Use `development` locally. Use `production` for production-like runs. |
 | `APP_PORT` | Yes | `src/main.ts`, Compose port mapping | The Nest app listens on this. Default is `3000`. |
 | `DEBUG_PORT` | Dev only | Docker Compose | Exposes Node debug port for dev Compose. Default is `9229`. |
 | `DATABASE_URL` | Yes | Prisma, `entrypoint.sh` | Must be reachable from where the command runs. Use `localhost` on host, `postgres` inside Compose. |
-| `POSTGRES_USER` | Compose | Postgres service | Defaults to `postgres`. If changed, update Compose health checks too. |
-| `POSTGRES_PASSWORD` | Compose | Postgres service, Compose app URL | Defaults to `password` in examples. Use a real secret outside local dev. |
-| `POSTGRES_DB` | Compose | Postgres service, Compose app URL | Defaults to `nestjs_boilerplate`. If changed, update Compose health checks too. |
+| `POSTGRES_USER` | Compose | Postgres service | Defaults to `postgres`. Compose health checks read the configured user value. |
+| `POSTGRES_PASSWORD` | Compose | Postgres service, Compose app URL | Development examples use `password`; production Compose requires an explicit non-empty secret. |
+| `POSTGRES_DB` | Compose | Postgres service, Compose app URL | Defaults to `kindercare_backend`. Compose health checks read the configured database value. |
 | `POSTGRES_PORT` | Dev Compose | Host port mapping | Host-side Postgres port. Default is `5432`. |
 | `REDIS_HOST` | Yes | `QueueModule` | Use `localhost` on host, `redis` inside Compose. |
 | `REDIS_PORT` | Yes | `QueueModule`, Compose | Default is `6379`. |
@@ -76,10 +81,10 @@ Use this when running Nest locally on the host and only Postgres/Redis through C
 NODE_ENV="development"
 APP_PORT=3000
 DEBUG_PORT=9229
-DATABASE_URL="postgresql://postgres:password@localhost:5432/nestjs_boilerplate?schema=public"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/kindercare_backend?schema=public"
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="password"
-POSTGRES_DB="nestjs_boilerplate"
+POSTGRES_DB="kindercare_backend"
 POSTGRES_PORT=5432
 REDIS_HOST="localhost"
 REDIS_PORT=6379
@@ -100,10 +105,10 @@ Use this shape when the app itself runs inside Docker Compose:
 NODE_ENV="development"
 APP_PORT=3000
 DEBUG_PORT=9229
-DATABASE_URL="postgresql://postgres:password@postgres:5432/nestjs_boilerplate?schema=public"
+DATABASE_URL="postgresql://postgres:password@postgres:5432/kindercare_backend?schema=public"
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="password"
-POSTGRES_DB="nestjs_boilerplate"
+POSTGRES_DB="kindercare_backend"
 POSTGRES_PORT=5432
 REDIS_HOST="redis"
 REDIS_PORT=6379
@@ -230,7 +235,7 @@ Use this when a developer wants hot reload directly on the host.
 1. Make sure `.env` uses internal Compose hosts:
 
    ```env
-   DATABASE_URL="postgresql://postgres:password@postgres:5432/nestjs_boilerplate?schema=public"
+   DATABASE_URL="postgresql://postgres:<strong-password>@postgres:5432/kindercare_backend?schema=public"
    REDIS_HOST="redis"
    ```
 
@@ -256,7 +261,9 @@ Important production-like notes:
 
 - `docker-compose.prod.yml` does not publish app, Postgres, or Redis ports. Add a port mapping or attach a reverse proxy if direct host access is needed.
 - The app container runs migrations automatically on startup. Seeds are not automatic and should be run intentionally.
-- If `POSTGRES_USER` or `POSTGRES_DB` differ from defaults, update the hard-coded Compose health check `pg_isready -U postgres -d nestjs_boilerplate`.
+- Postgres health checks read `POSTGRES_USER` and `POSTGRES_DB` from the container environment, so there is no duplicate hard-coded database identity.
+- Production Compose requires a non-empty `POSTGRES_PASSWORD`; supply it through the deployment secret mechanism.
+- `POSTGRES_DB` only initializes a database in an empty Postgres data directory. For an existing volume, migrate or rename the database explicitly and update `DATABASE_URL`; never delete a persistent volume merely to apply the new default.
 
 ## Seed Data
 
@@ -462,7 +469,7 @@ Then confirm:
 | --- | --- | --- |
 | App cannot connect to Postgres inside Compose | `.env` uses `localhost` for a containerized app | Use `postgres` in `DATABASE_URL` when the app runs in Compose. |
 | Redis connection errors inside Compose | `REDIS_HOST=localhost` in containerized app | Use `REDIS_HOST=redis`. |
-| Compose Postgres health check fails after changing DB/user | Health check is hard-coded to defaults | Update `pg_isready -U postgres -d nestjs_boilerplate` in Compose. |
+| Compose Postgres health check fails after changing DB/user | Container environment values do not match the intended database/user | Confirm `POSTGRES_USER` and `POSTGRES_DB` are set consistently; the health check reads them automatically. |
 | Protected endpoints return unauthorized | Missing or invalid Clerk keys/token | Set `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and send a Clerk session token. |
 | Admin resolves with no permissions | Seed was not run after migrations | Run `npx prisma db seed`. |
 | `npm run prisma:generate` fails with Windows `EPERM` on query engine rename | Running Node/Prisma process is locking `node_modules/.prisma/client` | Stop local Nest/Prisma/Node processes and retry. |

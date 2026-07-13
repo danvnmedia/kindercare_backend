@@ -11,7 +11,7 @@ import {
   AuthenticatedRequest,
 } from "./request-context.service";
 import { UserRepository } from "@/application/user-management/ports/user.repository";
-import { createUser, createRole, createRoleAssignment } from "@/test-utils";
+import { createUser } from "@/test-utils";
 
 describe("RequestContext", () => {
   let requestContext: RequestContext;

@@ -4,7 +4,6 @@
  */
 
 import { ConflictException } from "@nestjs/common";
-import { StudentCodeGeneratorService } from "./student-code-generator.service";
 import { DEFAULT_CAMPUS_ID_A, DEFAULT_CAMPUS_ID_B } from "@/test-utils";
 
 describe("StudentCodeGeneratorService", () => {

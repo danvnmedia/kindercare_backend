@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { StandardRequest } from "../dto/standard-request.dto";
 import { FilterConditionDto } from "../dto/filter-schema.dto";
-import { QueryOptions } from "../dto/query.dto";
 
 interface ValidationOptions {
   allowedSortFields?: string[];

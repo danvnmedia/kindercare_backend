@@ -2,7 +2,7 @@
 
 A production-ready NestJS backend for managing multiple school campuses with Clean Architecture principles, RBAC, content management, and comprehensive API features.
 
-**Based on**: [NestJS Clean Architecture Boilerplate](https://github.com/howznguyen/nestjs-clean-architecture-boilerplate) by [@howznguyen](https://github.com/howznguyen)
+**Repository:** [DHA-Enterprise/kindercare_backend](https://github.com/DHA-Enterprise/kindercare_backend)
 
 ## Features
 
@@ -99,7 +99,7 @@ src/
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:DHA-Enterprise/kindercare_backend.git kindercare-backend
    cd kindercare-backend
    ```
 
@@ -259,6 +259,12 @@ See `.knowns/docs/` for detailed documentation:
 - `guides/` - Developer guides
 - `migrations/` - Migration documentation
 
+## Acknowledgements
+
+This project is based on [NestJS Clean Architecture Boilerplate](https://github.com/howznguyen/nestjs-clean-architecture-boilerplate) by [@howznguyen](https://github.com/howznguyen). Original authorship is retained in the Git history.
+
 ## License
 
-This project is licensed under the UNLICENSED License.
+Copyright © DHA Enterprise. All rights reserved.
+
+This is proprietary software and is not licensed for public use or redistribution. The npm package is marked `private` and `UNLICENSED`.

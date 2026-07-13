@@ -251,5 +251,5 @@ npm run start:prod
 
 ---
 
-**Maintained By:** [@howznguyen](https://github.com/howznguyen)
-**Last Updated:** 2025-11-15
+**Maintained By:** [DHA Enterprise](https://github.com/DHA-Enterprise)
+**Last Updated:** 2026-07-13

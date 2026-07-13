@@ -1,30 +1,32 @@
 {
-  "name": "nestjs-clean-architecture-boilerplate",
+  "name": "kindercare-backend",
   "version": "1.0.0",
-  "description": "NestJS Clean Architecture Boilerplate with advanced features",
-  "author": "howznguyen <https://github.com/howznguyen>",
+  "description": "Kindercare multi-campus school management API",
+  "author": "DHA Enterprise",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/howznguyen/nestjs-clean-architecture-boilerplate.git"
+    "url": "git+https://github.com/DHA-Enterprise/kindercare_backend.git"
   },
   "bugs": {
-    "url": "https://github.com/howznguyen/nestjs-clean-architecture-boilerplate/issues"
+    "url": "https://github.com/DHA-Enterprise/kindercare_backend/issues"
   },
-  "homepage": "https://github.com/howznguyen/nestjs-clean-architecture-boilerplate#readme",
+  "homepage": "https://github.com/DHA-Enterprise/kindercare_backend#readme",
   "keywords": [
+    "kindercare",
+    "school-management",
+    "multi-campus",
     "nestjs",
     "clean-architecture",
     "typescript",
     "prisma",
     "docker",
-    "boilerplate",
     "standard-response",
     "pagination",
     "filtering",
     "sorting"
   ],
-  "private": false,
-  "license": "MIT",
+  "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
