@@ -1,7 +1,7 @@
 import "reflect-metadata";
 
 import { instanceToPlain, plainToInstance } from "class-transformer";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import { EnrollmentEffectiveStatusFilter } from "@/application/class-management/enrollment-effective-status-filter";
 import { ClassController } from "../../controllers/class-management/class.controller";

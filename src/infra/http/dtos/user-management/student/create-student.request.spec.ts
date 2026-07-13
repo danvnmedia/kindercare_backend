@@ -1,4 +1,4 @@
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import { CreateStudentRequest } from "./create-student.request";
 

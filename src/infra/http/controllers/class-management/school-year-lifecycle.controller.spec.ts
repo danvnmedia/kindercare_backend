@@ -1,5 +1,5 @@
 import { PERMISSIONS_KEY } from "../../decorators/permissions.decorator";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 import { SchoolYearLifecycleController } from "./school-year-lifecycle.controller";
 
 describe("SchoolYearLifecycleController permissions", () => {

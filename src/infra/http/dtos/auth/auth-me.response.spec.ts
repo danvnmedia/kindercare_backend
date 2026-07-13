@@ -1,5 +1,5 @@
 import { instanceToPlain, plainToInstance } from "class-transformer";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 import { AuthMeResponse } from "./auth-me.response";
 
 describe("AuthMeResponse", () => {

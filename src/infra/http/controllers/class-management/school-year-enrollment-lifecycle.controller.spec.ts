@@ -6,7 +6,7 @@ import {
   METHOD_METADATA,
   PATH_METADATA,
 } from "@nestjs/common/constants";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import { CancelSchoolYearEnrollmentUseCase } from "@/application/class-management/use-cases/school-year-enrollment/cancel-school-year-enrollment.use-case";
 import { WithdrawFromSchoolUseCase } from "@/application/class-management/use-cases/school-year-enrollment/withdraw-from-school.use-case";
