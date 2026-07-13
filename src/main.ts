@@ -94,7 +94,12 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigin,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-campus-id"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-campus-id",
+      "x-post-updated-at",
+    ],
     credentials: !isProduction, // Only allow credentials in non-production
   });
 

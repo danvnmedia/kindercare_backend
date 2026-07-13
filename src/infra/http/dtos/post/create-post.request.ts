@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsDate,
   IsArray,
+  ArrayMinSize,
   ValidateNested,
   IsUUID,
   IsObject,
@@ -82,6 +83,7 @@ export class CreatePostRequest {
     type: [CreateAudienceDto],
   })
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => CreateAudienceDto)
   audiences: CreateAudienceDto[];

@@ -180,12 +180,19 @@ export class FileController {
     type: FileResponse,
   })
   async get(
-    @Param("id", ParseUUIDPipe) id: string,
     @CampusContext() campusId: string,
+    @Param("id", new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: User,
   ) {
     const result = await this.getFile.execute({
       fileId: new UniqueEntityID(id),
       campusId,
+      requestedBy: user.id.toString(),
+      canReadAny:
+        isGlobalAdmin(user) ||
+        user
+          .getRolesForCampus(campusId)
+          .some((role) => RoleEntity.hasPermissionById(role, "file.manage")),
     });
 
     if (result.isLeft()) {

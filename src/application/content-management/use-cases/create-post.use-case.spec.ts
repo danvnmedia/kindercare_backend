@@ -26,7 +26,10 @@ const requestHash = (overrides: Partial<CreatePostInput> = {}): string => {
   const request = input(overrides);
   const canonicalPayload = JSON.stringify({
     audiences: request.audiences.map((audience) => ({
-      audienceId: audience.audienceId ?? request.campusId,
+      audienceId:
+        audience.audienceType === AudienceType.ALL
+          ? request.campusId
+          : audience.audienceId,
       audienceType: audience.audienceType,
     })),
     campusId: request.campusId,
@@ -161,6 +164,51 @@ describe("CreatePostUseCase", () => {
     expect(postCategoryRepository.findById).not.toHaveBeenCalled();
     expect(tx.createPostIdempotently).not.toHaveBeenCalled();
     expect(tx.recordAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects mixed school-wide and class audiences before opening a transaction", async () => {
+    await expect(
+      useCase.execute(
+        input({
+          audiences: [
+            { audienceType: AudienceType.ALL },
+            {
+              audienceType: AudienceType.CLASS,
+              audienceId: "44444444-4444-4444-a444-444444444444",
+            },
+          ],
+        }),
+        currentUser,
+      ),
+    ).rejects.toThrow("cannot be combined");
+    expect(unitOfWork.run).not.toHaveBeenCalled();
+  });
+
+  it("normalizes a supplied ALL audience ID in the idempotency hash", async () => {
+    const existing = Post.create({
+      campusId: DEFAULT_CAMPUS_ID_A,
+      authorId: AUTHOR_ID,
+      author: currentUser,
+      title: "Campus update",
+    });
+    tx.findPostByClientMutationId.mockResolvedValue({
+      post: existing,
+      requestPayloadHash: requestHash(),
+    });
+
+    await expect(
+      useCase.execute(
+        input({
+          audiences: [
+            {
+              audienceType: AudienceType.ALL,
+              audienceId: "44444444-4444-4444-a444-444444444444",
+            },
+          ],
+        }),
+        currentUser,
+      ),
+    ).resolves.toBe(existing);
   });
 
   it("creates and audits a new post in one unit-of-work callback", async () => {

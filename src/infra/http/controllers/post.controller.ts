@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Body,
+  Headers,
+  BadRequestException,
   HttpCode,
   HttpStatus,
   UseGuards,
@@ -291,6 +293,11 @@ export class PostController {
     description: "Campus UUID context for the post",
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
+  @ApiHeader({
+    name: "X-Post-Updated-At",
+    required: false,
+    description: "Optional optimistic-concurrency token from post.updatedAt",
+  })
   @StandardResponse({
     type: PostResponse,
   })
@@ -298,11 +305,19 @@ export class PostController {
     @CampusContext() campusId: string,
     @Param("id") id: string,
     @Body() updatePostDto: UpdatePostRequest,
+    @Headers("x-post-updated-at") updatedAtHeader: string | undefined,
     @CurrentUser() user: User,
   ): Promise<PostEntity> {
+    const expectedUpdatedAt = updatedAtHeader
+      ? new Date(updatedAtHeader)
+      : undefined;
+    if (expectedUpdatedAt && Number.isNaN(expectedUpdatedAt.getTime())) {
+      throw new BadRequestException("X-Post-Updated-At must be a valid date");
+    }
+
     return this.updatePostUseCase.execute(
       id,
-      { ...updatePostDto, campusId },
+      { ...updatePostDto, campusId, expectedUpdatedAt },
       user,
     );
   }

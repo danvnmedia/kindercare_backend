@@ -27,6 +27,7 @@ export class PrismaPostRepository implements PostRepository {
   ) {}
 
   async create(post: Post, options?: CreatePostOptions): Promise<Post> {
+    post.assertAudienceInvariant();
     const prismaPost = PrismaPostMapper.toPrisma(post);
     const createdPost = await this.prisma.post.create({
       data: {
@@ -73,17 +74,24 @@ export class PrismaPostRepository implements PostRepository {
     data: Post,
     options?: UpdatePostOptions,
   ): Promise<Post> {
+    if (options?.replaceAudiences) {
+      data.assertAudienceInvariant();
+    }
     const prismaPost = PrismaPostMapper.toPrisma(data);
     const updatedPost = await this.prisma.post.update({
       where: { id },
       data: {
         ...prismaPost,
-        audiences: {
-          deleteMany: {},
-          create: data.audiences.map((audience) =>
-            PrismaPostMapper.toPrismaPostAudienceCreate(audience),
-          ),
-        },
+        ...(options?.replaceAudiences
+          ? {
+              audiences: {
+                deleteMany: {},
+                create: data.audiences.map((audience) =>
+                  PrismaPostMapper.toPrismaPostAudienceCreate(audience),
+                ),
+              },
+            }
+          : {}),
         // Update categories if provided (replace all)
         ...(options?.categoryIds !== undefined && {
           categories: {

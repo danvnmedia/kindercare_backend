@@ -16,6 +16,7 @@ import { ClassRepository } from "@/application/class-management/ports/class.repo
 import { PostContent } from "@/domain/content-management/entities/post.entity";
 import { UnitOfWorkPort } from "@/application/ports/unit-of-work.port";
 import {
+  assertValidPostAudiences,
   extractTextFromTiptap,
   validateAudiencesBelongToCampus,
 } from "../utils";
@@ -54,6 +55,8 @@ export class CreatePostUseCase {
       );
 
       this.validateIdempotencyScope(input);
+      this.validateCreatePayload(input);
+      assertValidPostAudiences(input.audiences);
       const requestPayloadHash = this.hashRequestPayload(input);
 
       const existingRecord = await this.unitOfWork.run((tx) =>
@@ -73,8 +76,6 @@ export class CreatePostUseCase {
         );
         return existingRecord.post;
       }
-
-      this.validateCreatePayload(input);
 
       // Validate that audience targets belong to the specified campus
       await validateAudiencesBelongToCampus(input.audiences, input.campusId, {
@@ -148,8 +149,9 @@ export class CreatePostUseCase {
     const audiences = (input.audiences ?? [])
       .map((audience) => ({
         audienceId:
-          audience.audienceId ??
-          (audience.audienceType === AudienceType.ALL ? input.campusId : null),
+          audience.audienceType === AudienceType.ALL
+            ? input.campusId
+            : (audience.audienceId ?? null),
         audienceType: audience.audienceType,
       }))
       .sort((left, right) =>
@@ -289,10 +291,10 @@ export class CreatePostUseCase {
     const audiences = input.audiences.map((audience) => {
       // Determine audienceId: use provided value, or campusId for ALL type
       let audienceId: string;
-      if (audience.audienceId) {
-        audienceId = audience.audienceId;
-      } else if (audience.audienceType === AudienceType.ALL) {
+      if (audience.audienceType === AudienceType.ALL) {
         audienceId = input.campusId;
+      } else if (audience.audienceId) {
+        audienceId = audience.audienceId;
       } else {
         throw new BadRequestException(
           `audienceId is required for ${audience.audienceType} audience type`,

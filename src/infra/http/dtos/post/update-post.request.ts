@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsDate,
   IsArray,
+  ArrayMinSize,
   ValidateNested,
   IsUUID,
   IsObject,
@@ -75,8 +76,9 @@ export class UpdatePostRequest {
     type: [UpdateAudienceDto],
     required: false,
   })
-  @IsOptional()
+  @ValidateIf((_, value) => value !== undefined)
   @IsArray()
+  @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => UpdateAudienceDto)
   audiences?: UpdateAudienceDto[];

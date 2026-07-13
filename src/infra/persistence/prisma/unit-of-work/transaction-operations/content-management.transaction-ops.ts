@@ -87,6 +87,7 @@ export class ContentManagementTransactionOps {
       requestPayloadHash?: string;
     },
   ): Promise<Post> {
+    post.assertAudienceInvariant();
     const created = await this.tx.post.create({
       data: {
         ...PrismaPostMapper.toPrisma(post),
@@ -150,16 +151,23 @@ export class ContentManagementTransactionOps {
     post: Post,
     options?: UpdatePostOptions,
   ): Promise<Post> {
+    if (options?.replaceAudiences) {
+      post.assertAudienceInvariant();
+    }
     const updated = await this.tx.post.update({
       where: { id },
       data: {
         ...PrismaPostMapper.toPrisma(post),
-        audiences: {
-          deleteMany: {},
-          create: post.audiences.map((audience) =>
-            PrismaPostMapper.toPrismaPostAudienceCreate(audience),
-          ),
-        },
+        ...(options?.replaceAudiences
+          ? {
+              audiences: {
+                deleteMany: {},
+                create: post.audiences.map((audience) =>
+                  PrismaPostMapper.toPrismaPostAudienceCreate(audience),
+                ),
+              },
+            }
+          : {}),
         ...(options?.categoryIds !== undefined
           ? {
               categories: {

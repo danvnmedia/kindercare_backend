@@ -17,6 +17,17 @@ describe("CreatePostRequest", () => {
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
 
+  it("rejects an empty audience list", async () => {
+    const dto = plainToInstance(CreatePostRequest, {
+      ...validPayload,
+      audiences: [],
+    });
+
+    const errors = await validate(dto);
+
+    expect(errors.some((error) => error.property === "audiences")).toBe(true);
+  });
+
   it.each([undefined, "retry-1"])(
     "rejects invalid clientMutationId %p",
     async (clientMutationId) => {

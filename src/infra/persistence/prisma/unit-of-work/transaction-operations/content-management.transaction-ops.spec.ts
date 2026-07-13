@@ -138,6 +138,50 @@ describe("ContentManagementTransactionOps post idempotency", () => {
   });
 });
 
+describe("ContentManagementTransactionOps audience persistence", () => {
+  let tx: {
+    post: { update: jest.Mock };
+  };
+  let ops: ContentManagementTransactionOps;
+
+  beforeEach(() => {
+    tx = {
+      post: { update: jest.fn() },
+    };
+    ops = new ContentManagementTransactionOps(
+      tx as unknown as PrismaTransactionClient,
+    );
+    jest.restoreAllMocks();
+  });
+
+  it("preserves audiences when a post save does not replace them", async () => {
+    const post = createPost();
+    jest.spyOn(PrismaPostMapper, "toDomain").mockReturnValue(post);
+    tx.post.update.mockResolvedValue({ id: post.id });
+
+    await ops.updatePost(post.id, post);
+
+    expect(tx.post.update.mock.calls[0][0].data).not.toHaveProperty(
+      "audiences",
+    );
+  });
+
+  it("replaces audiences when explicitly requested", async () => {
+    const post = createPost();
+    jest.spyOn(PrismaPostMapper, "toDomain").mockReturnValue(post);
+    tx.post.update.mockResolvedValue({ id: post.id });
+
+    await ops.updatePost(post.id, post, { replaceAudiences: true });
+
+    expect(tx.post.update.mock.calls[0][0].data.audiences).toEqual({
+      deleteMany: {},
+      create: post.audiences.map((audience) =>
+        PrismaPostMapper.toPrismaPostAudienceCreate(audience),
+      ),
+    });
+  });
+});
+
 describe("ContentManagementTransactionOps workflow locking", () => {
   let tx: {
     $queryRaw: jest.Mock;

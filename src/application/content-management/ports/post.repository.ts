@@ -23,6 +23,7 @@ export interface IdempotentCreatePostResult extends IdempotentPostRecord {
 
 export interface UpdatePostOptions {
   categoryIds?: string[];
+  replaceAudiences?: boolean;
 }
 
 export interface PostClassFacet {

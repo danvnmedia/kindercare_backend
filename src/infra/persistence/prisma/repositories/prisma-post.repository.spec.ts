@@ -97,7 +97,7 @@ describe("PrismaPostRepository", () => {
     );
   });
 
-  it("preserves hydrated audiences when a status-only change is persisted", async () => {
+  it("preserves hydrated audiences without rewriting them on status-only changes", async () => {
     postDelegate.findFirst.mockResolvedValue(postRowFactory());
     postDelegate.update.mockResolvedValue(
       postRowFactory({ status: PostStatus.PENDING_REVIEW }),
@@ -109,25 +109,38 @@ describe("PrismaPostRepository", () => {
     post!.submitForReview();
     await repository.update(post!.id, post!);
 
-    expect(postDelegate.update).toHaveBeenCalledWith(
+    const updateInput = postDelegate.update.mock.calls[0][0];
+    expect(updateInput).toEqual(
       expect.objectContaining({
         where: { id: "post-1" },
         data: expect.objectContaining({
           status: PostStatus.PENDING_REVIEW,
-          audiences: {
-            deleteMany: {},
-            create: [
-              {
-                id: "audience-class-1",
-                type: AudienceType.CLASS,
-                campusId: "campus-1",
-                classId: "class-1",
-              },
-            ],
-          },
         }),
       }),
     );
+    expect(updateInput.data).not.toHaveProperty("audiences");
+  });
+
+  it("rewrites audiences when explicitly requested", async () => {
+    postDelegate.findFirst.mockResolvedValue(postRowFactory());
+    postDelegate.update.mockResolvedValue(postRowFactory());
+
+    const post = await repository.findById("post-1");
+    expect(post).not.toBeNull();
+
+    await repository.update(post!.id, post!, { replaceAudiences: true });
+
+    expect(postDelegate.update.mock.calls[0][0].data.audiences).toEqual({
+      deleteMany: {},
+      create: [
+        {
+          id: "audience-class-1",
+          type: AudienceType.CLASS,
+          campusId: "campus-1",
+          classId: "class-1",
+        },
+      ],
+    });
   });
 
   it("strips audience relation filters before delegating to the flat Prisma query builder", async () => {

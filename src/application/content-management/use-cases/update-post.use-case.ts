@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -21,6 +22,7 @@ import { User } from "@/domain/user-management/user.entity";
 
 import { PostCategoryRepository } from "../ports/post-category.repository";
 import {
+  assertValidPostAudiences,
   extractTextFromTiptap,
   validateAudiencesBelongToCampus,
 } from "../utils";
@@ -28,6 +30,7 @@ import { userCanManagePost } from "./authorization/post-permission.helper";
 
 export interface UpdatePostInput {
   campusId: string;
+  expectedUpdatedAt?: Date;
   title?: string;
   content?: PostContent;
   publishAt?: Date;
@@ -62,6 +65,9 @@ export class UpdatePostUseCase {
           "At least one post field must be updated",
         );
       }
+      if (input.audiences !== undefined) {
+        assertValidPostAudiences(input.audiences);
+      }
 
       const updatedPost = await this.unitOfWork.run(async (tx) => {
         const post = await tx.findPostByIdForUpdate(postId);
@@ -76,6 +82,14 @@ export class UpdatePostUseCase {
         if (!userCanManagePost(currentUser, input.campusId, post.authorId)) {
           throw new ForbiddenException(
             "You are not authorized to update this post",
+          );
+        }
+        if (
+          input.expectedUpdatedAt &&
+          post.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()
+        ) {
+          throw new ConflictException(
+            "Post changed since it was loaded. Refresh before saving.",
           );
         }
         if (post.status === PostStatus.PENDING_REVIEW) {
@@ -95,7 +109,7 @@ export class UpdatePostUseCase {
         }
 
         await this.validateCategoryIds(input.categoryIds, input.campusId);
-        if (input.audiences) {
+        if (input.audiences !== undefined) {
           await validateAudiencesBelongToCampus(
             input.audiences,
             input.campusId,
@@ -114,6 +128,7 @@ export class UpdatePostUseCase {
 
         const saved = await tx.updatePost(postId, post, {
           categoryIds: input.categoryIds,
+          replaceAudiences: input.audiences !== undefined,
         });
         if (previousStatus !== saved.status) {
           await tx.createPostHistoryStatus(
@@ -211,14 +226,14 @@ export class UpdatePostUseCase {
     if (input.publishAt !== undefined) {
       post.updatePublishDate(input.publishAt);
     }
-    if (input.audiences) {
+    if (input.audiences !== undefined) {
       post.setAudiences(
         input.audiences.map((audience) => {
           let audienceId: string;
-          if (audience.audienceId) {
-            audienceId = audience.audienceId;
-          } else if (audience.audienceType === AudienceType.ALL) {
+          if (audience.audienceType === AudienceType.ALL) {
             audienceId = post.campusId;
+          } else if (audience.audienceId) {
+            audienceId = audience.audienceId;
           } else {
             throw new BadRequestException(
               `audienceId is required for ${audience.audienceType} audience type`,

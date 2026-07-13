@@ -1,6 +1,7 @@
 import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 import { Optional } from "@/core/types/optional";
+import { AudienceType } from "../enums/audience-type.enum";
 import { PostStatus } from "../enums/post-status.enum";
 import { PostAudience } from "./post-audience.entity";
 import { Attachment } from "./attachment.entity";
@@ -367,7 +368,9 @@ export class Post extends Entity<PostProps> {
    * Add audience to post
    */
   public addAudience(audience: PostAudience): void {
-    this.props.audiences.push(audience);
+    const audiences = [...this.props.audiences, audience];
+    this.assertValidAudiences(audiences);
+    this.props.audiences = audiences;
     this.touch();
   }
 
@@ -375,9 +378,10 @@ export class Post extends Entity<PostProps> {
    * Remove audience from post
    */
   public removeAudience(audienceId: string): void {
-    this.props.audiences = this.props.audiences.filter(
-      (a) => a.id !== audienceId,
-    );
+    const audiences = this.props.audiences.filter((a) => a.id !== audienceId);
+    if (audiences.length === this.props.audiences.length) return;
+    this.assertValidAudiences(audiences);
+    this.props.audiences = audiences;
     this.touch();
   }
 
@@ -385,8 +389,52 @@ export class Post extends Entity<PostProps> {
    * Set all audiences at once
    */
   public setAudiences(audiences: PostAudience[]): void {
+    this.assertValidAudiences(audiences);
     this.props.audiences = audiences;
     this.touch();
+  }
+
+  public assertAudienceInvariant(): void {
+    this.assertValidAudiences(this.props.audiences);
+  }
+
+  private assertValidAudiences(audiences: PostAudience[]): void {
+    Post.assertValidAudienceShape(audiences);
+    for (const audience of audiences) {
+      if (audience.postId !== this.id || audience.campusId !== this.campusId) {
+        throw new Error("Post audience must belong to its post and campus");
+      }
+      if (
+        audience.audienceType === AudienceType.ALL &&
+        audience.audienceId !== this.campusId
+      ) {
+        throw new Error("School-wide audience must target the post campus");
+      }
+    }
+  }
+
+  private static assertValidAudienceShape(audiences: PostAudience[]): void {
+    if (audiences.length === 0) {
+      throw new Error("Post must have at least one audience");
+    }
+
+    const hasSchoolWideAudience = audiences.some(
+      (audience) => audience.audienceType === AudienceType.ALL,
+    );
+    if (hasSchoolWideAudience && audiences.length !== 1) {
+      throw new Error(
+        "School-wide audience cannot be combined with class audiences",
+      );
+    }
+
+    const audienceKeys = new Set<string>();
+    for (const audience of audiences) {
+      const key = `${audience.audienceType}:${audience.audienceId}`;
+      if (audienceKeys.has(key)) {
+        throw new Error("Post audiences must not contain duplicates");
+      }
+      audienceKeys.add(key);
+    }
   }
 
   // --- Attachment Management ---

@@ -1,5 +1,14 @@
-import { Injectable, Inject, NotFoundException, Logger } from "@nestjs/common";
-import { ClassRepository } from "../../ports/class.repository";
+import {
+  ConflictException,
+  Injectable,
+  Inject,
+  NotFoundException,
+  Logger,
+} from "@nestjs/common";
+import {
+  ClassDeletionConflictError,
+  ClassRepository,
+} from "../../ports/class.repository";
 
 @Injectable()
 export class DeleteClassUseCase {
@@ -32,6 +41,11 @@ export class DeleteClassUseCase {
 
       this.logger.log(`Class deleted successfully: ${id}`);
     } catch (error) {
+      if (error instanceof ClassDeletionConflictError) {
+        throw new ConflictException(
+          "Class cannot be deleted because it is still used by posts, enrollments, or files",
+        );
+      }
       this.logger.error(
         `Failed to delete class: ${error.message}`,
         error.stack,
