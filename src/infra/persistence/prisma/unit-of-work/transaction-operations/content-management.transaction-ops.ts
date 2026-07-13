@@ -125,7 +125,7 @@ export class ContentManagementTransactionOps {
     // so a waiter can read and return the winner instead.
     const lockKey = `${post.campusId}:${post.authorId}:${options.clientMutationId}`;
     await this.tx.$queryRaw`
-      SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0::bigint))
+      SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0::bigint))::text
     `;
 
     const existing = await this.findPostByClientMutationId(
@@ -483,7 +483,7 @@ export class ContentManagementTransactionOps {
   private async lockCampusSetting(campusId: string): Promise<void> {
     const lockKey = `cms-campus-setting:${campusId}`;
     await this.tx.$queryRaw`
-      SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0::bigint))
+      SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0::bigint))::text
     `;
   }
 }

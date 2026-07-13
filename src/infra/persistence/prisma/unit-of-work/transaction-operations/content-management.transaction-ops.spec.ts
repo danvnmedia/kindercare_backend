@@ -98,6 +98,7 @@ describe("ContentManagementTransactionOps post idempotency", () => {
     });
     expect(tx.post.create).not.toHaveBeenCalled();
     expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(tx.$queryRaw.mock.calls[0][0].join("")).toContain("::text");
     expect(tx.$queryRaw.mock.calls[0][1]).toBe(
       `${DEFAULT_CAMPUS_ID_A}:${AUTHOR_ID}:${MUTATION_ID}`,
     );
