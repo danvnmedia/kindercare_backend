@@ -7,6 +7,7 @@ export * from "./prisma-grade-level.repository";
 export * from "./prisma-school-year.repository";
 export * from "./prisma-class-staff.repository";
 export * from "./prisma-enrollment.repository";
+export * from "./prisma-historical-record.repository";
 export * from "./prisma-post-category.repository";
 export * from "./prisma-post-reaction.repository";
 export * from "./prisma-post-comment.repository";

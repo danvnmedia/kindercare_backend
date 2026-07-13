@@ -15,6 +15,7 @@ import { StudentRepository } from "@/application/user-management/ports/student.r
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
 import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+import { buildSchoolYearEnrollmentSnapshot } from "../../historical-snapshot";
 
 export interface RegisterForSchoolYearInput {
   campusId: string;
@@ -96,7 +97,7 @@ export class RegisterForSchoolYearUseCase {
     // The partial unique index `idx_sye_one_open_per_year` would otherwise
     // surface as an opaque DB error; the typed check returns first.
     const existingOpen =
-      await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+      await this.schoolYearEnrollmentRepository.findStructurallyOpenByStudentAndSchoolYear(
         input.studentId,
         input.schoolYearId,
       );
@@ -115,6 +116,7 @@ export class RegisterForSchoolYearUseCase {
       exitDate: null,
       exitReason: null,
       note: input.note ?? null,
+      ...buildSchoolYearEnrollmentSnapshot(student, gradeLevel, schoolYear),
     });
 
     // Persist + emit audit inside one tx (D4 atomicity —

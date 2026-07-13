@@ -49,5 +49,4 @@ export class DeleteStaffUseCase {
       throw error;
     }
   }
-
 }

@@ -39,7 +39,6 @@
 
 import { CreateStaffUseCase } from "./create-staff.use-case";
 import { UpdateStaffUseCase } from "./update-staff.use-case";
-import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { IdentityPort } from "@/application/ports/identity.port";
 import { StaffCodeGeneratorPort } from "@/application/ports/staff-code-generator.port";
@@ -47,13 +46,9 @@ import {
   TransactionContext,
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
-import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { PrismaStaffMapper } from "@/infra/persistence/prisma/mapper/prisma-staff.mapper";
-import {
-  createStaff,
-  createMockStaffRepository,
-} from "@/test-utils";
+import { createStaff, createMockStaffRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { HttpStatus } from "@nestjs/common";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import { StandardResponse } from "./standard-response.decorator";
 

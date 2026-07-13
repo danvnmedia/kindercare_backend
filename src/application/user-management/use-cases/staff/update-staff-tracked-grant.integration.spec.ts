@@ -24,7 +24,6 @@
  */
 
 import { UpdateStaffUseCase } from "./update-staff.use-case";
-import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import {
   TransactionContext,

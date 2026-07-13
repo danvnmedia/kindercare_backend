@@ -17,6 +17,7 @@ describe("GetAllClassesUseCase", () => {
   let mockClassRepository: jest.Mocked<ClassRepository>;
 
   const campusId = DEFAULT_CAMPUS_ID_A;
+  const referenceDate = new Date("2026-07-11T23:59:59.999Z");
 
   const makeParams = (
     overrides: Partial<StandardRequest> = {},
@@ -38,7 +39,9 @@ describe("GetAllClassesUseCase", () => {
     schoolYearId: overrides.schoolYearId ?? "sy-2025-2026",
     gradeLevel: overrides.gradeLevel ?? null,
     schoolYear: overrides.schoolYear ?? null,
-    studentCount: overrides.studentCount ?? 0,
+    activeStudentCount: overrides.activeStudentCount ?? 0,
+    upcomingStudentCount: overrides.upcomingStudentCount ?? 0,
+    historicalStudentCount: overrides.historicalStudentCount ?? 0,
     staff: overrides.staff ?? [],
     createdAt: overrides.createdAt ?? new Date("2025-09-01T00:00:00.000Z"),
     updatedAt: overrides.updatedAt ?? new Date("2025-09-01T00:00:00.000Z"),
@@ -61,15 +64,17 @@ describe("GetAllClassesUseCase", () => {
   });
 
   beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(referenceDate);
     mockClassRepository = createMockClassRepository();
     useCase = new GetAllClassesUseCase(mockClassRepository);
   });
 
+  afterEach(() => jest.useRealTimers());
+
   // Scenario 1 — empty class
-  it("returns studentCount=0 and staff=[] for a class with no enrollments or staff", async () => {
+  it("returns all status counts as zero and staff=[] for an empty class", async () => {
     const empty = makeRow({
       id: "class-empty",
-      studentCount: 0,
       staff: [],
     });
     mockClassRepository.findAll.mockResolvedValue(wrapPaginated([empty]));
@@ -77,25 +82,31 @@ describe("GetAllClassesUseCase", () => {
     const result = await useCase.execute({ campusId, params: makeParams() });
 
     expect(result.data).toHaveLength(1);
-    expect(result.data[0].studentCount).toBe(0);
+    expect(result.data[0]).toMatchObject({
+      activeStudentCount: 0,
+      upcomingStudentCount: 0,
+      historicalStudentCount: 0,
+    });
+    expect(result.data[0]).not.toHaveProperty("studentCount");
     expect(result.data[0].staff).toEqual([]);
   });
 
   // Scenario 2 — mixed active + closed enrollments
-  it("surfaces only active enrollments in studentCount (repo applies endDate IS NULL filter)", async () => {
-    // The endDate filter is enforced inside the Prisma `_count.where` clause,
-    // so at the use-case level we just verify the value flows through verbatim
-    // from whatever the repo returns. The repo integration test covers the
-    // SQL-level guarantee.
+  it("surfaces distinct active, upcoming, and closed historical counts", async () => {
     const mixed = makeRow({
       id: "class-mixed",
-      studentCount: 3, // 3 active, 7 closed/withdrawn excluded
+      activeStudentCount: 3,
+      upcomingStudentCount: 4,
+      historicalStudentCount: 7,
     });
     mockClassRepository.findAll.mockResolvedValue(wrapPaginated([mixed]));
 
     const result = await useCase.execute({ campusId, params: makeParams() });
 
-    expect(result.data[0].studentCount).toBe(3);
+    expect(result.data[0].activeStudentCount).toBe(3);
+    expect(result.data[0].upcomingStudentCount).toBe(4);
+    expect(result.data[0].historicalStudentCount).toBe(7);
+    expect(result.data[0]).not.toHaveProperty("studentCount");
   });
 
   // Scenario 3 — all three roles, HOMEROOM first
@@ -185,7 +196,11 @@ describe("GetAllClassesUseCase", () => {
 
     const result = await useCase.execute({ campusId, params });
 
-    expect(mockClassRepository.findAll).toHaveBeenCalledWith(campusId, params);
+    expect(mockClassRepository.findAll).toHaveBeenCalledWith(
+      campusId,
+      params,
+      referenceDate,
+    );
     expect(result.pagination.currentPage).toBe(3);
     expect(result.pagination.limit).toBe(25);
     expect(result.pagination.totalPages).toBe(4);

@@ -1,17 +1,62 @@
 import { Injectable } from "@nestjs/common";
+import {
+  Class as PrismaClass,
+  Enrollment as PrismaEnrollment,
+  GradeLevel as PrismaGradeLevel,
+  Prisma,
+  SchoolYear as PrismaSchoolYear,
+  SchoolYearEnrollment as PrismaSchoolYearEnrollment,
+  Student as PrismaStudent,
+} from "@prisma/client";
 import { PrismaService } from "../prisma.service";
-import { SchoolYearEnrollmentRepository } from "@/application/class-management/ports/school-year-enrollment.repository";
+import {
+  SchoolYearEnrollmentRepository,
+  SchoolYearStudentListFilters,
+  SchoolYearStudentListItem,
+  SchoolYearStudentClassAssignmentState,
+  SchoolYearStudentSegment,
+} from "@/application/class-management/ports/school-year-enrollment.repository";
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { PrismaSchoolYearEnrollmentMapper } from "../mapper/prisma-school-year-enrollment.mapper";
 import { PrismaEnrollmentMapper } from "../mapper/prisma-enrollment.mapper";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+import {
+  deriveEnrollmentEffectiveStatus,
+  toUtcDateOnly,
+} from "@/domain/class-management/enrollment-effective-status";
+import { EnrollmentEffectiveStatus } from "@/domain/class-management/enums/enrollment-effective-status.enum";
+
+type PrismaSchoolYearStudentEnrollment = PrismaSchoolYearEnrollment & {
+  student: PrismaStudent | null;
+  schoolYear: PrismaSchoolYear | null;
+  gradeLevel: PrismaGradeLevel | null;
+  enrollments: Array<
+    PrismaEnrollment & {
+      class:
+        | (PrismaClass & {
+            schoolYear: PrismaSchoolYear | null;
+            gradeLevel: PrismaGradeLevel | null;
+          })
+        | null;
+      student: PrismaStudent | null;
+    }
+  >;
+  _count: { enrollments: number };
+};
 
 @Injectable()
 export class PrismaSchoolYearEnrollmentRepository
   implements SchoolYearEnrollmentRepository
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly queryService: PrismaQueryService,
+  ) {}
 
   async findById(id: string): Promise<SchoolYearEnrollment | null> {
     const row = await this.prisma.schoolYearEnrollment.findUnique({
@@ -29,13 +74,85 @@ export class PrismaSchoolYearEnrollmentRepository
     studentId: string,
     schoolYearId: string,
   ): Promise<SchoolYearEnrollment | null> {
+    return this.findStructurallyOpenByStudentAndSchoolYear(
+      studentId,
+      schoolYearId,
+    );
+  }
+
+  async findStructurallyOpenByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+  ): Promise<SchoolYearEnrollment | null> {
     const row = await this.prisma.schoolYearEnrollment.findFirst({
-      where: { studentId, schoolYearId, exitDate: null },
+      where: { studentId, schoolYearId, exitDate: null, cancelledAt: null },
       include: {
         student: true,
         schoolYear: true,
         gradeLevel: true,
       },
+    });
+    return row ? PrismaSchoolYearEnrollmentMapper.toDomain(row) : null;
+  }
+
+  async findCoveringDateByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+    effectiveDate: Date,
+  ): Promise<SchoolYearEnrollment | null> {
+    const date = toUtcDateOnly(effectiveDate);
+    const row = await this.prisma.schoolYearEnrollment.findFirst({
+      where: {
+        studentId,
+        schoolYearId,
+        cancelledAt: null,
+        enrollmentDate: { lte: date },
+        OR: [{ exitDate: null }, { exitDate: { gte: date } }],
+      },
+      include: {
+        student: true,
+        schoolYear: true,
+        gradeLevel: true,
+      },
+      orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
+    });
+    return row ? PrismaSchoolYearEnrollmentMapper.toDomain(row) : null;
+  }
+
+  async findUpcomingByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+    referenceDate: Date,
+  ): Promise<SchoolYearEnrollment[]> {
+    const rows = await this.prisma.schoolYearEnrollment.findMany({
+      where: {
+        studentId,
+        schoolYearId,
+        cancelledAt: null,
+        enrollmentDate: { gt: toUtcDateOnly(referenceDate) },
+      },
+      include: {
+        student: true,
+        schoolYear: true,
+        gradeLevel: true,
+      },
+      orderBy: [{ enrollmentDate: "asc" }, { id: "asc" }],
+    });
+    return PrismaSchoolYearEnrollmentMapper.toDomainArray(rows);
+  }
+
+  async findLatestByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+  ): Promise<SchoolYearEnrollment | null> {
+    const row = await this.prisma.schoolYearEnrollment.findFirst({
+      where: { studentId, schoolYearId },
+      include: {
+        student: true,
+        schoolYear: true,
+        gradeLevel: true,
+      },
+      orderBy: [{ exitDate: "desc" }, { enrollmentDate: "desc" }],
     });
     return row ? PrismaSchoolYearEnrollmentMapper.toDomain(row) : null;
   }
@@ -64,7 +181,9 @@ export class PrismaSchoolYearEnrollmentRepository
         student: true,
         schoolYear: true,
         gradeLevel: true,
-        _count: { select: { enrollments: true } },
+        _count: {
+          select: { enrollments: { where: { cancelledAt: null } } },
+        },
       },
       orderBy: { enrollmentDate: "desc" },
     });
@@ -72,6 +191,98 @@ export class PrismaSchoolYearEnrollmentRepository
       enrollment: PrismaSchoolYearEnrollmentMapper.toDomain(row),
       childEnrollmentCount: row._count.enrollments,
     }));
+  }
+
+  async findStudentsBySchoolYear(
+    campusId: string,
+    schoolYearId: string,
+    params: StandardRequest,
+    referenceDate: Date,
+    filters: SchoolYearStudentListFilters = {},
+  ): Promise<PaginatedResult<SchoolYearStudentListItem>> {
+    const segment = filters.segment ?? "registered";
+    const scopedWhere: Prisma.SchoolYearEnrollmentWhereInput = {
+      campusId,
+      schoolYearId,
+    };
+    const referenceDay = toUtcDateOnly(referenceDate);
+    const segmentWhere = buildSegmentWhere(segment, referenceDay);
+    const searchWhere = buildSearchWhere(filters.search);
+    const andWhere = [segmentWhere, searchWhere].filter(
+      (item) => Object.keys(item).length > 0,
+    );
+    const where: Prisma.SchoolYearEnrollmentWhereInput = andWhere.length
+      ? { ...scopedWhere, AND: andWhere }
+      : scopedWhere;
+
+    const request = {
+      ...params,
+      allowedFilterFields: [
+        "studentId",
+        "gradeLevelId",
+        "enrollmentDate",
+        "exitDate",
+        "exitReason",
+      ],
+      allowedSortFields: ["enrollmentDate", "exitDate", "createdAt"],
+    } as StandardRequest;
+
+    const result =
+      await this.queryService.executeQuery<PrismaSchoolYearStudentEnrollment>(
+        this.prisma,
+        "schoolYearEnrollment",
+        request,
+        {
+          where,
+          include: {
+            student: true,
+            schoolYear: true,
+            gradeLevel: true,
+            enrollments: {
+              include: {
+                class: {
+                  include: {
+                    schoolYear: true,
+                    gradeLevel: true,
+                  },
+                },
+                student: true,
+              },
+              orderBy: [{ enrollmentDate: "desc" }, { createdAt: "desc" }],
+            },
+            _count: {
+              select: { enrollments: { where: { cancelledAt: null } } },
+            },
+          },
+          dateFilterFields: ["enrollmentDate", "exitDate"],
+          orderBy: [{ enrollmentDate: "desc" }, { createdAt: "desc" }],
+        },
+        null,
+      );
+
+    return {
+      data: result.data.map((row) => {
+        const classAssignment = selectClassAssignment(
+          row.enrollments,
+          referenceDay,
+        );
+        return {
+          enrollment: PrismaSchoolYearEnrollmentMapper.toDomain(row),
+          childEnrollmentCount: row._count.enrollments,
+          classAssignment: classAssignment
+            ? PrismaEnrollmentMapper.toDomain(classAssignment.row)
+            : null,
+          classAssignmentState: classAssignment?.state ?? "NONE",
+        };
+      }),
+      pagination: result.pagination,
+    };
+  }
+
+  async countChildEnrollments(schoolYearEnrollmentId: string): Promise<number> {
+    return await this.prisma.enrollment.count({
+      where: { schoolYearEnrollmentId },
+    });
   }
 
   async save(
@@ -94,6 +305,24 @@ export class PrismaSchoolYearEnrollmentRepository
     const updated = await this.prisma.schoolYearEnrollment.update({
       where: { id: entity.id },
       data: PrismaSchoolYearEnrollmentMapper.toPrismaUpdate(entity),
+      include: {
+        student: true,
+        schoolYear: true,
+        gradeLevel: true,
+      },
+    });
+    return PrismaSchoolYearEnrollmentMapper.toDomain(updated);
+  }
+
+  async correctGradeLevel(
+    id: string,
+    gradeLevelId: string,
+    tx?: AppTransactionClient,
+  ): Promise<SchoolYearEnrollment> {
+    const client = tx ?? this.prisma;
+    const updated = await client.schoolYearEnrollment.update({
+      where: { id },
+      data: { gradeLevelId, updatedAt: new Date() },
       include: {
         student: true,
         schoolYear: true,
@@ -149,4 +378,149 @@ export class PrismaSchoolYearEnrollmentRepository
     };
     return tx ? exec(tx) : this.prisma.$transaction(exec);
   }
+}
+
+function buildSegmentWhere(
+  segment: SchoolYearStudentSegment,
+  referenceDay: Date,
+): Prisma.SchoolYearEnrollmentWhereInput {
+  switch (segment) {
+    case "upcoming":
+      return {
+        cancelledAt: null,
+        enrollmentDate: { gt: referenceDay },
+      };
+    case "active":
+      return {
+        cancelledAt: null,
+        enrollmentDate: { lte: referenceDay },
+        OR: [{ exitDate: null }, { exitDate: { gte: referenceDay } }],
+        enrollments: {
+          some: {
+            cancelledAt: null,
+            enrollmentDate: { lte: referenceDay },
+            OR: [{ endDate: null }, { endDate: { gte: referenceDay } }],
+          },
+        },
+      };
+    case "unassigned":
+      return {
+        cancelledAt: null,
+        enrollmentDate: { lte: referenceDay },
+        OR: [{ exitDate: null }, { exitDate: { gte: referenceDay } }],
+        enrollments: {
+          none: {
+            cancelledAt: null,
+            OR: [{ endDate: null }, { endDate: { gte: referenceDay } }],
+          },
+        },
+      };
+    case "withdrawn":
+      return {
+        cancelledAt: null,
+        exitDate: { lt: referenceDay },
+        exitReason: ExitReason.WITHDRAWN,
+      };
+    case "completed":
+      return {
+        cancelledAt: null,
+        exitDate: { lt: referenceDay },
+        exitReason: ExitReason.COMPLETED,
+      };
+    case "graduated":
+      return {
+        cancelledAt: null,
+        exitDate: { lt: referenceDay },
+        exitReason: ExitReason.GRADUATED,
+      };
+    case "unresolved":
+      return {
+        cancelledAt: null,
+        exitDate: { lt: referenceDay },
+        OR: [
+          { exitReason: null },
+          {
+            exitReason: {
+              notIn: [
+                ExitReason.WITHDRAWN,
+                ExitReason.COMPLETED,
+                ExitReason.GRADUATED,
+              ],
+            },
+          },
+        ],
+      };
+    case "registered":
+    default:
+      return {};
+  }
+}
+
+function buildSearchWhere(
+  search: string | undefined,
+): Prisma.SchoolYearEnrollmentWhereInput {
+  const trimmed = search?.trim();
+  if (!trimmed) return {};
+
+  return {
+    OR: [
+      { snapshotStudentFullName: { contains: trimmed, mode: "insensitive" } },
+      { snapshotStudentCode: { contains: trimmed, mode: "insensitive" } },
+      { snapshotStudentNickname: { contains: trimmed, mode: "insensitive" } },
+      { student: { fullName: { contains: trimmed, mode: "insensitive" } } },
+      { student: { studentCode: { contains: trimmed, mode: "insensitive" } } },
+      { student: { nickname: { contains: trimmed, mode: "insensitive" } } },
+    ],
+  };
+}
+
+function selectClassAssignment(
+  enrollments: PrismaSchoolYearStudentEnrollment["enrollments"],
+  referenceDate: Date,
+): {
+  row: PrismaSchoolYearStudentEnrollment["enrollments"][number];
+  state: SchoolYearStudentClassAssignmentState;
+} | null {
+  const ordered = [...enrollments].sort((a, b) => {
+    const statusDelta =
+      assignmentStatusRank(effectiveStatus(a, referenceDate)) -
+      assignmentStatusRank(effectiveStatus(b, referenceDate));
+    if (statusDelta !== 0) return statusDelta;
+    return b.enrollmentDate.getTime() - a.enrollmentDate.getTime();
+  });
+
+  const row = ordered[0];
+  return row
+    ? {
+        row,
+        state: toClassAssignmentState(effectiveStatus(row, referenceDate)),
+      }
+    : null;
+}
+
+function effectiveStatus(
+  enrollment: PrismaSchoolYearStudentEnrollment["enrollments"][number],
+  referenceDate: Date,
+): EnrollmentEffectiveStatus {
+  return deriveEnrollmentEffectiveStatus({
+    enrollmentDate: enrollment.enrollmentDate,
+    endDate: enrollment.endDate ?? null,
+    cancelledAt: enrollment.cancelledAt ?? null,
+    referenceDate,
+  });
+}
+
+function assignmentStatusRank(status: EnrollmentEffectiveStatus): number {
+  return {
+    [EnrollmentEffectiveStatus.ACTIVE]: 0,
+    [EnrollmentEffectiveStatus.UPCOMING]: 1,
+    [EnrollmentEffectiveStatus.CLOSED]: 2,
+    [EnrollmentEffectiveStatus.CANCELLED]: 3,
+  }[status];
+}
+
+function toClassAssignmentState(
+  status: EnrollmentEffectiveStatus,
+): SchoolYearStudentClassAssignmentState {
+  return status;
 }

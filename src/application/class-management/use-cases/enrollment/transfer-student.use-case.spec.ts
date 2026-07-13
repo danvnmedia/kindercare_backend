@@ -14,6 +14,7 @@ import { SchoolYear } from "@/domain/class-management/entities/school-year.entit
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { Student } from "@/domain/user-management/entities/student.entity";
 import { User } from "@/domain/user-management/user.entity";
 import {
   AppTransactionClient,
@@ -115,6 +116,20 @@ describe("TransferStudentUseCase", () => {
         endDate: null,
         exitReason: null,
         note: null,
+        student: Student.create(
+          {
+            campusId,
+            studentCode: "STU-001",
+            fullName: "Snapshot Student",
+            nickname: null,
+            email: null,
+            phoneNumber: null,
+            address: null,
+            dateOfBirth: null,
+            gender: null,
+          },
+          studentId,
+        ),
       },
       "active-1",
     );
@@ -145,11 +160,15 @@ describe("TransferStudentUseCase", () => {
     enrollmentRepo = {
       findById: jest.fn(),
       findByStudentClassDate: jest.fn(),
+      findEffectiveByStudentIdAt: jest.fn(),
+      findUpcomingByStudentId: jest.fn(),
+      findStructurallyOpenByStudentId: jest.fn(),
+      findOverlappingByStudentId: jest.fn(),
+      findBySchoolYearEnrollmentId: jest.fn(),
       findByClassId: jest.fn(),
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -174,8 +193,15 @@ describe("TransferStudentUseCase", () => {
     syeRepo = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -187,6 +213,14 @@ describe("TransferStudentUseCase", () => {
     syeRepo.findOpenByStudentAndSchoolYear.mockResolvedValue(
       createMockParent(),
     );
+    syeRepo.findCoveringDateByStudentAndSchoolYear.mockImplementation(
+      (studentId, schoolYearId) =>
+        syeRepo.findOpenByStudentAndSchoolYear(studentId, schoolYearId),
+    );
+    enrollmentRepo.findEffectiveByStudentIdAt.mockImplementation((studentId) =>
+      enrollmentRepo.findActiveByStudentId(studentId),
+    );
+    enrollmentRepo.findOverlappingByStudentId.mockResolvedValue(null);
 
     runner = {
       run: jest.fn((task) => task(stubTx)),
@@ -262,7 +296,9 @@ describe("TransferStudentUseCase", () => {
       // Domain compares date-only — assert UTC date components.
       const dateOnly = (d: Date) =>
         Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-      expect(dateOnly(result.closed.endDate!)).toBe(dateOnly(explicit));
+      expect(dateOnly(result.closed.endDate!)).toBe(
+        dateOnly(new Date("2025-03-14T00:00:00.000Z")),
+      );
       expect(dateOnly(result.opened.enrollmentDate)).toBe(dateOnly(explicit));
       expect(result.opened.note).toBe("moved");
     });
@@ -425,26 +461,37 @@ describe("TransferStudentUseCase", () => {
       expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
     });
 
-    it("rejects transferDate in the future with INVALID_TRANSFER_DATE", async () => {
+    it("allows a future transfer by scheduling a non-overlapping source closure", async () => {
       classRepo.findById.mockResolvedValue(buildClass(targetClassId));
       enrollmentRepo.findActiveByStudentId.mockResolvedValue(
         buildActiveEnrollment(),
       );
+      enrollmentRepo.transferEnrollment.mockImplementation(
+        async (closed, opened) => ({ closed, opened }),
+      );
       const oneWeekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-      await expect(
-        useCase.execute(
-          {
-            studentId,
-            toClassId: targetClassId,
-            campusId,
-            transferDate: oneWeekFromNow,
-          },
-          stubActor,
-        ),
-      ).rejects.toThrow(/INVALID_TRANSFER_DATE/);
+      const result = await useCase.execute(
+        {
+          studentId,
+          toClassId: targetClassId,
+          campusId,
+          transferDate: oneWeekFromNow,
+        },
+        stubActor,
+      );
 
-      expect(enrollmentRepo.transferEnrollment).not.toHaveBeenCalled();
+      expect(result.opened.enrollmentDate).toEqual(oneWeekFromNow);
+      expect(result.closed.endDate).toEqual(
+        new Date(
+          Date.UTC(
+            oneWeekFromNow.getUTCFullYear(),
+            oneWeekFromNow.getUTCMonth(),
+            oneWeekFromNow.getUTCDate() - 1,
+          ),
+        ),
+      );
+      expect(enrollmentRepo.transferEnrollment).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -706,6 +753,42 @@ describe("TransferStudentUseCase", () => {
         studentId,
         targetSchoolYearId,
       );
+    });
+  });
+
+  describe("overlap persistence races", () => {
+    it("returns a stable conflict with nullable conflictingEnrollment when the database wins the race", async () => {
+      classRepo.findById.mockResolvedValue(buildClass(targetClassId));
+      enrollmentRepo.findActiveByStudentId.mockResolvedValue(
+        buildActiveEnrollment(),
+      );
+      enrollmentRepo.transferEnrollment.mockRejectedValue({
+        code: "P2002",
+        message: "Unique constraint failed",
+        meta: {
+          modelName: "Enrollment",
+          target: "idx_enrollment_unique_uncancelled_start",
+        },
+      });
+
+      await expect(
+        useCase.execute(
+          {
+            studentId,
+            toClassId: targetClassId,
+            campusId,
+            transferDate: new Date("2026-05-18T00:00:00.000Z"),
+          },
+          stubActor,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: "ENROLLMENT_PERIOD_OVERLAP",
+          message: "ENROLLMENT_PERIOD_OVERLAP",
+          conflictingEnrollment: null,
+        },
+      });
+      expect(recorder.record).not.toHaveBeenCalled();
     });
   });
 

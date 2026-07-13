@@ -106,11 +106,15 @@ describe("BulkEnrollStudentsUseCase", () => {
     mockEnrollmentRepository = {
       findById: jest.fn(),
       findByStudentClassDate: jest.fn(),
+      findEffectiveByStudentIdAt: jest.fn(),
+      findUpcomingByStudentId: jest.fn(),
+      findStructurallyOpenByStudentId: jest.fn(),
+      findOverlappingByStudentId: jest.fn(),
+      findBySchoolYearEnrollmentId: jest.fn(),
       findByClassId: jest.fn(),
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -155,8 +159,15 @@ describe("BulkEnrollStudentsUseCase", () => {
     mockSyeRepository = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -171,6 +182,9 @@ describe("BulkEnrollStudentsUseCase", () => {
 
     // Default: no active enrollment, no composite-key collision.
     mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null);
+    mockEnrollmentRepository.findOverlappingByStudentId.mockImplementation(
+      (studentId) => mockEnrollmentRepository.findActiveByStudentId(studentId),
+    );
     mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(null);
     // Default: saveMany echoes input as if persisted (preserving order).
     mockEnrollmentRepository.saveMany.mockImplementation(
@@ -180,6 +194,13 @@ describe("BulkEnrollStudentsUseCase", () => {
     // override for AC-18 (NO_SCHOOL_YEAR_ENROLLMENT / GRADE_LEVEL_MISMATCH).
     mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
       async (sId) => createMockParent(sId),
+    );
+    mockSyeRepository.findCoveringDateByStudentAndSchoolYear.mockImplementation(
+      (studentId, schoolYearId) =>
+        mockSyeRepository.findOpenByStudentAndSchoolYear(
+          studentId,
+          schoolYearId,
+        ),
     );
   });
 
@@ -392,8 +413,14 @@ describe("BulkEnrollStudentsUseCase", () => {
       // Order matches input order for skipped reasons.
       expect(result.skipped).toEqual(
         expect.arrayContaining([
-          { studentId: "s-active", reason: "STUDENT_ALREADY_ENROLLED" },
-          { studentId: "s-other-campus", reason: "STUDENT_NOT_IN_CAMPUS" },
+          expect.objectContaining({
+            studentId: "s-active",
+            reason: "ENROLLMENT_PERIOD_OVERLAP",
+          }),
+          expect.objectContaining({
+            studentId: "s-other-campus",
+            reason: "STUDENT_NOT_IN_CAMPUS",
+          }),
         ]),
       );
       const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
@@ -439,7 +466,7 @@ describe("BulkEnrollStudentsUseCase", () => {
       expect(result.enrolled).toHaveLength(0);
       expect(result.skipped).toHaveLength(5);
       expect(
-        result.skipped.every((s) => s.reason === "STUDENT_ALREADY_ENROLLED"),
+        result.skipped.every((s) => s.reason === "ENROLLMENT_PERIOD_OVERLAP"),
       ).toBe(true);
       expect(mockEnrollmentRepository.saveMany).not.toHaveBeenCalled();
     });
@@ -466,12 +493,12 @@ describe("BulkEnrollStudentsUseCase", () => {
       ]);
     });
 
-    it("skips with ENROLLMENT_ALREADY_EXISTS_ON_DATE when composite-key check hits", async () => {
+    it("skips with ENROLLMENT_PERIOD_OVERLAP when an inclusive period overlaps", async () => {
       mockClassRepository.findById.mockResolvedValue(createMockClass());
       mockStudentRepository.findById.mockImplementation(async (id) =>
         createMockStudent(id),
       );
-      mockEnrollmentRepository.findByStudentClassDate.mockImplementation(
+      mockEnrollmentRepository.findOverlappingByStudentId.mockImplementation(
         async (sId) =>
           sId === "s-dup"
             ? Enrollment.create(
@@ -499,7 +526,10 @@ describe("BulkEnrollStudentsUseCase", () => {
 
       expect(result.enrolled).toHaveLength(1);
       expect(result.skipped).toEqual([
-        { studentId: "s-dup", reason: "ENROLLMENT_ALREADY_EXISTS_ON_DATE" },
+        expect.objectContaining({
+          studentId: "s-dup",
+          reason: "ENROLLMENT_PERIOD_OVERLAP",
+        }),
       ]);
     });
   });
@@ -585,14 +615,24 @@ describe("BulkEnrollStudentsUseCase", () => {
       );
 
       expect(result.enrolled).toHaveLength(2);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         {
           studentId: "s-no-parent",
           reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
         },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: classId, name: "Lớp A1" },
+        targetSchoolYear: { id: schoolYearId, name: "SY-25-26" },
+        targetGradeLevel: { id: classGradeLevelId },
+        schoolYearEnrollment: null,
+      });
+      expect(JSON.stringify(result.skipped[0].context)).not.toContain(
+        "attendance",
+      );
       const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
         .calls[0][0] as Enrollment[];
+      expect(JSON.stringify(passedToSaveMany)).not.toContain("attendance");
       expect(passedToSaveMany.map((e) => e.studentId)).toEqual([
         "s-ok-1",
         "s-ok-2",
@@ -631,14 +671,23 @@ describe("BulkEnrollStudentsUseCase", () => {
       );
 
       expect(result.enrolled).toHaveLength(2);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         {
           studentId: "s-wrong-grade",
           reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
         },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: classId, name: "Lớp A1" },
+        targetGradeLevel: { id: classGradeLevelId },
+        schoolYearEnrollment: { gradeLevelId: "grade-OTHER" },
+      });
+      expect(JSON.stringify(result.skipped[0].context)).not.toContain(
+        "attendance",
+      );
       const passedToSaveMany = mockEnrollmentRepository.saveMany.mock
         .calls[0][0] as Enrollment[];
+      expect(JSON.stringify(passedToSaveMany)).not.toContain("attendance");
       expect(passedToSaveMany.map((e) => e.studentId)).toEqual([
         "s-ok-1",
         "s-ok-2",
@@ -649,6 +698,39 @@ describe("BulkEnrollStudentsUseCase", () => {
   // -------- AC-8: race-condition rollback (documented behavior) --------
 
   describe("race-condition rollback (AC-8)", () => {
+    it("maps an enrollment uniqueness race to stable overlap details", async () => {
+      mockClassRepository.findById.mockResolvedValue(createMockClass());
+      mockStudentRepository.findById.mockImplementation(async (id) =>
+        createMockStudent(id),
+      );
+      mockEnrollmentRepository.saveMany.mockRejectedValue({
+        code: "P2002",
+        message: "Unique constraint failed",
+        meta: {
+          modelName: "Enrollment",
+          target: "idx_enrollment_unique_uncancelled_start",
+        },
+      });
+
+      await expect(
+        useCase.execute(
+          {
+            campusId,
+            classId,
+            enrollmentDate,
+            students: [{ studentId: "s-1" }, { studentId: "s-2" }],
+          },
+          stubActor,
+        ),
+      ).rejects.toMatchObject({
+        response: {
+          code: "ENROLLMENT_PERIOD_OVERLAP",
+          message: "ENROLLMENT_PERIOD_OVERLAP",
+          conflictingEnrollment: null,
+        },
+      });
+    });
+
     it("propagates a saveMany rejection unchanged (whole batch rolled back by saveMany's transaction)", async () => {
       mockClassRepository.findById.mockResolvedValue(createMockClass());
       mockStudentRepository.findById.mockImplementation(async (id) =>

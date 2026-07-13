@@ -5,7 +5,6 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { InvalidEndDateException } from "@/domain/class-management/exceptions/invalid-end-date.exception";
@@ -15,6 +14,13 @@ import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { EnrollmentErrorCode } from "../../enrollment-error-codes";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { EnrollmentReadinessContext } from "../../enrollment-readiness.types";
+import { buildEnrollmentResultContext } from "../../enrollment-result-context";
+import { buildEnrollmentSnapshot } from "../../historical-snapshot";
+import {
+  isEnrollmentPeriodOverlapPersistenceError,
+  previousUtcDate,
+} from "../../enrollment-period";
 
 const MAX_BATCH_SIZE = 100;
 
@@ -37,6 +43,7 @@ export interface BulkTransferSkippedItem {
   studentId: string;
   reason: string;
   message?: string;
+  context?: EnrollmentReadinessContext;
 }
 
 export interface BulkTransferredPair {
@@ -84,6 +91,7 @@ export class BulkTransferStudentsUseCase {
     // Each persisted pair in this batch will emit one TRANSFER_STUDENT audit
     // event when @task-nrm0az wires the recorder.
     void currentUser;
+    const sourceClosureDate = previousUtcDate(input.transferDate);
     this.logger.log(
       `Bulk transfer: classId=${input.classId} campusId=${input.campusId} count=${input.students.length}`,
     );
@@ -117,27 +125,39 @@ export class BulkTransferStudentsUseCase {
     if (!targetClass.schoolYear!.isWithinDateRange(input.transferDate)) {
       throw new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
     }
+    const targetContext = buildEnrollmentResultContext(
+      input.transferDate,
+      targetClass,
+    );
 
     // ---- Per-row validation (FR-11) and persistence (FR-12, D7). ----
     const transferred: BulkTransferredPair[] = [];
     const skipped: BulkTransferSkippedItem[] = [];
 
     for (const row of input.students) {
-      const active = await this.enrollmentRepository.findActiveByStudentId(
+      const active = await this.enrollmentRepository.findEffectiveByStudentIdAt(
         row.studentId,
+        sourceClosureDate,
       );
       if (!active) {
         skipped.push({
           studentId: row.studentId,
           reason: "NO_ACTIVE_ENROLLMENT",
+          context: { ...targetContext, activeEnrollment: null },
         });
         continue;
       }
+      const activeContext = buildEnrollmentResultContext(
+        input.transferDate,
+        targetClass,
+        { activeEnrollment: active },
+      );
       // Source mismatch only fires when caller supplied fromClassId.
       if (row.fromClassId && row.fromClassId !== active.classId) {
         skipped.push({
           studentId: row.studentId,
           reason: "TRANSFER_SOURCE_MISMATCH",
+          context: activeContext,
         });
         continue;
       }
@@ -145,26 +165,30 @@ export class BulkTransferStudentsUseCase {
         skipped.push({
           studentId: row.studentId,
           reason: "TRANSFER_SAME_CLASS",
+          context: activeContext,
         });
         continue;
       }
 
-      // Preflight composite-key collision (mirrors bulk-enroll D4): catches
-      // the common case where the student already has a row in the target
-      // class on this date (active OR historical/closed) before doing the
-      // wasted withdraw() + INSERT work. The P2002 branch in the catch below
-      // is the race-condition safety net for the case where another
-      // transaction inserts in the window between this lookup and the write.
-      const existingOnDate =
-        await this.enrollmentRepository.findByStudentClassDate(
+      const overlap =
+        await this.enrollmentRepository.findOverlappingByStudentId(
           row.studentId,
-          input.classId,
           input.transferDate,
+          null,
+          active.id,
         );
-      if (existingOnDate) {
+      if (overlap) {
         skipped.push({
           studentId: row.studentId,
-          reason: EnrollmentErrorCode.ENROLLMENT_ALREADY_EXISTS_ON_DATE,
+          reason: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+          context: buildEnrollmentResultContext(
+            input.transferDate,
+            targetClass,
+            {
+              activeEnrollment: active,
+              conflictingEnrollment: overlap,
+            },
+          ),
         });
         continue;
       }
@@ -180,9 +204,10 @@ export class BulkTransferStudentsUseCase {
       // should not block the survivors. Grade mismatch is the user-facing
       // path and follows the same tolerant skip pattern.
       const parent =
-        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+        await this.schoolYearEnrollmentRepository.findCoveringDateByStudentAndSchoolYear(
           row.studentId,
           targetClass.schoolYearId,
+          input.transferDate,
         );
       if (!parent) {
         this.logger.warn(
@@ -191,6 +216,10 @@ export class BulkTransferStudentsUseCase {
         skipped.push({
           studentId: row.studentId,
           reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+          context: {
+            ...activeContext,
+            schoolYearEnrollment: null,
+          },
         });
         continue;
       }
@@ -198,6 +227,26 @@ export class BulkTransferStudentsUseCase {
         skipped.push({
           studentId: row.studentId,
           reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+          context: buildEnrollmentResultContext(
+            input.transferDate,
+            targetClass,
+            { activeEnrollment: active, schoolYearEnrollment: parent },
+          ),
+        });
+        continue;
+      }
+      if (!active.student) {
+        this.logger.warn(
+          `Bulk transfer row skipped: active enrollment ${active.id} for student ${row.studentId} did not load student snapshot source`,
+        );
+        skipped.push({
+          studentId: row.studentId,
+          reason: "STUDENT_SNAPSHOT_SOURCE_MISSING",
+          context: buildEnrollmentResultContext(
+            input.transferDate,
+            targetClass,
+            { activeEnrollment: active, schoolYearEnrollment: parent },
+          ),
         });
         continue;
       }
@@ -211,13 +260,17 @@ export class BulkTransferStudentsUseCase {
       // endDate >= enrollmentDate AND endDate <= today.
       let closed: Enrollment;
       try {
-        closed = active.withdraw(input.transferDate, ExitReason.TRANSFERRED);
+        closed = active.scheduleClosure(
+          sourceClosureDate,
+          ExitReason.TRANSFERRED,
+        );
       } catch (error) {
         if (error instanceof InvalidEndDateException) {
           skipped.push({
             studentId: row.studentId,
             reason: "INVALID_TRANSFER_DATE",
             message: error.message,
+            context: activeContext,
           });
           continue;
         }
@@ -234,6 +287,7 @@ export class BulkTransferStudentsUseCase {
         schoolYearEnrollmentId: parent.id,
         enrollmentDate: input.transferDate,
         note,
+        ...buildEnrollmentSnapshot(active.student, targetClass),
       });
 
       // Per-row atomicity (D7): one DB transaction per (close + open) pair.
@@ -246,21 +300,22 @@ export class BulkTransferStudentsUseCase {
         );
         transferred.push(persisted);
       } catch (error) {
-        // P2002 = UNIQUE constraint violation on (studentId, classId,
-        // enrollmentDate). The preflight above catches this on the common
-        // path; reaching here means another transaction raced us between
-        // the preflight and the write — map to the same skip reason so the
-        // caller sees consistent semantics.
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === "P2002"
-        ) {
+        if (isEnrollmentPeriodOverlapPersistenceError(error)) {
           this.logger.warn(
-            `Bulk transfer row race: classId=${input.classId} studentId=${row.studentId} — P2002 after preflight passed`,
+            `Bulk transfer row overlap race: classId=${input.classId} studentId=${row.studentId}`,
           );
           skipped.push({
             studentId: row.studentId,
-            reason: EnrollmentErrorCode.ENROLLMENT_ALREADY_EXISTS_ON_DATE,
+            reason: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+            context: buildEnrollmentResultContext(
+              input.transferDate,
+              targetClass,
+              {
+                activeEnrollment: active,
+                conflictingEnrollment: null,
+                schoolYearEnrollment: parent,
+              },
+            ),
           });
           continue;
         }
@@ -272,6 +327,14 @@ export class BulkTransferStudentsUseCase {
           studentId: row.studentId,
           reason: "TRANSFER_FAILED",
           message,
+          context: buildEnrollmentResultContext(
+            input.transferDate,
+            targetClass,
+            {
+              activeEnrollment: active,
+              schoolYearEnrollment: parent,
+            },
+          ),
         });
       }
     }

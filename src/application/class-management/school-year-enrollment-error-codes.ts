@@ -23,7 +23,18 @@ export const SchoolYearEnrollmentErrorCode = {
   PARENT_ALREADY_CLOSED: "PARENT_ALREADY_CLOSED",
   /** exitDate < parent.enrollmentDate, or exitDate > today (400). */
   INVALID_EXIT_DATE: "INVALID_EXIT_DATE",
+  /** SchoolYearEnrollment missing or not in caller's campus/student scope (404). */
+  SCHOOL_YEAR_ENROLLMENT_NOT_FOUND: "SCHOOL_YEAR_ENROLLMENT_NOT_FOUND",
+  /** Grade correction attempted after the row became immutable (409). */
+  GRADE_CORRECTION_NOT_ALLOWED: "GRADE_CORRECTION_NOT_ALLOWED",
 } as const;
 
 export type SchoolYearEnrollmentErrorCode =
   (typeof SchoolYearEnrollmentErrorCode)[keyof typeof SchoolYearEnrollmentErrorCode];
+
+export const SchoolYearEnrollmentGradeCorrectionAction = {
+  USE_FUTURE_CORRECTION_WORKFLOW: "USE_FUTURE_CORRECTION_WORKFLOW",
+} as const;
+
+export type SchoolYearEnrollmentGradeCorrectionAction =
+  (typeof SchoolYearEnrollmentGradeCorrectionAction)[keyof typeof SchoolYearEnrollmentGradeCorrectionAction];

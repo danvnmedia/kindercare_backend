@@ -1,16 +1,17 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
-import { IsBoolean, IsOptional } from "class-validator";
+import { IsEnum, IsOptional } from "class-validator";
+
+import { EnrollmentEffectiveStatusFilter } from "@/application/class-management/enrollment-effective-status-filter";
 
 export class GetClassEnrollmentsQuery {
   @ApiPropertyOptional({
     description:
-      "When true, returns all enrollment rows for the class (active + closed) ordered by enrollmentDate DESC. Defaults to false (active only).",
-    example: false,
-    type: Boolean,
+      "Authoritative status at the server's current UTC date. Omission defaults to ACTIVE; ALL returns every status, including CANCELLED.",
+    enum: EnrollmentEffectiveStatusFilter,
+    default: EnrollmentEffectiveStatusFilter.ACTIVE,
+    example: EnrollmentEffectiveStatusFilter.ACTIVE,
   })
   @IsOptional()
-  @Transform(({ value }) => value === true || value === "true")
-  @IsBoolean()
-  includeHistorical?: boolean;
+  @IsEnum(EnrollmentEffectiveStatusFilter)
+  effectiveStatus?: EnrollmentEffectiveStatusFilter;
 }

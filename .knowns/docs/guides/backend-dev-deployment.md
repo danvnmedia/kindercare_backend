@@ -2,7 +2,7 @@
 title: Backend Dev Deployment
 description: Developer deployment and first-run setup guide for the Kindercare backend, including environment variables, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap.
 createdAt: '2026-06-13T16:03:16.017Z'
-updatedAt: '2026-06-13T16:03:16.017Z'
+updatedAt: '2026-07-13T12:08:27.042Z'
 tags:
   - guide
   - deployment
@@ -33,11 +33,13 @@ Use this guide with the architecture references at the end. Do not rely on the r
 
 ## Current Repo Reality Checks
 
+- npm identity is `kindercare-backend`; the package is private and proprietary (`UNLICENSED`).
+- Fresh Compose deployments default to the `kindercare_backend` database; existing databases are not renamed automatically.
+
 These details matter when deploying from this checkout:
 
 - Docker Compose services are `app`, `postgres`, and `redis`. There is no `app-dev` service.
-- The canonical seed command is `npx prisma db seed`. There is no `npm run prisma:seed` script.
-- `npm run seed:students` currently points to `prisma/seeds/seed-students.ts`, but that file is absent. Do not include it in a deployment runbook until the script is restored.
+- The canonical baseline seed command is `npx prisma db seed`. Optional development fixtures use `npm run seed:students`, `npm run seed:guardians`, or `npm run seed:dev-data`.
 - `npm run clerk:get-token` points to `scripts/get-clerk-token.ts`, but that file is absent in this checkout.
 - `npm run test:e2e` points to `test/jest-e2e.json`, but the `test/` folder is absent in this checkout.
 - The actual compiled entrypoint is `dist/src/main.js`. `docker-compose.prod.yml` uses that path. `package.json` currently has `start:prod` as `node dist/main`, which does not match the build output.
@@ -47,15 +49,17 @@ These details matter when deploying from this checkout:
 
 Create `.env` from `.env.example`, then fill in all values required by the deployment mode. `.env` is ignored by git and must not be committed.
 
+The database names below are fresh-deployment defaults. Changing `POSTGRES_DB` does not rename a database in an existing PostgreSQL volume; use an explicit database migration/rename procedure and update `DATABASE_URL` instead of recreating or deleting a persistent volume.
+
 | Variable | Required | Used by | Notes |
 | --- | --- | --- | --- |
 | `NODE_ENV` | Recommended | Runtime/process | Use `development` locally. Use `production` for production-like runs. |
 | `APP_PORT` | Yes | `src/main.ts`, Compose port mapping | The Nest app listens on this. Default is `3000`. |
 | `DEBUG_PORT` | Dev only | Docker Compose | Exposes Node debug port for dev Compose. Default is `9229`. |
 | `DATABASE_URL` | Yes | Prisma, `entrypoint.sh` | Must be reachable from where the command runs. Use `localhost` on host, `postgres` inside Compose. |
-| `POSTGRES_USER` | Compose | Postgres service | Defaults to `postgres`. If changed, update Compose health checks too. |
-| `POSTGRES_PASSWORD` | Compose | Postgres service, Compose app URL | Defaults to `password` in examples. Use a real secret outside local dev. |
-| `POSTGRES_DB` | Compose | Postgres service, Compose app URL | Defaults to `nestjs_boilerplate`. If changed, update Compose health checks too. |
+| `POSTGRES_USER` | Compose | Postgres service | Defaults to `postgres`. Compose health checks read the configured user value. |
+| `POSTGRES_PASSWORD` | Compose | Postgres service, Compose app URL | Development examples use `password`; production Compose requires an explicit non-empty secret. |
+| `POSTGRES_DB` | Compose | Postgres service, Compose app URL | Defaults to `kindercare_backend`. Compose health checks read the configured database value. |
 | `POSTGRES_PORT` | Dev Compose | Host port mapping | Host-side Postgres port. Default is `5432`. |
 | `REDIS_HOST` | Yes | `QueueModule` | Use `localhost` on host, `redis` inside Compose. |
 | `REDIS_PORT` | Yes | `QueueModule`, Compose | Default is `6379`. |
@@ -77,10 +81,10 @@ Use this when running Nest locally on the host and only Postgres/Redis through C
 NODE_ENV="development"
 APP_PORT=3000
 DEBUG_PORT=9229
-DATABASE_URL="postgresql://postgres:password@localhost:5432/nestjs_boilerplate?schema=public"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/kindercare_backend?schema=public"
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="password"
-POSTGRES_DB="nestjs_boilerplate"
+POSTGRES_DB="kindercare_backend"
 POSTGRES_PORT=5432
 REDIS_HOST="localhost"
 REDIS_PORT=6379
@@ -101,10 +105,10 @@ Use this shape when the app itself runs inside Docker Compose:
 NODE_ENV="development"
 APP_PORT=3000
 DEBUG_PORT=9229
-DATABASE_URL="postgresql://postgres:password@postgres:5432/nestjs_boilerplate?schema=public"
+DATABASE_URL="postgresql://postgres:password@postgres:5432/kindercare_backend?schema=public"
 POSTGRES_USER="postgres"
 POSTGRES_PASSWORD="password"
-POSTGRES_DB="nestjs_boilerplate"
+POSTGRES_DB="kindercare_backend"
 POSTGRES_PORT=5432
 REDIS_HOST="redis"
 REDIS_PORT=6379
@@ -231,7 +235,7 @@ Use this when a developer wants hot reload directly on the host.
 1. Make sure `.env` uses internal Compose hosts:
 
    ```env
-   DATABASE_URL="postgresql://postgres:password@postgres:5432/nestjs_boilerplate?schema=public"
+   DATABASE_URL="postgresql://postgres:<strong-password>@postgres:5432/kindercare_backend?schema=public"
    REDIS_HOST="redis"
    ```
 
@@ -257,23 +261,25 @@ Important production-like notes:
 
 - `docker-compose.prod.yml` does not publish app, Postgres, or Redis ports. Add a port mapping or attach a reverse proxy if direct host access is needed.
 - The app container runs migrations automatically on startup. Seeds are not automatic and should be run intentionally.
-- If `POSTGRES_USER` or `POSTGRES_DB` differ from defaults, update the hard-coded Compose health check `pg_isready -U postgres -d nestjs_boilerplate`.
+- Postgres health checks read `POSTGRES_USER` and `POSTGRES_DB` from the container environment, so there is no duplicate hard-coded database identity.
+- Production Compose requires a non-empty `POSTGRES_PASSWORD`; supply it through the deployment secret mechanism.
+- `POSTGRES_DB` only initializes a database in an empty Postgres data directory. For an existing volume, migrate or rename the database explicitly and update `DATABASE_URL`; never delete a persistent volume merely to apply the new default.
 
 ## Seed Data
 
-Run this after migrations:
+Run the default bootstrap seed after migrations:
 
 ```bash
 npx prisma db seed
 ```
 
-The seed is idempotent and uses `prisma/seed.ts`. It creates or updates:
+The default seed is idempotent and uses `prisma/seed.ts`. It creates or updates:
 
 | Data | Details |
 | --- | --- |
 | Campuses | `Kindercare My Dinh`, `Kindercare Quan 2`, `Kindercare Nam Do`. |
 | Super Admin role | Global role ID `aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`. |
-| System permissions | Imported from `SYSTEM_PERMISSIONS` in `src/application/rbac/use-cases/seed-permissions.use-case.ts`. |
+| System permissions | Imported from `SYSTEM_PERMISSIONS`. |
 | Super Admin permissions | Grants every system permission to the Super Admin role. |
 
 Seeded campus IDs:
@@ -284,7 +290,89 @@ Seeded campus IDs:
 33333333-3333-4333-8333-333333333333  Kindercare Nam Do
 ```
 
-If `PermissionsGuard` resolves an admin user with an empty permission list, rerun the seed.
+If `PermissionsGuard` resolves an admin user with an empty permission list, rerun the default seed.
+
+### Optional Development Fixtures
+
+The optional database fixtures remain separate from `npx prisma db seed`. Run the default seed first, then choose one database-only command:
+
+```bash
+npm run seed:students
+npm run seed:guardians
+npm run seed:dev-data
+```
+
+- `seed:students` creates 66 deterministic student profiles plus the minimal grade, school-year, class, `SchoolYearEnrollment`, and `Enrollment` rows needed to derive representative `ACTIVE`, `WAITING`, `DEFERRED`, `COMPLETED`, `GRADUATED`, and `WITHDRAWN` phases.
+- `seed:guardians` requires the student fixtures. It creates 15 deterministic guardian profiles, 21 same-campus student links, and these campus-scoped relationship types in order: `Ông`, `Bà`, `Bố`, `Mẹ`, `Anh`, `Chị`, `Cô`, `Dì`, `Chú`, `Bác`.
+- `seed:dev-data` runs both database stages in dependency order.
+- None of these commands calls Clerk.
+
+Database fixture configuration:
+
+| Variable | Purpose |
+| --- | --- |
+| `SEED_STUDENTS_CAMPUS_ID` | Target campus; defaults to Kindercare My Dinh. |
+| `SEED_STUDENTS_CSV` | Override the student fixture CSV path. |
+| `SEED_PARENT_CLERK_UID` | Legacy database-only option that links the primary guardian to a supplied UID without calling Clerk. Prefer the all-guardian provisioning command below. |
+
+Student lifecycle labels are fixture scenarios, not persisted status fields. The seed writes canonical dated enrollment rows and lets `student_with_phase` derive the phase. `isArchived` remains an independent recoverable profile-archive flag.
+
+Fixture IDs come from immutable seed keys, so safe reruns update the same records and preserve student codes. To verify idempotency and projections against a disposable migrated database:
+
+```bash
+SEED_VERIFY_ALLOW_MUTATION=true npm run seed:verify-dev-data
+```
+
+The verifier intentionally refuses to run without `SEED_VERIFY_ALLOW_MUTATION=true` because it runs the optional seed twice.
+
+#### Provision Clerk Accounts For All Guardian Fixtures
+
+Clerk provisioning is a separate opt-in step. Run `seed:dev-data` first, configure a disposable Clerk development/test tenant, and set:
+
+| Variable | Purpose |
+| --- | --- |
+| `NODE_ENV` | Must not be `production`; production is permanently refused. |
+| `CLERK_SECRET_KEY` | Selects the Clerk development/test tenant. |
+| `SEED_CLERK_GUARDIAN_PASSWORD` | Shared development password for all 15 fixture accounts. It is never persisted or printed. |
+
+Then run:
+
+```bash
+npm run seed:provision-guardian-clerk
+```
+
+The command processes all 15 fixtures sequentially. It creates Clerk users with stable family/campus/fixture markers, creates or reuses the matching internal `User` mappings, and links each existing guardian profile. A rerun reuses only correctly marked Clerk users; an unmarked or differently marked email is a safe conflict. If a run stops partway through, completed Clerk accounts and database links remain, and a later rerun resumes.
+
+After a Clerk tenant wipe, rerunning this command recreates the marked guardian users and replaces their stale internal Clerk UIDs without replacing guardian profiles. It does not reconcile staff, administrator, or other non-fixture identities.
+
+#### Preview Or Delete Every User In The Clerk Tenant
+
+The wipe command targets every user in the tenant selected by `CLERK_SECRET_KEY`, including fixture guardians, staff, administrators, and unrelated test users. Use only a disposable Clerk development/test tenant. It permanently refuses `NODE_ENV=production`.
+
+The npm launcher requires a repository-root `.env.local` and loads it with Node's native environment-file support before the CLI starts. At minimum, configure:
+
+```env
+NODE_ENV=development
+CLERK_SECRET_KEY=sk_test_...
+```
+
+Explicitly exported process environment variables take precedence over values in `.env.local`. This ensures an exported `NODE_ENV=production` can never be weakened by the file.
+
+Preview is the default and performs no deletion:
+
+```bash
+npm run clerk:wipe-all-users
+```
+
+Execute the irreversible tenant-wide deletion only with both exact arguments. The first two `--` tokens are npm's forwarding separators; the script receives the final `--execute --confirm ...` arguments:
+
+```bash
+npm run clerk:wipe-all-users -- -- --execute --confirm DELETE_ALL_CLERK_USERS
+```
+
+The command enumerates all Clerk pages before deletion, attempts every discovered user sequentially, continues after individual failures, and reports discovered/deleted/failed totals plus all failed Clerk user IDs. Any partial failure returns a non-zero exit code; an empty tenant succeeds.
+
+This command never queries or changes the application database. Internal `User`, `Guardian`, `Staff`, role, and profile rows remain unchanged and may point to Clerk identities that no longer exist. Guardian fixture links are repaired by rerunning `seed:provision-guardian-clerk`; other identities require their normal provisioning or reconciliation workflow.
 
 ## Admin Bootstrap And Clerk
 
@@ -381,7 +469,7 @@ Then confirm:
 | --- | --- | --- |
 | App cannot connect to Postgres inside Compose | `.env` uses `localhost` for a containerized app | Use `postgres` in `DATABASE_URL` when the app runs in Compose. |
 | Redis connection errors inside Compose | `REDIS_HOST=localhost` in containerized app | Use `REDIS_HOST=redis`. |
-| Compose Postgres health check fails after changing DB/user | Health check is hard-coded to defaults | Update `pg_isready -U postgres -d nestjs_boilerplate` in Compose. |
+| Compose Postgres health check fails after changing DB/user | Container environment values do not match the intended database/user | Confirm `POSTGRES_USER` and `POSTGRES_DB` are set consistently; the health check reads them automatically. |
 | Protected endpoints return unauthorized | Missing or invalid Clerk keys/token | Set `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and send a Clerk session token. |
 | Admin resolves with no permissions | Seed was not run after migrations | Run `npx prisma db seed`. |
 | `npm run prisma:generate` fails with Windows `EPERM` on query engine rename | Running Node/Prisma process is locking `node_modules/.prisma/client` | Stop local Nest/Prisma/Node processes and retry. |
@@ -396,3 +484,4 @@ Then confirm:
 - @doc/architecture/file-management-and-storage
 - @doc/architecture/multi-campus-architecture
 - @doc/patterns/prisma-migration-patterns
+- @doc/guides/seed-and-clerk-cli-reference

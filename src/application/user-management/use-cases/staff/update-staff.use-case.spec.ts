@@ -24,7 +24,6 @@ const TYPE_A = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
 const TYPE_B = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
 const TYPE_C = "cccccccc-cccc-4ccc-cccc-cccccccccccc";
 
-const ROLE_A = "role-a";
 const ROLE_B = "role-b";
 const ROLE_C = "role-c";
 

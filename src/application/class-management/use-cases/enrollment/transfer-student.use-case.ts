@@ -16,6 +16,13 @@ import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollme
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
 import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+import { buildEnrollmentSnapshot } from "../../historical-snapshot";
+import { EnrollmentErrorCode } from "../../enrollment-error-codes";
+import {
+  buildEnrollmentPeriodOverlapDetails,
+  isEnrollmentPeriodOverlapPersistenceError,
+  previousUtcDate,
+} from "../../enrollment-period";
 
 export interface TransferStudentInput {
   studentId: string;
@@ -51,6 +58,7 @@ export class TransferStudentUseCase {
     currentUser: User,
   ): Promise<TransferStudentResult> {
     const transferDate = input.transferDate ?? new Date();
+    const sourceClosureDate = previousUtcDate(transferDate);
     this.logger.log(
       `Transferring student ${input.studentId} to class ${input.toClassId} on ${transferDate.toISOString()}`,
     );
@@ -62,9 +70,11 @@ export class TransferStudentUseCase {
       throw new NotFoundException(`Class with ID ${input.toClassId} not found`);
     }
 
-    // Step 2: Resolve student's active enrollment.
-    const active = await this.enrollmentRepository.findActiveByStudentId(
+    // Step 2: Resolve the source effective through the day before the target
+    // starts. Inclusive source end + next-day target start do not overlap.
+    const active = await this.enrollmentRepository.findEffectiveByStudentIdAt(
       input.studentId,
+      sourceClosureDate,
     );
     if (!active) {
       throw new ConflictException("NO_ACTIVE_ENROLLMENT");
@@ -101,9 +111,10 @@ export class TransferStudentUseCase {
     // `idx_sye_one_open_per_year` (D6) guarantees an open parent must exist.
     // Missing parent = data integrity violation → log + throw.
     const parent =
-      await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+      await this.schoolYearEnrollmentRepository.findCoveringDateByStudentAndSchoolYear(
         input.studentId,
         targetClass.schoolYearId,
+        transferDate,
       );
     if (!parent) {
       this.logger.error(
@@ -118,12 +129,36 @@ export class TransferStudentUseCase {
         SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
       );
     }
+    if (!active.student) {
+      this.logger.error(
+        `Data integrity violation: active enrollment ${active.id} did not load student snapshot source`,
+      );
+      throw new Error(
+        "Student snapshot source missing for active enrollment — data integrity broken",
+      );
+    }
 
-    // Step 7: Build the closed entity. Reuses domain invariants (AC-8):
-    // endDate >= enrollmentDate AND endDate <= today.
+    const overlap = await this.enrollmentRepository.findOverlappingByStudentId(
+      input.studentId,
+      transferDate,
+      null,
+      active.id,
+    );
+    if (overlap) {
+      throw new ConflictException({
+        ...buildEnrollmentPeriodOverlapDetails(overlap),
+        message: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+      });
+    }
+
+    // Step 7: Schedule the inclusive source closure. Future transfer dates are
+    // valid because source close + target open persist atomically.
     let closed: Enrollment;
     try {
-      closed = active.withdraw(transferDate, ExitReason.TRANSFERRED);
+      closed = active.scheduleClosure(
+        sourceClosureDate,
+        ExitReason.TRANSFERRED,
+      );
     } catch (error) {
       if (error instanceof InvalidEndDateException) {
         throw new BadRequestException(
@@ -143,37 +178,50 @@ export class TransferStudentUseCase {
       schoolYearEnrollmentId: parent.id,
       enrollmentDate: transferDate,
       note: input.note ?? null,
+      ...buildEnrollmentSnapshot(active.student, targetClass),
     });
 
     // Step 9: Persist + emit audit atomically. close + open + audit row land
     // inside one DB transaction. Either all succeed or all roll back
     // (spec AC-20 + @doc/specs/admin-audit-log D4 + Scenario 1).
-    const persisted = await this.transactionRunner.run(async (tx) => {
-      const result = await this.enrollmentRepository.transferEnrollment(
-        closed,
-        opened,
-        tx,
-      );
-      await this.recorder.record(
-        {
-          actorId: currentUser.id,
-          action: "TRANSFER_STUDENT",
-          targetType: "student",
-          targetId: input.studentId,
-          campusId: input.campusId,
-          context: {
-            actorName: currentUser.profile?.fullName ?? null,
-            fromClassId: active.classId,
-            fromClassName: active.class?.name ?? null,
-            toClassId: input.toClassId,
-            toClassName: targetClass.name,
-            transferDate: transferDate.toISOString(),
+    let persisted: TransferStudentResult;
+    try {
+      persisted = await this.transactionRunner.run(async (tx) => {
+        const result = await this.enrollmentRepository.transferEnrollment(
+          closed,
+          opened,
+          tx,
+        );
+        await this.recorder.record(
+          {
+            actorId: currentUser.id,
+            action: "TRANSFER_STUDENT",
+            targetType: "student",
+            targetId: input.studentId,
+            campusId: input.campusId,
+            context: {
+              actorName: currentUser.profile?.fullName ?? null,
+              fromClassId: active.classId,
+              fromClassName: active.class?.name ?? null,
+              toClassId: input.toClassId,
+              toClassName: targetClass.name,
+              sourceClosureDate: sourceClosureDate.toISOString(),
+              transferDate: transferDate.toISOString(),
+            },
           },
-        },
-        tx,
-      );
-      return result;
-    });
+          tx,
+        );
+        return result;
+      });
+    } catch (error) {
+      if (isEnrollmentPeriodOverlapPersistenceError(error)) {
+        throw new ConflictException({
+          ...buildEnrollmentPeriodOverlapDetails(null),
+          message: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+        });
+      }
+      throw error;
+    }
     this.logger.log(
       `Transfer complete: closed=${persisted.closed.id} opened=${persisted.opened.id}`,
     );

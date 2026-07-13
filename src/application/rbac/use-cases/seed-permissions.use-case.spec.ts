@@ -55,6 +55,23 @@ const MEDICATION_PERMISSION_IDS = [
   "medication_administration.update",
 ];
 
+const HISTORICAL_RECORD_PERMISSION_IDS = [
+  "historical_records.correct",
+  "historical_records.export",
+  "historical_records.archive",
+  "historical_records.redact",
+  "historical_records.delete",
+];
+
+const SCHOOL_YEAR_LIFECYCLE_PERMISSION_IDS = [
+  "school_year_lifecycle.read",
+  "school_year_lifecycle.manage",
+  "school_year_lifecycle.preview",
+  "school_year_lifecycle.commit",
+];
+
+const SCHOOL_YEAR_ENROLLMENT_PERMISSION_IDS = ["school_year_enrollment.cancel"];
+
 describe("SeedPermissionsUseCase", () => {
   let repository: jest.Mocked<PermissionRepository>;
   let useCase: SeedPermissionsUseCase;
@@ -168,5 +185,62 @@ describe("SeedPermissionsUseCase", () => {
       expect(permission?.module).toBe(id.split(".")[0]);
       expect(permission?.description).toEqual(expect.any(String));
     }
+  });
+
+  it("includes all historical record permission IDs in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(
+      expect.arrayContaining(HISTORICAL_RECORD_PERMISSION_IDS),
+    );
+    for (const id of HISTORICAL_RECORD_PERMISSION_IDS) {
+      const permission = permissions.find((item) => item.id === id);
+      expect(permission?.module).toBe("historical_records");
+      expect(permission?.description).toEqual(expect.any(String));
+    }
+  });
+
+  it("includes all school-year lifecycle permission IDs in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+    const ids = permissions.map((permission) => permission.id);
+
+    expect(ids).toEqual(
+      expect.arrayContaining(SCHOOL_YEAR_LIFECYCLE_PERMISSION_IDS),
+    );
+    for (const id of SCHOOL_YEAR_LIFECYCLE_PERMISSION_IDS) {
+      const permission = permissions.find((item) => item.id === id);
+      expect(permission?.module).toBe("school_year_lifecycle");
+      expect(permission?.description).toEqual(expect.any(String));
+    }
+  });
+
+  it("includes the school-year enrollment cancellation permission in the system catalog", () => {
+    const permissions = useCase.getSystemPermissions();
+
+    expect(permissions.map((permission) => permission.id)).toEqual(
+      expect.arrayContaining(SCHOOL_YEAR_ENROLLMENT_PERMISSION_IDS),
+    );
+    expect(
+      permissions.find(
+        (permission) => permission.id === "school_year_enrollment.cancel",
+      ),
+    ).toMatchObject({
+      module: "school_year_enrollment",
+      description: expect.any(String),
+    });
+  });
+
+  it("seeds the missing school-year enrollment cancellation permission idempotently", async () => {
+    repository.exists.mockImplementation(
+      async (id) => !SCHOOL_YEAR_ENROLLMENT_PERMISSION_IDS.includes(id),
+    );
+
+    const result = await useCase.execute();
+
+    expect(result.created).toBe(1);
+    expect(repository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "school_year_enrollment.cancel" }),
+    );
   });
 });

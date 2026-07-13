@@ -2,6 +2,8 @@ import { SchoolYearEnrollment } from "./school-year-enrollment.entity";
 import { ExitReason } from "../enums/exit-reason.enum";
 import { SchoolYearEnrollmentAlreadyClosedException } from "../exceptions/school-year-enrollment-already-closed.exception";
 import { InvalidExitDateException } from "../exceptions/invalid-exit-date.exception";
+import { EnrollmentCancellationReason } from "../enums/enrollment-cancellation-reason.enum";
+import { EnrollmentEffectiveStatus } from "../enums/enrollment-effective-status.enum";
 
 describe("SchoolYearEnrollment Entity", () => {
   const baseProps = {
@@ -250,6 +252,115 @@ describe("SchoolYearEnrollment Entity", () => {
       ).toThrow(
         "TRANSFERRED is not a valid exit reason for SchoolYearEnrollment",
       );
+    });
+  });
+
+  describe("effective status and cancellation", () => {
+    const futureProps = {
+      ...baseProps,
+      enrollmentDate: new Date("2026-09-01T00:00:00.000Z"),
+    };
+    const cancelledAt = new Date("2026-07-11T15:30:00.000Z");
+
+    it("derives upcoming, active, and inclusive closed boundaries", () => {
+      const enrollment = SchoolYearEnrollment.create({
+        ...futureProps,
+        exitDate: new Date("2026-09-30T00:00:00.000Z"),
+        exitReason: ExitReason.WITHDRAWN,
+      });
+
+      expect(
+        enrollment.getEffectiveStatus(new Date("2026-08-31T23:59:59.999Z")),
+      ).toBe(EnrollmentEffectiveStatus.UPCOMING);
+      expect(
+        enrollment.getEffectiveStatus(new Date("2026-09-30T23:59:59.999Z")),
+      ).toBe(EnrollmentEffectiveStatus.ACTIVE);
+      expect(
+        enrollment.getEffectiveStatus(new Date("2026-10-01T00:00:00.000Z")),
+      ).toBe(EnrollmentEffectiveStatus.CLOSED);
+    });
+
+    it("cancels an upcoming row immutably without fabricating closure data", () => {
+      const original = SchoolYearEnrollment.create(futureProps, "sye-future");
+      const cancelled = original.cancel({
+        cancelledAt,
+        reason: EnrollmentCancellationReason.CHANGED_SCHOOL,
+        note: "  changing schools  ",
+        actorId: "user-1",
+        actorFullName: "  Casey Admin  ",
+      });
+
+      expect(cancelled.id).toBe(original.id);
+      expect(cancelled.getEffectiveStatus(cancelledAt)).toBe(
+        EnrollmentEffectiveStatus.CANCELLED,
+      );
+      expect(cancelled.cancelledAt).toEqual(cancelledAt);
+      expect(cancelled.cancellationReason).toBe(
+        EnrollmentCancellationReason.CHANGED_SCHOOL,
+      );
+      expect(cancelled.cancellationNote).toBe("changing schools");
+      expect(cancelled.cancelledByUserId).toBe("user-1");
+      expect(cancelled.cancelledByFullName).toBe("Casey Admin");
+      expect(cancelled.historicalFinalizedAt).toEqual(cancelledAt);
+      expect(cancelled.exitDate).toBeNull();
+      expect(cancelled.exitReason).toBeNull();
+      expect(original.cancelledAt).toBeNull();
+    });
+
+    it("rejects incomplete or oversized cancellation metadata", () => {
+      expect(() =>
+        SchoolYearEnrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+        }),
+      ).toThrow(
+        "Cancelled SchoolYearEnrollment requires cancellationReason and cancelledByUserId",
+      );
+
+      expect(() =>
+        SchoolYearEnrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: "NOT_A_REASON" as EnrollmentCancellationReason,
+          cancelledByUserId: "user-1",
+        }),
+      ).toThrow("SchoolYearEnrollment cancellationReason is invalid");
+
+      expect(() =>
+        SchoolYearEnrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+          cancelledByUserId: "   ",
+        }),
+      ).toThrow(
+        "Cancelled SchoolYearEnrollment requires cancellationReason and cancelledByUserId",
+      );
+
+      expect(() =>
+        SchoolYearEnrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+          cancellationNote: "x".repeat(501),
+          cancelledByUserId: "user-1",
+        }),
+      ).toThrow(
+        "SchoolYearEnrollment cancellationNote must be at most 500 characters",
+      );
+    });
+
+    it("rejects cancelling a row once it is effective", () => {
+      const active = SchoolYearEnrollment.create(baseProps);
+
+      expect(() =>
+        active.cancel({
+          cancelledAt,
+          reason: EnrollmentCancellationReason.DATA_ENTRY_ERROR,
+          actorId: "user-1",
+        }),
+      ).toThrow("Only an upcoming school-year enrollment can be cancelled");
     });
   });
 });

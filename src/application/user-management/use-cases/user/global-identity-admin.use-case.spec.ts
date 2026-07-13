@@ -23,9 +23,7 @@ import {
   createUser,
 } from "@/test-utils";
 import { DeleteGlobalIdentityUseCase } from "./delete-global-identity.use-case";
-import {
-  GLOBAL_IDENTITY_AUDIT_CAMPUS_ID,
-} from "./global-identity-admin.policy";
+import { GLOBAL_IDENTITY_AUDIT_CAMPUS_ID } from "./global-identity-admin.policy";
 import { LockGlobalIdentityUseCase } from "./lock-global-identity.use-case";
 import { UnlockGlobalIdentityUseCase } from "./unlock-global-identity.use-case";
 
@@ -189,9 +187,9 @@ describe("global identity admin use cases", () => {
       unitOfWork,
     );
 
-    await expect(useCase.execute(TARGET_ID, buildGlobalAdmin())).rejects.toThrow(
-      NotFoundException,
-    );
+    await expect(
+      useCase.execute(TARGET_ID, buildGlobalAdmin()),
+    ).rejects.toThrow(NotFoundException);
 
     expect(identityPort.lockIdentity).not.toHaveBeenCalled();
     expect(unitOfWork.run).not.toHaveBeenCalled();
@@ -200,7 +198,12 @@ describe("global identity admin use cases", () => {
   it.each([
     [
       "archived staff",
-      () => createStaff({ id: "staff-linked", userId: TARGET_ID, isArchived: true }),
+      () =>
+        createStaff({
+          id: "staff-linked",
+          userId: TARGET_ID,
+          isArchived: true,
+        }),
       null,
     ],
     [

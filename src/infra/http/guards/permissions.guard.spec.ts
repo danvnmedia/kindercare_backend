@@ -180,4 +180,86 @@ describe("PermissionsGuard", () => {
       false,
     );
   });
+
+  it("denies school-year enrollment cancellation permission assigned only to another campus", async () => {
+    reflector.getAllAndOverride.mockReturnValue([
+      "school_year_enrollment.cancel",
+    ]);
+    const role = createRole({
+      permissions: [permission("school_year_enrollment.cancel")],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(role, DEFAULT_CAMPUS_ID_B)],
+    });
+    const requestContext = mockRequestContext(user, DEFAULT_CAMPUS_ID_A);
+    const guard = new PermissionsGuard(reflector, requestContext);
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(
+      false,
+    );
+  });
+
+  it("allows school-year enrollment cancellation in the selected campus", async () => {
+    reflector.getAllAndOverride.mockReturnValue([
+      "school_year_enrollment.cancel",
+    ]);
+    const role = createRole({
+      permissions: [permission("school_year_enrollment.cancel")],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(role, DEFAULT_CAMPUS_ID_A)],
+    });
+    const guard = new PermissionsGuard(
+      reflector,
+      mockRequestContext(user, DEFAULT_CAMPUS_ID_A),
+    );
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(true);
+  });
+
+  it("denies lifecycle commit to a preparer without commit permission", async () => {
+    reflector.getAllAndOverride.mockReturnValue([
+      "school_year_lifecycle.commit",
+    ]);
+    const preparerRole = createRole({
+      permissions: [
+        permission("school_year_lifecycle.read"),
+        permission("school_year_lifecycle.manage"),
+        permission("school_year_lifecycle.preview"),
+      ],
+    });
+    const preparer = createUser({
+      roleAssignments: [
+        createRoleAssignment(preparerRole, DEFAULT_CAMPUS_ID_A),
+      ],
+    });
+    const guard = new PermissionsGuard(reflector, mockRequestContext(preparer));
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(
+      false,
+    );
+  });
+
+  it("allows a distinct lifecycle committer without manage or preview permission", async () => {
+    reflector.getAllAndOverride.mockReturnValue([
+      "school_year_lifecycle.commit",
+    ]);
+    const committerRole = createRole({
+      permissions: [
+        permission("school_year_lifecycle.read"),
+        permission("school_year_lifecycle.commit"),
+      ],
+    });
+    const committer = createUser({
+      roleAssignments: [
+        createRoleAssignment(committerRole, DEFAULT_CAMPUS_ID_A),
+      ],
+    });
+    const guard = new PermissionsGuard(
+      reflector,
+      mockRequestContext(committer),
+    );
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(true);
+  });
 });

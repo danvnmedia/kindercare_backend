@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
 } from "class-validator";
 
@@ -31,7 +32,8 @@ export class RegisterForSchoolYearRequest {
     example: "2025-09-01",
   })
   @IsNotEmpty()
-  @IsDateString()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   enrollmentDate: string;
 
   @ApiProperty({

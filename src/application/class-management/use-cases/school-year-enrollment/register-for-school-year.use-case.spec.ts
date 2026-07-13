@@ -106,8 +106,15 @@ describe("RegisterForSchoolYearUseCase", () => {
     mockSyeRepository = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -186,6 +193,13 @@ describe("RegisterForSchoolYearUseCase", () => {
     mockSchoolYearRepository.findById.mockResolvedValue(createMockSchoolYear());
     mockGradeLevelRepository.findById.mockResolvedValue(createMockGradeLevel());
     mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(null);
+    mockSyeRepository.findStructurallyOpenByStudentAndSchoolYear.mockImplementation(
+      (studentId, schoolYearId) =>
+        mockSyeRepository.findOpenByStudentAndSchoolYear(
+          studentId,
+          schoolYearId,
+        ),
+    );
     mockSyeRepository.save.mockImplementation(async (e) => e);
   };
 

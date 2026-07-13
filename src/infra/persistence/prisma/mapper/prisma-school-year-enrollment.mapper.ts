@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { EnrollmentCancellationReason } from "@/domain/class-management/enums/enrollment-cancellation-reason.enum";
 import { PrismaGradeLevelMapper } from "./prisma-grade-level.mapper";
 import { PrismaSchoolYearMapper } from "./prisma-school-year.mapper";
 import { PrismaStudentMapper } from "./prisma-student.mapper";
@@ -30,6 +31,28 @@ export class PrismaSchoolYearEnrollmentMapper {
       exitDate: row.exitDate ?? null,
       exitReason: PrismaSchoolYearEnrollmentMapper.toExitReason(row.exitReason),
       note: row.note,
+      cancelledAt: row.cancelledAt,
+      cancellationReason: PrismaSchoolYearEnrollmentMapper.toCancellationReason(
+        row.cancellationReason,
+      ),
+      cancellationNote: row.cancellationNote,
+      cancelledByUserId: row.cancelledByUserId,
+      cancelledByFullName: row.cancelledByFullName,
+      snapshotStudentFullName: row.snapshotStudentFullName,
+      snapshotStudentCode: row.snapshotStudentCode,
+      snapshotStudentNickname: row.snapshotStudentNickname,
+      snapshotGradeLevelName: row.snapshotGradeLevelName,
+      snapshotGradeLevelOrder: row.snapshotGradeLevelOrder,
+      snapshotSchoolYearName: row.snapshotSchoolYearName,
+      snapshotSchoolYearStartDate: row.snapshotSchoolYearStartDate,
+      snapshotSchoolYearEndDate: row.snapshotSchoolYearEndDate,
+      snapshotCapturedAt: row.snapshotCapturedAt,
+      historicalFinalizedAt: row.historicalFinalizedAt,
+      archivedAt: row.archivedAt,
+      redactedAt: row.redactedAt,
+      retentionExpiresAt: row.retentionExpiresAt,
+      retentionPolicySource: row.retentionPolicySource,
+      legalHold: row.legalHold,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -60,6 +83,29 @@ export class PrismaSchoolYearEnrollmentMapper {
           row.exitReason,
         ),
         note: row.note,
+        cancelledAt: row.cancelledAt,
+        cancellationReason:
+          PrismaSchoolYearEnrollmentMapper.toCancellationReason(
+            row.cancellationReason,
+          ),
+        cancellationNote: row.cancellationNote,
+        cancelledByUserId: row.cancelledByUserId,
+        cancelledByFullName: row.cancelledByFullName,
+        snapshotStudentFullName: row.snapshotStudentFullName,
+        snapshotStudentCode: row.snapshotStudentCode,
+        snapshotStudentNickname: row.snapshotStudentNickname,
+        snapshotGradeLevelName: row.snapshotGradeLevelName,
+        snapshotGradeLevelOrder: row.snapshotGradeLevelOrder,
+        snapshotSchoolYearName: row.snapshotSchoolYearName,
+        snapshotSchoolYearStartDate: row.snapshotSchoolYearStartDate,
+        snapshotSchoolYearEndDate: row.snapshotSchoolYearEndDate,
+        snapshotCapturedAt: row.snapshotCapturedAt,
+        historicalFinalizedAt: row.historicalFinalizedAt,
+        archivedAt: row.archivedAt,
+        redactedAt: row.redactedAt,
+        retentionExpiresAt: row.retentionExpiresAt,
+        retentionPolicySource: row.retentionPolicySource,
+        legalHold: row.legalHold,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },
@@ -80,6 +126,26 @@ export class PrismaSchoolYearEnrollmentMapper {
       exitDate: entity.exitDate,
       exitReason: entity.exitReason,
       note: entity.note,
+      cancelledAt: entity.cancelledAt,
+      cancellationReason: entity.cancellationReason,
+      cancellationNote: entity.cancellationNote,
+      cancelledByUserId: entity.cancelledByUserId,
+      cancelledByFullName: entity.cancelledByFullName,
+      snapshotStudentFullName: entity.snapshotStudentFullName,
+      snapshotStudentCode: entity.snapshotStudentCode,
+      snapshotStudentNickname: entity.snapshotStudentNickname,
+      snapshotGradeLevelName: entity.snapshotGradeLevelName,
+      snapshotGradeLevelOrder: entity.snapshotGradeLevelOrder,
+      snapshotSchoolYearName: entity.snapshotSchoolYearName,
+      snapshotSchoolYearStartDate: entity.snapshotSchoolYearStartDate,
+      snapshotSchoolYearEndDate: entity.snapshotSchoolYearEndDate,
+      snapshotCapturedAt: entity.snapshotCapturedAt,
+      historicalFinalizedAt: entity.historicalFinalizedAt,
+      archivedAt: entity.archivedAt,
+      redactedAt: entity.redactedAt,
+      retentionExpiresAt: entity.retentionExpiresAt,
+      retentionPolicySource: entity.retentionPolicySource,
+      legalHold: entity.legalHold,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     };
@@ -98,6 +164,26 @@ export class PrismaSchoolYearEnrollmentMapper {
       exitDate: entity.exitDate,
       exitReason: entity.exitReason,
       note: entity.note,
+      cancelledAt: entity.cancelledAt,
+      cancellationReason: entity.cancellationReason,
+      cancellationNote: entity.cancellationNote,
+      cancelledByUserId: entity.cancelledByUserId,
+      cancelledByFullName: entity.cancelledByFullName,
+      snapshotStudentFullName: entity.snapshotStudentFullName,
+      snapshotStudentCode: entity.snapshotStudentCode,
+      snapshotStudentNickname: entity.snapshotStudentNickname,
+      snapshotGradeLevelName: entity.snapshotGradeLevelName,
+      snapshotGradeLevelOrder: entity.snapshotGradeLevelOrder,
+      snapshotSchoolYearName: entity.snapshotSchoolYearName,
+      snapshotSchoolYearStartDate: entity.snapshotSchoolYearStartDate,
+      snapshotSchoolYearEndDate: entity.snapshotSchoolYearEndDate,
+      snapshotCapturedAt: entity.snapshotCapturedAt,
+      historicalFinalizedAt: entity.historicalFinalizedAt,
+      archivedAt: entity.archivedAt,
+      redactedAt: entity.redactedAt,
+      retentionExpiresAt: entity.retentionExpiresAt,
+      retentionPolicySource: entity.retentionPolicySource,
+      legalHold: entity.legalHold,
       updatedAt: entity.updatedAt,
     };
   }
@@ -114,6 +200,17 @@ export class PrismaSchoolYearEnrollmentMapper {
     if (value === null) return null;
     return (Object.values(ExitReason) as string[]).includes(value)
       ? (value as ExitReason)
+      : null;
+  }
+
+  private static toCancellationReason(
+    value: string | null,
+  ): EnrollmentCancellationReason | null {
+    if (value === null) return null;
+    return (Object.values(EnrollmentCancellationReason) as string[]).includes(
+      value,
+    )
+      ? (value as EnrollmentCancellationReason)
       : null;
   }
 }

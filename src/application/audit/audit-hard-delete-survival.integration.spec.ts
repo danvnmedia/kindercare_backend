@@ -25,13 +25,17 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
-import { NotFoundException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
 import { GetAuditEventsByTargetUseCase } from "@/application/audit/use-cases/get-audit-events-by-target.use-case";
 import { AuditEventRepository } from "@/application/audit/ports/audit-event.repository";
+import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { StudentHardDeleteGuardPort } from "@/application/user-management/ports/student-hard-delete-guard.port";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { AuditEvent } from "@/domain/audit";
+import { User } from "@/domain/user-management/user.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import {
   createMockStudentRepository,
@@ -152,6 +156,9 @@ describe("Audit hard-delete survival (admin-audit-log AC-12 / Scenario 4)", () =
   describe("runtime invariant: rows survive hard delete; snapshot context unchanged", () => {
     let studentRepo: jest.Mocked<StudentRepository>;
     let auditRepo: InMemoryAuditRepo;
+    let studentHardDeleteGuard: jest.Mocked<StudentHardDeleteGuardPort>;
+    let transactionRunner: jest.Mocked<TransactionRunnerPort>;
+    let recorder: jest.Mocked<AuditEventRecorderPort>;
     let findByTargetSpy: jest.SpyInstance;
     let findByActorSpy: jest.SpyInstance;
     let deleteStudent: DeleteStudentUseCase;
@@ -192,15 +199,31 @@ describe("Audit hard-delete survival (admin-audit-log AC-12 / Scenario 4)", () =
       findByTargetSpy = jest.spyOn(auditRepo, "findByTarget");
       findByActorSpy = jest.spyOn(auditRepo, "findByActor");
 
-      deleteStudent = new DeleteStudentUseCase(studentRepo);
+      studentHardDeleteGuard = {
+        countRetainedHistoricalRecords: jest.fn().mockResolvedValue(0),
+      } as unknown as jest.Mocked<StudentHardDeleteGuardPort>;
+      transactionRunner = {
+        run: jest.fn(async (task) => task({} as never)),
+      } as unknown as jest.Mocked<TransactionRunnerPort>;
+      recorder = {
+        record: jest.fn(),
+      } as unknown as jest.Mocked<AuditEventRecorderPort>;
+
+      deleteStudent = new DeleteStudentUseCase(
+        studentRepo,
+        studentHardDeleteGuard,
+        transactionRunner,
+        recorder,
+      );
       getAuditByTarget = new GetAuditEventsByTargetUseCase(auditRepo);
     });
 
-    it("DeleteStudentUseCase has no dependency on AuditEventRepository", () => {
-      // Constructor takes exactly the student repo — proves the delete path
-      // cannot reach into the audit log even by accident.
+    it("DeleteStudentUseCase has no dependency on AuditEventRepository readers", () => {
+      // Constructor dependencies include retention/audit write ports, but not
+      // AuditEventRepository, so the delete path cannot read or cascade audit
+      // rows directly.
       expect(deleteStudent).toBeInstanceOf(DeleteStudentUseCase);
-      expect(DeleteStudentUseCase.length).toBe(1);
+      expect(DeleteStudentUseCase.length).toBe(4);
     });
 
     it("after hard delete, audit rows remain and snapshot still names Bob", async () => {
@@ -266,6 +289,50 @@ describe("Audit hard-delete survival (admin-audit-log AC-12 / Scenario 4)", () =
         params: { limit: 20, offset: 0 },
       });
       expect(after.data).toHaveLength(3);
+    });
+
+    it("blocks hard delete while retained historical records exist and audits the denial", async () => {
+      studentHardDeleteGuard.countRetainedHistoricalRecords.mockResolvedValueOnce(
+        2,
+      );
+      const actor = User.reconstitute(
+        {
+          clerkUid: "user_admin",
+          isActive: true,
+          profile: {
+            type: "staff",
+            id: ACTOR_ID,
+            fullName: "Alice Nguyen",
+            email: null,
+            phoneNumber: null,
+            dateOfBirth: null,
+            gender: null,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        ACTOR_ID,
+      );
+
+      await expect(
+        deleteStudent.execute(BOB_ID, CAMPUS_ID, actor),
+      ).rejects.toThrow(ConflictException);
+
+      expect(studentRepo.delete).not.toHaveBeenCalled();
+      expect(transactionRunner.run).toHaveBeenCalledTimes(1);
+      expect(recorder.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "BLOCK_STUDENT_HARD_DELETE_FOR_RETENTION",
+          targetType: "student",
+          targetId: BOB_ID,
+          campusId: CAMPUS_ID,
+          context: expect.objectContaining({
+            retainedHistoricalRecordCount: 2,
+            workflow: "historical_retention",
+          }),
+        }),
+        expect.anything(),
+      );
     });
   });
 });

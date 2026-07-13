@@ -28,6 +28,12 @@ const medicationOccurrenceDetailInclude = expect.objectContaining({
 });
 
 describe("PrismaMedicationRequestRepository", () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-07-11T23:59:59.999Z"));
+  });
+
+  afterEach(() => jest.useRealTimers());
+
   it("builds staff list scope for campus, direct filters, class, date overlap, and search", async () => {
     const prisma = {} as unknown as PrismaService;
     const queryService = {
@@ -81,7 +87,16 @@ describe("PrismaMedicationRequestRepository", () => {
             enrollments: {
               some: {
                 classId: "33333333-3333-4333-a333-333333333333",
-                endDate: null,
+                cancelledAt: null,
+                enrollmentDate: {
+                  lte: new Date("2026-07-11T00:00:00.000Z"),
+                },
+                OR: [
+                  { endDate: null },
+                  {
+                    endDate: { gte: new Date("2026-07-11T00:00:00.000Z") },
+                  },
+                ],
               },
             },
           },

@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { TransferStudentResponse } from "./transfer-student.response";
+import { EnrollmentReadinessContextResponse } from "./enrollment-readiness.response";
 
 export class BulkTransferSkippedItemResponse {
   @Expose()
@@ -19,6 +20,15 @@ export class BulkTransferSkippedItemResponse {
     description: "Optional human-readable detail for clients to surface.",
   })
   message?: string;
+
+  @Expose()
+  @Type(() => EnrollmentReadinessContextResponse)
+  @ApiPropertyOptional({
+    type: EnrollmentReadinessContextResponse,
+    description:
+      "Structured target/source/date context for frontend recovery UI.",
+  })
+  context?: EnrollmentReadinessContextResponse;
 }
 
 export class BulkTransferStudentsResponse {

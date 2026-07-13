@@ -1,67 +1,67 @@
-﻿fullName,nickname,status,dateOfBirth,gender
-Phạm Lê Mĩ An,Mía,DROPPED,8/8/2023,FEMALE
-Nguyễn Phúc An,Kem,DROPPED,4/4/2023,MALE
-Đào Minh Anh,,DROPPED,9/7/2023,FEMALE
-Đỗ Quang Anh,Sóc,DROPPED,15/08/2022,MALE
-Vũ Mạnh Đức,,DROPPED,27/02/2021,MALE
-Nguyễn Gia Hân,Bông,DROPPED,1/5/2024,FEMALE
-Phạm Trần Gia Khánh,,DROPPED,24/11/2021,MALE
-Đỗ MALE Khánh,,DROPPED,13/08/2022,MALE
-Phạm Bá Tuấn Kiệt,bánh bao,DROPPED,8/3/2023,MALE
-Hà Tùng Lâm,,DROPPED,26/05/2022,MALE
-Phùng Nhật Minh,Khoai,DROPPED,13/06/2022,MALE
-Hoàng Anh Minh,Mít,DROPPED,10/10/2020,MALE
-Nguyễn Ngọc Khánh My,,DROPPED,8/9/2021,FEMALE
-Jeon Du Na,,DROPPED,2/2/2023,FEMALE
-Trần Nhất MALE,,DROPPED,27/10/2020,MALE
-Nguyễn Bảo Ngọc,Miu,DROPPED,30/04/2023,FEMALE
-Phạm Hải Minh Ngọc,Cam,DROPPED,20/10/2023,FEMALE
-Đỗ Quang Nguyên,Thóc,DROPPED,13/05/2020,MALE
-Thái Ngọc An Nhiên,Lisa,DROPPED,28/11/2023,FEMALE
-Nguyễn Minh Phương,su,DROPPED,5/11/2020,FEMALE
-Phạm Hoàng Quân,,DROPPED,2/11/2024,MALE
-Chu Kiến Quốc,Gấu,DROPPED,25/03/2024,MALE
-Phạm Uyên,Bánh Bao,DROPPED,23/06/2023,FEMALE
-Nguyễn Khoa Vũ,Tít,DROPPED,19/11/2021,MALE
-Đào Bình An,,ACTIVE,1/9/2024,MALE
-Nguyễn Hữu Nguyên Anh,Bơ,ACTIVE,17/05/2024,MALE
-Nguyễn Việt Anh,Bin,ACTIVE,30/12/2024,MALE
-Nguyễn Hải Đăng,,ACTIVE,11/9/2024,MALE
-Lại Hà Quang Minh,,ACTIVE,17/06/2024,MALE
-Lại Hà Ngọc Minh,,ACTIVE,17/06/2024,FEMALE
-Vũ Trúc Uyển Nghi,Min,ACTIVE,29/08/2024,FEMALE
-Nguyễn Thiên Phú,,ACTIVE,25/08/2024,MALE
-Đỗ Duy Phúc,Ổi,ACTIVE,3/8/2024,MALE
-Phạm Thái Sang,Sáo,ACTIVE,2/2/2024,MALE
-Nguyễn Minh Tâm,,ACTIVE,22/02/2024,FEMALE
-Lê Ngọc Gia An,,ACTIVE,27/02/2024,FEMALE
-Thái Hữu Mạnh Đăng,,ACTIVE,26/01/2024,MALE
-Kim Nguyễn Hải Đăng,,ACTIVE,1/3/2024,MALE
-Nguyễn Minh Đức,True,ACTIVE,29/03/2024,MALE
-Nguyễn Hữu Quốc Hiếu,Code,ACTIVE,2/11/2024,MALE
-Nguyễn Bá Chí Hưng,Chôm Chôm,ACTIVE,16/05/2024,MALE
-Đỗ Tuấn Minh Khôi,Sonic,ACTIVE,17/02/2024,MALE
-Nghiêm Trung Kiên,,ACTIVE,5/2/2024,MALE
-Hoàng Bảo Long,Gấu,ACTIVE,13/02/2024,MALE
-Đoàn Nguyễn Nhật Minh,Bon,ACTIVE,23/02/2024,MALE
-Phạm Hoàng Minh,Rau,ACTIVE,3/1/2023,MALE
-Nguyễn Ngọc Khả Ngân,Kẹo,ACTIVE,21/05/2024,FEMALE
-Đặng Minh Ngọc,,ACTIVE,25/02/2024,FEMALE
-Nguyễn Cao Khôi Nguyên,Bơ,ACTIVE,3/2/2024,MALE
-Nguyễn Diệu Nhi,,ACTIVE,2/5/2024,FEMALE
-Đặng Minh Phương,,ACTIVE,2/2/2024,FEMALE
-Phạm Mai Phương,Mina,ACTIVE,5/4/2024,FEMALE
-Nguyễn Thu Quỳnh,,ACTIVE,24/04/2024,FEMALE
-Cù Phương Thảo,Bông,ACTIVE,18/12/2023,FEMALE
-Trần Hạ Vũ,,ACTIVE,14/03/2024,MALE
-Nguyễn Minh Anh,,ACTIVE,19/05/2023,FEMALE
-Nguyễn Trần Minh Anh,Su,ACTIVE,22/05/2023,FEMALE
-Phan Mỹ Anh,,ACTIVE,3/3/2023,FEMALE
-Lê Quang Anh,,ACTIVE,26/03/2023,MALE
-Bùi Phương Chi,,ACTIVE,2/6/2023,FEMALE
-Nguyễn Linh Đan,,ACTIVE,4/11/2023,FEMALE
-Cao Anh Dũng,,ACTIVE,1/9/2023,MALE
-Hoàng Bảo Hân,Cam,ACTIVE,26/02/2023,FEMALE
-Đỗ Quang Hiếu,Voi,ACTIVE,23/10/2023,MALE
-Nguyễn Trí Hưng,,ACTIVE,7/10/2023,MALE
-Bùi Gia Huy,Sữa,ACTIVE,28/04/2023,MALE
+seedKey,fullName,nickname,lifecycleScenario,isArchived,dateOfBirth,gender
+student-001,Phạm Lê Mĩ An,Mía,WITHDRAWN,FALSE,8/8/2023,FEMALE
+student-002,Nguyễn Phúc An,Kem,WITHDRAWN,FALSE,4/4/2023,MALE
+student-003,Đào Minh Anh,,WITHDRAWN,FALSE,9/7/2023,FEMALE
+student-004,Đỗ Quang Anh,Sóc,WITHDRAWN,FALSE,15/08/2022,MALE
+student-005,Vũ Mạnh Đức,,WITHDRAWN,FALSE,27/02/2021,MALE
+student-006,Nguyễn Gia Hân,Bông,WITHDRAWN,FALSE,1/5/2024,FEMALE
+student-007,Phạm Trần Gia Khánh,,WITHDRAWN,FALSE,24/11/2021,MALE
+student-008,Đỗ Nam Khánh,,WITHDRAWN,FALSE,13/08/2022,MALE
+student-009,Phạm Bá Tuấn Kiệt,bánh bao,WITHDRAWN,FALSE,8/3/2023,MALE
+student-010,Hà Tùng Lâm,,WITHDRAWN,FALSE,26/05/2022,MALE
+student-011,Phùng Nhật Minh,Khoai,WITHDRAWN,FALSE,13/06/2022,MALE
+student-012,Hoàng Anh Minh,Mít,WITHDRAWN,FALSE,10/10/2020,MALE
+student-013,Nguyễn Ngọc Khánh My,,WITHDRAWN,FALSE,8/9/2021,FEMALE
+student-014,Jeon Du Na,,WITHDRAWN,FALSE,2/2/2023,FEMALE
+student-015,Trần Nhất Nam,,WITHDRAWN,FALSE,27/10/2020,MALE
+student-016,Nguyễn Bảo Ngọc,Miu,WITHDRAWN,FALSE,30/04/2023,FEMALE
+student-017,Phạm Hải Minh Ngọc,Cam,WITHDRAWN,FALSE,20/10/2023,FEMALE
+student-018,Đỗ Quang Nguyên,Thóc,WITHDRAWN,FALSE,13/05/2020,MALE
+student-019,Thái Ngọc An Nhiên,Lisa,WITHDRAWN,FALSE,28/11/2023,FEMALE
+student-020,Nguyễn Minh Phương,su,WITHDRAWN,FALSE,5/11/2020,FEMALE
+student-021,Phạm Hoàng Quân,,WITHDRAWN,FALSE,2/11/2024,MALE
+student-022,Chu Kiến Quốc,Gấu,WITHDRAWN,FALSE,25/03/2024,MALE
+student-023,Phạm Uyên,Bánh Bao,WITHDRAWN,TRUE,23/06/2023,FEMALE
+student-024,Nguyễn Khoa Vũ,Tít,WITHDRAWN,TRUE,19/11/2021,MALE
+student-025,Đào Bình An,,ACTIVE,FALSE,1/9/2024,MALE
+student-026,Nguyễn Hữu Nguyên Anh,Bơ,ACTIVE,FALSE,17/05/2024,MALE
+student-027,Nguyễn Việt Anh,Bin,ACTIVE,FALSE,30/12/2024,MALE
+student-028,Nguyễn Hải Đăng,,ACTIVE,FALSE,11/9/2024,MALE
+student-029,Lại Hà Quang Minh,,ACTIVE,FALSE,17/06/2024,MALE
+student-030,Lại Hà Ngọc Minh,,ACTIVE,FALSE,17/06/2024,FEMALE
+student-031,Vũ Trúc Uyển Nghi,Min,ACTIVE,FALSE,29/08/2024,FEMALE
+student-032,Nguyễn Thiên Phú,,ACTIVE,FALSE,25/08/2024,MALE
+student-033,Đỗ Duy Phúc,Ổi,ACTIVE,FALSE,3/8/2024,MALE
+student-034,Phạm Thái Sang,Sáo,ACTIVE,FALSE,2/2/2024,MALE
+student-035,Nguyễn Minh Tâm,,ACTIVE,FALSE,22/02/2024,FEMALE
+student-036,Lê Ngọc Gia An,,ACTIVE,FALSE,27/02/2024,FEMALE
+student-037,Thái Hữu Mạnh Đăng,,ACTIVE,FALSE,26/01/2024,MALE
+student-038,Kim Nguyễn Hải Đăng,,ACTIVE,FALSE,1/3/2024,MALE
+student-039,Nguyễn Minh Đức,True,ACTIVE,FALSE,29/03/2024,MALE
+student-040,Nguyễn Hữu Quốc Hiếu,Code,ACTIVE,FALSE,2/11/2024,MALE
+student-041,Nguyễn Bá Chí Hưng,Chôm Chôm,ACTIVE,FALSE,16/05/2024,MALE
+student-042,Đỗ Tuấn Minh Khôi,Sonic,ACTIVE,FALSE,17/02/2024,MALE
+student-043,Nghiêm Trung Kiên,,ACTIVE,FALSE,5/2/2024,MALE
+student-044,Hoàng Bảo Long,Gấu,ACTIVE,FALSE,13/02/2024,MALE
+student-045,Đoàn Nguyễn Nhật Minh,Bon,ACTIVE,FALSE,23/02/2024,MALE
+student-046,Phạm Hoàng Minh,Rau,ACTIVE,FALSE,3/1/2023,MALE
+student-047,Nguyễn Ngọc Khả Ngân,Kẹo,ACTIVE,FALSE,21/05/2024,FEMALE
+student-048,Đặng Minh Ngọc,,ACTIVE,FALSE,25/02/2024,FEMALE
+student-049,Nguyễn Cao Khôi Nguyên,Bơ,ACTIVE,FALSE,3/2/2024,MALE
+student-050,Nguyễn Diệu Nhi,,ACTIVE,FALSE,2/5/2024,FEMALE
+student-051,Đặng Minh Phương,,ACTIVE,FALSE,2/2/2024,FEMALE
+student-052,Phạm Mai Phương,Mina,ACTIVE,FALSE,5/4/2024,FEMALE
+student-053,Nguyễn Thu Quỳnh,,ACTIVE,FALSE,24/04/2024,FEMALE
+student-054,Cù Phương Thảo,Bông,ACTIVE,FALSE,18/12/2023,FEMALE
+student-055,Trần Hạ Vũ,,DEFERRED,FALSE,14/03/2024,MALE
+student-056,Nguyễn Minh Anh,,DEFERRED,FALSE,19/05/2023,FEMALE
+student-057,Nguyễn Trần Minh Anh,Su,DEFERRED,FALSE,22/05/2023,FEMALE
+student-058,Phan Mỹ Anh,,DEFERRED,FALSE,3/3/2023,FEMALE
+student-059,Lê Quang Anh,,WAITING,FALSE,26/03/2023,MALE
+student-060,Bùi Phương Chi,,WAITING,FALSE,2/6/2023,FEMALE
+student-061,Nguyễn Linh Đan,,WAITING,FALSE,4/11/2023,FEMALE
+student-062,Cao Anh Dũng,,COMPLETED,FALSE,1/9/2023,MALE
+student-063,Hoàng Bảo Hân,Cam,COMPLETED,FALSE,26/02/2023,FEMALE
+student-064,Đỗ Quang Hiếu,Voi,GRADUATED,FALSE,23/10/2023,MALE
+student-065,Nguyễn Trí Hưng,,GRADUATED,FALSE,7/10/2023,MALE
+student-066,Bùi Gia Huy,Sữa,WITHDRAWN,FALSE,28/04/2023,MALE

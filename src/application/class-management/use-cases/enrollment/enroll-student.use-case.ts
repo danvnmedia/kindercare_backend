@@ -15,6 +15,12 @@ import { StudentRepository } from "@/application/user-management/ports/student.r
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
 import { AuditEventRecorderPort } from "@/application/audit/ports/audit-event-recorder.port";
+import { buildEnrollmentSnapshot } from "../../historical-snapshot";
+import { EnrollmentErrorCode } from "../../enrollment-error-codes";
+import {
+  buildEnrollmentPeriodOverlapDetails,
+  isEnrollmentPeriodOverlapPersistenceError,
+} from "../../enrollment-period";
 
 export interface EnrollStudentInput {
   campusId: string;
@@ -83,37 +89,30 @@ export class EnrollStudentUseCase {
         throw new BadRequestException("ENROLLMENT_DATE_OUT_OF_SCHOOL_YEAR");
       }
 
-      // Step 4: Reject if student has any currently-active enrollment.
-      // Caller must transfer (atomic) or withdraw + enroll (two steps).
-      const activeEnrollment =
-        await this.enrollmentRepository.findActiveByStudentId(input.studentId);
-      if (activeEnrollment) {
-        throw new ConflictException("STUDENT_ALREADY_ENROLLED");
-      }
-
-      // Step 5: Defensive composite-key check (student, class, enrollmentDate).
-      // The DB-level constraint would otherwise raise an opaque unique-violation.
-      const existingEnrollment =
-        await this.enrollmentRepository.findByStudentClassDate(
+      // Step 4: The proposed null-end period may coexist with current/future
+      // rows only when its inclusive interval does not overlap them.
+      const overlap =
+        await this.enrollmentRepository.findOverlappingByStudentId(
           input.studentId,
-          input.classId,
           input.enrollmentDate,
         );
-      if (existingEnrollment) {
-        throw new ConflictException(
-          `Student is already enrolled in this class on this date`,
-        );
+      if (overlap) {
+        throw new ConflictException({
+          ...buildEnrollmentPeriodOverlapDetails(overlap),
+          message: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+        });
       }
 
-      // Step 6: Parent-enrollment gate (specs/school-year-enrollment-model D1/D3).
-      // Class enrollment requires an open parent SchoolYearEnrollment for the
+      // Step 5: Parent-enrollment gate (specs/school-year-enrollment-model D1/D3).
+      // Class enrollment requires a parent SchoolYearEnrollment covering the
       // student in the class's school year, and the parent's grade level must
       // match the class's grade level. Year-end grade changes go through the
       // (v2) promotion flow, not via direct class enrollment.
       const parent =
-        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+        await this.schoolYearEnrollmentRepository.findCoveringDateByStudentAndSchoolYear(
           input.studentId,
           classEntity.schoolYearId,
+          input.enrollmentDate,
         );
       if (!parent) {
         throw new ConflictException(
@@ -126,37 +125,49 @@ export class EnrollStudentUseCase {
         );
       }
 
-      // Step 7: Create enrollment with parent FK threaded through.
+      // Step 6: Create enrollment with parent FK threaded through.
       const enrollment = Enrollment.create({
         classId: input.classId,
         studentId: input.studentId,
         schoolYearEnrollmentId: parent.id,
         enrollmentDate: input.enrollmentDate,
         note: input.note || null,
+        ...buildEnrollmentSnapshot(student, classEntity),
       });
 
-      // Step 8: Persist + emit audit inside one tx (D4 atomicity —
+      // Step 7: Persist + emit audit inside one tx (D4 atomicity —
       // @doc/specs/admin-audit-log). Recorder throw rolls back the enrollment.
-      const savedEnrollment = await this.transactionRunner.run(async (tx) => {
-        const saved = await this.enrollmentRepository.save(enrollment, tx);
-        await this.recorder.record(
-          {
-            actorId: currentUser.id,
-            action: "ENROLL_STUDENT_TO_CLASS",
-            targetType: "student",
-            targetId: input.studentId,
-            campusId: input.campusId,
-            context: {
-              actorName: currentUser.profile?.fullName ?? null,
-              classId: input.classId,
-              className: classEntity.name,
-              enrollmentDate: input.enrollmentDate.toISOString(),
+      let savedEnrollment: Enrollment;
+      try {
+        savedEnrollment = await this.transactionRunner.run(async (tx) => {
+          const saved = await this.enrollmentRepository.save(enrollment, tx);
+          await this.recorder.record(
+            {
+              actorId: currentUser.id,
+              action: "ENROLL_STUDENT_TO_CLASS",
+              targetType: "student",
+              targetId: input.studentId,
+              campusId: input.campusId,
+              context: {
+                actorName: currentUser.profile?.fullName ?? null,
+                classId: input.classId,
+                className: classEntity.name,
+                enrollmentDate: input.enrollmentDate.toISOString(),
+              },
             },
-          },
-          tx,
-        );
-        return saved;
-      });
+            tx,
+          );
+          return saved;
+        });
+      } catch (error) {
+        if (isEnrollmentPeriodOverlapPersistenceError(error)) {
+          throw new ConflictException({
+            ...buildEnrollmentPeriodOverlapDetails(null),
+            message: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+          });
+        }
+        throw error;
+      }
       this.logger.log(`Enrollment created: ${savedEnrollment.id}`);
 
       return savedEnrollment;

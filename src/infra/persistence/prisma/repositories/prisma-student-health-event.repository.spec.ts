@@ -71,4 +71,29 @@ describe("PrismaStudentHealthEventRepository", () => {
       lte: new Date("2026-06-30T23:59:59.999Z"),
     });
   });
+
+  it("filters class-scoped events by uncancelled enrollment effective on the selected date", async () => {
+    const selectedDate = new Date("2026-07-01T00:00:00.000Z");
+
+    await repository.findOpenForHealthCenter({
+      campusId: CAMPUS_ID,
+      classId: "class-1",
+      referenceDate: selectedDate,
+      offset: 0,
+      limit: 50,
+    });
+
+    const arg = eventDelegate.findMany.mock.calls[0][0];
+    const expectedEnrollment = {
+      classId: "class-1",
+      class: { campusId: CAMPUS_ID },
+      cancelledAt: null,
+      enrollmentDate: { lte: selectedDate },
+      OR: [{ endDate: null }, { endDate: { gte: selectedDate } }],
+    };
+    expect(arg.where.student.enrollments.some).toEqual(expectedEnrollment);
+    expect(arg.include.student.select.enrollments.where).toEqual(
+      expectedEnrollment,
+    );
+  });
 });

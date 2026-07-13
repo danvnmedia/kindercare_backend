@@ -5,7 +5,7 @@ import {
   HTTP_CODE_METADATA,
   METHOD_METADATA,
 } from "@nestjs/common/constants";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import {
   CMS_ROUTE_VISIBILITY_KEY,

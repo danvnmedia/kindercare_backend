@@ -1,21 +1,25 @@
 import { NotFoundException } from "@nestjs/common";
 import { GetStudentSchoolYearHistoryUseCase } from "./get-student-school-year-history.use-case";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
+import { HistoricalRecordRepository } from "../../ports/historical-record.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { SchoolYear } from "@/domain/class-management/entities/school-year.entity";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { EnrollmentCancellationReason } from "@/domain/class-management/enums/enrollment-cancellation-reason.enum";
 
 describe("GetStudentSchoolYearHistoryUseCase", () => {
   let useCase: GetStudentSchoolYearHistoryUseCase;
   let mockSyeRepository: jest.Mocked<SchoolYearEnrollmentRepository>;
   let mockStudentRepository: jest.Mocked<StudentRepository>;
+  let historicalRecordRepo: jest.Mocked<HistoricalRecordRepository>;
 
   const campusId = "campus-1";
   const differentCampusId = "campus-2";
   const studentId = "student-1";
+  const referenceDate = new Date("2026-07-11T12:00:00.000Z");
 
   const createMockStudent = (overrides: { campusId?: string } = {}): Student =>
     Student.create(
@@ -86,11 +90,19 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
     );
 
   beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(referenceDate);
     mockSyeRepository = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -116,11 +128,18 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
       getStudentGuardians: jest.fn(),
     } as jest.Mocked<StudentRepository>;
 
+    historicalRecordRepo = {
+      findCorrections: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<HistoricalRecordRepository>;
+
     useCase = new GetStudentSchoolYearHistoryUseCase(
       mockSyeRepository,
       mockStudentRepository,
+      historicalRecordRepo,
     );
   });
+
+  afterEach(() => jest.useRealTimers());
 
   it("returns a flat view per row ordered as the repository returns (DESC by date)", async () => {
     mockStudentRepository.findById.mockResolvedValue(createMockStudent());
@@ -195,6 +214,7 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
       order: 1,
     });
     expect(result[0].childEnrollmentCount).toBe(2);
+    expect(result[0].effectiveStatus).toBe("ACTIVE");
 
     // Row 1: closed parent (COMPLETED) in prior year, 1 child.
     expect(result[1].schoolYearId).toBe("sy-2024-2025");
@@ -203,10 +223,19 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
     expect(result[1].schoolYear?.name).toBe("SY 2024-2025");
     expect(result[1].gradeLevel?.name).toBe("Lớp Nhà Trẻ");
     expect(result[1].childEnrollmentCount).toBe(1);
+    expect(result[1].effectiveStatus).toBe("CLOSED");
 
     expect(
       mockSyeRepository.findAllByStudentIdWithChildCount,
     ).toHaveBeenCalledWith(studentId);
+    expect(historicalRecordRepo.findCorrections).toHaveBeenCalledWith(
+      "SCHOOL_YEAR_ENROLLMENT",
+      "sye-2025",
+    );
+    expect(historicalRecordRepo.findCorrections).toHaveBeenCalledWith(
+      "SCHOOL_YEAR_ENROLLMENT",
+      "sye-2024",
+    );
   });
 
   it("returns an empty array when the student has no history", async () => {
@@ -219,6 +248,33 @@ describe("GetStudentSchoolYearHistoryUseCase", () => {
     expect(
       mockSyeRepository.findAllByStudentIdWithChildCount,
     ).toHaveBeenCalledWith(studentId);
+  });
+
+  it("retains cancelled parent history with actor metadata", async () => {
+    mockStudentRepository.findById.mockResolvedValue(createMockStudent());
+    const cancelled = createMockParent({
+      id: "sye-cancelled",
+      enrollmentDate: new Date("2026-09-01T00:00:00.000Z"),
+    }).cancel({
+      cancelledAt: referenceDate,
+      reason: EnrollmentCancellationReason.CHANGED_SCHOOL,
+      note: "changed school",
+      actorId: "actor-1",
+      actorFullName: "Alice Admin",
+    });
+    mockSyeRepository.findAllByStudentIdWithChildCount.mockResolvedValue([
+      { enrollment: cancelled, childEnrollmentCount: 0 },
+    ]);
+
+    const result = await useCase.execute({ studentId, campusId });
+
+    expect(result[0]).toMatchObject({
+      effectiveStatus: "CANCELLED",
+      cancellationReason: EnrollmentCancellationReason.CHANGED_SCHOOL,
+      cancellationNote: "changed school",
+      cancelledBy: { id: "actor-1", fullName: "Alice Admin" },
+      childEnrollmentCount: 0,
+    });
   });
 
   it("throws 404 when the student does not exist", async () => {

@@ -1,8 +1,10 @@
 import { PrismaSchoolYearEnrollmentRepository } from "./prisma-school-year-enrollment.repository";
 import { PrismaService } from "../prisma.service";
+import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 
 type SyeDelegateMock = {
   findUnique: jest.Mock;
@@ -16,6 +18,7 @@ type EnrollmentDelegateMock = {
   findUnique: jest.Mock;
   findFirst: jest.Mock;
   findMany: jest.Mock;
+  count: jest.Mock;
   create: jest.Mock;
   update: jest.Mock;
 };
@@ -29,6 +32,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
     enrollment: EnrollmentDelegateMock;
     $transaction: jest.Mock;
   };
+  let queryService: jest.Mocked<PrismaQueryService>;
 
   // Canonical Prisma row with the three relations the repo always includes.
   // The mapper consumes these to hydrate the nested domain entities.
@@ -144,6 +148,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       findMany: jest.fn(),
+      count: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     };
@@ -152,8 +157,12 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
       enrollment: enrollmentDelegate,
       $transaction: jest.fn(),
     };
+    queryService = {
+      executeQuery: jest.fn(),
+    } as unknown as jest.Mocked<PrismaQueryService>;
     repository = new PrismaSchoolYearEnrollmentRepository(
       prisma as unknown as PrismaService,
+      queryService,
     );
   });
 
@@ -201,6 +210,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
           studentId: "student-1",
           schoolYearId: "year-1",
           exitDate: null,
+          cancelledAt: null,
         },
         include: { student: true, schoolYear: true, gradeLevel: true },
       });
@@ -218,6 +228,54 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
       );
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("date-effective parent lookups", () => {
+    it("finds an uncancelled parent covering the effective UTC date inclusively", async () => {
+      syeDelegate.findFirst.mockResolvedValue(prismaRowFactory());
+
+      await repository.findCoveringDateByStudentAndSchoolYear(
+        "student-1",
+        "year-1",
+        new Date("2026-01-15T18:30:00.000Z"),
+      );
+
+      expect(syeDelegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          studentId: "student-1",
+          schoolYearId: "year-1",
+          cancelledAt: null,
+          enrollmentDate: { lte: new Date("2026-01-15T00:00:00.000Z") },
+          OR: [
+            { exitDate: null },
+            { exitDate: { gte: new Date("2026-01-15T00:00:00.000Z") } },
+          ],
+        },
+        include: { student: true, schoolYear: true, gradeLevel: true },
+        orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
+      });
+    });
+
+    it("returns future uncancelled parents in deterministic order", async () => {
+      syeDelegate.findMany.mockResolvedValue([]);
+
+      await repository.findUpcomingByStudentAndSchoolYear(
+        "student-1",
+        "year-1",
+        new Date("2026-01-15T23:59:00.000Z"),
+      );
+
+      expect(syeDelegate.findMany).toHaveBeenCalledWith({
+        where: {
+          studentId: "student-1",
+          schoolYearId: "year-1",
+          cancelledAt: null,
+          enrollmentDate: { gt: new Date("2026-01-15T00:00:00.000Z") },
+        },
+        include: { student: true, schoolYear: true, gradeLevel: true },
+        orderBy: [{ enrollmentDate: "asc" }, { id: "asc" }],
+      });
     });
   });
 
@@ -253,6 +311,31 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
       const result = await repository.findAllByStudentId("student-1");
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("findAllByStudentIdWithChildCount", () => {
+    it("retains all parent history while counting only uncancelled children", async () => {
+      syeDelegate.findMany.mockResolvedValue([
+        { ...prismaRowFactory(), _count: { enrollments: 2 } },
+      ]);
+
+      const result =
+        await repository.findAllByStudentIdWithChildCount("student-1");
+
+      expect(syeDelegate.findMany).toHaveBeenCalledWith({
+        where: { studentId: "student-1" },
+        include: {
+          student: true,
+          schoolYear: true,
+          gradeLevel: true,
+          _count: {
+            select: { enrollments: { where: { cancelledAt: null } } },
+          },
+        },
+        orderBy: { enrollmentDate: "desc" },
+      });
+      expect(result[0].childEnrollmentCount).toBe(2);
     });
   });
 
@@ -344,6 +427,360 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
     });
   });
 
+  describe("countChildEnrollments", () => {
+    it("counts child enrollment rows by schoolYearEnrollmentId", async () => {
+      enrollmentDelegate.count.mockResolvedValue(2);
+
+      const result = await repository.countChildEnrollments("sye-1");
+
+      expect(enrollmentDelegate.count).toHaveBeenCalledWith({
+        where: { schoolYearEnrollmentId: "sye-1" },
+      });
+      expect(result).toBe(2);
+    });
+  });
+
+  describe("findStudentsBySchoolYear", () => {
+    it("routes through StandardRequest pagination with campus/year scope, segment, search, and relation includes", async () => {
+      const activeChild = enrollmentRowFactory({
+        id: "enrollment-active",
+        enrollmentDate: new Date("2026-07-01T00:00:00.000Z"),
+        endDate: null,
+      });
+      queryService.executeQuery.mockResolvedValue({
+        data: [
+          {
+            ...prismaRowFactory({
+              id: "sye-active",
+              snapshotStudentFullName: "Snapshot Bé A",
+            }),
+            enrollments: [activeChild],
+            _count: { enrollments: 1 },
+          },
+        ],
+        pagination: {
+          count: 1,
+          limit: 10,
+          offset: 0,
+          totalPages: 1,
+          currentPage: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      });
+
+      const result = await repository.findStudentsBySchoolYear(
+        "campus-1",
+        "year-1",
+        { limit: 10, offset: 0, sort: "-enrollmentDate" },
+        new Date("2026-07-11T23:59:59.999Z"),
+        { segment: "active", search: "bé a" },
+      );
+
+      expect(queryService.executeQuery).toHaveBeenCalledTimes(1);
+      const [, modelName, params, options] =
+        queryService.executeQuery.mock.calls[0];
+      const queryOptions = options!;
+      const where = queryOptions.where!;
+      const include = queryOptions.include!;
+      expect(modelName).toBe("schoolYearEnrollment");
+      expect(params.allowedFilterFields).toEqual([
+        "studentId",
+        "gradeLevelId",
+        "enrollmentDate",
+        "exitDate",
+        "exitReason",
+      ]);
+      expect(params.allowedSortFields).toEqual([
+        "enrollmentDate",
+        "exitDate",
+        "createdAt",
+      ]);
+      expect(where).toMatchObject({
+        campusId: "campus-1",
+        schoolYearId: "year-1",
+      });
+      expect(where.AND).toEqual(
+        expect.arrayContaining([
+          {
+            cancelledAt: null,
+            enrollmentDate: { lte: new Date("2026-07-11T00:00:00.000Z") },
+            OR: [
+              { exitDate: null },
+              { exitDate: { gte: new Date("2026-07-11T00:00:00.000Z") } },
+            ],
+            enrollments: {
+              some: {
+                cancelledAt: null,
+                enrollmentDate: {
+                  lte: new Date("2026-07-11T00:00:00.000Z"),
+                },
+                OR: [
+                  { endDate: null },
+                  {
+                    endDate: { gte: new Date("2026-07-11T00:00:00.000Z") },
+                  },
+                ],
+              },
+            },
+          },
+          expect.objectContaining({ OR: expect.any(Array) }),
+        ]),
+      );
+      expect(include).toMatchObject({
+        student: true,
+        schoolYear: true,
+        gradeLevel: true,
+        _count: {
+          select: { enrollments: { where: { cancelledAt: null } } },
+        },
+      });
+      expect(include.enrollments.include.class.include).toEqual({
+        schoolYear: true,
+        gradeLevel: true,
+      });
+      expect(result.data[0].enrollment.id).toBe("sye-active");
+      expect(result.data[0].classAssignment!.id).toBe("enrollment-active");
+      expect(result.data[0].classAssignmentState).toBe("ACTIVE");
+      expect(result.data[0].childEnrollmentCount).toBe(1);
+    });
+
+    it("keeps completed and graduated segments distinct", async () => {
+      queryService.executeQuery.mockResolvedValue({
+        data: [],
+        pagination: {
+          count: 0,
+          limit: 10,
+          offset: 0,
+          totalPages: 0,
+          currentPage: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      });
+
+      await repository.findStudentsBySchoolYear(
+        "campus-1",
+        "year-1",
+        {},
+        new Date("2026-07-11T12:00:00.000Z"),
+        { segment: "completed" },
+      );
+      await repository.findStudentsBySchoolYear(
+        "campus-1",
+        "year-1",
+        {},
+        new Date("2026-07-11T12:00:00.000Z"),
+        { segment: "graduated" },
+      );
+
+      expect(
+        queryService.executeQuery.mock.calls[0][3]!.where!.AND,
+      ).toContainEqual({
+        cancelledAt: null,
+        exitDate: { lt: new Date("2026-07-11T00:00:00.000Z") },
+        exitReason: ExitReason.COMPLETED,
+      });
+      expect(
+        queryService.executeQuery.mock.calls[1][3]!.where!.AND,
+      ).toContainEqual({
+        cancelledAt: null,
+        exitDate: { lt: new Date("2026-07-11T00:00:00.000Z") },
+        exitReason: ExitReason.GRADUATED,
+      });
+    });
+
+    it("uses a date-effective upcoming segment and assignment state", async () => {
+      const upcomingChild = enrollmentRowFactory({
+        id: "enrollment-upcoming",
+        enrollmentDate: new Date("2026-09-01T00:00:00.000Z"),
+      });
+      queryService.executeQuery.mockResolvedValue({
+        data: [
+          {
+            ...prismaRowFactory({ id: "sye-upcoming" }),
+            enrollments: [upcomingChild],
+            _count: { enrollments: 1 },
+          },
+        ],
+        pagination: {
+          count: 1,
+          limit: 10,
+          offset: 0,
+          totalPages: 1,
+          currentPage: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      });
+
+      const result = await repository.findStudentsBySchoolYear(
+        "campus-1",
+        "year-1",
+        {},
+        new Date("2026-07-11T23:59:59.999Z"),
+        { segment: "upcoming" },
+      );
+
+      expect(
+        queryService.executeQuery.mock.calls[0][3]!.where!.AND,
+      ).toContainEqual({
+        cancelledAt: null,
+        enrollmentDate: { gt: new Date("2026-07-11T00:00:00.000Z") },
+      });
+      expect(result.data[0].classAssignmentState).toBe("UPCOMING");
+    });
+
+    it("keeps future parents out of unassigned with date-effective predicates", async () => {
+      queryService.executeQuery.mockResolvedValue({
+        data: [],
+        pagination: {
+          count: 0,
+          limit: 10,
+          offset: 0,
+          totalPages: 0,
+          currentPage: 1,
+          hasNext: false,
+          hasPrev: false,
+        },
+      });
+
+      await repository.findStudentsBySchoolYear(
+        "campus-1",
+        "year-1",
+        {},
+        new Date("2026-07-11T23:59:59.999Z"),
+        { segment: "unassigned" },
+      );
+
+      expect(
+        queryService.executeQuery.mock.calls[0][3]!.where!.AND,
+      ).toContainEqual({
+        cancelledAt: null,
+        enrollmentDate: { lte: new Date("2026-07-11T00:00:00.000Z") },
+        OR: [
+          { exitDate: null },
+          { exitDate: { gte: new Date("2026-07-11T00:00:00.000Z") } },
+        ],
+        enrollments: {
+          none: {
+            cancelledAt: null,
+            OR: [
+              { endDate: null },
+              {
+                endDate: { gte: new Date("2026-07-11T00:00:00.000Z") },
+              },
+            ],
+          },
+        },
+      });
+    });
+
+    it("prioritizes active, then upcoming, closed, and cancelled assignments", async () => {
+      const referenceDate = new Date("2026-07-11T00:00:00.000Z");
+      const active = enrollmentRowFactory({
+        id: "active",
+        enrollmentDate: new Date("2026-07-01T00:00:00.000Z"),
+      });
+      const upcoming = enrollmentRowFactory({ id: "upcoming" });
+      const closed = enrollmentRowFactory({
+        id: "closed",
+        enrollmentDate: new Date("2026-01-01T00:00:00.000Z"),
+        endDate: new Date("2026-06-30T00:00:00.000Z"),
+        exitReason: "WITHDRAWN",
+      });
+      const cancelled = enrollmentRowFactory({
+        id: "cancelled",
+        cancelledAt: new Date("2026-07-01T00:00:00.000Z"),
+        cancellationReason: "FAMILY_REQUEST",
+        cancellationNote: null,
+        cancelledByUserId: "actor-1",
+        cancelledByFullName: "Alice Admin",
+      });
+      const states = [
+        [[cancelled], "CANCELLED"],
+        [[cancelled, closed], "CLOSED"],
+        [[cancelled, closed, upcoming], "UPCOMING"],
+        [[cancelled, closed, upcoming, active], "ACTIVE"],
+      ] as const;
+
+      for (const [enrollments, expectedState] of states) {
+        queryService.executeQuery.mockResolvedValueOnce({
+          data: [
+            {
+              ...prismaRowFactory(),
+              enrollments: [...enrollments],
+              _count: { enrollments: enrollments.length },
+            },
+          ],
+          pagination: {
+            count: 1,
+            limit: 10,
+            offset: 0,
+            totalPages: 1,
+            currentPage: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+        });
+
+        const result = await repository.findStudentsBySchoolYear(
+          "campus-1",
+          "year-1",
+          {},
+          referenceDate,
+        );
+
+        expect(result.data[0].classAssignmentState).toBe(expectedState);
+      }
+    });
+  });
+
+  describe("correctGradeLevel", () => {
+    it("updates only gradeLevelId and updatedAt through the dedicated path", async () => {
+      syeDelegate.update.mockResolvedValue(
+        prismaRowFactory({ gradeLevelId: "grade-2" }),
+      );
+
+      const result = await repository.correctGradeLevel("sye-1", "grade-2");
+
+      const updateArg = syeDelegate.update.mock.calls[0][0];
+      expect(updateArg.where).toEqual({ id: "sye-1" });
+      expect(updateArg.data.gradeLevelId).toBe("grade-2");
+      expect(updateArg.data.updatedAt).toBeInstanceOf(Date);
+      expect(updateArg.data).not.toHaveProperty("studentId");
+      expect(updateArg.data).not.toHaveProperty("campusId");
+      expect(updateArg.data).not.toHaveProperty("schoolYearId");
+      expect(updateArg.data).not.toHaveProperty("enrollmentDate");
+      expect(updateArg.include).toEqual({
+        student: true,
+        schoolYear: true,
+        gradeLevel: true,
+      });
+      expect(result.gradeLevelId).toBe("grade-2");
+    });
+
+    it("uses the supplied transaction client when provided", async () => {
+      const txSye: SyeDelegateMock = {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      };
+      txSye.update.mockResolvedValue(
+        prismaRowFactory({ gradeLevelId: "grade-2" }),
+      );
+
+      await repository.correctGradeLevel("sye-1", "grade-2", {
+        schoolYearEnrollment: txSye,
+      } as unknown as AppTransactionClient);
+
+      expect(txSye.update).toHaveBeenCalledTimes(1);
+      expect(syeDelegate.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe("withdrawWithChildren (atomic cascade)", () => {
     // Helpers — keep the shared fixture set small but realistic.
     const buildOpenParent = () =>
@@ -392,6 +829,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       };
@@ -457,6 +895,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       };
@@ -493,6 +932,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       };
@@ -535,6 +975,7 @@ describe("PrismaSchoolYearEnrollmentRepository", () => {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
         create: jest.fn(),
         update: jest.fn(),
       };

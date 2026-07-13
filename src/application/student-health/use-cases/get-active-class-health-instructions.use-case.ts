@@ -2,7 +2,7 @@ import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { EnrollmentRepository } from "@/application/class-management/ports/enrollment.repository";
-import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { EnrollmentEffectiveStatusFilter } from "@/application/class-management/enrollment-effective-status-filter";
 
 import { StudentHealthInstructionRepository } from "../ports";
 import {
@@ -55,11 +55,12 @@ export class GetActiveClassHealthInstructionsUseCase {
       throw new NotFoundException(`Class with ID ${input.classId} not found`);
     }
 
-    const enrollments = (
-      await this.enrollmentRepository.findHistoricalByClassId(input.classId)
-    ).filter((enrollment) =>
-      isEnrollmentActiveOnDate(enrollment, referenceDate),
-    );
+    const enrollments =
+      await this.enrollmentRepository.findByClassIdAndEffectiveStatus(
+        input.classId,
+        EnrollmentEffectiveStatusFilter.ACTIVE,
+        referenceDate,
+      );
     const activeStudents = enrollments
       .map((enrollment) => enrollment.student)
       .filter((student): student is NonNullable<typeof student> => !!student)
@@ -100,23 +101,4 @@ export class GetActiveClassHealthInstructionsUseCase {
       })),
     };
   }
-}
-
-function isEnrollmentActiveOnDate(
-  enrollment: Enrollment,
-  referenceDate: Date,
-): boolean {
-  const reference = toDateOnly(referenceDate).getTime();
-  const start = toDateOnly(enrollment.enrollmentDate).getTime();
-  const end = enrollment.endDate
-    ? toDateOnly(enrollment.endDate).getTime()
-    : null;
-
-  return start <= reference && (end === null || end >= reference);
-}
-
-function toDateOnly(date: Date): Date {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-  );
 }

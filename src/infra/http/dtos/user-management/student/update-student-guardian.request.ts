@@ -8,6 +8,6 @@ export class UpdateStudentGuardianRequest {
     example: "123e4567-e89b-12d3-a456-426614174002",
   })
   @IsNotEmpty()
-  @IsUUID("4", { message: "Relationship ID must be a valid UUID" })
+  @IsUUID("all", { message: "Relationship ID must be a valid UUID" })
   relationshipId: string;
 }

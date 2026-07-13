@@ -19,11 +19,11 @@ import { PrismaSchoolYearMapper } from "../mapper/prisma-school-year.mapper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+import { toUtcDateOnly } from "@/domain/class-management/enrollment-effective-status";
 
 type PrismaClassListRow = PrismaClass & {
   gradeLevel: PrismaGradeLevel | null;
   schoolYear: PrismaSchoolYear | null;
-  _count: { enrollments: number };
   staff: Array<{
     role: ClassStaffRole;
     createdAt: Date;
@@ -141,6 +141,7 @@ export class PrismaClassRepository implements ClassRepository {
   async findAll(
     campusId: string,
     params: StandardRequest,
+    referenceDate: Date,
   ): Promise<PaginatedResult<ClassListItemView>> {
     params.allowedFilterFields = [
       "name",
@@ -164,7 +165,6 @@ export class PrismaClassRepository implements ClassRepository {
         include: {
           gradeLevel: true,
           schoolYear: true,
-          _count: { select: { enrollments: { where: { endDate: null } } } },
           staff: {
             include: { staff: { select: { id: true, fullName: true } } },
             orderBy: [{ role: "asc" }, { createdAt: "asc" }],
@@ -172,6 +172,51 @@ export class PrismaClassRepository implements ClassRepository {
         },
       },
       null,
+    );
+
+    const classIds = result.data.map((row) => row.id);
+    const referenceDay = toUtcDateOnly(referenceDate);
+    const [activeCounts, upcomingCounts, historicalCounts] = classIds.length
+      ? await Promise.all([
+          this.prisma.enrollment.groupBy({
+            by: ["classId"],
+            where: {
+              classId: { in: classIds },
+              cancelledAt: null,
+              enrollmentDate: { lte: referenceDay },
+              OR: [{ endDate: null }, { endDate: { gte: referenceDay } }],
+            },
+            _count: { _all: true },
+          }),
+          this.prisma.enrollment.groupBy({
+            by: ["classId"],
+            where: {
+              classId: { in: classIds },
+              cancelledAt: null,
+              enrollmentDate: { gt: referenceDay },
+            },
+            _count: { _all: true },
+          }),
+          this.prisma.enrollment.groupBy({
+            by: ["classId"],
+            where: {
+              classId: { in: classIds },
+              cancelledAt: null,
+              endDate: { lt: referenceDay },
+            },
+            _count: { _all: true },
+          }),
+        ])
+      : [[], [], []];
+
+    const activeCountByClassId = new Map(
+      activeCounts.map((row) => [row.classId, row._count._all]),
+    );
+    const historicalCountByClassId = new Map(
+      historicalCounts.map((row) => [row.classId, row._count._all]),
+    );
+    const upcomingCountByClassId = new Map(
+      upcomingCounts.map((row) => [row.classId, row._count._all]),
     );
 
     const data: ClassListItemView[] = result.data.map((row) => ({
@@ -187,7 +232,9 @@ export class PrismaClassRepository implements ClassRepository {
       schoolYear: row.schoolYear
         ? PrismaSchoolYearMapper.toDomain(row.schoolYear)
         : null,
-      studentCount: row._count.enrollments,
+      activeStudentCount: activeCountByClassId.get(row.id) ?? 0,
+      upcomingStudentCount: upcomingCountByClassId.get(row.id) ?? 0,
+      historicalStudentCount: historicalCountByClassId.get(row.id) ?? 0,
       staff: row.staff.map((cs) => ({
         id: cs.staff.id,
         fullName: cs.staff.fullName,

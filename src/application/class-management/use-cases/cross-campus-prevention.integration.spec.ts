@@ -40,8 +40,15 @@ const createMockSyeRepository =
     ({
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -72,11 +79,15 @@ describe("Cross-Campus Prevention Integration Tests", () => {
       mockEnrollmentRepository = {
         findById: jest.fn(),
         findByStudentClassDate: jest.fn(),
+        findEffectiveByStudentIdAt: jest.fn(),
+        findUpcomingByStudentId: jest.fn(),
+        findStructurallyOpenByStudentId: jest.fn(),
+        findOverlappingByStudentId: jest.fn(),
+        findBySchoolYearEnrollmentId: jest.fn(),
         findByClassId: jest.fn(),
         findByStudentId: jest.fn(),
         findActiveByStudentId: jest.fn(),
-        findActiveByClassId: jest.fn(),
-        findHistoricalByClassId: jest.fn(),
+        findByClassIdAndEffectiveStatus: jest.fn(),
         findAllByStudentId: jest.fn(),
         findAll: jest.fn(),
         save: jest.fn(),
@@ -230,20 +241,24 @@ describe("Cross-Campus Prevention Integration Tests", () => {
       mockEnrollmentRepository.save.mockImplementation(async (e) => e);
       // Past the cross-campus checks, the parent-enrollment gate runs (D1/D3).
       // Stub an open parent with the matching grade so the happy path reaches save().
+      const parent = SchoolYearEnrollment.create(
+        {
+          studentId: "student-1",
+          campusId: campusA,
+          schoolYearId: "school-year-1",
+          gradeLevelId: "grade-level-1",
+          enrollmentDate: new Date("2020-09-01T00:00:00.000Z"),
+          exitDate: null,
+          exitReason: null,
+          note: null,
+        },
+        "sye-cross-campus-happy",
+      );
       mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(
-        SchoolYearEnrollment.create(
-          {
-            studentId: "student-1",
-            campusId: campusA,
-            schoolYearId: "school-year-1",
-            gradeLevelId: "grade-level-1",
-            enrollmentDate: new Date("2020-09-01T00:00:00.000Z"),
-            exitDate: null,
-            exitReason: null,
-            note: null,
-          },
-          "sye-cross-campus-happy",
-        ),
+        parent,
+      );
+      mockSyeRepository.findCoveringDateByStudentAndSchoolYear.mockResolvedValue(
+        parent,
       );
 
       const result = await useCase.execute(
@@ -420,11 +435,15 @@ describe("Cross-Campus Prevention Integration Tests", () => {
       const mockEnrollmentRepository = {
         findById: jest.fn(),
         findByStudentClassDate: jest.fn(),
+        findEffectiveByStudentIdAt: jest.fn(),
+        findUpcomingByStudentId: jest.fn(),
+        findStructurallyOpenByStudentId: jest.fn(),
+        findOverlappingByStudentId: jest.fn(),
+        findBySchoolYearEnrollmentId: jest.fn(),
         findByClassId: jest.fn(),
         findByStudentId: jest.fn(),
         findActiveByStudentId: jest.fn(),
-        findActiveByClassId: jest.fn(),
-        findHistoricalByClassId: jest.fn(),
+        findByClassIdAndEffectiveStatus: jest.fn(),
         findAllByStudentId: jest.fn(),
         findAll: jest.fn(),
         save: jest.fn(),

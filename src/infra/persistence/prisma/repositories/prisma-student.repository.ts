@@ -146,9 +146,9 @@ export class PrismaStudentRepository implements StudentRepository {
         where: {
           isArchived: false,
           // The view's CASE encodes phase='ACTIVE' iff the student has an
-          // open Enrollment (end_date IS NULL). `phase != 'ACTIVE'` is the
-          // view-friendly form of the previous `enrollments: { none: { endDate: null } }`
-          // relation filter, which Prisma rejects on a view model (no FK relations).
+          // uncancelled Enrollment effective on the current UTC date.
+          // Future placements therefore remain eligible (typically DEFERRED
+          // through their future parent registration).
           phase: { not: "ACTIVE" },
         },
         orderBy: { createdAt: "desc" },

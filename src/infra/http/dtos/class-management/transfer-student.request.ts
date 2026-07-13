@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
 } from "class-validator";
 
@@ -19,12 +20,13 @@ export class TransferStudentRequest {
 
   @ApiProperty({
     description:
-      "Date the transfer takes effect (closes source period, opens target period). Defaults to today when omitted.",
+      "Date-only transfer date (closes source period, opens target period). Defaults to today when omitted.",
     example: "2026-03-12",
     required: false,
   })
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   transferDate?: string;
 
   @ApiProperty({

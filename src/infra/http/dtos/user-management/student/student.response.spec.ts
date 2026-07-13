@@ -49,6 +49,7 @@ describe("StudentResponse (HTTP surface — Spec AC-17, AC-23, AC-9)", () => {
       ["WAITING"],
       ["ACTIVE"],
       ["DEFERRED"],
+      ["COMPLETED"],
       ["GRADUATED"],
       ["WITHDRAWN"],
     ])("exposes phase=%s on the response payload", (phase) => {

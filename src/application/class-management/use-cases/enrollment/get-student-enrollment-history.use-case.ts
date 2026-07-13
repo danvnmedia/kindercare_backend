@@ -1,7 +1,11 @@
 import { Injectable, Inject, Logger, NotFoundException } from "@nestjs/common";
-import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
+import {
+  buildHistoricalEnrollmentView,
+  HistoricalEnrollmentView,
+} from "../../historical-record-view";
+import { HistoricalRecordRepository } from "../../ports/historical-record.repository";
 
 export interface GetStudentEnrollmentHistoryInput {
   studentId: string;
@@ -17,11 +21,12 @@ export class GetStudentEnrollmentHistoryUseCase {
     private readonly enrollmentRepository: EnrollmentRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    private readonly historicalRecordRepository: HistoricalRecordRepository,
   ) {}
 
   async execute(
     input: GetStudentEnrollmentHistoryInput,
-  ): Promise<Enrollment[]> {
+  ): Promise<HistoricalEnrollmentView[]> {
     this.logger.log(
       `Fetching enrollment history for student ${input.studentId}`,
     );
@@ -40,10 +45,22 @@ export class GetStudentEnrollmentHistoryUseCase {
     const history = await this.enrollmentRepository.findAllByStudentId(
       input.studentId,
     );
+    const referenceDate = new Date();
 
     this.logger.log(
       `Found ${history.length} enrollment(s) in student ${input.studentId} history`,
     );
-    return history;
+    return Promise.all(
+      history.map(async (enrollment) =>
+        buildHistoricalEnrollmentView(
+          enrollment,
+          await this.historicalRecordRepository.findCorrections(
+            "ENROLLMENT",
+            enrollment.id,
+          ),
+          referenceDate,
+        ),
+      ),
+    );
   }
 }

@@ -34,11 +34,16 @@ model Campus {
   guardianRelationships GuardianRelationship[]
 
   // Relations - Academic
-  gradeLevels           GradeLevel[]
-  schoolYears           SchoolYear[]
-  classes               Class[]
-  schoolYearEnrollments SchoolYearEnrollment[]
-  attendanceSummaries   StudentAttendanceSummary[]
+  gradeLevels                       GradeLevel[]
+  schoolYears                       SchoolYear[]
+  classes                           Class[]
+  schoolYearEnrollments             SchoolYearEnrollment[]
+  schoolYearLifecycleRuns           SchoolYearLifecycleRun[]
+  schoolYearLifecycleCandidates     SchoolYearLifecycleCandidate[]
+  schoolYearLifecyclePreviewRuns    SchoolYearLifecyclePreviewRun[]
+  schoolYearLifecycleCommitAttempts SchoolYearLifecycleCommitAttempt[]
+  schoolYearLifecycleCommitResults  SchoolYearLifecycleCommitRowResult[]
+  attendanceSummaries               StudentAttendanceSummary[]
 
   // Relations - Content
   posts          Post[]
@@ -293,6 +298,13 @@ model User {
   studentHealthEventsRecorded      StudentHealthEvent[]       @relation("StudentHealthEventRecordedBy")
   studentHealthEventsUpdated       StudentHealthEvent[]       @relation("StudentHealthEventLastUpdatedBy")
 
+  // School-year lifecycle
+  schoolYearLifecycleRunsCreated     SchoolYearLifecycleRun[]           @relation("SchoolYearLifecycleRunCreatedBy")
+  schoolYearLifecycleRunsUpdated     SchoolYearLifecycleRun[]           @relation("SchoolYearLifecycleRunUpdatedBy")
+  schoolYearLifecycleDecisionUpdates SchoolYearLifecycleCandidate[]     @relation("SchoolYearLifecycleCandidateDecisionBy")
+  schoolYearLifecyclePreviewRuns     SchoolYearLifecyclePreviewRun[]    @relation("SchoolYearLifecyclePreviewCreatedBy")
+  schoolYearLifecycleCommitAttempts  SchoolYearLifecycleCommitAttempt[] @relation("SchoolYearLifecycleCommitAttemptCreatedBy")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -373,9 +385,10 @@ model Student {
   healthEvents       StudentHealthEvent[]
 
   // Class & Enrollment
-  enrollments           Enrollment[]
-  schoolYearEnrollments SchoolYearEnrollment[]
-  attendanceSummaries   StudentAttendanceSummary[]
+  enrollments                   Enrollment[]
+  schoolYearEnrollments         SchoolYearEnrollment[]
+  schoolYearLifecycleCandidates SchoolYearLifecycleCandidate[]
+  attendanceSummaries           StudentAttendanceSummary[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -542,9 +555,11 @@ model GradeLevel {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  classes               Class[]
-  mealMenus             MealMenu[]
-  schoolYearEnrollments SchoolYearEnrollment[]
+  classes                   Class[]
+  mealMenus                 MealMenu[]
+  schoolYearEnrollments     SchoolYearEnrollment[]
+  sourceLifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateSourceGrade")
+  targetLifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateTargetGrade")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -569,8 +584,12 @@ model SchoolYear {
   campusId String @map("campus_id") @db.Uuid
   campus   Campus @relation(fields: [campusId], references: [id], onDelete: Restrict)
 
-  classes               Class[]
-  schoolYearEnrollments SchoolYearEnrollment[]
+  classes                    Class[]
+  schoolYearEnrollments      SchoolYearEnrollment[]
+  sourceLifecyclePreviewRuns SchoolYearLifecyclePreviewRun[] @relation("SchoolYearLifecyclePreviewSource")
+  targetLifecyclePreviewRuns SchoolYearLifecyclePreviewRun[] @relation("SchoolYearLifecyclePreviewTarget")
+  sourceLifecycleRuns        SchoolYearLifecycleRun[]        @relation("SchoolYearLifecycleRunSource")
+  targetLifecycleRuns        SchoolYearLifecycleRun[]        @relation("SchoolYearLifecycleRunTarget")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -597,12 +616,14 @@ model Class {
   schoolYear   SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
   schoolYearId String     @map("school_year_id") @db.Uuid
 
-  staff               ClassStaff[]
-  enrollments         Enrollment[]
-  attendanceSummaries StudentAttendanceSummary[]
-  postAudiences       PostAudience[]
-  mealMenus           MealMenu[]
-  weeklyPlans         WeeklyPlan[]
+  staff                     ClassStaff[]
+  enrollments               Enrollment[]
+  attendanceSummaries       StudentAttendanceSummary[]
+  postAudiences             PostAudience[]
+  mealMenus                 MealMenu[]
+  weeklyPlans               WeeklyPlan[]
+  sourceLifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateSourceClass")
+  targetLifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateTargetClass")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -653,23 +674,45 @@ model Enrollment {
   endDate                DateTime? @map("end_date") @db.Date
   exitReason             String?   @map("exit_reason")
   note                   String?
+  cancelledAt            DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancellationReason     String?   @map("cancellation_reason")
+  cancellationNote       String?   @map("cancellation_note")
+  cancelledByUserId      String?   @map("cancelled_by_user_id") @db.Uuid
+  cancelledByFullName    String?   @map("cancelled_by_full_name")
 
-  class                Class                @relation(fields: [classId], references: [id], onDelete: Restrict)
-  student              Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  schoolYearEnrollment SchoolYearEnrollment @relation(fields: [schoolYearEnrollmentId], references: [id], onDelete: Restrict)
+  snapshotStudentFullName     String?   @map("snapshot_student_full_name")
+  snapshotStudentCode         String?   @map("snapshot_student_code")
+  snapshotStudentNickname     String?   @map("snapshot_student_nickname")
+  snapshotClassName           String?   @map("snapshot_class_name")
+  snapshotGradeLevelName      String?   @map("snapshot_grade_level_name")
+  snapshotGradeLevelOrder     Int?      @map("snapshot_grade_level_order")
+  snapshotSchoolYearName      String?   @map("snapshot_school_year_name")
+  snapshotSchoolYearStartDate DateTime? @map("snapshot_school_year_start_date") @db.Date
+  snapshotSchoolYearEndDate   DateTime? @map("snapshot_school_year_end_date") @db.Date
+  snapshotCapturedAt          DateTime? @map("snapshot_captured_at") @db.Timestamptz(6)
+  historicalFinalizedAt       DateTime? @map("historical_finalized_at") @db.Timestamptz(6)
+  archivedAt                  DateTime? @map("archived_at") @db.Timestamptz(6)
+  redactedAt                  DateTime? @map("redacted_at") @db.Timestamptz(6)
+  retentionExpiresAt          DateTime? @map("retention_expires_at") @db.Date
+  retentionPolicySource       String?   @map("retention_policy_source")
+  legalHold                   Boolean   @default(false) @map("legal_hold")
+
+  class                Class                          @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student              Student                        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolYearEnrollment SchoolYearEnrollment           @relation(fields: [schoolYearEnrollmentId], references: [id], onDelete: Restrict)
+  lifecycleCandidates  SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateSourceEnrollment")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@unique([studentId, classId, enrollmentDate])
   @@index([classId])
   @@index([studentId])
   @@index([enrollmentDate])
   @@index([schoolYearEnrollmentId])
-  // Partial unique index applied via raw SQL in migration 20260505_add_enrollment_period_columns
-  // (Prisma cannot natively express partial unique indexes):
-  //   CREATE UNIQUE INDEX idx_enrollment_one_active_per_student
-  //     ON enrollment (student_id) WHERE end_date IS NULL;
+  // Raw SQL in migration 20260711153000_add_enrollment_cancellation_status:
+  // - partial uniqueness for uncancelled student/class/start rows;
+  // - a GiST exclusion constraint preventing overlapping inclusive periods for
+  //   one student across every class and school year, excluding cancelled rows.
   @@map("enrollment")
 }
 
@@ -680,21 +723,43 @@ model Enrollment {
 // relationship for a given school year, owns grade level placement, and anchors
 // derived student status. See @doc/specs/school-year-enrollment-model.
 model SchoolYearEnrollment {
-  id             String    @id @default(uuid()) @db.Uuid
-  studentId      String    @map("student_id") @db.Uuid
-  campusId       String    @map("campus_id") @db.Uuid
-  schoolYearId   String    @map("school_year_id") @db.Uuid
-  gradeLevelId   String    @map("grade_level_id") @db.Uuid
-  enrollmentDate DateTime  @map("enrollment_date") @db.Date
-  exitDate       DateTime? @map("exit_date") @db.Date
-  exitReason     String?   @map("exit_reason")
-  note           String?
+  id                  String    @id @default(uuid()) @db.Uuid
+  studentId           String    @map("student_id") @db.Uuid
+  campusId            String    @map("campus_id") @db.Uuid
+  schoolYearId        String    @map("school_year_id") @db.Uuid
+  gradeLevelId        String    @map("grade_level_id") @db.Uuid
+  enrollmentDate      DateTime  @map("enrollment_date") @db.Date
+  exitDate            DateTime? @map("exit_date") @db.Date
+  exitReason          String?   @map("exit_reason")
+  note                String?
+  cancelledAt         DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancellationReason  String?   @map("cancellation_reason")
+  cancellationNote    String?   @map("cancellation_note")
+  cancelledByUserId   String?   @map("cancelled_by_user_id") @db.Uuid
+  cancelledByFullName String?   @map("cancelled_by_full_name")
 
-  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  campus      Campus       @relation(fields: [campusId], references: [id], onDelete: Restrict)
-  schoolYear  SchoolYear   @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
-  gradeLevel  GradeLevel   @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
-  enrollments Enrollment[]
+  snapshotStudentFullName     String?   @map("snapshot_student_full_name")
+  snapshotStudentCode         String?   @map("snapshot_student_code")
+  snapshotStudentNickname     String?   @map("snapshot_student_nickname")
+  snapshotGradeLevelName      String?   @map("snapshot_grade_level_name")
+  snapshotGradeLevelOrder     Int?      @map("snapshot_grade_level_order")
+  snapshotSchoolYearName      String?   @map("snapshot_school_year_name")
+  snapshotSchoolYearStartDate DateTime? @map("snapshot_school_year_start_date") @db.Date
+  snapshotSchoolYearEndDate   DateTime? @map("snapshot_school_year_end_date") @db.Date
+  snapshotCapturedAt          DateTime? @map("snapshot_captured_at") @db.Timestamptz(6)
+  historicalFinalizedAt       DateTime? @map("historical_finalized_at") @db.Timestamptz(6)
+  archivedAt                  DateTime? @map("archived_at") @db.Timestamptz(6)
+  redactedAt                  DateTime? @map("redacted_at") @db.Timestamptz(6)
+  retentionExpiresAt          DateTime? @map("retention_expires_at") @db.Date
+  retentionPolicySource       String?   @map("retention_policy_source")
+  legalHold                   Boolean   @default(false) @map("legal_hold")
+
+  student             Student                        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  campus              Campus                         @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  schoolYear          SchoolYear                     @relation(fields: [schoolYearId], references: [id], onDelete: Restrict)
+  gradeLevel          GradeLevel                     @relation(fields: [gradeLevelId], references: [id], onDelete: Restrict)
+  enrollments         Enrollment[]
+  lifecycleCandidates SchoolYearLifecycleCandidate[] @relation("SchoolYearLifecycleCandidateSourceSchoolYearEnrollment")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -703,11 +768,240 @@ model SchoolYearEnrollment {
   @@index([schoolYearId])
   @@index([gradeLevelId])
   @@index([campusId])
-  // Partial unique index applied via raw SQL in migration 20260515120000_add_school_year_enrollment
+  // Partial unique index updated via raw SQL in migration
+  // 20260711153000_add_enrollment_cancellation_status
   // (Prisma cannot natively express partial unique indexes):
   //   CREATE UNIQUE INDEX idx_sye_one_open_per_year
-  //     ON school_year_enrollment (student_id, school_year_id) WHERE exit_date IS NULL;
+  //     ON school_year_enrollment (student_id, school_year_id)
+  //     WHERE exit_date IS NULL AND cancelled_at IS NULL;
   @@map("school_year_enrollment")
+}
+
+model SchoolYearLifecycleRun {
+  id                    String    @id @default(uuid()) @db.Uuid
+  campusId              String    @map("campus_id") @db.Uuid
+  sourceSchoolYearId    String    @map("source_school_year_id") @db.Uuid
+  targetSchoolYearId    String    @map("target_school_year_id") @db.Uuid
+  sourceClosureDate     DateTime  @map("source_closure_date") @db.Date
+  targetEnrollmentDate  DateTime  @map("target_enrollment_date") @db.Date
+  status                String    @default("DRAFT")
+  version               Int       @default(1)
+  createdByUserId       String    @map("created_by_user_id") @db.Uuid
+  updatedByUserId       String?   @map("updated_by_user_id") @db.Uuid
+  firstCommittedAt      DateTime? @map("first_committed_at") @db.Timestamptz(6)
+  completedAt           DateTime? @map("completed_at") @db.Timestamptz(6)
+  cancelledAt           DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  expiredAt             DateTime? @map("expired_at") @db.Timestamptz(6)
+  retentionExpiresAt    DateTime? @map("retention_expires_at") @db.Timestamptz(6)
+  retentionPolicySource String?   @map("retention_policy_source")
+  legalHold             Boolean   @default(false) @map("legal_hold")
+  lastActivityAt        DateTime  @default(now()) @map("last_activity_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  campus           Campus                             @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  sourceSchoolYear SchoolYear                         @relation("SchoolYearLifecycleRunSource", fields: [sourceSchoolYearId], references: [id], onDelete: Restrict)
+  targetSchoolYear SchoolYear                         @relation("SchoolYearLifecycleRunTarget", fields: [targetSchoolYearId], references: [id], onDelete: Restrict)
+  createdByUser    User                               @relation("SchoolYearLifecycleRunCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedByUser    User?                              @relation("SchoolYearLifecycleRunUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  candidates       SchoolYearLifecycleCandidate[]
+  previewRuns      SchoolYearLifecyclePreviewRun[]
+  commitAttempts   SchoolYearLifecycleCommitAttempt[]
+
+  // Active-run uniqueness is enforced by a partial unique index in migration SQL.
+  @@index([campusId, sourceSchoolYearId, status], map: "school_year_lifecycle_run_active_lookup_idx")
+  @@index([campusId, lastActivityAt], map: "school_year_lifecycle_run_expiry_idx")
+  @@index([status, retentionExpiresAt, legalHold], map: "school_year_lifecycle_run_retention_idx")
+  @@index([targetSchoolYearId])
+  @@map("school_year_lifecycle_run")
+}
+
+model SchoolYearLifecycleCandidate {
+  id                           String    @id @default(uuid()) @db.Uuid
+  lifecycleRunId               String    @map("lifecycle_run_id") @db.Uuid
+  campusId                     String    @map("campus_id") @db.Uuid
+  studentId                    String    @map("student_id") @db.Uuid
+  sourceSchoolYearEnrollmentId String    @map("source_school_year_enrollment_id") @db.Uuid
+  sourceEnrollmentId           String?   @map("source_enrollment_id") @db.Uuid
+  sourceGradeLevelId           String    @map("source_grade_level_id") @db.Uuid
+  sourceClassId                String?   @map("source_class_id") @db.Uuid
+  status                       String    @default("NOT_STARTED")
+  recommendedOutcome           String    @map("recommended_outcome")
+  decision                     String?
+  targetGradeLevelId           String?   @map("target_grade_level_id") @db.Uuid
+  targetClassId                String?   @map("target_class_id") @db.Uuid
+  decisionNote                 String?   @map("decision_note") @db.VarChar(500)
+  conflictCode                 String?   @map("conflict_code")
+  message                      String?
+  decisionUpdatedByUserId      String?   @map("decision_updated_by_user_id") @db.Uuid
+  decisionUpdatedAt            DateTime? @map("decision_updated_at") @db.Timestamptz(6)
+  rowVersion                   Int       @default(1) @map("row_version")
+  committedAt                  DateTime? @map("committed_at") @db.Timestamptz(6)
+  createdAt                    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lifecycleRun               SchoolYearLifecycleRun                @relation(fields: [lifecycleRunId], references: [id], onDelete: Cascade)
+  campus                     Campus                                @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  student                    Student                               @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  sourceSchoolYearEnrollment SchoolYearEnrollment                  @relation("SchoolYearLifecycleCandidateSourceSchoolYearEnrollment", fields: [sourceSchoolYearEnrollmentId], references: [id], onDelete: Restrict)
+  sourceEnrollment           Enrollment?                           @relation("SchoolYearLifecycleCandidateSourceEnrollment", fields: [sourceEnrollmentId], references: [id], onDelete: Restrict)
+  sourceGradeLevel           GradeLevel                            @relation("SchoolYearLifecycleCandidateSourceGrade", fields: [sourceGradeLevelId], references: [id], onDelete: Restrict)
+  sourceClass                Class?                                @relation("SchoolYearLifecycleCandidateSourceClass", fields: [sourceClassId], references: [id], onDelete: Restrict)
+  targetGradeLevel           GradeLevel?                           @relation("SchoolYearLifecycleCandidateTargetGrade", fields: [targetGradeLevelId], references: [id], onDelete: Restrict)
+  targetClass                Class?                                @relation("SchoolYearLifecycleCandidateTargetClass", fields: [targetClassId], references: [id], onDelete: Restrict)
+  decisionUpdatedByUser      User?                                 @relation("SchoolYearLifecycleCandidateDecisionBy", fields: [decisionUpdatedByUserId], references: [id], onDelete: SetNull)
+  previewMemberships         SchoolYearLifecyclePreviewCandidate[]
+  commitResults              SchoolYearLifecycleCommitRowResult[]
+
+  @@unique([lifecycleRunId, studentId], map: "school_year_lifecycle_candidate_run_student_key")
+  @@index([lifecycleRunId, status, sourceGradeLevelId, sourceClassId], map: "school_year_lifecycle_candidate_filter_idx")
+  @@index([campusId, studentId])
+  @@index([targetClassId])
+  @@map("school_year_lifecycle_candidate")
+}
+
+model SchoolYearLifecyclePreviewRun {
+  id                   String    @id @default(uuid()) @db.Uuid
+  lifecycleRunId       String?   @map("lifecycle_run_id") @db.Uuid
+  runVersion           Int?      @map("run_version")
+  campusId             String    @map("campus_id") @db.Uuid
+  sourceSchoolYearId   String    @map("source_school_year_id") @db.Uuid
+  targetSchoolYearId   String    @map("target_school_year_id") @db.Uuid
+  sourceClosureDate    DateTime  @map("source_closure_date") @db.Date
+  targetEnrollmentDate DateTime  @map("target_enrollment_date") @db.Date
+  digest               String
+  requestPayload       Json      @map("request_payload")
+  resultPayload        Json      @map("result_payload")
+  scopeType            String    @default("LEGACY") @map("scope_type")
+  scopeIdentity        String?   @map("scope_identity")
+  scopePayload         Json?     @map("scope_payload")
+  status               String    @default("VALID")
+  expiresAt            DateTime  @map("expires_at") @db.Timestamptz(6)
+  invalidatedAt        DateTime? @map("invalidated_at") @db.Timestamptz(6)
+  supersededAt         DateTime? @map("superseded_at") @db.Timestamptz(6)
+  finalizedAt          DateTime? @map("finalized_at") @db.Timestamptz(6)
+  createdByUserId      String    @map("created_by_user_id") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  lifecycleRun     SchoolYearLifecycleRun?               @relation(fields: [lifecycleRunId], references: [id], onDelete: Cascade)
+  campus           Campus                                @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  sourceSchoolYear SchoolYear                            @relation("SchoolYearLifecyclePreviewSource", fields: [sourceSchoolYearId], references: [id], onDelete: Restrict)
+  targetSchoolYear SchoolYear                            @relation("SchoolYearLifecyclePreviewTarget", fields: [targetSchoolYearId], references: [id], onDelete: Restrict)
+  createdByUser    User                                  @relation("SchoolYearLifecyclePreviewCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  candidates       SchoolYearLifecyclePreviewCandidate[]
+  commitAttempts   SchoolYearLifecycleCommitAttempt[]
+
+  @@index([lifecycleRunId, status, expiresAt], map: "school_year_lifecycle_preview_run_status_idx")
+  @@index([lifecycleRunId, scopeIdentity, status], map: "school_year_lifecycle_preview_run_scope_idx")
+  @@index([campusId, sourceSchoolYearId, targetSchoolYearId, createdAt(sort: Desc)], map: "school_year_lifecycle_preview_lookup_idx")
+  @@index([digest], map: "school_year_lifecycle_preview_digest_idx")
+  @@map("school_year_lifecycle_preview_run")
+}
+
+model SchoolYearLifecyclePreviewCandidate {
+  previewRunId  String @map("preview_run_id") @db.Uuid
+  candidateId   String @map("candidate_id") @db.Uuid
+  sequence      Int
+  normalizedRow Json   @map("normalized_row")
+
+  previewRun SchoolYearLifecyclePreviewRun @relation(fields: [previewRunId], references: [id], onDelete: Cascade)
+  candidate  SchoolYearLifecycleCandidate  @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@id([previewRunId, candidateId])
+  @@unique([previewRunId, sequence], map: "school_year_lifecycle_preview_candidate_sequence_key")
+  @@index([candidateId])
+  @@map("school_year_lifecycle_preview_candidate")
+}
+
+model SchoolYearLifecycleCommitAttempt {
+  id                  String    @id @default(uuid()) @db.Uuid
+  lifecycleRunId      String    @map("lifecycle_run_id") @db.Uuid
+  previewRunId        String    @map("preview_run_id") @db.Uuid
+  campusId            String    @map("campus_id") @db.Uuid
+  status              String    @default("RUNNING")
+  successCount        Int       @default(0) @map("success_count")
+  failedCount         Int       @default(0) @map("failed_count")
+  skippedCount        Int       @default(0) @map("skipped_count")
+  alreadyAppliedCount Int       @default(0) @map("already_applied_count")
+  createdByUserId     String    @map("created_by_user_id") @db.Uuid
+  startedAt           DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lifecycleRun  SchoolYearLifecycleRun               @relation(fields: [lifecycleRunId], references: [id], onDelete: Restrict)
+  previewRun    SchoolYearLifecyclePreviewRun        @relation(fields: [previewRunId], references: [id], onDelete: Restrict)
+  campus        Campus                               @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  createdByUser User                                 @relation("SchoolYearLifecycleCommitAttemptCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  rowResults    SchoolYearLifecycleCommitRowResult[]
+
+  @@index([lifecycleRunId, createdAt(sort: Desc)], map: "school_year_lifecycle_commit_attempt_run_idx")
+  @@index([previewRunId])
+  @@map("school_year_lifecycle_commit_attempt")
+}
+
+model SchoolYearLifecycleCommitRowResult {
+  id                              String   @id @default(uuid()) @db.Uuid
+  commitAttemptId                 String   @map("commit_attempt_id") @db.Uuid
+  lifecycleCandidateId            String   @map("lifecycle_candidate_id") @db.Uuid
+  campusId                        String   @map("campus_id") @db.Uuid
+  studentId                       String   @map("student_id") @db.Uuid
+  status                          String
+  outcome                         String
+  targetClassId                   String?  @map("target_class_id") @db.Uuid
+  conflictCode                    String?  @map("conflict_code")
+  message                         String?
+  resultingSchoolYearEnrollmentId String?  @map("resulting_school_year_enrollment_id") @db.Uuid
+  resultingClassEnrollmentId      String?  @map("resulting_class_enrollment_id") @db.Uuid
+  operations                      Json
+  context                         Json
+  createdAt                       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  commitAttempt      SchoolYearLifecycleCommitAttempt @relation(fields: [commitAttemptId], references: [id], onDelete: Restrict)
+  lifecycleCandidate SchoolYearLifecycleCandidate     @relation(fields: [lifecycleCandidateId], references: [id], onDelete: Restrict)
+  campus             Campus                           @relation(fields: [campusId], references: [id], onDelete: Restrict)
+
+  @@unique([commitAttemptId, lifecycleCandidateId], map: "school_year_lifecycle_commit_row_attempt_candidate_key")
+  @@index([lifecycleCandidateId, createdAt(sort: Desc)], map: "school_year_lifecycle_commit_row_candidate_idx")
+  @@index([campusId, studentId])
+  @@map("school_year_lifecycle_commit_row_result")
+}
+
+enum HistoricalRecordType {
+  ENROLLMENT
+  SCHOOL_YEAR_ENROLLMENT
+}
+
+model HistoricalRecordCorrectionEvent {
+  id          String               @id @default(uuid()) @db.Uuid
+  campusId    String               @map("campus_id") @db.Uuid
+  recordType  HistoricalRecordType @map("record_type")
+  recordId    String               @map("record_id") @db.Uuid
+  actorId     String               @map("actor_id") @db.Uuid
+  reason      String               @db.Text
+  beforeValue Json                 @map("before_value")
+  afterValue  Json                 @map("after_value")
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([recordType, recordId, createdAt(sort: Desc)], map: "historical_correction_record_idx")
+  @@index([campusId, createdAt(sort: Desc)], map: "historical_correction_campus_idx")
+  @@map("historical_record_correction_event")
+}
+
+model HistoricalRetentionPolicy {
+  id               String   @id @default(uuid()) @db.Uuid
+  campusId         String?  @map("campus_id") @db.Uuid
+  environment      String?  @db.VarChar(80)
+  policySource     String   @map("policy_source")
+  retentionDays    Int      @map("retention_days")
+  deletionAllowed  Boolean  @default(false) @map("deletion_allowed")
+  redactionAllowed Boolean  @default(false) @map("redaction_allowed")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([campusId, environment, isActive], map: "historical_retention_policy_lookup_idx")
+  @@map("historical_retention_policy")
 }
 
 // ==========================================

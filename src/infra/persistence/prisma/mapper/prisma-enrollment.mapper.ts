@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { EnrollmentCancellationReason } from "@/domain/class-management/enums/enrollment-cancellation-reason.enum";
 import { Prisma } from "@prisma/client";
 import { PrismaClassMapper } from "./prisma-class.mapper";
 import { PrismaStudentMapper } from "./prisma-student.mapper";
@@ -33,6 +34,29 @@ export class PrismaEnrollmentMapper {
         prismaEnrollment.exitReason,
       ),
       note: prismaEnrollment.note,
+      cancelledAt: prismaEnrollment.cancelledAt,
+      cancellationReason: PrismaEnrollmentMapper.toCancellationReason(
+        prismaEnrollment.cancellationReason,
+      ),
+      cancellationNote: prismaEnrollment.cancellationNote,
+      cancelledByUserId: prismaEnrollment.cancelledByUserId,
+      cancelledByFullName: prismaEnrollment.cancelledByFullName,
+      snapshotStudentFullName: prismaEnrollment.snapshotStudentFullName,
+      snapshotStudentCode: prismaEnrollment.snapshotStudentCode,
+      snapshotStudentNickname: prismaEnrollment.snapshotStudentNickname,
+      snapshotClassName: prismaEnrollment.snapshotClassName,
+      snapshotGradeLevelName: prismaEnrollment.snapshotGradeLevelName,
+      snapshotGradeLevelOrder: prismaEnrollment.snapshotGradeLevelOrder,
+      snapshotSchoolYearName: prismaEnrollment.snapshotSchoolYearName,
+      snapshotSchoolYearStartDate: prismaEnrollment.snapshotSchoolYearStartDate,
+      snapshotSchoolYearEndDate: prismaEnrollment.snapshotSchoolYearEndDate,
+      snapshotCapturedAt: prismaEnrollment.snapshotCapturedAt,
+      historicalFinalizedAt: prismaEnrollment.historicalFinalizedAt,
+      archivedAt: prismaEnrollment.archivedAt,
+      redactedAt: prismaEnrollment.redactedAt,
+      retentionExpiresAt: prismaEnrollment.retentionExpiresAt,
+      retentionPolicySource: prismaEnrollment.retentionPolicySource,
+      legalHold: prismaEnrollment.legalHold,
       createdAt: prismaEnrollment.createdAt,
       updatedAt: prismaEnrollment.updatedAt,
     };
@@ -63,6 +87,30 @@ export class PrismaEnrollmentMapper {
           prismaEnrollment.exitReason,
         ),
         note: prismaEnrollment.note,
+        cancelledAt: prismaEnrollment.cancelledAt,
+        cancellationReason: PrismaEnrollmentMapper.toCancellationReason(
+          prismaEnrollment.cancellationReason,
+        ),
+        cancellationNote: prismaEnrollment.cancellationNote,
+        cancelledByUserId: prismaEnrollment.cancelledByUserId,
+        cancelledByFullName: prismaEnrollment.cancelledByFullName,
+        snapshotStudentFullName: prismaEnrollment.snapshotStudentFullName,
+        snapshotStudentCode: prismaEnrollment.snapshotStudentCode,
+        snapshotStudentNickname: prismaEnrollment.snapshotStudentNickname,
+        snapshotClassName: prismaEnrollment.snapshotClassName,
+        snapshotGradeLevelName: prismaEnrollment.snapshotGradeLevelName,
+        snapshotGradeLevelOrder: prismaEnrollment.snapshotGradeLevelOrder,
+        snapshotSchoolYearName: prismaEnrollment.snapshotSchoolYearName,
+        snapshotSchoolYearStartDate:
+          prismaEnrollment.snapshotSchoolYearStartDate,
+        snapshotSchoolYearEndDate: prismaEnrollment.snapshotSchoolYearEndDate,
+        snapshotCapturedAt: prismaEnrollment.snapshotCapturedAt,
+        historicalFinalizedAt: prismaEnrollment.historicalFinalizedAt,
+        archivedAt: prismaEnrollment.archivedAt,
+        redactedAt: prismaEnrollment.redactedAt,
+        retentionExpiresAt: prismaEnrollment.retentionExpiresAt,
+        retentionPolicySource: prismaEnrollment.retentionPolicySource,
+        legalHold: prismaEnrollment.legalHold,
         createdAt: prismaEnrollment.createdAt,
         updatedAt: prismaEnrollment.updatedAt,
       },
@@ -82,6 +130,27 @@ export class PrismaEnrollmentMapper {
       endDate: enrollment.endDate,
       exitReason: enrollment.exitReason,
       note: enrollment.note,
+      cancelledAt: enrollment.cancelledAt,
+      cancellationReason: enrollment.cancellationReason,
+      cancellationNote: enrollment.cancellationNote,
+      cancelledByUserId: enrollment.cancelledByUserId,
+      cancelledByFullName: enrollment.cancelledByFullName,
+      snapshotStudentFullName: enrollment.snapshotStudentFullName,
+      snapshotStudentCode: enrollment.snapshotStudentCode,
+      snapshotStudentNickname: enrollment.snapshotStudentNickname,
+      snapshotClassName: enrollment.snapshotClassName,
+      snapshotGradeLevelName: enrollment.snapshotGradeLevelName,
+      snapshotGradeLevelOrder: enrollment.snapshotGradeLevelOrder,
+      snapshotSchoolYearName: enrollment.snapshotSchoolYearName,
+      snapshotSchoolYearStartDate: enrollment.snapshotSchoolYearStartDate,
+      snapshotSchoolYearEndDate: enrollment.snapshotSchoolYearEndDate,
+      snapshotCapturedAt: enrollment.snapshotCapturedAt,
+      historicalFinalizedAt: enrollment.historicalFinalizedAt,
+      archivedAt: enrollment.archivedAt,
+      redactedAt: enrollment.redactedAt,
+      retentionExpiresAt: enrollment.retentionExpiresAt,
+      retentionPolicySource: enrollment.retentionPolicySource,
+      legalHold: enrollment.legalHold,
       createdAt: enrollment.createdAt,
       updatedAt: enrollment.updatedAt,
     };
@@ -93,6 +162,27 @@ export class PrismaEnrollmentMapper {
       endDate: enrollment.endDate,
       exitReason: enrollment.exitReason,
       note: enrollment.note,
+      cancelledAt: enrollment.cancelledAt,
+      cancellationReason: enrollment.cancellationReason,
+      cancellationNote: enrollment.cancellationNote,
+      cancelledByUserId: enrollment.cancelledByUserId,
+      cancelledByFullName: enrollment.cancelledByFullName,
+      snapshotStudentFullName: enrollment.snapshotStudentFullName,
+      snapshotStudentCode: enrollment.snapshotStudentCode,
+      snapshotStudentNickname: enrollment.snapshotStudentNickname,
+      snapshotClassName: enrollment.snapshotClassName,
+      snapshotGradeLevelName: enrollment.snapshotGradeLevelName,
+      snapshotGradeLevelOrder: enrollment.snapshotGradeLevelOrder,
+      snapshotSchoolYearName: enrollment.snapshotSchoolYearName,
+      snapshotSchoolYearStartDate: enrollment.snapshotSchoolYearStartDate,
+      snapshotSchoolYearEndDate: enrollment.snapshotSchoolYearEndDate,
+      snapshotCapturedAt: enrollment.snapshotCapturedAt,
+      historicalFinalizedAt: enrollment.historicalFinalizedAt,
+      archivedAt: enrollment.archivedAt,
+      redactedAt: enrollment.redactedAt,
+      retentionExpiresAt: enrollment.retentionExpiresAt,
+      retentionPolicySource: enrollment.retentionPolicySource,
+      legalHold: enrollment.legalHold,
       updatedAt: enrollment.updatedAt,
     };
   }
@@ -112,6 +202,17 @@ export class PrismaEnrollmentMapper {
     if (value === null) return null;
     return (Object.values(ExitReason) as string[]).includes(value)
       ? (value as ExitReason)
+      : null;
+  }
+
+  private static toCancellationReason(
+    value: string | null,
+  ): EnrollmentCancellationReason | null {
+    if (value === null) return null;
+    return (Object.values(EnrollmentCancellationReason) as string[]).includes(
+      value,
+    )
+      ? (value as EnrollmentCancellationReason)
       : null;
   }
 }

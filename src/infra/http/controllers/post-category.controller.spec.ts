@@ -6,7 +6,7 @@ import {
   METHOD_METADATA,
   ROUTE_ARGS_METADATA,
 } from "@nestjs/common/constants";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import { REQUIRE_CAMPUS_ACCESS_KEY } from "../decorators";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";

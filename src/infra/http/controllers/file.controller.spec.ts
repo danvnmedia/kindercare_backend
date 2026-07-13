@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { HttpStatus, RequestMethod } from "@nestjs/common";
 import { HTTP_CODE_METADATA, METHOD_METADATA } from "@nestjs/common/constants";
-import { DECORATORS } from "@nestjs/swagger/dist/constants";
+import { DECORATORS } from "@nestjs/swagger";
 
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import {

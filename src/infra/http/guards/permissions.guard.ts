@@ -29,6 +29,10 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import {
+  getPermissionIdsForCampus,
+  hasAnyPermission,
+} from "@/application/rbac/permission-access";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { RequestContext } from "../context/request-context.service";
 import { canGuardianReadCmsRoute } from "./cms-route-visibility.guard";
@@ -80,23 +84,14 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
-    // Collect all permissions from applicable roles
-    const userPermissionIds = new Set<string>();
+    const userPermissionIds = getPermissionIdsForCampus(user, campusId);
 
-    for (const role of applicableRoles) {
-      if (role.permissions) {
-        role.permissions.forEach((p) => userPermissionIds.add(p.id));
-      }
-    }
-
-    // Check if user has ANY of the required permissions (OR logic).
-    // Keep CMS review aligned with post use-case authorization: post.manage
-    // includes moderation/review capability.
-    const hasRequiredPermission = requiredPermissions.some(
-      (permission) =>
-        userPermissionIds.has(permission) ||
-        (permission === "post.review" && userPermissionIds.has("post.manage")),
-    );
+    // Keep exact permission checks centralized while preserving the CMS rule
+    // that post.manage includes moderation/review capability.
+    const hasRequiredPermission =
+      hasAnyPermission(userPermissionIds, requiredPermissions) ||
+      (requiredPermissions.includes("post.review") &&
+        userPermissionIds.has("post.manage"));
 
     if (!hasRequiredPermission) {
       this.logger.warn(
