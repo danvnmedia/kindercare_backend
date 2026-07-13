@@ -48,7 +48,11 @@ import {
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
 import { PrismaStaffMapper } from "@/infra/persistence/prisma/mapper/prisma-staff.mapper";
-import { createStaff, createMockStaffRepository } from "@/test-utils";
+import {
+  createMockRoleRepository,
+  createStaff,
+  createMockStaffRepository,
+} from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
@@ -169,9 +173,12 @@ describe("Staff multi-type — cross-cutting invariants (specs/staff-multi-type-
         generateNextCode: jest.fn().mockResolvedValue("ST-2026-000042"),
       } as unknown as StaffCodeGeneratorPort;
 
+      const roleRepo = createMockRoleRepository();
+
       const useCase = new CreateStaffUseCase(
         staffRepo,
         staffTypeRepo,
+        roleRepo,
         unitOfWork,
         identityPort,
         staffCodeGenerator,

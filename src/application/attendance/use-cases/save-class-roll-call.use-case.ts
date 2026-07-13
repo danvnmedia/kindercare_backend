@@ -262,9 +262,9 @@ export class SaveClassRollCallUseCase {
     }
 
     const userId = input.currentUser.id.toString();
-    const staff = await this.staffRepository.findAnyByUserIdInCampus(
-      userId,
+    const staff = await this.staffRepository.findByUserIdInCampus(
       input.campusId,
+      userId,
     );
 
     if (!staff || staff.campusId !== input.campusId || staff.isArchived) {

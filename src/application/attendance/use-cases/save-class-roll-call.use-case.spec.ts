@@ -72,7 +72,7 @@ describe("SaveClassRollCallUseCase", () => {
     } as unknown as jest.Mocked<AbsenceRequestRepository>;
     staffRepository = {
       findByUserId: jest.fn(),
-      findAnyByUserIdInCampus: jest.fn().mockResolvedValue(makeStaff()),
+      findByUserIdInCampus: jest.fn().mockResolvedValue(makeStaff()),
     } as unknown as jest.Mocked<StaffRepository>;
     classStaffRepository = {
       findByPair: jest
@@ -270,7 +270,7 @@ describe("SaveClassRollCallUseCase", () => {
       "00000000-0000-4000-8000-000000000110",
       "Student Ten",
     );
-    staffRepository.findAnyByUserIdInCampus.mockResolvedValue(null);
+    staffRepository.findByUserIdInCampus.mockResolvedValue(null);
     classStaffRepository.findByPair.mockResolvedValue(null);
     enrollmentRepository.findActiveByClassIdOnDate.mockResolvedValue([
       makeEnrollment(student),
@@ -292,7 +292,7 @@ describe("SaveClassRollCallUseCase", () => {
       attendanceStatus: AttendanceStatus.PRESENT,
       reasonCode: null,
     });
-    expect(staffRepository.findAnyByUserIdInCampus).not.toHaveBeenCalled();
+    expect(staffRepository.findByUserIdInCampus).not.toHaveBeenCalled();
     expect(classStaffRepository.findByPair).not.toHaveBeenCalled();
     expect(attendanceRepository.save).toHaveBeenCalledTimes(1);
   });

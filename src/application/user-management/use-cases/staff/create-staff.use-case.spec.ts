@@ -7,6 +7,7 @@ import {
 import { CreateStaffUseCase } from "./create-staff.use-case";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
+import { RoleRepository } from "../../ports/role.repository";
 import { StaffCodeGeneratorPort } from "@/application/ports/staff-code-generator.port";
 import { IdentityPort } from "@/application/ports/identity.port";
 import {
@@ -14,7 +15,11 @@ import {
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { User } from "@/domain/user-management/user.entity";
-import { createMockStaffRepository } from "@/test-utils";
+import { Role } from "@/domain/user-management/role.entity";
+import {
+  createMockRoleRepository,
+  createMockStaffRepository,
+} from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
@@ -22,6 +27,7 @@ const STAFF_CODE = "ST-2026-000042";
 const TYPE_TEACHER = "stype-teacher";
 const TYPE_VICE_PRESIDENT = "stype-vp";
 const ROLE_STAFF = "role-staff";
+const ROLE_CAMPUS_ACCESS = "role-campus-access";
 
 function buildActor(): User {
   return User.reconstitute(
@@ -66,10 +72,26 @@ function stype(overrides: {
   };
 }
 
+function buildRole(overrides: Partial<Role> = {}): Role {
+  return {
+    id: ROLE_CAMPUS_ACCESS,
+    name: "Staff Campus Access",
+    description: null,
+    campusId: CAMPUS_ID,
+    isSystemDefault: true,
+    isSystemRole: false,
+    permissions: [],
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    ...overrides,
+  };
+}
+
 describe("CreateStaffUseCase", () => {
   let useCase: CreateStaffUseCase;
   let staffRepo: jest.Mocked<StaffRepository>;
   let staffTypeRepo: jest.Mocked<StaffTypeRepository>;
+  let roleRepo: jest.Mocked<RoleRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let mockTx: jest.Mocked<TransactionContext>;
   let identityPort: jest.Mocked<IdentityPort>;
@@ -93,6 +115,8 @@ describe("CreateStaffUseCase", () => {
           stype({ id, defaultRoleId: ROLE_STAFF }),
         ),
     } as unknown as jest.Mocked<StaffTypeRepository>;
+    roleRepo = createMockRoleRepository();
+    roleRepo.ensureCampusAccessRole.mockResolvedValue(buildRole());
     mockTx = {
       createUser: jest
         .fn()
@@ -117,6 +141,7 @@ describe("CreateStaffUseCase", () => {
     useCase = new CreateStaffUseCase(
       staffRepo,
       staffTypeRepo,
+      roleRepo,
       unitOfWork,
       identityPort,
       codeGenerator,
@@ -251,7 +276,7 @@ describe("CreateStaffUseCase", () => {
       ]);
     });
 
-    it("all-types-with-null-defaultRoleId: skips assignRoles entirely, still persists staff + join + audit", async () => {
+    it("all-types-with-null-defaultRoleId: assigns backend-managed campus access fallback role", async () => {
       staffTypeRepo.findById.mockImplementation(
         async (id: string) => stype({ id, defaultRoleId: null }) as never,
       );
@@ -264,9 +289,14 @@ describe("CreateStaffUseCase", () => {
         actor,
       );
 
-      // No `user_roles` rows inserted — preserves D2's "no historical
-      // reconstruction" invariant: nothing implicit to clean up later.
-      expect(mockTx.assignRoles).not.toHaveBeenCalled();
+      expect(roleRepo.ensureCampusAccessRole).toHaveBeenCalledWith(CAMPUS_ID);
+      expect(mockTx.assignRoles).toHaveBeenCalledWith("user-1", [
+        {
+          roleId: ROLE_CAMPUS_ACCESS,
+          campusId: CAMPUS_ID,
+          grantedViaStaffTypeId: TYPE_TEACHER,
+        },
+      ]);
       // Staff + join + audit still committed in the same UoW.
       expect(mockTx.createStaff).toHaveBeenCalledTimes(1);
       expect(mockTx.replaceStaffTypes).toHaveBeenCalledTimes(1);

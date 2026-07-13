@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma.service";
 import {
   RoleRepository,
@@ -7,6 +7,8 @@ import {
   RoleMemberProfile,
   PaginatedRoles,
   PaginatedRoleMembers,
+  STAFF_CAMPUS_ACCESS_ROLE_DESCRIPTION,
+  STAFF_CAMPUS_ACCESS_ROLE_NAME,
 } from "../../../../application/user-management/ports/role.repository";
 import {
   Role,
@@ -72,6 +74,41 @@ export class PrismaRoleRepository implements RoleRepository {
     });
 
     return prismaRole ? PrismaRoleMapper.toDomain(prismaRole) : null;
+  }
+
+  async ensureCampusAccessRole(campusId: string): Promise<Role> {
+    const prismaRole = await this.prisma.role.upsert({
+      where: {
+        campusId_name: {
+          campusId,
+          name: STAFF_CAMPUS_ACCESS_ROLE_NAME,
+        },
+      },
+      update: {},
+      create: {
+        campusId,
+        name: STAFF_CAMPUS_ACCESS_ROLE_NAME,
+        description: STAFF_CAMPUS_ACCESS_ROLE_DESCRIPTION,
+        isSystemDefault: true,
+        isSystemRole: false,
+      },
+      include: ROLE_WITH_PERMISSIONS_INCLUDE,
+    });
+
+    const role = PrismaRoleMapper.toDomain(prismaRole);
+    const isManagedPermissionlessRole =
+      role.description === STAFF_CAMPUS_ACCESS_ROLE_DESCRIPTION &&
+      role.isSystemDefault === true &&
+      role.isSystemRole === false &&
+      role.permissions.length === 0;
+
+    if (!isManagedPermissionlessRole) {
+      throw new ConflictException(
+        `Reserved role name "${STAFF_CAMPUS_ACCESS_ROLE_NAME}" is already used by an unmanaged or permission-bearing role`,
+      );
+    }
+
+    return role;
   }
 
   async findAll(

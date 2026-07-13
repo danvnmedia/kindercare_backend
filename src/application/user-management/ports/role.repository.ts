@@ -9,6 +9,10 @@ import { StandardRequest } from "@/core/modules/standard-response/dto/standard-r
 
 export type PaginatedRoles = PaginatedResult<Role>;
 
+export const STAFF_CAMPUS_ACCESS_ROLE_NAME = "Staff Campus Access";
+export const STAFF_CAMPUS_ACCESS_ROLE_DESCRIPTION =
+  "Backend-managed minimal role that grants staff campus discovery when no StaffType default role is configured. It carries no permissions; feature access remains permission-gated.";
+
 export interface RoleMemberProfile {
   type: "staff" | "guardian" | null;
   id: string | null;
@@ -57,6 +61,12 @@ export interface RoleRepository {
    * @param campusId Campus ID (null for system defaults)
    */
   findByName(name: string, campusId: string | null): Promise<Role | null>;
+
+  /**
+   * Find or create the backend-managed minimal campus access role used as a
+   * compatibility fallback when StaffType.defaultRoleId is not configured.
+   */
+  ensureCampusAccessRole(campusId: string): Promise<Role>;
 
   /**
    * Find all roles with filtering, sorting, pagination

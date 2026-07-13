@@ -16,9 +16,11 @@ import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
 import { User } from "@/domain/user-management/user.entity";
 import { RoleAssignmentInput } from "../../ports/user.repository";
+import { RoleRepository } from "../../ports/role.repository";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
 import { UserRepository } from "../../ports/user.repository";
+import { buildStaffTypeRoleAssignments } from "./staff-campus-access-role-grants";
 
 const DEFAULT_WEAK_PASSWORD = "ChangeMe123!";
 
@@ -72,6 +74,8 @@ export class CreateOrAttachStaffUseCase {
     private readonly staffTypeRepository: StaffTypeRepository,
     @Inject("USER_REPOSITORY")
     private readonly userRepository: UserRepository,
+    @Inject("ROLE_REPOSITORY")
+    private readonly roleRepository: RoleRepository,
     private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
     private readonly staffCodeGenerator: StaffCodeGeneratorPort,
@@ -193,6 +197,13 @@ export class CreateOrAttachStaffUseCase {
   ): Promise<CreateOrAttachStaffResult> {
     await this.assertNoCampusIdentifierCollision(input);
 
+    const roleAssignments = await buildStaffTypeRoleAssignments(
+      this.roleRepository,
+      input.campusId,
+      input.staffTypeIds,
+      resolvedTypes,
+    );
+
     const clerkUser = await this.provisionIdentity(input);
 
     try {
@@ -215,11 +226,6 @@ export class CreateOrAttachStaffUseCase {
         await tx.createStaff(this.toStaffTxData(staffEntity));
         await tx.replaceStaffTypes(staffEntity.id, input.staffTypeIds);
 
-        const roleAssignments = this.buildRoleAssignments(
-          input.campusId,
-          input.staffTypeIds,
-          resolvedTypes,
-        );
         if (roleAssignments.length > 0) {
           await tx.assignRoles(user.id, roleAssignments);
         }
@@ -305,6 +311,12 @@ export class CreateOrAttachStaffUseCase {
     }
 
     await this.assertNoCampusIdentifierCollision(input, user.id);
+    const roleAssignments = await buildStaffTypeRoleAssignments(
+      this.roleRepository,
+      input.campusId,
+      input.staffTypeIds,
+      resolvedTypes,
+    );
     const staffCode = await this.staffCodeGenerator.generateNextCode(
       input.campusId,
     );
@@ -320,11 +332,6 @@ export class CreateOrAttachStaffUseCase {
       await tx.createStaff(this.toStaffTxData(staffEntity));
       await tx.replaceStaffTypes(staffEntity.id, input.staffTypeIds);
 
-      const roleAssignments = this.buildRoleAssignments(
-        input.campusId,
-        input.staffTypeIds,
-        resolvedTypes,
-      );
       if (roleAssignments.length > 0) {
         await tx.assignRoles(user.id, roleAssignments);
       }
@@ -412,25 +419,6 @@ export class CreateOrAttachStaffUseCase {
     }
 
     return assignments;
-  }
-
-  private buildRoleAssignments(
-    campusId: string,
-    staffTypeIds: string[],
-    resolvedTypes: Map<string, ResolvedStaffType>,
-  ): Array<RoleAssignmentInput & { grantedViaStaffTypeId: string }> {
-    return staffTypeIds.flatMap((typeId) => {
-      const roleId = resolvedTypes.get(typeId)!.defaultRoleId;
-      return roleId
-        ? [
-            {
-              roleId,
-              campusId,
-              grantedViaStaffTypeId: typeId,
-            },
-          ]
-        : [];
-    });
   }
 
   private async assertNoCampusIdentifierCollision(

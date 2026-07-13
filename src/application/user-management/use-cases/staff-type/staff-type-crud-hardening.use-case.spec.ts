@@ -138,6 +138,9 @@ describe("StaffType CRUD hardening use cases", () => {
       run: jest.fn((task) => task(tx)),
     } as unknown as jest.Mocked<UnitOfWorkPort>;
     actor = buildActor();
+    roleRepo.ensureCampusAccessRole.mockResolvedValue(
+      buildRole({ name: "Staff Campus Access", isSystemDefault: true }),
+    );
   });
 
   describe("CreateStaffTypeUseCase", () => {
@@ -225,6 +228,41 @@ describe("StaffType CRUD hardening use cases", () => {
             name: "Teacher",
             defaultRoleId: ROLE_ID,
           }),
+        }),
+      );
+    });
+
+    it("creates with the backend-managed campus access role when defaultRoleId is omitted", async () => {
+      const fallbackRole = buildRole({
+        id: ROLE_ID,
+        name: "Staff Campus Access",
+        isSystemDefault: true,
+      });
+      const created = buildStaffType({ defaultRoleId: fallbackRole.id });
+      staffTypeRepo.findByName.mockResolvedValue(null);
+      staffTypeRepo.getMaxOrder.mockResolvedValue(0);
+      roleRepo.ensureCampusAccessRole.mockResolvedValue(fallbackRole);
+      tx.createStaffType.mockResolvedValue(created);
+
+      const useCase = new CreateStaffTypeUseCase(
+        staffTypeRepo,
+        roleRepo,
+        unitOfWork,
+      );
+
+      const result = await useCase.execute(
+        { campusId: CAMPUS_ID, name: "Teacher" },
+        actor,
+      );
+
+      expect(result).toBe(created);
+      expect(roleRepo.findById).not.toHaveBeenCalled();
+      expect(roleRepo.ensureCampusAccessRole).toHaveBeenCalledWith(CAMPUS_ID);
+      expect(tx.createStaffType).toHaveBeenCalledWith(
+        expect.objectContaining({
+          campusId: CAMPUS_ID,
+          name: "Teacher",
+          defaultRoleId: ROLE_ID,
         }),
       );
     });
