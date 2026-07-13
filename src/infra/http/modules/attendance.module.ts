@@ -10,6 +10,9 @@ import { GetAttendanceByIdUseCase } from "@/application/attendance/use-cases/get
 import { GetClassAttendanceUseCase } from "@/application/attendance/use-cases/get-class-attendance.use-case";
 import { GetStudentAttendanceUseCase } from "@/application/attendance/use-cases/get-student-attendance.use-case";
 import { BulkRecordAttendanceUseCase } from "@/application/attendance/use-cases/bulk-record-attendance.use-case";
+import { GetClassRollCallUseCase } from "@/application/attendance/use-cases/get-class-roll-call.use-case";
+import { SaveClassRollCallUseCase } from "@/application/attendance/use-cases/save-class-roll-call.use-case";
+import { GetAttendanceClassOptionsUseCase } from "@/application/attendance/use-cases/get-attendance-class-options.use-case";
 
 // Repository
 import { PrismaStudentAttendanceRepository } from "@/infra/persistence/prisma/repositories/prisma-student-attendance.repository";
@@ -21,6 +24,9 @@ import { UserManagementModule } from "./user-management.module";
 import { ClassManagementModule } from "./class-management.module";
 import { CampusModule } from "./campus.module";
 import { RequestContextModule } from "../context/request-context.module";
+import { AbsenceRequestModule } from "./absence-request.module";
+import { PermissionsGuard } from "../guards/permissions.guard";
+import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 
 /**
  * Attendance Module
@@ -34,6 +40,7 @@ import { RequestContextModule } from "../context/request-context.module";
     StandardResponseModule,
     UserManagementModule, // For STUDENT_REPOSITORY, USER_REPOSITORY access
     ClassManagementModule, // For CLASS_REPOSITORY access
+    AbsenceRequestModule, // For ABSENCE_REQUEST_REPOSITORY access
     CampusModule, // For CAMPUS_REPOSITORY (CampusGuard)
     RequestContextModule, // Provides RequestContext for CampusGuard
   ],
@@ -46,6 +53,11 @@ import { RequestContextModule } from "../context/request-context.module";
     GetClassAttendanceUseCase,
     GetStudentAttendanceUseCase,
     BulkRecordAttendanceUseCase,
+    GetClassRollCallUseCase,
+    SaveClassRollCallUseCase,
+    GetAttendanceClassOptionsUseCase,
+    ClerkAuthGuard,
+    PermissionsGuard,
 
     // Repository
     {

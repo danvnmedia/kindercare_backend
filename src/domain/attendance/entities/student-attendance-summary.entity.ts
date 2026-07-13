@@ -5,6 +5,7 @@ import { AttendanceStatus } from "../enums/attendance-status.enum";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { Student } from "@/domain/user-management/entities/student.entity";
 import { StudentAttendanceLog } from "./student-attendance-log.entity";
+import { StudentAttendanceChangeLog } from "./student-attendance-change-log.entity";
 
 export interface StudentAttendanceSummaryProps {
   studentId: string;
@@ -18,18 +19,20 @@ export interface StudentAttendanceSummaryProps {
   totalMinutesPresent: number;
   // Audit
   updatedById: string | null;
+  absenceRequestId: string | null;
   note: string | null;
   // Optional loaded relations
   student?: Student;
   class?: Class;
   logs?: StudentAttendanceLog[];
+  changeLogs?: StudentAttendanceChangeLog[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type CreateStudentAttendanceSummaryData = Omit<
   StudentAttendanceSummaryProps,
-  "createdAt" | "updatedAt" | "student" | "class" | "logs"
+  "createdAt" | "updatedAt" | "student" | "class" | "logs" | "changeLogs"
 >;
 
 export type UpdateStudentAttendanceSummaryData = Partial<
@@ -40,6 +43,7 @@ export type UpdateStudentAttendanceSummaryData = Partial<
     | "totalMinutesPresent"
     | "status"
     | "updatedById"
+    | "absenceRequestId"
     | "note"
   >
 >;
@@ -82,6 +86,10 @@ export class StudentAttendanceSummary extends Entity<StudentAttendanceSummaryPro
     return this.props.updatedById;
   }
 
+  get absenceRequestId(): string | null {
+    return this.props.absenceRequestId;
+  }
+
   get note(): string | null {
     return this.props.note;
   }
@@ -96,6 +104,10 @@ export class StudentAttendanceSummary extends Entity<StudentAttendanceSummaryPro
 
   get logs(): StudentAttendanceLog[] | undefined {
     return this.props.logs;
+  }
+
+  get changeLogs(): StudentAttendanceChangeLog[] | undefined {
+    return this.props.changeLogs;
   }
 
   get createdAt(): Date {
@@ -161,6 +173,9 @@ export class StudentAttendanceSummary extends Entity<StudentAttendanceSummaryPro
     }
     if (data.updatedById !== undefined) {
       this.props.updatedById = data.updatedById;
+    }
+    if (data.absenceRequestId !== undefined) {
+      this.props.absenceRequestId = data.absenceRequestId;
     }
     if (data.note !== undefined) {
       this.props.note = data.note?.trim() || null;
@@ -239,10 +254,12 @@ export class StudentAttendanceSummary extends Entity<StudentAttendanceSummaryPro
       | "lastCheckoutAt"
       | "totalMinutesPresent"
       | "updatedById"
+      | "absenceRequestId"
       | "note"
       | "student"
       | "class"
       | "logs"
+      | "changeLogs"
     >,
     id?: string,
   ): StudentAttendanceSummary {
@@ -269,6 +286,7 @@ export class StudentAttendanceSummary extends Entity<StudentAttendanceSummaryPro
       lastCheckoutAt: props.lastCheckoutAt ?? null,
       totalMinutesPresent: props.totalMinutesPresent ?? 0,
       updatedById: props.updatedById ?? null,
+      absenceRequestId: props.absenceRequestId ?? null,
       note: props.note?.trim() || null,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

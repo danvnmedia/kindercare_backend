@@ -113,6 +113,7 @@ function buildEnrollScenario(): Scenario {
     findActiveByStudentId: jest.fn().mockResolvedValue(null),
     findOverlappingByStudentId: jest.fn().mockResolvedValue(null),
     findByClassIdAndEffectiveStatus: jest.fn(),
+    findActiveByClassIdOnDate: jest.fn(),
     findAllByStudentId: jest.fn(),
     findAll: jest.fn(),
     save: jest.fn().mockImplementation(async (e) => e),

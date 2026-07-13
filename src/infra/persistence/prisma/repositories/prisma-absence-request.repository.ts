@@ -11,6 +11,7 @@ import {
   AbsencePeriod,
   AbsenceRequest,
   AbsenceRequestStatus,
+  AbsenceRequestType,
   normalizeAbsencePeriod,
   normalizeDateOnly,
 } from "@/domain/absence-request";
@@ -115,6 +116,41 @@ export class PrismaAbsenceRequestRepository
     return rows
       .map(PrismaAbsenceRequestMapper.toDomain)
       .filter((absenceRequest) => absenceRequest.overlaps(normalizedPeriod));
+  }
+
+  async findApprovedOverlapsForStudents(
+    campusId: string,
+    studentIds: string[],
+    date: Date,
+  ): Promise<AbsenceRequest[]> {
+    if (studentIds.length === 0) {
+      return [];
+    }
+
+    const selectedDate = normalizeDateOnly(date, "Date");
+    const rows = await this.prisma.absenceRequest.findMany({
+      where: {
+        campusId,
+        studentId: { in: studentIds },
+        status: AbsenceRequestStatus.APPROVED,
+        startDate: { lte: selectedDate },
+        endDate: { gte: selectedDate },
+      },
+      include: PrismaAbsenceRequestMapper.include,
+      orderBy: [{ studentId: "asc" }, { reviewedAt: "desc" }],
+    });
+
+    const selectedPeriod: AbsencePeriod = {
+      absenceType: AbsenceRequestType.FULL_DAY,
+      startDate: selectedDate,
+      endDate: selectedDate,
+      startMinute: null,
+      endMinute: null,
+    };
+
+    return rows
+      .map(PrismaAbsenceRequestMapper.toDomain)
+      .filter((absenceRequest) => absenceRequest.overlaps(selectedPeriod));
   }
 
   async save(absenceRequest: AbsenceRequest): Promise<AbsenceRequest> {

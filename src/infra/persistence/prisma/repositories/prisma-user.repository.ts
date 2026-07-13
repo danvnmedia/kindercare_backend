@@ -128,6 +128,19 @@ export class PrismaUserRepository implements UserRepository {
     return prismaUser ? PrismaUserMapper.toDomain(prismaUser) : null;
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const prismaUsers = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      include: USER_WITH_ROLES_INCLUDE,
+    });
+
+    return prismaUsers.map((user) => PrismaUserMapper.toDomain(user));
+  }
+
   async findAll(params: FindAllUsersParams): Promise<PaginatedUsers> {
     params.allowedFilterFields = ["isActive"];
     params.allowedSortFields = ["createdAt"];

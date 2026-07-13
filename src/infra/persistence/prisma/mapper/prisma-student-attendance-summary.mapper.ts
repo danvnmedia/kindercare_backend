@@ -1,5 +1,6 @@
 import {
   StudentAttendanceSummary as PrismaStudentAttendanceSummary,
+  StudentAttendanceChangeLog as PrismaStudentAttendanceChangeLog,
   StudentAttendanceLog as PrismaStudentAttendanceLog,
   Class as PrismaClass,
   Student as PrismaStudent,
@@ -10,12 +11,14 @@ import { Prisma } from "@prisma/client";
 import { PrismaClassMapper } from "./prisma-class.mapper";
 import { PrismaStudentMapper } from "./prisma-student.mapper";
 import { PrismaStudentAttendanceLogMapper } from "./prisma-student-attendance-log.mapper";
+import { PrismaStudentAttendanceChangeLogMapper } from "./prisma-student-attendance-change-log.mapper";
 
 type PrismaStudentAttendanceSummaryWithRelations =
   PrismaStudentAttendanceSummary & {
     class?: PrismaClass | null;
     student?: PrismaStudent | null;
     logs?: PrismaStudentAttendanceLog[];
+    changeLogs?: PrismaStudentAttendanceChangeLog[];
   };
 
 export class PrismaStudentAttendanceSummaryMapper {
@@ -32,6 +35,7 @@ export class PrismaStudentAttendanceSummaryMapper {
       lastCheckoutAt: prismaSummary.lastCheckoutAt,
       totalMinutesPresent: prismaSummary.totalMinutesPresent,
       updatedById: prismaSummary.updatedById,
+      absenceRequestId: prismaSummary.absenceRequestId,
       note: prismaSummary.note,
       createdAt: prismaSummary.createdAt,
       updatedAt: prismaSummary.updatedAt,
@@ -47,6 +51,11 @@ export class PrismaStudentAttendanceSummaryMapper {
     if (prismaSummary.logs) {
       props.logs = PrismaStudentAttendanceLogMapper.toDomainArray(
         prismaSummary.logs,
+      );
+    }
+    if (prismaSummary.changeLogs) {
+      props.changeLogs = PrismaStudentAttendanceChangeLogMapper.toDomainArray(
+        prismaSummary.changeLogs,
       );
     }
 
@@ -67,6 +76,7 @@ export class PrismaStudentAttendanceSummaryMapper {
         lastCheckoutAt: prismaSummary.lastCheckoutAt,
         totalMinutesPresent: prismaSummary.totalMinutesPresent,
         updatedById: prismaSummary.updatedById,
+        absenceRequestId: prismaSummary.absenceRequestId,
         note: prismaSummary.note,
         createdAt: prismaSummary.createdAt,
         updatedAt: prismaSummary.updatedAt,
@@ -89,6 +99,7 @@ export class PrismaStudentAttendanceSummaryMapper {
       lastCheckoutAt: summary.lastCheckoutAt,
       totalMinutesPresent: summary.totalMinutesPresent,
       updatedById: summary.updatedById,
+      absenceRequestId: summary.absenceRequestId,
       note: summary.note,
       createdAt: summary.createdAt,
       updatedAt: summary.updatedAt,
@@ -104,6 +115,7 @@ export class PrismaStudentAttendanceSummaryMapper {
       lastCheckoutAt: summary.lastCheckoutAt,
       totalMinutesPresent: summary.totalMinutesPresent,
       updatedById: summary.updatedById,
+      absenceRequestId: summary.absenceRequestId,
       note: summary.note,
       updatedAt: summary.updatedAt,
     };

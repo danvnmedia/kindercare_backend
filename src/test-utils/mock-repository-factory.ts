@@ -124,6 +124,7 @@ export function createMockUserRepository(): jest.Mocked<UserRepository> {
     findByEmail: jest.fn(),
     findManyByEmail: jest.fn(),
     findManyByPhoneNumber: jest.fn(),
+    findByIds: jest.fn(),
     findByClerkUid: jest.fn(),
     findAll: jest.fn(),
     save: jest.fn(),

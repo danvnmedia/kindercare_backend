@@ -45,6 +45,9 @@ export abstract class UserRepository {
    */
   abstract findManyByPhoneNumber(phoneNumber: string): Promise<User[]>;
 
+  /** Bulk-load users by ID for internal projections such as audit timelines. */
+  abstract findByIds(ids: string[]): Promise<User[]>;
+
   /**
    * Find user by Clerk UID
    */
