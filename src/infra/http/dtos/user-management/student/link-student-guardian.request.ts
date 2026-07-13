@@ -7,7 +7,7 @@ export class LinkStudentGuardianRequest {
     example: "123e4567-e89b-12d3-a456-426614174001",
   })
   @IsNotEmpty()
-  @IsUUID("4", { message: "Guardian ID must be a valid UUID" })
+  @IsUUID("all", { message: "Guardian ID must be a valid UUID" })
   guardianId: string;
 
   @ApiProperty({
@@ -16,6 +16,6 @@ export class LinkStudentGuardianRequest {
     example: "123e4567-e89b-12d3-a456-426614174002",
   })
   @IsNotEmpty()
-  @IsUUID("4", { message: "Relationship ID must be a valid UUID" })
+  @IsUUID("all", { message: "Relationship ID must be a valid UUID" })
   relationshipId: string;
 }

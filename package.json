@@ -47,7 +47,12 @@
     "cli:delete-admin": "ts-node -r tsconfig-paths/register src/cli/create-admin.ts delete",
     "export:audit-actions": "ts-node -r tsconfig-paths/register src/cli/export-audit-actions.ts",
     "seed:health-center": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-health-center.ts",
-    "seed:students": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-students.ts"
+    "seed:students": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-students.ts",
+    "seed:guardians": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-guardians.ts",
+    "seed:dev-data": "ts-node -r tsconfig-paths/register ./prisma/seeds/seed-dev-data.ts",
+    "seed:provision-guardian-clerk": "node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register ./src/cli/provision-guardian-clerk.ts",
+    "seed:verify-dev-data": "ts-node -r tsconfig-paths/register ./prisma/seeds/verify-dev-data.ts",
+    "clerk:wipe-all-users": "node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register ./src/cli/wipe-clerk-users.ts"
   },
   "dependencies": {
     "@clerk/backend": "^2.22.0",
