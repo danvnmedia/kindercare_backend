@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
   ValidateNested,
 } from "class-validator";
@@ -36,11 +37,13 @@ export class BulkEnrollStudentItemRequest {
 
 export class BulkEnrollStudentsRequest {
   @ApiProperty({
-    description: "Enrollment date applied to every student in the batch.",
+    description:
+      "Date-only enrollment date applied to every student in the batch.",
     example: "2025-09-01",
   })
   @IsNotEmpty()
-  @IsDateString()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   enrollmentDate: string;
 
   @ApiPropertyOptional({

@@ -4,7 +4,6 @@ import { Prisma } from "@prisma/client";
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
 import {
   HealthCenterClassSummary,
-  HealthCenterEventItem,
   HealthCenterEventListParams,
   HealthCenterEventListResult,
   HealthCenterStudentSummary,
@@ -180,6 +179,7 @@ function buildSelectedDateEnrollmentWhere(
   return {
     ...(classId ? { classId } : {}),
     class: { campusId },
+    cancelledAt: null,
     enrollmentDate: { lte: selectedDate },
     OR: [{ endDate: null }, { endDate: { gte: selectedDate } }],
   };

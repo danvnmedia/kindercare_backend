@@ -16,9 +16,11 @@ import {
 import { ClerkAuthGuard } from "../../guards/clerk-auth.guard";
 import {
   CampusContext,
+  CurrentUser,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
 } from "../../decorators";
+import { User } from "@/domain/user-management/user.entity";
 
 // Use Cases
 import { DeleteStudentUseCase } from "@/application/user-management/use-cases/student/delete-student.use-case";
@@ -64,7 +66,8 @@ export class DangerStudentController {
   async hardDelete(
     @CampusContext() campusId: string,
     @Param("id", ParseUUIDPipe) id: string,
+    @CurrentUser() currentUser: User,
   ) {
-    await this.deleteStudentUseCase.execute(id, campusId);
+    await this.deleteStudentUseCase.execute(id, campusId, currentUser);
   }
 }

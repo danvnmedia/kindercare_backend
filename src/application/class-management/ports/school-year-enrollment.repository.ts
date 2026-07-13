@@ -14,6 +14,37 @@
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
+import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
+import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+
+export type SchoolYearStudentSegment =
+  | "registered"
+  | "upcoming"
+  | "active"
+  | "unassigned"
+  | "withdrawn"
+  | "completed"
+  | "graduated"
+  | "unresolved";
+
+export type SchoolYearStudentClassAssignmentState =
+  | "UPCOMING"
+  | "ACTIVE"
+  | "CLOSED"
+  | "CANCELLED"
+  | "NONE";
+
+export interface SchoolYearStudentListFilters {
+  segment?: SchoolYearStudentSegment;
+  search?: string;
+}
+
+export interface SchoolYearStudentListItem {
+  enrollment: SchoolYearEnrollment;
+  childEnrollmentCount: number;
+  classAssignment: Enrollment | null;
+  classAssignmentState: SchoolYearStudentClassAssignmentState;
+}
 
 export abstract class SchoolYearEnrollmentRepository {
   /**
@@ -30,6 +61,36 @@ export abstract class SchoolYearEnrollmentRepository {
    * and (D3) for grade-level match validation.
    */
   abstract findOpenByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+  ): Promise<SchoolYearEnrollment | null>;
+
+  /** Find an uncancelled null-exit parent without implying date effectiveness. */
+  abstract findStructurallyOpenByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+  ): Promise<SchoolYearEnrollment | null>;
+
+  /** Find an uncancelled parent whose inclusive period covers the date. */
+  abstract findCoveringDateByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+    effectiveDate: Date,
+  ): Promise<SchoolYearEnrollment | null>;
+
+  /** Find uncancelled future parent rows after the reference date. */
+  abstract findUpcomingByStudentAndSchoolYear(
+    studentId: string,
+    schoolYearId: string,
+    referenceDate: Date,
+  ): Promise<SchoolYearEnrollment[]>;
+
+  /**
+   * Find the latest parent row for a student in a school year, open or closed.
+   * Used by read-only readiness checks to distinguish "no registration" from
+   * "registration exists but is already closed" without mutating data.
+   */
+  abstract findLatestByStudentAndSchoolYear(
     studentId: string,
     schoolYearId: string,
   ): Promise<SchoolYearEnrollment | null>;
@@ -58,6 +119,27 @@ export abstract class SchoolYearEnrollmentRepository {
   >;
 
   /**
+   * Find parent enrollment rows for one campus + school year with pagination,
+   * search, and history-view segments. Backs the year-scoped student list.
+   */
+  abstract findStudentsBySchoolYear(
+    campusId: string,
+    schoolYearId: string,
+    params: StandardRequest,
+    referenceDate: Date,
+    filters?: SchoolYearStudentListFilters,
+  ): Promise<PaginatedResult<SchoolYearStudentListItem>>;
+
+  /**
+   * Count child class-level Enrollment rows attached to a parent
+   * SchoolYearEnrollment. Grade correction is only allowed while this count is
+   * zero.
+   */
+  abstract countChildEnrollments(
+    schoolYearEnrollmentId: string,
+  ): Promise<number>;
+
+  /**
    * Persist a brand-new parent enrollment. Callers must have already verified
    * grade-level / school-year integrity at the use-case layer.
    *
@@ -77,6 +159,16 @@ export abstract class SchoolYearEnrollmentRepository {
    * `@doc/guides/code-generation-pattern#immutability`.
    */
   abstract update(entity: SchoolYearEnrollment): Promise<SchoolYearEnrollment>;
+
+  /**
+   * Dedicated persistence path for grade correction before class placement.
+   * This intentionally keeps `update()` immutable for normal lifecycle writes.
+   */
+  abstract correctGradeLevel(
+    id: string,
+    gradeLevelId: string,
+    tx?: AppTransactionClient,
+  ): Promise<SchoolYearEnrollment>;
 
   /**
    * Atomically close the parent row and (optionally) the single open child

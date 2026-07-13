@@ -29,6 +29,10 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
+import {
+  getPermissionIdsForCampus,
+  hasAnyPermission,
+} from "@/application/rbac/permission-access";
 import { PERMISSIONS_KEY } from "../decorators/permissions.decorator";
 import { RequestContext } from "../context/request-context.service";
 
@@ -75,18 +79,12 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
-    // Collect all permissions from applicable roles
-    const userPermissionIds = new Set<string>();
-
-    for (const role of applicableRoles) {
-      if (role.permissions) {
-        role.permissions.forEach((p) => userPermissionIds.add(p.id));
-      }
-    }
+    const userPermissionIds = getPermissionIdsForCampus(user, campusId);
 
     // Check if user has ANY of the required permissions (OR logic)
-    const hasRequiredPermission = requiredPermissions.some((permission) =>
-      userPermissionIds.has(permission),
+    const hasRequiredPermission = hasAnyPermission(
+      userPermissionIds,
+      requiredPermissions,
     );
 
     if (!hasRequiredPermission) {

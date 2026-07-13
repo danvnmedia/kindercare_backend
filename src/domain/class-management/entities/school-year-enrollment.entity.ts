@@ -7,6 +7,12 @@ import { SchoolYearEnrollmentAlreadyClosedException } from "../exceptions/school
 import { InvalidExitDateException } from "../exceptions/invalid-exit-date.exception";
 import { GradeLevel } from "./grade-level.entity";
 import { SchoolYear } from "./school-year.entity";
+import {
+  EnrollmentCancellationReason,
+  isEnrollmentCancellationReason,
+} from "../enums/enrollment-cancellation-reason.enum";
+import { EnrollmentEffectiveStatus } from "../enums/enrollment-effective-status.enum";
+import { deriveEnrollmentEffectiveStatus } from "../enrollment-effective-status";
 
 export interface SchoolYearEnrollmentProps {
   studentId: string;
@@ -17,6 +23,26 @@ export interface SchoolYearEnrollmentProps {
   exitDate: Date | null;
   exitReason: ExitReason | null;
   note: string | null;
+  cancelledAt: Date | null;
+  cancellationReason: EnrollmentCancellationReason | null;
+  cancellationNote: string | null;
+  cancelledByUserId: string | null;
+  cancelledByFullName: string | null;
+  snapshotStudentFullName: string | null;
+  snapshotStudentCode: string | null;
+  snapshotStudentNickname: string | null;
+  snapshotGradeLevelName: string | null;
+  snapshotGradeLevelOrder: number | null;
+  snapshotSchoolYearName: string | null;
+  snapshotSchoolYearStartDate: Date | null;
+  snapshotSchoolYearEndDate: Date | null;
+  snapshotCapturedAt: Date | null;
+  historicalFinalizedAt: Date | null;
+  archivedAt: Date | null;
+  redactedAt: Date | null;
+  retentionExpiresAt: Date | null;
+  retentionPolicySource: string | null;
+  legalHold: boolean;
   // Optional loaded relations
   schoolYear?: SchoolYear;
   gradeLevel?: GradeLevel;
@@ -67,6 +93,86 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
     return this.props.note;
   }
 
+  get cancelledAt(): Date | null {
+    return this.props.cancelledAt;
+  }
+
+  get cancellationReason(): EnrollmentCancellationReason | null {
+    return this.props.cancellationReason;
+  }
+
+  get cancellationNote(): string | null {
+    return this.props.cancellationNote;
+  }
+
+  get cancelledByUserId(): string | null {
+    return this.props.cancelledByUserId;
+  }
+
+  get cancelledByFullName(): string | null {
+    return this.props.cancelledByFullName;
+  }
+
+  get snapshotStudentFullName(): string | null {
+    return this.props.snapshotStudentFullName;
+  }
+
+  get snapshotStudentCode(): string | null {
+    return this.props.snapshotStudentCode;
+  }
+
+  get snapshotStudentNickname(): string | null {
+    return this.props.snapshotStudentNickname;
+  }
+
+  get snapshotGradeLevelName(): string | null {
+    return this.props.snapshotGradeLevelName;
+  }
+
+  get snapshotGradeLevelOrder(): number | null {
+    return this.props.snapshotGradeLevelOrder;
+  }
+
+  get snapshotSchoolYearName(): string | null {
+    return this.props.snapshotSchoolYearName;
+  }
+
+  get snapshotSchoolYearStartDate(): Date | null {
+    return this.props.snapshotSchoolYearStartDate;
+  }
+
+  get snapshotSchoolYearEndDate(): Date | null {
+    return this.props.snapshotSchoolYearEndDate;
+  }
+
+  get snapshotCapturedAt(): Date | null {
+    return this.props.snapshotCapturedAt;
+  }
+
+  get historicalFinalizedAt(): Date | null {
+    return this.props.historicalFinalizedAt;
+  }
+
+  get archivedAt(): Date | null {
+    return this.props.archivedAt;
+  }
+
+  get redactedAt(): Date | null {
+    return this.props.redactedAt;
+  }
+
+  get retentionExpiresAt(): Date | null {
+    return this.props.retentionExpiresAt;
+  }
+
+  get retentionPolicySource(): string | null {
+    return this.props.retentionPolicySource;
+  }
+
+  get legalHold(): boolean {
+    return this.props.legalHold;
+  }
+
   get schoolYear(): SchoolYear | undefined {
     return this.props.schoolYear;
   }
@@ -89,8 +195,63 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
 
   // --- Domain Methods ---
 
+  /**
+   * @deprecated This reports structural openness, not calendar-effective
+   * activity. Use isStructurallyOpen() or isEffectiveOn(referenceDate).
+   */
   public isActive(): boolean {
-    return this.props.exitDate === null;
+    return this.isStructurallyOpen();
+  }
+
+  public isStructurallyOpen(): boolean {
+    return this.props.exitDate === null && this.props.cancelledAt === null;
+  }
+
+  public getEffectiveStatus(referenceDate: Date): EnrollmentEffectiveStatus {
+    return deriveEnrollmentEffectiveStatus({
+      enrollmentDate: this.props.enrollmentDate,
+      endDate: this.props.exitDate,
+      cancelledAt: this.props.cancelledAt,
+      referenceDate,
+    });
+  }
+
+  public isEffectiveOn(referenceDate: Date): boolean {
+    return (
+      this.getEffectiveStatus(referenceDate) ===
+      EnrollmentEffectiveStatus.ACTIVE
+    );
+  }
+
+  public cancel(input: {
+    cancelledAt: Date;
+    reason: EnrollmentCancellationReason;
+    note?: string | null;
+    actorId: string;
+    actorFullName?: string | null;
+  }): SchoolYearEnrollment {
+    if (
+      this.getEffectiveStatus(input.cancelledAt) !==
+      EnrollmentEffectiveStatus.UPCOMING
+    ) {
+      throw new Error(
+        "Only an upcoming school-year enrollment can be cancelled",
+      );
+    }
+
+    return SchoolYearEnrollment.create(
+      {
+        ...this.props,
+        cancelledAt: input.cancelledAt,
+        cancellationReason: input.reason,
+        cancellationNote: input.note?.trim() || null,
+        cancelledByUserId: input.actorId,
+        cancelledByFullName: input.actorFullName?.trim() || null,
+        historicalFinalizedAt: input.cancelledAt,
+        updatedAt: input.cancelledAt,
+      },
+      this.id,
+    );
   }
 
   /**
@@ -104,7 +265,7 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
    * parent (see specs/school-year-enrollment-model D2).
    */
   public withdraw(exitDate: Date, reason: ExitReason): SchoolYearEnrollment {
-    if (!this.isActive()) {
+    if (!this.isStructurallyOpen()) {
       throw new SchoolYearEnrollmentAlreadyClosedException(this.id);
     }
 
@@ -135,6 +296,21 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
         exitDate: exitDay,
         exitReason: reason,
         note: this.props.note,
+        snapshotStudentFullName: this.props.snapshotStudentFullName,
+        snapshotStudentCode: this.props.snapshotStudentCode,
+        snapshotStudentNickname: this.props.snapshotStudentNickname,
+        snapshotGradeLevelName: this.props.snapshotGradeLevelName,
+        snapshotGradeLevelOrder: this.props.snapshotGradeLevelOrder,
+        snapshotSchoolYearName: this.props.snapshotSchoolYearName,
+        snapshotSchoolYearStartDate: this.props.snapshotSchoolYearStartDate,
+        snapshotSchoolYearEndDate: this.props.snapshotSchoolYearEndDate,
+        snapshotCapturedAt: this.props.snapshotCapturedAt,
+        historicalFinalizedAt: exitDay,
+        archivedAt: this.props.archivedAt,
+        redactedAt: this.props.redactedAt,
+        retentionExpiresAt: this.props.retentionExpiresAt,
+        retentionPolicySource: this.props.retentionPolicySource,
+        legalHold: this.props.legalHold,
         schoolYear: this.props.schoolYear,
         gradeLevel: this.props.gradeLevel,
         student: this.props.student,
@@ -189,6 +365,26 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
       | "note"
       | "exitDate"
       | "exitReason"
+      | "cancelledAt"
+      | "cancellationReason"
+      | "cancellationNote"
+      | "cancelledByUserId"
+      | "cancelledByFullName"
+      | "snapshotStudentFullName"
+      | "snapshotStudentCode"
+      | "snapshotStudentNickname"
+      | "snapshotGradeLevelName"
+      | "snapshotGradeLevelOrder"
+      | "snapshotSchoolYearName"
+      | "snapshotSchoolYearStartDate"
+      | "snapshotSchoolYearEndDate"
+      | "snapshotCapturedAt"
+      | "historicalFinalizedAt"
+      | "archivedAt"
+      | "redactedAt"
+      | "retentionExpiresAt"
+      | "retentionPolicySource"
+      | "legalHold"
       | "schoolYear"
       | "gradeLevel"
       | "student"
@@ -213,6 +409,11 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
 
     const exitDate = props.exitDate ?? null;
     const exitReason = props.exitReason ?? null;
+    const cancelledAt = props.cancelledAt ?? null;
+    const cancellationReason = props.cancellationReason ?? null;
+    const cancellationNote = props.cancellationNote?.trim() || null;
+    const cancelledByUserId = props.cancelledByUserId?.trim() || null;
+    const cancelledByFullName = props.cancelledByFullName?.trim() || null;
 
     // XOR invariant: exitDate and exitReason must both be set or both be null.
     if ((exitDate === null) !== (exitReason === null)) {
@@ -225,11 +426,62 @@ export class SchoolYearEnrollment extends Entity<SchoolYearEnrollmentProps> {
       SchoolYearEnrollment.assertExitReasonAllowed(exitReason);
     }
 
+    const hasCancellationDetails =
+      cancellationReason !== null ||
+      cancellationNote !== null ||
+      cancelledByUserId !== null ||
+      cancelledByFullName !== null;
+
+    if (cancelledAt === null && hasCancellationDetails) {
+      throw new Error(
+        "SchoolYearEnrollment cancellation details require cancelledAt",
+      );
+    }
+    if (
+      cancellationReason !== null &&
+      !isEnrollmentCancellationReason(cancellationReason)
+    ) {
+      throw new Error("SchoolYearEnrollment cancellationReason is invalid");
+    }
+    if (
+      cancelledAt !== null &&
+      (cancellationReason === null || cancelledByUserId === null)
+    ) {
+      throw new Error(
+        "Cancelled SchoolYearEnrollment requires cancellationReason and cancelledByUserId",
+      );
+    }
+    if (cancellationNote !== null && cancellationNote.length > 500) {
+      throw new Error(
+        "SchoolYearEnrollment cancellationNote must be at most 500 characters",
+      );
+    }
+
     const enrollmentProps: SchoolYearEnrollmentProps = {
       ...props,
       exitDate,
       exitReason,
       note: props.note?.trim() || null,
+      cancelledAt,
+      cancellationReason,
+      cancellationNote,
+      cancelledByUserId,
+      cancelledByFullName,
+      snapshotStudentFullName: props.snapshotStudentFullName ?? null,
+      snapshotStudentCode: props.snapshotStudentCode ?? null,
+      snapshotStudentNickname: props.snapshotStudentNickname ?? null,
+      snapshotGradeLevelName: props.snapshotGradeLevelName ?? null,
+      snapshotGradeLevelOrder: props.snapshotGradeLevelOrder ?? null,
+      snapshotSchoolYearName: props.snapshotSchoolYearName ?? null,
+      snapshotSchoolYearStartDate: props.snapshotSchoolYearStartDate ?? null,
+      snapshotSchoolYearEndDate: props.snapshotSchoolYearEndDate ?? null,
+      snapshotCapturedAt: props.snapshotCapturedAt ?? null,
+      historicalFinalizedAt: props.historicalFinalizedAt ?? null,
+      archivedAt: props.archivedAt ?? null,
+      redactedAt: props.redactedAt ?? null,
+      retentionExpiresAt: props.retentionExpiresAt ?? null,
+      retentionPolicySource: props.retentionPolicySource ?? null,
+      legalHold: props.legalHold ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };

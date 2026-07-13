@@ -94,7 +94,7 @@ describe("PrismaStudentRepository", () => {
       };
     };
 
-    it("excludes active-elsewhere students via phase != ACTIVE on the view (AC-13)", async () => {
+    it("excludes only currently effective students while leaving DEFERRED future placements eligible", async () => {
       const params: StandardRequest = {};
 
       await repository.findEligibleForClass("class-1", params, {
@@ -103,10 +103,9 @@ describe("PrismaStudentRepository", () => {
 
       const { options } = callArgs();
       // The `student_with_phase` view's CASE projects phase='ACTIVE' iff the
-      // student has an open Enrollment, so `phase: { not: 'ACTIVE' }` is the
-      // view-bound equivalent of the original `enrollments: { none: { endDate: null } }`
-      // relation filter. Prisma rejects relation filters on view models, so
-      // this is the only form that works once reads target the view (D7).
+      // ACTIVE is derived only from an uncancelled date-effective placement.
+      // A future placement produces no current class and remains non-ACTIVE,
+      // so this predicate deliberately leaves it eligible.
       expect(options.where).toEqual(
         expect.objectContaining({
           phase: { not: "ACTIVE" },
@@ -320,6 +319,7 @@ describe("PrismaStudentRepository", () => {
     it.each([
       ["WAITING", "AC-18: newly registered student (no Enrollment, no SYE)"],
       ["ACTIVE", "AC-19: student with open Enrollment"],
+      ["COMPLETED", "AC-20: closed SYE exitReason=COMPLETED"],
       ["GRADUATED", "AC-20: closed SYE exitReason=GRADUATED"],
       ["WITHDRAWN", "AC-21: closed SYE exitReason=WITHDRAWN"],
       ["DEFERRED", "AC-22: open SYE in a future school year"],
@@ -437,7 +437,13 @@ describe("PrismaStudentRepository", () => {
       expect(student.currentClass).toBeNull();
     });
 
-    it.each([["WAITING"], ["DEFERRED"], ["GRADUATED"], ["WITHDRAWN"]])(
+    it.each([
+      ["WAITING"],
+      ["DEFERRED"],
+      ["COMPLETED"],
+      ["GRADUATED"],
+      ["WITHDRAWN"],
+    ])(
       "enforces phase=%s ⇒ currentClass=null at the mapper seam (Spec AC-6 — non-ACTIVE branches)",
       (phase) => {
         // The SQL view's LEFT JOIN LATERAL is what makes currentClassId

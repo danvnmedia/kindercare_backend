@@ -82,7 +82,7 @@ export class StudentResponse {
     nullable: true,
     description:
       "Derived lifecycle phase computed from Enrollment + SchoolYearEnrollment state. " +
-      "One of ACTIVE, WAITING, DEFERRED, GRADUATED, WITHDRAWN. " +
+      "One of ACTIVE, WAITING, DEFERRED, COMPLETED, GRADUATED, WITHDRAWN. " +
       "May be null on responses to write endpoints (POST/PATCH) that read back from the base table; " +
       "GET endpoints project phase from the student_with_phase view.",
   })

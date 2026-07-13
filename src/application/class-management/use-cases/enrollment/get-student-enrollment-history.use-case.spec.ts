@@ -1,6 +1,7 @@
 import { NotFoundException } from "@nestjs/common";
 import { GetStudentEnrollmentHistoryUseCase } from "./get-student-enrollment-history.use-case";
 import { EnrollmentRepository } from "../../ports/enrollment.repository";
+import { HistoricalRecordRepository } from "../../ports/historical-record.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { GradeLevel } from "@/domain/class-management/entities/grade-level.entity";
@@ -13,6 +14,7 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
   let useCase: GetStudentEnrollmentHistoryUseCase;
   let enrollmentRepo: jest.Mocked<EnrollmentRepository>;
   let studentRepo: jest.Mocked<StudentRepository>;
+  let historicalRecordRepo: jest.Mocked<HistoricalRecordRepository>;
 
   const campusId = "campus-1";
   const otherCampusId = "campus-2";
@@ -98,11 +100,15 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
     enrollmentRepo = {
       findById: jest.fn(),
       findByStudentClassDate: jest.fn(),
+      findEffectiveByStudentIdAt: jest.fn(),
+      findUpcomingByStudentId: jest.fn(),
+      findStructurallyOpenByStudentId: jest.fn(),
+      findOverlappingByStudentId: jest.fn(),
+      findBySchoolYearEnrollmentId: jest.fn(),
       findByClassId: jest.fn(),
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -113,9 +119,13 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
     studentRepo = {
       findById: jest.fn(),
     } as unknown as jest.Mocked<StudentRepository>;
+    historicalRecordRepo = {
+      findCorrections: jest.fn().mockResolvedValue([]),
+    } as unknown as jest.Mocked<HistoricalRecordRepository>;
     useCase = new GetStudentEnrollmentHistoryUseCase(
       enrollmentRepo,
       studentRepo,
+      historicalRecordRepo,
     );
   });
 
@@ -160,6 +170,14 @@ describe("GetStudentEnrollmentHistoryUseCase", () => {
 
       expect(enrollmentRepo.findAllByStudentId).toHaveBeenCalledWith(studentId);
       expect(result).toHaveLength(2);
+      expect(historicalRecordRepo.findCorrections).toHaveBeenCalledWith(
+        "ENROLLMENT",
+        "e-2",
+      );
+      expect(historicalRecordRepo.findCorrections).toHaveBeenCalledWith(
+        "ENROLLMENT",
+        "e-1",
+      );
 
       // First (newest) — active in classB
       const newest = result[0];

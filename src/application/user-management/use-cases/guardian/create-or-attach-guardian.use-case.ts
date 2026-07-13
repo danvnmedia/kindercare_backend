@@ -51,9 +51,7 @@ export interface CreateOrAttachGuardianResult {
   guardian: Guardian;
 }
 
-type IdentityResolution =
-  | { kind: "no-match" }
-  | { kind: "match"; user: User };
+type IdentityResolution = { kind: "no-match" } | { kind: "match"; user: User };
 
 @Injectable()
 export class CreateOrAttachGuardianUseCase {
@@ -205,8 +203,7 @@ export class CreateOrAttachGuardianUseCase {
       });
 
       return {
-        resultStatus:
-          CreateOrAttachGuardianResultStatus.CREATED_NEW_ACCOUNT,
+        resultStatus: CreateOrAttachGuardianResultStatus.CREATED_NEW_ACCOUNT,
         guardian,
       };
     } catch (error) {

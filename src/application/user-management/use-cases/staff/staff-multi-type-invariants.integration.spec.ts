@@ -50,10 +50,7 @@ import {
 import { Staff } from "@/domain/user-management/entities/staff.entity";
 import { User } from "@/domain/user-management/user.entity";
 import { PrismaStaffMapper } from "@/infra/persistence/prisma/mapper/prisma-staff.mapper";
-import {
-  createStaff,
-  createMockStaffRepository,
-} from "@/test-utils";
+import { createStaff, createMockStaffRepository } from "@/test-utils";
 
 const ACTOR_ID = "actor-1";
 const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";

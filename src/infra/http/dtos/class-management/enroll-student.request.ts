@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MaxLength,
 } from "class-validator";
 
@@ -18,12 +19,13 @@ export class EnrollStudentRequest {
   studentId: string;
 
   @ApiProperty({
-    description: "Enrollment date",
+    description: "Date-only enrollment date.",
     example: "2024-09-01",
   })
   @IsNotEmpty()
-  @IsDateString()
-  enrollmentDate: Date;
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
+  enrollmentDate: string;
 
   @ApiProperty({
     description: "Enrollment note",

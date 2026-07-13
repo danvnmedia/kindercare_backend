@@ -219,6 +219,7 @@ function buildSelectedDateEnrollmentWhere(
   return {
     ...(classId ? { classId } : {}),
     class: { campusId },
+    cancelledAt: null,
     enrollmentDate: { lte: selectedDate },
     OR: [{ endDate: null }, { endDate: { gte: selectedDate } }],
   };

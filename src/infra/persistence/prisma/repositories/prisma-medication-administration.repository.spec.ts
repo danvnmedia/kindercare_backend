@@ -40,6 +40,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
             some: {
               classId: CLASS_ID,
               class: { campusId: CAMPUS_ID },
+              cancelledAt: null,
               enrollmentDate: { lte: dueDate },
               OR: [{ endDate: null }, { endDate: { gte: dueDate } }],
             },
@@ -50,6 +51,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
     expect(findManyArg.include.student.include.enrollments.where).toEqual({
       classId: CLASS_ID,
       class: { campusId: CAMPUS_ID },
+      cancelledAt: null,
       enrollmentDate: { lte: dueDate },
       OR: [{ endDate: null }, { endDate: { gte: dueDate } }],
     });
@@ -138,7 +140,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
       CAMPUS_ID,
       {
         dueDate,
-        now: new Date("2099-07-02T00:00:00.000Z"),
+        now: new Date("2099-07-02T12:00:00.000Z"),
       },
     );
 

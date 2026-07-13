@@ -31,6 +31,7 @@ export class GetAllClassesUseCase {
       const result = await this.classRepository.findAll(
         input.campusId,
         input.params,
+        new Date(),
       );
 
       this.logger.log(

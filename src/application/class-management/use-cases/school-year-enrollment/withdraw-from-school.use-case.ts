@@ -97,11 +97,13 @@ export class WithdrawFromSchoolUseCase {
       throw error;
     }
 
-    // Resolve the student's single open class enrollment (if any). The partial
-    // unique index idx_enrollment_one_active_per_student guarantees at most one.
-    const openChild = await this.enrollmentRepository.findActiveByStudentId(
-      parent.studentId,
-    );
+    // Resolve only the class period effective on the inclusive withdrawal
+    // date. A future scheduled placement must not be closed accidentally.
+    const openChild =
+      await this.enrollmentRepository.findEffectiveByStudentIdAt(
+        parent.studentId,
+        exitDate,
+      );
 
     let closedChild: Enrollment | null = null;
     if (openChild) {
@@ -112,7 +114,7 @@ export class WithdrawFromSchoolUseCase {
         // late class placement). Surface the same INVALID_EXIT_DATE code so
         // the API contract stays consistent.
         if (error instanceof EnrollmentAlreadyClosedException) {
-          // Defensive: findActiveByStudentId filters endDate IS NULL, so this
+          // Defensive: the effective-date query excludes closed rows, so this
           // is effectively unreachable unless a race interleaves.
           throw new ConflictException(
             SchoolYearEnrollmentErrorCode.PARENT_ALREADY_CLOSED,

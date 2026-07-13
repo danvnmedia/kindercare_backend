@@ -41,6 +41,8 @@ import {
   BulkEnrollStudentsResponse,
   BulkTransferStudentsRequest,
   BulkTransferStudentsResponse,
+  EnrollmentReadinessRequest,
+  EnrollmentReadinessResponse,
   AssignStaffRequest,
   BulkAssignStaffRequest,
   BulkAssignStaffResponse,
@@ -63,6 +65,7 @@ import { EnrollStudentUseCase } from "@/application/class-management/use-cases/e
 import { WithdrawStudentUseCase } from "@/application/class-management/use-cases/enrollment/withdraw-student.use-case";
 import { BulkEnrollStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-enroll-students.use-case";
 import { BulkTransferStudentsUseCase } from "@/application/class-management/use-cases/enrollment/bulk-transfer-students.use-case";
+import { GetEnrollmentReadinessUseCase } from "@/application/class-management/use-cases/enrollment/get-enrollment-readiness.use-case";
 import { GetClassEnrollmentsUseCase } from "@/application/class-management/use-cases/enrollment/get-class-enrollments.use-case";
 import { GetEligibleStudentsForClassUseCase } from "@/application/user-management/use-cases/student/get-eligible-students-for-class.use-case";
 import { GetEligibleStaffForClassUseCase } from "@/application/user-management/use-cases/staff/get-eligible-staff-for-class.use-case";
@@ -71,6 +74,7 @@ import { BulkAssignStaffToClassUseCase } from "@/application/class-management/us
 import { GetClassStaffUseCase } from "@/application/class-management/use-cases/class-staff/get-class-staff.use-case";
 import { RemoveStaffFromClassUseCase } from "@/application/class-management/use-cases/class-staff/remove-staff-from-class.use-case";
 import { ChangeClassStaffRoleUseCase } from "@/application/class-management/use-cases/class-staff/change-class-staff-role.use-case";
+import { parseDateOnly } from "@/application/class-management/date-only";
 
 @Controller("classes")
 @ApiTags("Classes")
@@ -85,6 +89,7 @@ export class ClassController {
     private readonly enrollStudentUseCase: EnrollStudentUseCase,
     private readonly bulkEnrollStudentsUseCase: BulkEnrollStudentsUseCase,
     private readonly bulkTransferStudentsUseCase: BulkTransferStudentsUseCase,
+    private readonly getEnrollmentReadinessUseCase: GetEnrollmentReadinessUseCase,
     private readonly withdrawStudentUseCase: WithdrawStudentUseCase,
     private readonly getClassEnrollmentsUseCase: GetClassEnrollmentsUseCase,
     private readonly getEligibleStudentsForClassUseCase: GetEligibleStudentsForClassUseCase,
@@ -133,7 +138,7 @@ export class ClassController {
   @ApiOperation({
     summary: "Get all classes",
     description:
-      "Retrieve all classes with advanced filtering, sorting, and pagination. Supports filtering by name, description, gradeLevelId, schoolYearId. Each row carries `studentCount` (active enrollments) and a compact `staff[]` preview.",
+      "Retrieve all classes with advanced filtering, sorting, and pagination. Supports filtering by name, description, gradeLevelId, schoolYearId. Each row carries authoritative `activeStudentCount`, `upcomingStudentCount`, and closed-only `historicalStudentCount` projections plus a compact `staff[]` preview. Cancelled rows contribute to none of the counts.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -234,6 +239,52 @@ export class ClassController {
 
   // ==================== Enrollment Endpoints ====================
 
+  @Post(":id/enrollments/readiness")
+  @RequireCampusAccess()
+  @StandardResponse({
+    message: "Enrollment readiness evaluated",
+    type: EnrollmentReadinessResponse,
+  })
+  @ApiOperation({
+    summary: "Preview class enrollment readiness",
+    description:
+      "Read-only readiness check for class enrollment or transfer. Returns one typed row per student and performs no writes.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "id",
+    description: "Target class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getEnrollmentReadiness(
+    @CampusContext() campusId: string,
+    @Param("id") classId: string,
+    @Body() dto: EnrollmentReadinessRequest,
+  ) {
+    const effectiveDate = parseDateOnly(dto.effectiveDate);
+    const rows = await this.getEnrollmentReadinessUseCase.execute({
+      campusId,
+      classId,
+      mode: dto.mode,
+      effectiveDate,
+      students: dto.students.map((row) => ({
+        studentId: row.studentId,
+        fromClassId: row.fromClassId,
+      })),
+    });
+
+    return {
+      mode: dto.mode,
+      effectiveDate,
+      rows,
+    };
+  }
+
   @Post(":id/enrollments")
   @RequireCampusAccess()
   @StandardResponse({
@@ -267,7 +318,7 @@ export class ClassController {
         campusId,
         classId,
         studentId: dto.studentId,
-        enrollmentDate: new Date(dto.enrollmentDate),
+        enrollmentDate: parseDateOnly(dto.enrollmentDate),
         note: dto.note,
       },
       currentUser,
@@ -306,7 +357,7 @@ export class ClassController {
       {
         campusId,
         classId,
-        enrollmentDate: new Date(dto.enrollmentDate),
+        enrollmentDate: parseDateOnly(dto.enrollmentDate),
         note: dto.note,
         students: dto.students.map((row) => ({
           studentId: row.studentId,
@@ -350,7 +401,7 @@ export class ClassController {
       {
         campusId,
         classId,
-        transferDate: new Date(dto.transferDate),
+        transferDate: parseDateOnly(dto.transferDate),
         note: dto.note,
         students: dto.students.map((row) => ({
           studentId: row.studentId,
@@ -401,7 +452,7 @@ export class ClassController {
         enrollmentId,
         campusId,
         reason: dto.reason,
-        endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        endDate: dto.endDate ? parseDateOnly(dto.endDate) : undefined,
         note: dto.note,
       },
       currentUser,
@@ -418,7 +469,7 @@ export class ClassController {
   @ApiOperation({
     summary: "Get class enrollments",
     description:
-      "Get students enrolled in this class. By default, returns only active enrollments (endDate IS NULL). Pass `includeHistorical=true` to also include closed (transferred/withdrawn) periods, ordered by enrollmentDate DESC.",
+      "Get class enrollment periods by authoritative status at the current UTC date. Omission defaults to ACTIVE. Use ALL to return active, upcoming, closed, and cancelled rows.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -432,11 +483,11 @@ export class ClassController {
     example: "123e4567-e89b-12d3-a456-426614174000",
   })
   @ApiQuery({
-    name: "includeHistorical",
+    name: "effectiveStatus",
     required: false,
-    type: Boolean,
+    enum: ["ACTIVE", "UPCOMING", "CLOSED", "CANCELLED", "ALL"],
     description:
-      "When true, include closed enrollment periods alongside active ones. Defaults to false.",
+      "Authoritative UTC status filter. Defaults to ACTIVE when omitted.",
   })
   async getEnrollments(
     @CampusContext() campusId: string,
@@ -446,7 +497,7 @@ export class ClassController {
     return await this.getClassEnrollmentsUseCase.execute({
       classId,
       campusId,
-      includeHistorical: query.includeHistorical,
+      effectiveStatus: query.effectiveStatus,
     });
   }
 

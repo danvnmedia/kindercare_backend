@@ -10,6 +10,7 @@ import { SchoolYear } from "@/domain/class-management/entities/school-year.entit
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
 import { SchoolYearEnrollment } from "@/domain/class-management/entities/school-year-enrollment.entity";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { Student } from "@/domain/user-management/entities/student.entity";
 import { User } from "@/domain/user-management/user.entity";
 
 const stubActor = User.create({ clerkUid: "user_audit12345" });
@@ -80,6 +81,20 @@ describe("BulkTransferStudentsUseCase", () => {
         // the *resolved* parent.id (not a static placeholder).
         schoolYearEnrollmentId: `sye-${studentId}`,
         enrollmentDate: new Date("2025-09-01T00:00:00.000Z"),
+        student: Student.create(
+          {
+            campusId,
+            studentCode: `STU-${studentId}`,
+            fullName: `Student ${studentId}`,
+            nickname: null,
+            email: null,
+            phoneNumber: null,
+            address: null,
+            dateOfBirth: null,
+            gender: null,
+          },
+          studentId,
+        ),
       },
       `active-${studentId}`,
     );
@@ -112,11 +127,15 @@ describe("BulkTransferStudentsUseCase", () => {
     mockEnrollmentRepository = {
       findById: jest.fn(),
       findByStudentClassDate: jest.fn(),
+      findEffectiveByStudentIdAt: jest.fn(),
+      findUpcomingByStudentId: jest.fn(),
+      findStructurallyOpenByStudentId: jest.fn(),
+      findOverlappingByStudentId: jest.fn(),
+      findBySchoolYearEnrollmentId: jest.fn(),
       findByClassId: jest.fn(),
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -141,8 +160,15 @@ describe("BulkTransferStudentsUseCase", () => {
     mockSyeRepository = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -165,6 +191,17 @@ describe("BulkTransferStudentsUseCase", () => {
     mockSyeRepository.findOpenByStudentAndSchoolYear.mockImplementation(
       async (studentId) => createMockParent(studentId),
     );
+    mockSyeRepository.findCoveringDateByStudentAndSchoolYear.mockImplementation(
+      (studentId, schoolYearId) =>
+        mockSyeRepository.findOpenByStudentAndSchoolYear(
+          studentId,
+          schoolYearId,
+        ),
+    );
+    mockEnrollmentRepository.findEffectiveByStudentIdAt.mockImplementation(
+      (studentId) => mockEnrollmentRepository.findActiveByStudentId(studentId),
+    );
+    mockEnrollmentRepository.findOverlappingByStudentId.mockResolvedValue(null);
   });
 
   // -------- Whole-call validation (FR-10) — short-circuits before row work --------
@@ -336,9 +373,13 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(0);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         { studentId: "s-1", reason: "NO_ACTIVE_ENROLLMENT" },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: targetClassId, name: "Lớp Y2-A" },
+        activeEnrollment: null,
+      });
       expect(
         mockEnrollmentRepository.transferEnrollment,
       ).not.toHaveBeenCalled();
@@ -361,9 +402,13 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(0);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         { studentId: "s-mismatch", reason: "TRANSFER_SOURCE_MISMATCH" },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: targetClassId, name: "Lớp Y2-A" },
+        activeEnrollment: { classId: "class-Y1-B" },
+      });
     });
 
     it("does NOT fire TRANSFER_SOURCE_MISMATCH when fromClassId is omitted (any source is accepted)", async () => {
@@ -401,9 +446,13 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(0);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         { studentId: "s-same", reason: "TRANSFER_SAME_CLASS" },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: targetClassId, name: "Lớp Y2-A" },
+        activeEnrollment: { classId: targetClassId },
+      });
       expect(
         mockEnrollmentRepository.transferEnrollment,
       ).not.toHaveBeenCalled();
@@ -439,14 +488,17 @@ describe("BulkTransferStudentsUseCase", () => {
         4,
       );
 
-      // Every closed row carries the transfer date + TRANSFERRED reason.
+      // Every source row closes on the prior UTC date so the inclusive
+      // periods do not overlap; every target row starts on transferDate.
       // Every opened row lands in the target class with endDate=null AND
       // threads the per-student resolved parent.id (AC-19 / AC-4).
       const openedParentIds: string[] = [];
       for (const call of mockEnrollmentRepository.transferEnrollment.mock
         .calls) {
         const [closed, opened] = call as [Enrollment, Enrollment];
-        expect(closed.endDate?.getTime()).toBe(transferDate.getTime());
+        expect(closed.endDate?.getTime()).toBe(
+          transferDate.getTime() - 24 * 60 * 60 * 1000,
+        );
         expect(closed.exitReason).toBe(ExitReason.TRANSFERRED);
         expect(opened.classId).toBe(targetClassId);
         expect(opened.endDate).toBeNull();
@@ -482,7 +534,7 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(2);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         { studentId: "s-no-active", reason: "NO_ACTIVE_ENROLLMENT" },
         { studentId: "s-already-target", reason: "TRANSFER_SAME_CLASS" },
       ]);
@@ -522,7 +574,7 @@ describe("BulkTransferStudentsUseCase", () => {
       // Rows 1-4 + row 6 persisted; row 5 in skipped[] with TRANSFER_FAILED.
       expect(result.transferred).toHaveLength(5);
       expect(result.skipped).toHaveLength(1);
-      expect(result.skipped[0]).toEqual({
+      expect(result.skipped[0]).toMatchObject({
         studentId: "s-5",
         reason: "TRANSFER_FAILED",
         message: "Simulated DB rollback on row 5",
@@ -581,8 +633,8 @@ describe("BulkTransferStudentsUseCase", () => {
       warnSpy.mockRestore();
     });
 
-    it("AC-6 preflight hit: skips with ENROLLMENT_ALREADY_EXISTS_ON_DATE and does NOT call transferEnrollment", async () => {
-      mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(
+    it("AC-6 preflight hit: skips with ENROLLMENT_PERIOD_OVERLAP and does NOT call transferEnrollment", async () => {
+      mockEnrollmentRepository.findOverlappingByStudentId.mockResolvedValue(
         Enrollment.create(
           {
             classId: targetClassId,
@@ -605,22 +657,26 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(0);
-      expect(result.skipped).toEqual([
-        { studentId: "s-pre", reason: "ENROLLMENT_ALREADY_EXISTS_ON_DATE" },
+      expect(result.skipped).toMatchObject([
+        { studentId: "s-pre", reason: "ENROLLMENT_PERIOD_OVERLAP" },
       ]);
       expect(
-        mockEnrollmentRepository.findByStudentClassDate,
-      ).toHaveBeenCalledWith("s-pre", targetClassId, transferDate);
+        mockEnrollmentRepository.findOverlappingByStudentId,
+      ).toHaveBeenCalledWith("s-pre", transferDate, null, "active-s-pre");
       expect(
         mockEnrollmentRepository.transferEnrollment,
       ).not.toHaveBeenCalled();
     });
 
-    it("AC-7 P2002 race: maps Prisma unique-constraint error to ENROLLMENT_ALREADY_EXISTS_ON_DATE and logs a warning", async () => {
+    it("AC-7 P2002 race: maps the persistence race to ENROLLMENT_PERIOD_OVERLAP and logs a warning", async () => {
       mockEnrollmentRepository.transferEnrollment.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
           code: "P2002",
           clientVersion: "test",
+          meta: {
+            modelName: "Enrollment",
+            target: "idx_enrollment_unique_uncancelled_start",
+          },
         }),
       );
 
@@ -635,14 +691,14 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(0);
-      expect(result.skipped).toEqual([
-        { studentId: "s-race", reason: "ENROLLMENT_ALREADY_EXISTS_ON_DATE" },
+      expect(result.skipped).toMatchObject([
+        { studentId: "s-race", reason: "ENROLLMENT_PERIOD_OVERLAP" },
       ]);
       expect(warnSpy).toHaveBeenCalledTimes(1);
       const message = warnSpy.mock.calls[0][0] as string;
       expect(message).toContain(targetClassId);
       expect(message).toContain("s-race");
-      expect(message).toContain("P2002");
+      expect(message).toContain("overlap race");
     });
 
     it("AC-8 generic failure: maps non-P2002 error to TRANSFER_FAILED with message and logs a warning", async () => {
@@ -661,7 +717,7 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(0);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         {
           studentId: "s-fail",
           reason: "TRANSFER_FAILED",
@@ -721,12 +777,23 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(2);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         {
           studentId: "s-wrong-grade",
           reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
         },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: targetClassId, name: "Lớp Y2-A" },
+        activeEnrollment: { classId: sourceClassId },
+        schoolYearEnrollment: { gradeLevelId: "grade-OTHER" },
+      });
+      expect(JSON.stringify(result.skipped[0].context)).not.toContain(
+        "attendance",
+      );
+      expect(
+        JSON.stringify(mockEnrollmentRepository.transferEnrollment.mock.calls),
+      ).not.toContain("attendance");
       // transferEnrollment fired exactly twice — once per survivor.
       expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(
         2,
@@ -758,12 +825,23 @@ describe("BulkTransferStudentsUseCase", () => {
       );
 
       expect(result.transferred).toHaveLength(2);
-      expect(result.skipped).toEqual([
+      expect(result.skipped).toMatchObject([
         {
           studentId: "s-no-parent",
           reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
         },
       ]);
+      expect(result.skipped[0].context).toMatchObject({
+        targetClass: { id: targetClassId, name: "Lớp Y2-A" },
+        activeEnrollment: { classId: sourceClassId },
+        schoolYearEnrollment: null,
+      });
+      expect(JSON.stringify(result.skipped[0].context)).not.toContain(
+        "attendance",
+      );
+      expect(
+        JSON.stringify(mockEnrollmentRepository.transferEnrollment.mock.calls),
+      ).not.toContain("attendance");
       // Warning logged for the data-integrity row.
       expect(warnSpy).toHaveBeenCalled();
       expect(mockEnrollmentRepository.transferEnrollment).toHaveBeenCalledTimes(

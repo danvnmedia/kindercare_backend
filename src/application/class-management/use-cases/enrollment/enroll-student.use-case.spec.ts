@@ -139,11 +139,15 @@ describe("EnrollStudentUseCase", () => {
     mockEnrollmentRepository = {
       findById: jest.fn(),
       findByStudentClassDate: jest.fn(),
+      findEffectiveByStudentIdAt: jest.fn(),
+      findUpcomingByStudentId: jest.fn(),
+      findStructurallyOpenByStudentId: jest.fn(),
+      findOverlappingByStudentId: jest.fn(),
+      findBySchoolYearEnrollmentId: jest.fn(),
       findByClassId: jest.fn(),
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -188,8 +192,15 @@ describe("EnrollStudentUseCase", () => {
     mockSyeRepository = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -213,10 +224,20 @@ describe("EnrollStudentUseCase", () => {
 
     // Default: no active enrollment. Individual tests override for AC-21.
     mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null);
+    mockEnrollmentRepository.findOverlappingByStudentId.mockImplementation(
+      (studentId) => mockEnrollmentRepository.findActiveByStudentId(studentId),
+    );
     // Default: open parent exists with matching grade level. Individual tests
     // override for the parent-gate paths (AC-16 / AC-17).
     mockSyeRepository.findOpenByStudentAndSchoolYear.mockResolvedValue(
       createMockParent(),
+    );
+    mockSyeRepository.findCoveringDateByStudentAndSchoolYear.mockImplementation(
+      (studentId, schoolYearId) =>
+        mockSyeRepository.findOpenByStudentAndSchoolYear(
+          studentId,
+          schoolYearId,
+        ),
     );
   });
 
@@ -253,11 +274,11 @@ describe("EnrollStudentUseCase", () => {
     expect(mockClassRepository.findById).toHaveBeenCalledWith(classId);
     expect(mockStudentRepository.findById).toHaveBeenCalledWith(studentId);
     expect(
-      mockEnrollmentRepository.findByStudentClassDate,
-    ).toHaveBeenCalledWith(studentId, classId, enrollmentDate);
+      mockEnrollmentRepository.findOverlappingByStudentId,
+    ).toHaveBeenCalledWith(studentId, enrollmentDate);
     expect(
-      mockSyeRepository.findOpenByStudentAndSchoolYear,
-    ).toHaveBeenCalledWith(studentId, schoolYearId);
+      mockSyeRepository.findCoveringDateByStudentAndSchoolYear,
+    ).toHaveBeenCalledWith(studentId, schoolYearId, enrollmentDate);
     expect(mockEnrollmentRepository.save).toHaveBeenCalled();
   });
 
@@ -437,7 +458,7 @@ describe("EnrollStudentUseCase", () => {
 
     mockClassRepository.findById.mockResolvedValue(mockClass);
     mockStudentRepository.findById.mockResolvedValue(mockStudent);
-    mockEnrollmentRepository.findByStudentClassDate.mockResolvedValue(
+    mockEnrollmentRepository.findOverlappingByStudentId.mockResolvedValue(
       existingEnrollment,
     );
 
@@ -463,9 +484,37 @@ describe("EnrollStudentUseCase", () => {
         },
         stubActor,
       ),
-    ).rejects.toThrow("Student is already enrolled in this class on this date");
+    ).rejects.toThrow("ENROLLMENT_PERIOD_OVERLAP");
 
     expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
+  });
+
+  it("maps a database overlap race to a stable 409 with nullable conflict context", async () => {
+    mockClassRepository.findById.mockResolvedValue(createMockClass());
+    mockStudentRepository.findById.mockResolvedValue(createMockStudent());
+    mockEnrollmentRepository.save.mockRejectedValue({
+      code: "P2002",
+      message: "Unique constraint failed",
+      meta: {
+        modelName: "Enrollment",
+        target: "idx_enrollment_unique_uncancelled_start",
+      },
+    });
+
+    const promise = useCase.execute(
+      { campusId, classId, studentId, enrollmentDate },
+      stubActor,
+    );
+
+    await expect(promise).rejects.toBeInstanceOf(ConflictException);
+    await expect(promise).rejects.toMatchObject({
+      response: {
+        code: "ENROLLMENT_PERIOD_OVERLAP",
+        message: "ENROLLMENT_PERIOD_OVERLAP",
+        conflictingEnrollment: null,
+      },
+    });
+    expect(recorder.record).not.toHaveBeenCalled();
   });
 
   it("should allow enrollment on different dates for same student and class", async () => {
@@ -494,8 +543,8 @@ describe("EnrollStudentUseCase", () => {
     expect(mockEnrollmentRepository.save).toHaveBeenCalled();
   });
 
-  describe("AC-21 / Scenario 9: student already actively enrolled (any class)", () => {
-    it("throws ConflictException STUDENT_ALREADY_ENROLLED when student has any active enrollment", async () => {
+  describe("inclusive enrollment-period overlap", () => {
+    it("throws ConflictException ENROLLMENT_PERIOD_OVERLAP when a proposed period overlaps another class", async () => {
       const mockClass = createMockClass();
       const mockStudent = createMockStudent();
       const activeElsewhere = Enrollment.create({
@@ -536,7 +585,7 @@ describe("EnrollStudentUseCase", () => {
           },
           stubActor,
         ),
-      ).rejects.toThrow("STUDENT_ALREADY_ENROLLED");
+      ).rejects.toThrow("ENROLLMENT_PERIOD_OVERLAP");
 
       expect(mockEnrollmentRepository.save).not.toHaveBeenCalled();
     });

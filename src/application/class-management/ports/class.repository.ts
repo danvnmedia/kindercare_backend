@@ -31,7 +31,9 @@ export interface ClassListItemView {
   schoolYearId: string;
   gradeLevel: GradeLevel | null;
   schoolYear: SchoolYear | null;
-  studentCount: number;
+  activeStudentCount: number;
+  upcomingStudentCount: number;
+  historicalStudentCount: number;
   staff: Array<{ id: string; fullName: string; role: ClassStaffRole }>;
   createdAt: Date;
   updatedAt: Date;
@@ -93,6 +95,7 @@ export abstract class ClassRepository {
   abstract findAll(
     campusId: string,
     params: StandardRequest,
+    referenceDate: Date,
   ): Promise<PaginatedResult<ClassListItemView>>;
 
   /**

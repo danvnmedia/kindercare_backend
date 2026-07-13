@@ -1,10 +1,6 @@
 import { RequestContext } from "../context/request-context.service";
 import { GlobalAdminGuard } from "./global-admin.guard";
-import {
-  createRole,
-  createRoleAssignment,
-  createUser,
-} from "@/test-utils";
+import { createRole, createRoleAssignment, createUser } from "@/test-utils";
 
 const CAMPUS_ID = "33333333-3333-4333-a333-333333333333";
 

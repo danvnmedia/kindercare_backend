@@ -8,6 +8,7 @@ import { Enrollment } from "@/domain/class-management/entities/enrollment.entity
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
+import { EnrollmentEffectiveStatusFilter } from "../enrollment-effective-status-filter";
 
 export abstract class EnrollmentRepository {
   /**
@@ -24,6 +25,40 @@ export abstract class EnrollmentRepository {
     enrollmentDate: Date,
   ): Promise<Enrollment | null>;
 
+  /** Find the uncancelled enrollment effective on an inclusive date. */
+  abstract findEffectiveByStudentIdAt(
+    studentId: string,
+    effectiveDate: Date,
+  ): Promise<Enrollment | null>;
+
+  /** Find future uncancelled periods after the supplied UTC date. */
+  abstract findUpcomingByStudentId(
+    studentId: string,
+    referenceDate: Date,
+  ): Promise<Enrollment[]>;
+
+  /** Find an uncancelled null-end period without implying it is active today. */
+  abstract findStructurallyOpenByStudentId(
+    studentId: string,
+  ): Promise<Enrollment | null>;
+
+  /**
+   * Find an uncancelled period whose inclusive interval overlaps the proposed
+   * interval. A null proposed end is unbounded. `excludeEnrollmentId` supports
+   * atomic source-close/target-open transfers.
+   */
+  abstract findOverlappingByStudentId(
+    studentId: string,
+    enrollmentDate: Date,
+    endDate?: Date | null,
+    excludeEnrollmentId?: string,
+  ): Promise<Enrollment | null>;
+
+  /** Resolve every child period belonging to one parent registration. */
+  abstract findBySchoolYearEnrollmentId(
+    schoolYearEnrollmentId: string,
+  ): Promise<Enrollment[]>;
+
   /**
    * Find all enrollments for a class (active and historical).
    */
@@ -39,19 +74,18 @@ export abstract class EnrollmentRepository {
    * Active means `endDate IS NULL`. The partial unique index
    * `idx_enrollment_one_active_per_student` guarantees at most one row.
    */
+  /** @deprecated Use an explicit effective or structural query. */
   abstract findActiveByStudentId(studentId: string): Promise<Enrollment | null>;
 
   /**
-   * Find currently active enrollments for a class (`endDate IS NULL`),
-   * ordered by `enrollmentDate DESC`. Used for the default class roster view.
+   * Find class enrollment rows by authoritative date-effective status at one
+   * UTC request boundary. ALL intentionally includes cancelled rows.
    */
-  abstract findActiveByClassId(classId: string): Promise<Enrollment[]>;
-
-  /**
-   * Find all enrollments for a class, including closed periods,
-   * ordered by `enrollmentDate DESC`. Used when `includeHistorical=true`.
-   */
-  abstract findHistoricalByClassId(classId: string): Promise<Enrollment[]>;
+  abstract findByClassIdAndEffectiveStatus(
+    classId: string,
+    effectiveStatus: EnrollmentEffectiveStatusFilter,
+    referenceDate: Date,
+  ): Promise<Enrollment[]>;
 
   /**
    * Find all enrollments for a student across classes and periods,

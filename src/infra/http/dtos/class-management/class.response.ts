@@ -109,12 +109,13 @@ export class ClassResponse {
 }
 
 /**
- * One row in the paginated class list. Extends `ClassResponse` with two
+ * One row in the paginated class list. Extends `ClassResponse` with three
  * list-only aggregates the FE needs to render the `/dashboard/classes`
  * student-count column and staff `AvatarGroup`:
  *
- *  - `studentCount` — number of currently active enrollments
- *    (`enrollment.classId = class.id AND enrollment.endDate IS NULL`).
+ *  - `activeStudentCount` — rows effective on the current UTC date.
+ *  - `upcomingStudentCount` — uncancelled rows starting after that date.
+ *  - `historicalStudentCount` — uncancelled rows closed before that date.
  *  - `staff` — compact preview of every staff row attached to the class,
  *    ordered HOMEROOM first then by assignment time.
  *
@@ -126,9 +127,25 @@ export class ClassListItemResponse extends ClassResponse {
   @ApiProperty({
     example: 12,
     description:
-      "Count of currently active enrollments (endDate IS NULL) attached to this class.",
+      "Count of uncancelled enrollments effective on the authoritative current UTC date.",
   })
-  studentCount: number;
+  activeStudentCount: number;
+
+  @Expose()
+  @ApiProperty({
+    example: 3,
+    description:
+      "Count of uncancelled enrollments whose enrollmentDate is after the authoritative current UTC date.",
+  })
+  upcomingStudentCount: number;
+
+  @Expose()
+  @ApiProperty({
+    example: 15,
+    description:
+      "Count of uncancelled enrollment periods closed before the authoritative current UTC date. Inclusive end dates remain active through that date.",
+  })
+  historicalStudentCount: number;
 
   @Expose()
   @Type(() => ClassStaffPreview)

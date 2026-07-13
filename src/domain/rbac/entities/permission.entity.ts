@@ -40,6 +40,8 @@ export class PermissionEntity {
     "grade_level",
     "subject",
     "school_year",
+    "school_year_enrollment",
+    "school_year_lifecycle",
     "post",
     "file",
     "role",
@@ -47,6 +49,7 @@ export class PermissionEntity {
     "attendance",
     "staff_type",
     "report",
+    "historical_records",
     "setting",
     "meal_menu",
     "meal_menu_config",
@@ -67,8 +70,14 @@ export class PermissionEntity {
     "list",
     "manage",
     "assign",
+    "correct",
+    "archive",
+    "redact",
     "export",
     "import",
+    "preview",
+    "commit",
+    "cancel",
   ] as const;
 
   /**

@@ -30,6 +30,7 @@ export type AuditTargetType =
   | "staff_type"
   | "user"
   | "role"
+  | "school_year"
   | "meal_menu"
   | "meal_menu_config"
   | "weekly_plan"

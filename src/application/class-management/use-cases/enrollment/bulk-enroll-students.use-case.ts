@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   Logger,
@@ -13,6 +14,10 @@ import { EnrollmentRepository } from "../../ports/enrollment.repository";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { EnrollmentErrorCode } from "../../enrollment-error-codes";
 import { SchoolYearEnrollmentErrorCode } from "../../school-year-enrollment-error-codes";
+import { EnrollmentReadinessContext } from "../../enrollment-readiness.types";
+import { buildEnrollmentResultContext } from "../../enrollment-result-context";
+import { buildEnrollmentSnapshot } from "../../historical-snapshot";
+import { isEnrollmentPeriodOverlapPersistenceError } from "../../enrollment-period";
 
 const MAX_BATCH_SIZE = 100;
 
@@ -33,6 +38,7 @@ export interface BulkEnrollSkippedItem {
   studentId: string;
   reason: string;
   message?: string;
+  context?: EnrollmentReadinessContext;
 }
 
 export interface BulkEnrollStudentsResult {
@@ -127,26 +133,20 @@ export class BulkEnrollStudentsUseCase {
         });
         continue;
       }
-      const active = await this.enrollmentRepository.findActiveByStudentId(
-        row.studentId,
-      );
-      if (active) {
-        // Inline per D4 — existing single-row code reused.
+      const overlap =
+        await this.enrollmentRepository.findOverlappingByStudentId(
+          row.studentId,
+          input.enrollmentDate,
+        );
+      if (overlap) {
         skipped.push({
           studentId: row.studentId,
-          reason: "STUDENT_ALREADY_ENROLLED",
-        });
-        continue;
-      }
-      const existing = await this.enrollmentRepository.findByStudentClassDate(
-        row.studentId,
-        input.classId,
-        input.enrollmentDate,
-      );
-      if (existing) {
-        skipped.push({
-          studentId: row.studentId,
-          reason: EnrollmentErrorCode.ENROLLMENT_ALREADY_EXISTS_ON_DATE,
+          reason: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+          context: buildEnrollmentResultContext(
+            input.enrollmentDate,
+            classEntity,
+            { conflictingEnrollment: overlap },
+          ),
         });
         continue;
       }
@@ -155,14 +155,20 @@ export class BulkEnrollStudentsUseCase {
       // D1/D3 + bulk-enrollment FR-4 per-row tolerant pattern). Missing parent
       // or grade mismatch is a per-row skip, NOT a whole-call abort.
       const parent =
-        await this.schoolYearEnrollmentRepository.findOpenByStudentAndSchoolYear(
+        await this.schoolYearEnrollmentRepository.findCoveringDateByStudentAndSchoolYear(
           row.studentId,
           classEntity.schoolYearId,
+          input.enrollmentDate,
         );
       if (!parent) {
         skipped.push({
           studentId: row.studentId,
           reason: SchoolYearEnrollmentErrorCode.NO_SCHOOL_YEAR_ENROLLMENT,
+          context: buildEnrollmentResultContext(
+            input.enrollmentDate,
+            classEntity,
+            { schoolYearEnrollment: null },
+          ),
         });
         continue;
       }
@@ -170,6 +176,11 @@ export class BulkEnrollStudentsUseCase {
         skipped.push({
           studentId: row.studentId,
           reason: SchoolYearEnrollmentErrorCode.GRADE_LEVEL_MISMATCH,
+          context: buildEnrollmentResultContext(
+            input.enrollmentDate,
+            classEntity,
+            { schoolYearEnrollment: parent },
+          ),
         });
         continue;
       }
@@ -186,15 +197,28 @@ export class BulkEnrollStudentsUseCase {
           schoolYearEnrollmentId: parent.id,
           enrollmentDate: input.enrollmentDate,
           note,
+          ...buildEnrollmentSnapshot(student, classEntity),
         }),
       );
     }
 
     // ---- Persist survivors atomically (FR-5, D3). ----
-    const enrolled =
-      toEnroll.length > 0
-        ? await this.enrollmentRepository.saveMany(toEnroll)
-        : [];
+    let enrolled: Enrollment[] = [];
+    try {
+      enrolled =
+        toEnroll.length > 0
+          ? await this.enrollmentRepository.saveMany(toEnroll)
+          : [];
+    } catch (error) {
+      if (isEnrollmentPeriodOverlapPersistenceError(error)) {
+        throw new ConflictException({
+          code: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+          message: EnrollmentErrorCode.ENROLLMENT_PERIOD_OVERLAP,
+          conflictingEnrollment: null,
+        });
+      }
+      throw error;
+    }
 
     this.logger.log(
       `Bulk enroll done: classId=${input.classId} enrolled=${enrolled.length} skipped=${skipped.length}`,

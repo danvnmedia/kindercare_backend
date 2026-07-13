@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  Matches,
   MaxLength,
 } from "class-validator";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
@@ -21,12 +22,13 @@ export class WithdrawStudentRequest {
 
   @ApiProperty({
     description:
-      "End date of the enrollment period (ISO date). Defaults to today if omitted. Must be on or after enrollmentDate and not in the future.",
+      "Date-only end date of the enrollment period. Defaults to today if omitted. Must be on or after enrollmentDate and not in the future.",
     example: "2026-03-12",
     required: false,
   })
   @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/)
   endDate?: string;
 
   @ApiProperty({

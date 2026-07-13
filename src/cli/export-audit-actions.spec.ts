@@ -41,10 +41,13 @@ describe("buildAuditActionsExport", () => {
   // lifecycle added 6; weekly-plan lifecycle added 5; student-health profile
   // updates added 1; student-health checkup lifecycle added 2; student-health
   // instruction lifecycle added 2; student-health event lifecycle added 2;
-  // medication request lifecycle added 1.
-  it("emits exactly 55 actions including medication requests", () => {
+  // medication request lifecycle added 1; school-year grade correction added 1;
+  // school-year lifecycle run/decision/preview/commit added 9;
+  // historical record correction/export/retention lifecycle added 6; future
+  // school-year enrollment cancellation added 1.
+  it("emits exactly 72 actions including enrollment cancellation", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(55);
+    expect(result.actions).toHaveLength(72);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {
@@ -53,13 +56,36 @@ describe("buildAuditActionsExport", () => {
     // canonical FR-1 order; FE renderers can rely on it for default sorting.
     expect(result.actions[0]).toBe("ENROLL_STUDENT_TO_CLASS");
     expect(result.actions[4]).toBe("WITHDRAW_FROM_SCHOOL_YEAR");
-    expect(result.actions[5]).toBe("EDIT_STUDENT_PROFILE");
-    expect(result.actions[8]).toBe("ARCHIVE_STUDENT");
-    expect(result.actions[14]).toBe("CREATE_STUDENT");
-    expect(result.actions[17]).toBe("ATTACH_EXISTING_GUARDIAN_IDENTITY");
-    expect(result.actions[18]).toBe("ATTACH_EXISTING_STAFF_IDENTITY");
-    expect(result.actions[19]).toBe("LINK_GUARDIAN_TO_STUDENT");
-    expect(result.actions[20]).toBe("UNLINK_GUARDIAN_FROM_STUDENT");
+    expect(result.actions[5]).toBe("CANCEL_SCHOOL_YEAR_ENROLLMENT");
+    expect(result.actions[6]).toBe("CORRECT_SCHOOL_YEAR_ENROLLMENT_GRADE");
+    expect(result.actions.slice(7, 16)).toEqual([
+      "CREATE_SCHOOL_YEAR_LIFECYCLE_RUN",
+      "UPDATE_SCHOOL_YEAR_LIFECYCLE_SETUP",
+      "CANCEL_SCHOOL_YEAR_LIFECYCLE_RUN",
+      "EXPIRE_SCHOOL_YEAR_LIFECYCLE_RUN",
+      "REFRESH_SCHOOL_YEAR_LIFECYCLE_CANDIDATES",
+      "SAVE_SCHOOL_YEAR_LIFECYCLE_DECISIONS",
+      "PREVIEW_SCHOOL_YEAR_LIFECYCLE",
+      "COMMIT_SCHOOL_YEAR_LIFECYCLE",
+      "COMMIT_SCHOOL_YEAR_LIFECYCLE_ROW",
+    ]);
+    expect(result.actions.slice(16, 22)).toEqual([
+      "CORRECT_HISTORICAL_RECORD",
+      "EXPORT_HISTORICAL_RECORD",
+      "ARCHIVE_HISTORICAL_RECORD",
+      "REDACT_HISTORICAL_RECORD",
+      "DELETE_HISTORICAL_RECORD",
+      "BLOCK_STUDENT_HARD_DELETE_FOR_RETENTION",
+    ]);
+    expect(result.actions.indexOf("EDIT_STUDENT_PROFILE")).toBeLessThan(
+      result.actions.indexOf("ARCHIVE_STUDENT"),
+    );
+    expect(result.actions.indexOf("ARCHIVE_STUDENT")).toBeLessThan(
+      result.actions.indexOf("CREATE_STUDENT"),
+    );
+    expect(result.actions.indexOf("CREATE_STUDENT")).toBeLessThan(
+      result.actions.indexOf("LINK_GUARDIAN_TO_STUDENT"),
+    );
   });
 
   it("every emitted action is a member of the AuditAction union", () => {

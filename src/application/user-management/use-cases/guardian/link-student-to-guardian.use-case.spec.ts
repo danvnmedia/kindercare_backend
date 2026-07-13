@@ -139,11 +139,11 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
 
       await expect(
         useCase.execute(
-        {
-          campusId: CAMPUS_ID,
-          guardianId: GUARDIAN_ID,
-          studentId: STUDENT_ID,
-          relationshipId: REL_ID,
+          {
+            campusId: CAMPUS_ID,
+            guardianId: GUARDIAN_ID,
+            studentId: STUDENT_ID,
+            relationshipId: REL_ID,
           },
           actor,
         ),
@@ -188,11 +188,11 @@ describe("LinkStudentToGuardianUseCase (guardian-side)", () => {
 
       await expect(
         useCase.execute(
-        {
-          campusId: CAMPUS_ID,
-          guardianId: GUARDIAN_ID,
-          studentId: STUDENT_ID,
-          relationshipId: REL_ID,
+          {
+            campusId: CAMPUS_ID,
+            guardianId: GUARDIAN_ID,
+            studentId: STUDENT_ID,
+            relationshipId: REL_ID,
           },
           actor,
         ),

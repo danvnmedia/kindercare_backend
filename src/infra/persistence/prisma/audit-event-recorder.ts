@@ -117,6 +117,13 @@ export class PrismaAuditEventRecorder extends AuditEventRecorderPort {
         });
         return { targetName: row?.name ?? null };
       }
+      case "school_year": {
+        const row = await tx.schoolYear.findUnique({
+          where: { id: targetId },
+          select: { name: true },
+        });
+        return { targetName: row?.name ?? null };
+      }
       case "meal_menu": {
         const row = await tx.mealMenu.findUnique({
           where: { id: targetId },

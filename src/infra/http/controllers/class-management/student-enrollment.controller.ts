@@ -32,6 +32,7 @@ import {
 
 import { TransferStudentUseCase } from "@/application/class-management/use-cases/enrollment/transfer-student.use-case";
 import { GetStudentEnrollmentHistoryUseCase } from "@/application/class-management/use-cases/enrollment/get-student-enrollment-history.use-case";
+import { parseDateOnly } from "@/application/class-management/date-only";
 
 /**
  * Student Enrollment Controller
@@ -85,7 +86,9 @@ export class StudentEnrollmentController {
         studentId,
         campusId,
         toClassId: dto.toClassId,
-        transferDate: dto.transferDate ? new Date(dto.transferDate) : undefined,
+        transferDate: dto.transferDate
+          ? parseDateOnly(dto.transferDate)
+          : undefined,
         fromClassId: dto.fromClassId,
         note: dto.note,
       },

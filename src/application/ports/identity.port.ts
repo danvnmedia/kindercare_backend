@@ -62,7 +62,9 @@ export abstract class IdentityPort {
   /**
    * Find identity-provider users by email address.
    */
-  abstract findIdentitiesByEmail(email: string): Promise<IdentityLookupResult[]>;
+  abstract findIdentitiesByEmail(
+    email: string,
+  ): Promise<IdentityLookupResult[]>;
 
   /**
    * Find identity-provider users by phone number.

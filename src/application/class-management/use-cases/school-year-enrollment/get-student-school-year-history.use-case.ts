@@ -1,45 +1,15 @@
 import { Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { SchoolYearEnrollmentRepository } from "../../ports/school-year-enrollment.repository";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
-import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import {
+  buildHistoricalSchoolYearEnrollmentView,
+  HistoricalSchoolYearEnrollmentView,
+} from "../../historical-record-view";
+import { HistoricalRecordRepository } from "../../ports/historical-record.repository";
 
 export interface GetStudentSchoolYearHistoryInput {
   studentId: string;
   campusId: string;
-}
-
-/**
- * Flat view shape returned to the controller and mapped 1:1 onto
- * `SchoolYearEnrollmentSummaryResponse`. The use case acts as a query handler
- * for the history endpoint, so the domain entity is never leaked through the
- * HTTP layer with a derived `childEnrollmentCount` glued on the side.
- *
- * See specs/school-year-enrollment-model AC-20 / AC-23.
- */
-export interface SchoolYearEnrollmentHistoryView {
-  id: string;
-  studentId: string;
-  campusId: string;
-  schoolYearId: string;
-  gradeLevelId: string;
-  enrollmentDate: Date;
-  exitDate: Date | null;
-  exitReason: ExitReason | null;
-  note: string | null;
-  schoolYear: {
-    id: string;
-    name: string;
-    startDate: Date;
-    endDate: Date;
-  } | null;
-  gradeLevel: {
-    id: string;
-    name: string;
-    order: number;
-  } | null;
-  childEnrollmentCount: number;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 /**
@@ -59,11 +29,12 @@ export class GetStudentSchoolYearHistoryUseCase {
     private readonly schoolYearEnrollmentRepository: SchoolYearEnrollmentRepository,
     @Inject("STUDENT_REPOSITORY")
     private readonly studentRepository: StudentRepository,
+    private readonly historicalRecordRepository: HistoricalRecordRepository,
   ) {}
 
   async execute(
     input: GetStudentSchoolYearHistoryInput,
-  ): Promise<SchoolYearEnrollmentHistoryView[]> {
+  ): Promise<HistoricalSchoolYearEnrollmentView[]> {
     this.logger.log(
       `Fetching school-year history for student ${input.studentId}`,
     );
@@ -79,39 +50,24 @@ export class GetStudentSchoolYearHistoryUseCase {
       await this.schoolYearEnrollmentRepository.findAllByStudentIdWithChildCount(
         input.studentId,
       );
+    const referenceDate = new Date();
 
     this.logger.log(
       `Found ${rows.length} school-year enrollment(s) for student ${input.studentId}`,
     );
 
-    return rows.map(({ enrollment, childEnrollmentCount }) => ({
-      id: enrollment.id,
-      studentId: enrollment.studentId,
-      campusId: enrollment.campusId,
-      schoolYearId: enrollment.schoolYearId,
-      gradeLevelId: enrollment.gradeLevelId,
-      enrollmentDate: enrollment.enrollmentDate,
-      exitDate: enrollment.exitDate,
-      exitReason: enrollment.exitReason,
-      note: enrollment.note,
-      schoolYear: enrollment.schoolYear
-        ? {
-            id: enrollment.schoolYear.id,
-            name: enrollment.schoolYear.name,
-            startDate: enrollment.schoolYear.startDate,
-            endDate: enrollment.schoolYear.endDate,
-          }
-        : null,
-      gradeLevel: enrollment.gradeLevel
-        ? {
-            id: enrollment.gradeLevel.id,
-            name: enrollment.gradeLevel.name,
-            order: enrollment.gradeLevel.order,
-          }
-        : null,
-      childEnrollmentCount,
-      createdAt: enrollment.createdAt,
-      updatedAt: enrollment.updatedAt,
-    }));
+    return Promise.all(
+      rows.map(async ({ enrollment, childEnrollmentCount }) =>
+        buildHistoricalSchoolYearEnrollmentView(
+          enrollment,
+          childEnrollmentCount,
+          await this.historicalRecordRepository.findCorrections(
+            "SCHOOL_YEAR_ENROLLMENT",
+            enrollment.id,
+          ),
+          referenceDate,
+        ),
+      ),
+    );
   }
 }

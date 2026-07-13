@@ -22,6 +22,7 @@ import {
 
 import { PrismaMedicationRequestMapper } from "../mapper/prisma-medication-request.mapper";
 import { PrismaService } from "../prisma.service";
+import { toUtcDateOnly } from "@/domain/class-management/enrollment-effective-status";
 
 @Injectable()
 export class PrismaMedicationRequestRepository
@@ -373,11 +374,14 @@ export class PrismaMedicationRequestRepository
     }
 
     if (params.classId) {
+      const currentDate = toUtcDateOnly(new Date());
       scope.student = {
         enrollments: {
           some: {
             classId: params.classId,
-            endDate: null,
+            cancelledAt: null,
+            enrollmentDate: { lte: currentDate },
+            OR: [{ endDate: null }, { endDate: { gte: currentDate } }],
           },
         },
       };

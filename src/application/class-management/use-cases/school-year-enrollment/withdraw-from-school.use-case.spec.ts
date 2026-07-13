@@ -97,8 +97,15 @@ describe("WithdrawFromSchoolUseCase", () => {
     mockSyeRepository = {
       findById: jest.fn(),
       findOpenByStudentAndSchoolYear: jest.fn(),
+      findStructurallyOpenByStudentAndSchoolYear: jest.fn(),
+      findCoveringDateByStudentAndSchoolYear: jest.fn(),
+      findUpcomingByStudentAndSchoolYear: jest.fn(),
+      findLatestByStudentAndSchoolYear: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAllByStudentIdWithChildCount: jest.fn(),
+      findStudentsBySchoolYear: jest.fn(),
+      countChildEnrollments: jest.fn(),
+      correctGradeLevel: jest.fn(),
       save: jest.fn(),
       update: jest.fn(),
       withdrawWithChildren: jest.fn(),
@@ -107,11 +114,15 @@ describe("WithdrawFromSchoolUseCase", () => {
     mockEnrollmentRepository = {
       findById: jest.fn(),
       findByStudentClassDate: jest.fn(),
+      findEffectiveByStudentIdAt: jest.fn(),
+      findUpcomingByStudentId: jest.fn(),
+      findStructurallyOpenByStudentId: jest.fn(),
+      findOverlappingByStudentId: jest.fn(),
+      findBySchoolYearEnrollmentId: jest.fn(),
       findByClassId: jest.fn(),
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),
@@ -141,6 +152,9 @@ describe("WithdrawFromSchoolUseCase", () => {
     mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(
       createMockChild(childOverrides),
     );
+    mockEnrollmentRepository.findEffectiveByStudentIdAt.mockImplementation(
+      (studentId) => mockEnrollmentRepository.findActiveByStudentId(studentId),
+    );
     mockSyeRepository.withdrawWithChildren.mockImplementation(
       async (closedParent, closedChild) => ({
         closedParent,
@@ -153,6 +167,9 @@ describe("WithdrawFromSchoolUseCase", () => {
   const arrangeWithoutChild = () => {
     mockSyeRepository.findById.mockResolvedValue(createMockParent());
     mockEnrollmentRepository.findActiveByStudentId.mockResolvedValue(null);
+    mockEnrollmentRepository.findEffectiveByStudentIdAt.mockImplementation(
+      (studentId) => mockEnrollmentRepository.findActiveByStudentId(studentId),
+    );
     mockSyeRepository.withdrawWithChildren.mockImplementation(
       async (closedParent, closedChild) => ({
         closedParent,

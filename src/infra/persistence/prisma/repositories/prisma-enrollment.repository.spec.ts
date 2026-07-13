@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma.service";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
 import { Enrollment } from "@/domain/class-management/entities/enrollment.entity";
+import { EnrollmentEffectiveStatusFilter } from "@/application/class-management/enrollment-effective-status-filter";
 
 type EnrollmentDelegateMock = {
   findUnique: jest.Mock;
@@ -20,6 +21,16 @@ describe("PrismaEnrollmentRepository", () => {
     $transaction: jest.Mock;
   };
   let queryService: jest.Mocked<PrismaQueryService>;
+
+  const enrollmentInclude = {
+    class: {
+      include: {
+        schoolYear: true,
+        gradeLevel: true,
+      },
+    },
+    student: true,
+  };
 
   // A canonical Prisma row used to assert mapping behavior. Includes the
   // class/student relations that the repository queries always request via
@@ -97,8 +108,13 @@ describe("PrismaEnrollmentRepository", () => {
       const result = await repository.findActiveByStudentId("student-1");
 
       expect(enrollmentDelegate.findFirst).toHaveBeenCalledWith({
-        where: { studentId: "student-1", endDate: null },
-        include: { class: true, student: true },
+        where: {
+          studentId: "student-1",
+          endDate: null,
+          cancelledAt: null,
+        },
+        include: enrollmentInclude,
+        orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
       });
       expect(result).not.toBeNull();
       expect(result!.studentId).toBe("student-1");
@@ -116,66 +132,129 @@ describe("PrismaEnrollmentRepository", () => {
     });
   });
 
-  describe("findActiveByClassId", () => {
-    it("queries with endDate=null and orders by enrollmentDate desc", async () => {
-      enrollmentDelegate.findMany.mockResolvedValue([
-        prismaRowFactory({ id: "e-1" }),
-        prismaRowFactory({ id: "e-2", studentId: "student-2" }),
-      ]);
+  describe("date-effective enrollment lookups", () => {
+    it("finds the uncancelled row covering the UTC date inclusively", async () => {
+      enrollmentDelegate.findFirst.mockResolvedValue(prismaRowFactory());
 
-      const result = await repository.findActiveByClassId("class-1");
+      await repository.findEffectiveByStudentIdAt(
+        "student-1",
+        new Date("2026-01-15T18:30:00.000Z"),
+      );
 
-      expect(enrollmentDelegate.findMany).toHaveBeenCalledWith({
-        where: { classId: "class-1", endDate: null },
-        include: { class: true, student: true },
-        orderBy: { enrollmentDate: "desc" },
+      expect(enrollmentDelegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          studentId: "student-1",
+          cancelledAt: null,
+          enrollmentDate: { lte: new Date("2026-01-15T00:00:00.000Z") },
+          OR: [
+            { endDate: null },
+            { endDate: { gte: new Date("2026-01-15T00:00:00.000Z") } },
+          ],
+        },
+        include: enrollmentInclude,
+        orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
       });
-      expect(result).toHaveLength(2);
-      expect(result.every((e) => e.isActive())).toBe(true);
     });
 
-    it("returns an empty array when no active enrollments exist", async () => {
+    it("finds future uncancelled rows in deterministic date order", async () => {
       enrollmentDelegate.findMany.mockResolvedValue([]);
 
-      const result = await repository.findActiveByClassId("class-1");
+      await repository.findUpcomingByStudentId(
+        "student-1",
+        new Date("2026-01-15T23:59:00.000Z"),
+      );
 
-      expect(result).toEqual([]);
+      expect(enrollmentDelegate.findMany).toHaveBeenCalledWith({
+        where: {
+          studentId: "student-1",
+          cancelledAt: null,
+          enrollmentDate: { gt: new Date("2026-01-15T00:00:00.000Z") },
+        },
+        include: enrollmentInclude,
+        orderBy: [{ enrollmentDate: "asc" }, { id: "asc" }],
+      });
+    });
+
+    it("detects inclusive overlap while excluding the source transfer row", async () => {
+      enrollmentDelegate.findFirst.mockResolvedValue(null);
+
+      await repository.findOverlappingByStudentId(
+        "student-1",
+        new Date("2026-02-01T17:00:00.000Z"),
+        new Date("2026-02-28T17:00:00.000Z"),
+        "source-enrollment",
+      );
+
+      expect(enrollmentDelegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          studentId: "student-1",
+          cancelledAt: null,
+          id: { not: "source-enrollment" },
+          enrollmentDate: { lte: new Date("2026-02-28T00:00:00.000Z") },
+          OR: [
+            { endDate: null },
+            { endDate: { gte: new Date("2026-02-01T00:00:00.000Z") } },
+          ],
+        },
+        include: enrollmentInclude,
+        orderBy: [{ enrollmentDate: "asc" }, { id: "asc" }],
+      });
     });
   });
 
-  describe("findHistoricalByClassId", () => {
-    it("queries WITHOUT endDate filter and returns active and closed rows together", async () => {
-      enrollmentDelegate.findMany.mockResolvedValue([
-        prismaRowFactory({ id: "e-active" }),
-        prismaRowFactory({
-          id: "e-closed",
-          studentId: "student-2",
-          endDate: new Date("2026-03-01T00:00:00.000Z"),
-          exitReason: "WITHDRAWN",
-        }),
-      ]);
+  describe("findByClassIdAndEffectiveStatus", () => {
+    const referenceDate = new Date("2026-07-11T23:59:59.999Z");
+    const referenceDay = new Date("2026-07-11T00:00:00.000Z");
 
-      const result = await repository.findHistoricalByClassId("class-1");
+    it.each([
+      [
+        EnrollmentEffectiveStatusFilter.ACTIVE,
+        {
+          cancelledAt: null,
+          enrollmentDate: { lte: referenceDay },
+          OR: [{ endDate: null }, { endDate: { gte: referenceDay } }],
+        },
+      ],
+      [
+        EnrollmentEffectiveStatusFilter.UPCOMING,
+        { cancelledAt: null, enrollmentDate: { gt: referenceDay } },
+      ],
+      [
+        EnrollmentEffectiveStatusFilter.CLOSED,
+        { cancelledAt: null, endDate: { lt: referenceDay } },
+      ],
+      [
+        EnrollmentEffectiveStatusFilter.CANCELLED,
+        { cancelledAt: { not: null } },
+      ],
+      [EnrollmentEffectiveStatusFilter.ALL, {}],
+    ])("applies the %s database filter", async (status, statusWhere) => {
+      enrollmentDelegate.findMany.mockResolvedValue([prismaRowFactory()]);
+
+      const result = await repository.findByClassIdAndEffectiveStatus(
+        "class-1",
+        status,
+        referenceDate,
+      );
 
       expect(enrollmentDelegate.findMany).toHaveBeenCalledWith({
-        where: { classId: "class-1" },
-        include: { class: true, student: true },
-        orderBy: { enrollmentDate: "desc" },
+        where: { classId: "class-1", ...statusWhere },
+        include: enrollmentInclude,
+        orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
       });
-      // Confirm the mapper hydrates the closed row's exitReason as the enum.
-      expect(result).toHaveLength(2);
-      const closed = result.find((e) => !e.isActive())!;
-      expect(closed.endDate).toEqual(new Date("2026-03-01T00:00:00.000Z"));
-      expect(closed.exitReason).toBe(ExitReason.WITHDRAWN);
+      expect(result).toHaveLength(1);
     });
 
-    it("does not pass an endDate condition (sanity check on filter shape)", async () => {
+    it("returns an empty array without changing the filter contract", async () => {
       enrollmentDelegate.findMany.mockResolvedValue([]);
 
-      await repository.findHistoricalByClassId("class-1");
-
-      const call = enrollmentDelegate.findMany.mock.calls[0][0];
-      expect(call.where).not.toHaveProperty("endDate");
+      await expect(
+        repository.findByClassIdAndEffectiveStatus(
+          "class-1",
+          EnrollmentEffectiveStatusFilter.ACTIVE,
+          referenceDate,
+        ),
+      ).resolves.toEqual([]);
     });
   });
 
@@ -283,7 +362,10 @@ describe("PrismaEnrollmentRepository", () => {
 
       // $transaction invokes the work callback with a tx-bound prisma client.
       prisma.$transaction.mockImplementation(async (work) =>
-        work({ enrollment: txDelegate }),
+        work({
+          enrollment: txDelegate,
+          $queryRaw: jest.fn().mockResolvedValue([{ id: "parent-1" }]),
+        }),
       );
 
       const result = await repository.transferEnrollment(closed, opened);
@@ -334,7 +416,10 @@ describe("PrismaEnrollmentRepository", () => {
       );
 
       prisma.$transaction.mockImplementation(async (work) =>
-        work({ enrollment: txDelegate }),
+        work({
+          enrollment: txDelegate,
+          $queryRaw: jest.fn().mockResolvedValue([{ id: "parent-1" }]),
+        }),
       );
 
       await expect(
@@ -367,7 +452,10 @@ describe("PrismaEnrollmentRepository", () => {
       );
 
       prisma.$transaction.mockImplementation(async (work) =>
-        work({ enrollment: txDelegate }),
+        work({
+          enrollment: txDelegate,
+          $queryRaw: jest.fn().mockResolvedValue([{ id: "parent-1" }]),
+        }),
       );
 
       await expect(
@@ -442,7 +530,10 @@ describe("PrismaEnrollmentRepository", () => {
         );
 
       prisma.$transaction.mockImplementation(async (work) =>
-        work({ enrollment: txDelegate }),
+        work({
+          enrollment: txDelegate,
+          $queryRaw: jest.fn().mockResolvedValue([{ id: "parent-1" }]),
+        }),
       );
 
       const result = await repository.saveMany(inputs);
@@ -454,7 +545,7 @@ describe("PrismaEnrollmentRepository", () => {
 
       // Each create carries the include shape the response relations need.
       for (const call of txDelegate.create.mock.calls) {
-        expect(call[0].include).toEqual({ class: true, student: true });
+        expect(call[0].include).toEqual(enrollmentInclude);
       }
 
       // Input order preserved in the returned array.
@@ -491,7 +582,10 @@ describe("PrismaEnrollmentRepository", () => {
         .mockRejectedValueOnce(new Error("Unique constraint failed"));
 
       prisma.$transaction.mockImplementation(async (work) =>
-        work({ enrollment: txDelegate }),
+        work({
+          enrollment: txDelegate,
+          $queryRaw: jest.fn().mockResolvedValue([{ id: "parent-1" }]),
+        }),
       );
 
       await expect(repository.saveMany(inputs)).rejects.toThrow(
@@ -504,6 +598,30 @@ describe("PrismaEnrollmentRepository", () => {
       // Crucially, no writes happened outside the tx — proving wrapping is
       // intact, which is what guarantees rollback semantics in real Prisma.
       expect(enrollmentDelegate.create).not.toHaveBeenCalled();
+    });
+
+    it("locks and revalidates parent coverage before any child insert", async () => {
+      const txDelegate: EnrollmentDelegateMock = {
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn(),
+      };
+      const queryRaw = jest.fn().mockResolvedValue([]);
+      prisma.$transaction.mockImplementation(async (work) =>
+        work({ enrollment: txDelegate, $queryRaw: queryRaw }),
+      );
+
+      await expect(
+        repository.saveMany([buildEnrollment("e-1", "student-1")]),
+      ).rejects.toThrow("NO_SCHOOL_YEAR_ENROLLMENT");
+
+      expect(queryRaw).toHaveBeenCalledTimes(1);
+      const sql = queryRaw.mock.calls[0][0];
+      expect(sql.strings.join(" ")).toContain("FOR SHARE");
+      expect(sql.strings.join(" ")).toContain("cancelled_at IS NULL");
+      expect(txDelegate.create).not.toHaveBeenCalled();
     });
   });
 });

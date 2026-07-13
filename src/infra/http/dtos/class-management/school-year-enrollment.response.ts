@@ -1,6 +1,18 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Expose, Type } from "class-transformer";
 import { ExitReason } from "@/domain/class-management/enums/exit-reason.enum";
+import { EnrollmentCancellationReason } from "@/domain/class-management/enums/enrollment-cancellation-reason.enum";
+import { EnrollmentEffectiveStatus } from "@/domain/class-management/enums/enrollment-effective-status.enum";
+
+export class EnrollmentCancellationActorResponse {
+  @Expose()
+  @ApiProperty({ example: "123e4567-e89b-12d3-a456-426614174000" })
+  id: string;
+
+  @Expose()
+  @ApiProperty({ example: "Nguyen Van Admin", nullable: true })
+  fullName: string | null;
+}
 
 export class SchoolYearEnrollmentSchoolYearInfo {
   @Expose()
@@ -84,6 +96,31 @@ export class SchoolYearEnrollmentResponse {
     nullable: true,
   })
   note: string | null;
+
+  @Expose()
+  @ApiProperty({ enum: EnrollmentEffectiveStatus })
+  effectiveStatus: EnrollmentEffectiveStatus;
+
+  @Expose()
+  @ApiProperty({ nullable: true, example: "2026-07-11T16:30:00.000Z" })
+  cancelledAt: Date | null;
+
+  @Expose()
+  @ApiProperty({
+    enum: EnrollmentCancellationReason,
+    nullable: true,
+    example: EnrollmentCancellationReason.FAMILY_REQUEST,
+  })
+  cancellationReason: EnrollmentCancellationReason | null;
+
+  @Expose()
+  @ApiProperty({ nullable: true, maxLength: 500 })
+  cancellationNote: string | null;
+
+  @Expose()
+  @Type(() => EnrollmentCancellationActorResponse)
+  @ApiProperty({ type: EnrollmentCancellationActorResponse, nullable: true })
+  cancelledBy: EnrollmentCancellationActorResponse | null;
 
   @Expose()
   @Type(() => SchoolYearEnrollmentSchoolYearInfo)

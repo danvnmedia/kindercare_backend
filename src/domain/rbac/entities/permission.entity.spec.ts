@@ -14,6 +14,12 @@ describe("PermissionEntity", () => {
         "absence_request.list",
         "medication_request.read",
         "medication_administration.create",
+        "historical_records.export",
+        "school_year_lifecycle.read",
+        "school_year_lifecycle.manage",
+        "school_year_lifecycle.preview",
+        "school_year_lifecycle.commit",
+        "school_year_enrollment.cancel",
       ];
 
       validIds.forEach((id) => {
@@ -74,6 +80,9 @@ describe("PermissionEntity", () => {
         "absence_request",
         "medication_request",
         "medication_administration",
+        "historical_records",
+        "school_year_lifecycle",
+        "school_year_enrollment",
       ];
 
       validModules.forEach((module) => {

@@ -2,6 +2,8 @@ import { Enrollment } from "./enrollment.entity";
 import { ExitReason } from "../enums/exit-reason.enum";
 import { EnrollmentAlreadyClosedException } from "../exceptions/enrollment-already-closed.exception";
 import { InvalidEndDateException } from "../exceptions/invalid-end-date.exception";
+import { EnrollmentCancellationReason } from "../enums/enrollment-cancellation-reason.enum";
+import { EnrollmentEffectiveStatus } from "../enums/enrollment-effective-status.enum";
 
 describe("Enrollment Entity", () => {
   const baseProps = {
@@ -189,6 +191,133 @@ describe("Enrollment Entity", () => {
       expect(() =>
         enrollment.withdraw(baseProps.enrollmentDate, ExitReason.TRANSFERRED),
       ).not.toThrow();
+    });
+  });
+
+  describe("effective status and cancellation", () => {
+    const futureProps = {
+      ...baseProps,
+      enrollmentDate: new Date("2026-09-01T00:00:00.000Z"),
+    };
+    const cancelledAt = new Date("2026-07-11T15:30:00.000Z");
+
+    it("derives upcoming, active, and inclusive closed boundaries", () => {
+      const enrollment = Enrollment.create({
+        ...futureProps,
+        endDate: new Date("2026-09-30T00:00:00.000Z"),
+        exitReason: ExitReason.WITHDRAWN,
+      });
+
+      expect(
+        enrollment.getEffectiveStatus(new Date("2026-08-31T23:59:59.999Z")),
+      ).toBe(EnrollmentEffectiveStatus.UPCOMING);
+      expect(
+        enrollment.getEffectiveStatus(new Date("2026-09-30T23:59:59.999Z")),
+      ).toBe(EnrollmentEffectiveStatus.ACTIVE);
+      expect(
+        enrollment.getEffectiveStatus(new Date("2026-10-01T00:00:00.000Z")),
+      ).toBe(EnrollmentEffectiveStatus.CLOSED);
+    });
+
+    it("cancels an upcoming row immutably without fabricating closure data", () => {
+      const original = Enrollment.create(futureProps, "enrollment-future");
+      const cancelled = original.cancel({
+        cancelledAt,
+        reason: EnrollmentCancellationReason.FAMILY_REQUEST,
+        note: "  family moved  ",
+        actorId: "user-1",
+        actorFullName: "  Casey Admin  ",
+      });
+
+      expect(cancelled.id).toBe(original.id);
+      expect(cancelled.getEffectiveStatus(cancelledAt)).toBe(
+        EnrollmentEffectiveStatus.CANCELLED,
+      );
+      expect(cancelled.cancelledAt).toEqual(cancelledAt);
+      expect(cancelled.cancellationReason).toBe(
+        EnrollmentCancellationReason.FAMILY_REQUEST,
+      );
+      expect(cancelled.cancellationNote).toBe("family moved");
+      expect(cancelled.cancelledByUserId).toBe("user-1");
+      expect(cancelled.cancelledByFullName).toBe("Casey Admin");
+      expect(cancelled.historicalFinalizedAt).toEqual(cancelledAt);
+      expect(cancelled.endDate).toBeNull();
+      expect(cancelled.exitReason).toBeNull();
+      expect(original.cancelledAt).toBeNull();
+    });
+
+    it("rejects cancellation metadata without a complete cancellation fact", () => {
+      expect(() =>
+        Enrollment.create({
+          ...futureProps,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+        }),
+      ).toThrow("Enrollment cancellation details require cancelledAt");
+
+      expect(() =>
+        Enrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+        }),
+      ).toThrow(
+        "Cancelled enrollment requires cancellationReason and cancelledByUserId",
+      );
+
+      expect(() =>
+        Enrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: "NOT_A_REASON" as EnrollmentCancellationReason,
+          cancelledByUserId: "user-1",
+        }),
+      ).toThrow("Enrollment cancellationReason is invalid");
+
+      expect(() =>
+        Enrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+          cancelledByUserId: "   ",
+        }),
+      ).toThrow(
+        "Cancelled enrollment requires cancellationReason and cancelledByUserId",
+      );
+    });
+
+    it("normalizes optional cancellation text and enforces the 500-character limit", () => {
+      const cancelled = Enrollment.create({
+        ...futureProps,
+        cancelledAt,
+        cancellationReason: EnrollmentCancellationReason.OTHER,
+        cancellationNote: "   ",
+        cancelledByUserId: "user-1",
+        cancelledByFullName: "  Casey Admin  ",
+      });
+
+      expect(cancelled.cancellationNote).toBeNull();
+      expect(cancelled.cancelledByFullName).toBe("Casey Admin");
+      expect(() =>
+        Enrollment.create({
+          ...futureProps,
+          cancelledAt,
+          cancellationReason: EnrollmentCancellationReason.OTHER,
+          cancellationNote: "x".repeat(501),
+          cancelledByUserId: "user-1",
+        }),
+      ).toThrow("Enrollment cancellationNote must be at most 500 characters");
+    });
+
+    it("rejects cancelling a row once it is effective", () => {
+      const active = Enrollment.create(baseProps);
+
+      expect(() =>
+        active.cancel({
+          cancelledAt: new Date("2026-07-11T15:30:00.000Z"),
+          reason: EnrollmentCancellationReason.DATA_ENTRY_ERROR,
+          actorId: "user-1",
+        }),
+      ).toThrow("Only an upcoming enrollment can be cancelled");
     });
   });
 });

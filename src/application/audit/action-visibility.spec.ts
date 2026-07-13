@@ -154,15 +154,46 @@ describe("global identity lifecycle audit vocab additions", () => {
   ] as const;
 
   it("registers every global identity lifecycle audit action", () => {
-    expect(AUDIT_ACTIONS).toEqual(
-      expect.arrayContaining([...identityActions]),
-    );
+    expect(AUDIT_ACTIONS).toEqual(expect.arrayContaining([...identityActions]));
   });
 
   it("maps every global identity lifecycle action to ADMIN visibility", () => {
     for (const action of identityActions) {
       expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
     }
+  });
+});
+
+describe("school-year lifecycle audit vocab additions", () => {
+  const lifecycleActions = [
+    "CREATE_SCHOOL_YEAR_LIFECYCLE_RUN",
+    "UPDATE_SCHOOL_YEAR_LIFECYCLE_SETUP",
+    "CANCEL_SCHOOL_YEAR_LIFECYCLE_RUN",
+    "EXPIRE_SCHOOL_YEAR_LIFECYCLE_RUN",
+    "REFRESH_SCHOOL_YEAR_LIFECYCLE_CANDIDATES",
+    "SAVE_SCHOOL_YEAR_LIFECYCLE_DECISIONS",
+    "PREVIEW_SCHOOL_YEAR_LIFECYCLE",
+    "COMMIT_SCHOOL_YEAR_LIFECYCLE",
+    "COMMIT_SCHOOL_YEAR_LIFECYCLE_ROW",
+  ] as const;
+
+  it("registers every school-year lifecycle audit action", () => {
+    expect(AUDIT_ACTIONS).toEqual(
+      expect.arrayContaining([...lifecycleActions]),
+    );
+  });
+
+  it("maps every school-year lifecycle action to ADMIN visibility", () => {
+    for (const action of lifecycleActions) {
+      expect(ACTION_VISIBILITY[action]).toBe("ADMIN");
+    }
+  });
+});
+
+describe("school-year enrollment cancellation audit vocab addition", () => {
+  it("registers cancellation with admin visibility", () => {
+    expect(AUDIT_ACTIONS).toContain("CANCEL_SCHOOL_YEAR_ENROLLMENT");
+    expect(ACTION_VISIBILITY.CANCEL_SCHOOL_YEAR_ENROLLMENT).toBe("ADMIN");
   });
 });
 

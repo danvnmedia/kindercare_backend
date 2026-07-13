@@ -161,6 +161,37 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     description: "List all school years",
   },
 
+  // School year enrollment permissions
+  {
+    id: "school_year_enrollment.cancel",
+    module: "school_year_enrollment",
+    description: "Cancel an upcoming school-year enrollment",
+  },
+
+  // School year lifecycle permissions
+  {
+    id: "school_year_lifecycle.read",
+    module: "school_year_lifecycle",
+    description:
+      "View school-year lifecycle runs, candidates, progress, and results",
+  },
+  {
+    id: "school_year_lifecycle.manage",
+    module: "school_year_lifecycle",
+    description:
+      "Create, configure, refresh, and prepare school-year lifecycle runs",
+  },
+  {
+    id: "school_year_lifecycle.preview",
+    module: "school_year_lifecycle",
+    description: "Preview school-year lifecycle rollover batches",
+  },
+  {
+    id: "school_year_lifecycle.commit",
+    module: "school_year_lifecycle",
+    description: "Commit school-year lifecycle rollover batches",
+  },
+
   // Post permissions
   { id: "post.create", module: "post", description: "Create a new post" },
   { id: "post.read", module: "post", description: "View post details" },
@@ -246,6 +277,33 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
   // Report permissions
   { id: "report.export", module: "report", description: "Export reports" },
   { id: "report.read", module: "report", description: "View reports" },
+
+  // Historical record permissions
+  {
+    id: "historical_records.correct",
+    module: "historical_records",
+    description: "Append corrections to finalized historical records",
+  },
+  {
+    id: "historical_records.export",
+    module: "historical_records",
+    description: "Export historical records",
+  },
+  {
+    id: "historical_records.archive",
+    module: "historical_records",
+    description: "Archive historical records under retention policy",
+  },
+  {
+    id: "historical_records.redact",
+    module: "historical_records",
+    description: "Redact or anonymize eligible historical records",
+  },
+  {
+    id: "historical_records.delete",
+    module: "historical_records",
+    description: "Delete eligible historical records under retention policy",
+  },
 
   // Setting permissions
   {

@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 import { AuditEventRecorderPort } from "@/application/audit";
 import { EnrollmentRepository } from "@/application/class-management/ports/enrollment.repository";
+import { EnrollmentEffectiveStatusFilter } from "@/application/class-management/enrollment-effective-status-filter";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
 import { StudentHealthInstructionRepository } from "@/application/student-health";
@@ -154,8 +155,7 @@ describe("Student health instruction use cases", () => {
       findById: jest.fn(),
     } as unknown as jest.Mocked<ClassRepository>;
     enrollmentRepository = {
-      findActiveByClassId: jest.fn(),
-      findHistoricalByClassId: jest.fn(),
+      findByClassIdAndEffectiveStatus: jest.fn(),
     } as unknown as jest.Mocked<EnrollmentRepository>;
     transactionRunner = {
       run: jest.fn(async (task) => task({} as never)),
@@ -411,7 +411,7 @@ describe("Student health instruction use cases", () => {
     const studentOne = makeStudent(STUDENT_ID);
     const studentTwo = makeStudent(STUDENT_ID_2);
     classRepository.findById.mockResolvedValue(makeClass());
-    enrollmentRepository.findHistoricalByClassId.mockResolvedValue([
+    enrollmentRepository.findByClassIdAndEffectiveStatus.mockResolvedValue([
       makeEnrollment(studentOne),
       makeClosedEnrollmentActiveOnDate(studentTwo),
     ]);
@@ -431,10 +431,13 @@ describe("Student health instruction use cases", () => {
       date: "2026-07-02",
     });
 
-    expect(enrollmentRepository.findHistoricalByClassId).toHaveBeenCalledWith(
+    expect(
+      enrollmentRepository.findByClassIdAndEffectiveStatus,
+    ).toHaveBeenCalledWith(
       CLASS_ID,
+      EnrollmentEffectiveStatusFilter.ACTIVE,
+      new Date("2026-07-02T00:00:00.000Z"),
     );
-    expect(enrollmentRepository.findActiveByClassId).not.toHaveBeenCalled();
     expect(
       instructionRepository.findActiveByStudentsInCampus,
     ).toHaveBeenCalledWith(
