@@ -9,7 +9,10 @@ const VALID_COLOR = "#FF5733";
 describe("post category request contracts", () => {
   it.each([
     ["name", { name: "a".repeat(61), color: VALID_COLOR }],
-    ["icon", { name: "Announcements", color: VALID_COLOR, icon: "a".repeat(17) }],
+    [
+      "icon",
+      { name: "Announcements", color: VALID_COLOR, icon: "a".repeat(17) },
+    ],
     ["order", { name: "Announcements", color: VALID_COLOR, order: 0 }],
   ])("rejects create %s outside the API contract", async (_field, input) => {
     const errors = await validate(

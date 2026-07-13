@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import {
   TransactionContext,
   UnitOfWorkPort,
@@ -55,7 +52,10 @@ describe("PinPostUseCase", () => {
       lockPostPinCapacity: jest.fn().mockResolvedValue(undefined),
       findPostByIdForUpdate: jest.fn().mockResolvedValue(post()),
       findCampusSettingByCampusIdForUpdate: jest.fn().mockResolvedValue(
-        CampusSetting.create({ campusId: DEFAULT_CAMPUS_ID_A, maxPinnedPosts: 3 }),
+        CampusSetting.create({
+          campusId: DEFAULT_CAMPUS_ID_A,
+          maxPinnedPosts: 3,
+        }),
       ),
       countEffectivePinnedPosts: jest.fn().mockResolvedValue(1),
       updatePostPin: jest.fn().mockImplementation(async (_id, data) => {
@@ -88,9 +88,9 @@ describe("PinPostUseCase", () => {
     expect(tx.lockPostPinCapacity.mock.invocationCallOrder[0]).toBeLessThan(
       tx.findPostByIdForUpdate.mock.invocationCallOrder[0],
     );
-    expect(tx.countEffectivePinnedPosts.mock.invocationCallOrder[0]).toBeLessThan(
-      tx.updatePostPin.mock.invocationCallOrder[0],
-    );
+    expect(
+      tx.countEffectivePinnedPosts.mock.invocationCallOrder[0],
+    ).toBeLessThan(tx.updatePostPin.mock.invocationCallOrder[0]);
   });
 
   it("enforces maximum capacity without writing", async () => {

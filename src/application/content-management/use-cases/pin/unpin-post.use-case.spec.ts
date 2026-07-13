@@ -59,11 +59,7 @@ describe("UnpinPostUseCase", () => {
   });
 
   it("locks campus then row and clears only pin columns", async () => {
-    const result = await useCase.execute(
-      DEFAULT_CAMPUS_ID_A,
-      POST_ID,
-      manager,
-    );
+    const result = await useCase.execute(DEFAULT_CAMPUS_ID_A, POST_ID, manager);
 
     expect(result.isPinned).toBe(false);
     expect(tx.updatePostPin).toHaveBeenCalledWith(POST_ID, {
