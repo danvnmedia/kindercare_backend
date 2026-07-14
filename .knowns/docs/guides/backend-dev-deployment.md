@@ -2,7 +2,7 @@
 title: Backend Dev Deployment
 description: Developer deployment and first-run setup guide for the Kindercare backend, including environment variables, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap.
 createdAt: '2026-06-13T16:03:16.017Z'
-updatedAt: '2026-07-13T12:08:27.042Z'
+updatedAt: '2026-07-14T06:29:35.724Z'
 tags:
   - guide
   - deployment
@@ -34,11 +34,12 @@ Use this guide with the architecture references at the end. Do not rely on the r
 ## Current Repo Reality Checks
 
 - npm identity is `kindercare-backend`; the package is private and proprietary (`UNLICENSED`).
-- Fresh Compose deployments default to the `kindercare_backend` database; existing databases are not renamed automatically.
+- Application database configuration is a complete `DATABASE_URL`; the app Compose stacks do not initialize or rename databases.
 
 These details matter when deploying from this checkout:
 
-- Docker Compose services are `app`, `postgres`, and `redis`. There is no `app-dev` service.
+- The app Compose stacks provide `app` and `redis`. PostgreSQL is external and must be reachable through `DATABASE_URL`.
+- `docker-compose.db.yml` is an optional fully local fallback with `postgres` and `redis`; it is not used by the app Compose stacks.
 - The canonical baseline seed command is `npx prisma db seed`. Optional development fixtures use `npm run seed:students`, `npm run seed:guardians`, or `npm run seed:dev-data`.
 - `npm run clerk:get-token` points to `scripts/get-clerk-token.ts`, but that file is absent in this checkout.
 - `npm run test:e2e` points to `test/jest-e2e.json`, but the `test/` folder is absent in this checkout.
@@ -49,19 +50,21 @@ These details matter when deploying from this checkout:
 
 Create `.env` from `.env.example`, then fill in all values required by the deployment mode. `.env` is ignored by git and must not be committed.
 
-The database names below are fresh-deployment defaults. Changing `POSTGRES_DB` does not rename a database in an existing PostgreSQL volume; use an explicit database migration/rename procedure and update `DATABASE_URL` instead of recreating or deleting a persistent volume.
+The application uses a complete `DATABASE_URL` connection string in every execution mode. The app Compose stacks pass that value through unchanged and do not start a PostgreSQL container. This keeps hosted-provider credentials, TLS options, host, port, and database name in one provider-issued value.
+
+`docker-compose.db.yml` remains an explicit local-only fallback. The official PostgreSQL image requires `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` to initialize its own server; those settings are not application database configuration and are not needed for Neon.
 
 | Variable | Required | Used by | Notes |
 | --- | --- | --- | --- |
 | `NODE_ENV` | Recommended | Runtime/process | Use `development` locally. Use `production` for production-like runs. |
 | `APP_PORT` | Yes | `src/main.ts`, Compose port mapping | The Nest app listens on this. Default is `3000`. |
 | `DEBUG_PORT` | Dev only | Docker Compose | Exposes Node debug port for dev Compose. Default is `9229`. |
-| `DATABASE_URL` | Yes | Prisma, `entrypoint.sh` | Must be reachable from where the command runs. Use `localhost` on host, `postgres` inside Compose. |
-| `POSTGRES_USER` | Compose | Postgres service | Defaults to `postgres`. Compose health checks read the configured user value. |
-| `POSTGRES_PASSWORD` | Compose | Postgres service, Compose app URL | Development examples use `password`; production Compose requires an explicit non-empty secret. |
-| `POSTGRES_DB` | Compose | Postgres service, Compose app URL | Defaults to `kindercare_backend`. Compose health checks read the configured database value. |
-| `POSTGRES_PORT` | Dev Compose | Host port mapping | Host-side Postgres port. Default is `5432`. |
-| `REDIS_HOST` | Yes | `QueueModule` | Use `localhost` on host, `redis` inside Compose. |
+| `DATABASE_URL` | Yes | Prisma, `entrypoint.sh`, app Compose stacks | Complete PostgreSQL URL. It must be reachable from the host or app container and should include provider-required TLS options. |
+| `POSTGRES_USER` | Local fallback only | `docker-compose.db.yml` | Optional override for the standalone local PostgreSQL container. |
+| `POSTGRES_PASSWORD` | Local fallback only | `docker-compose.db.yml` | Optional override for the standalone local PostgreSQL container. |
+| `POSTGRES_DB` | Local fallback only | `docker-compose.db.yml` | Optional override for the standalone local PostgreSQL container. |
+| `POSTGRES_PORT` | Local fallback only | `docker-compose.db.yml` | Optional host port override; defaults to `5432`. |
+| `REDIS_HOST` | Yes | `QueueModule` | Use `localhost` on host. App Compose stacks override it to `redis`. |
 | `REDIS_PORT` | Yes | `QueueModule`, Compose | Default is `6379`. |
 | `REDIS_PASSWORD` | Optional | `QueueModule`, Redis service | Empty is allowed locally. If set, both app and Redis service must use it. |
 | `CORS_ORIGIN` | Recommended | `src/main.ts` | Frontend origin. If empty, code falls back to permissive `true`. |
@@ -75,17 +78,13 @@ The database names below are fresh-deployment defaults. Changing `POSTGRES_DB` d
 
 ### Host `.env` Example
 
-Use this when running Nest locally on the host and only Postgres/Redis through Compose:
+Use this when running Nest directly on the host:
 
 ```env
 NODE_ENV="development"
 APP_PORT=3000
 DEBUG_PORT=9229
-DATABASE_URL="postgresql://postgres:password@localhost:5432/kindercare_backend?schema=public"
-POSTGRES_USER="postgres"
-POSTGRES_PASSWORD="password"
-POSTGRES_DB="kindercare_backend"
-POSTGRES_PORT=5432
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
 REDIS_HOST="localhost"
 REDIS_PORT=6379
 REDIS_PASSWORD=""
@@ -99,18 +98,14 @@ CLERK_PUBLISHABLE_KEY="pk_test_..."
 
 ### Compose App `.env` Example
 
-Use this shape when the app itself runs inside Docker Compose:
+Use the same complete database URL when the app runs inside Docker Compose:
 
 ```env
 NODE_ENV="development"
 APP_PORT=3000
 DEBUG_PORT=9229
-DATABASE_URL="postgresql://postgres:password@postgres:5432/kindercare_backend?schema=public"
-POSTGRES_USER="postgres"
-POSTGRES_PASSWORD="password"
-POSTGRES_DB="kindercare_backend"
-POSTGRES_PORT=5432
-REDIS_HOST="redis"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
+REDIS_HOST="localhost"
 REDIS_PORT=6379
 REDIS_PASSWORD=""
 CORS_ORIGIN="http://localhost:3000"
@@ -121,11 +116,11 @@ CLERK_SECRET_KEY="sk_test_..."
 CLERK_PUBLISHABLE_KEY="pk_test_..."
 ```
 
-`docker-compose.yml` overrides the app container `DATABASE_URL` and `REDIS_HOST` to use `postgres` and `redis`. `docker-compose.prod.yml` does not override them, so production-like Compose depends on `.env` already using internal service hostnames.
+The app Compose stacks require `DATABASE_URL` and pass it through unchanged. They override `REDIS_HOST` to the internal `redis` service. For Neon, use the pooled `-pooler` URL for application traffic. A separate direct connection URL can be introduced later for migration tooling if operational experience requires it.
 
 ## Local Development With Docker Compose
 
-This is the simplest end-to-end setup because it runs the app, Postgres, and Redis together.
+This setup runs the app and Redis in Docker while PostgreSQL is supplied through `DATABASE_URL` (for example, Neon).
 
 1. Create and fill `.env`.
 
@@ -133,21 +128,23 @@ This is the simplest end-to-end setup because it runs the app, Postgres, and Red
    cp .env.example .env
    ```
 
-2. Start the app stack.
+2. Set `DATABASE_URL` to the complete provider-issued connection string. The database host must be reachable from the app container.
+
+3. Start the app stack.
 
    ```bash
    docker compose up --build app
    ```
 
-   The app container uses `entrypoint.sh`, waits for Postgres, runs `npx prisma migrate deploy`, then starts `npm run start:dev`.
+   The app container uses `entrypoint.sh`, waits for the database host from `DATABASE_URL`, runs `npx prisma migrate deploy`, then starts the application.
 
-3. Seed the database after migrations complete.
+4. Seed the database after migrations complete.
 
    ```bash
    docker compose exec app npx prisma db seed
    ```
 
-4. Create a Super Admin mapped to Clerk.
+5. Create a Super Admin mapped to Clerk.
 
    ```bash
    docker compose exec app npm run cli:create-admin -- --email=admin@example.com --name="Dev Admin" --password="SecurePass123!"
@@ -159,13 +156,13 @@ This is the simplest end-to-end setup because it runs the app, Postgres, and Red
    docker compose exec app npm run cli:create-admin -- --email=admin@example.com --name="Dev Admin" --clerk-uid=user_xxx
    ```
 
-5. Open Swagger.
+6. Open Swagger.
 
    ```text
    http://localhost:3000/docs
    ```
 
-6. For protected endpoints, send both headers:
+7. For protected endpoints, send both headers:
 
    ```http
    Authorization: Bearer <clerk-session-token>
@@ -176,13 +173,19 @@ This is the simplest end-to-end setup because it runs the app, Postgres, and Red
 
 Use this when a developer wants hot reload directly on the host.
 
-1. Start only infrastructure services.
+1. Start Redis only.
 
    ```bash
-   docker compose up -d postgres redis
+   docker compose up -d redis
    ```
 
-2. Use host-style `.env` values: `DATABASE_URL` points to `localhost`, and `REDIS_HOST` is `localhost`.
+   To use the optional fully local PostgreSQL fallback instead of a hosted URL, start `docker-compose.db.yml` and change `DATABASE_URL` to that local database explicitly:
+
+   ```bash
+   docker compose -f docker-compose.db.yml up -d
+   ```
+
+2. Keep host-style values: `REDIS_HOST` is `localhost`, and `DATABASE_URL` points to either the hosted database or the explicitly selected local fallback.
 
 3. Install dependencies.
 
@@ -198,13 +201,13 @@ Use this when a developer wants hot reload directly on the host.
 
 5. Apply migrations.
 
-   For a fresh local dev database:
+   For a development database:
 
    ```bash
    npm run prisma:migrate:dev
    ```
 
-   For a deployment-like database where migrations should only be applied:
+   For a deployment-like database where existing migrations should only be applied:
 
    ```bash
    npm run prisma:migrate:deploy
@@ -230,12 +233,12 @@ Use this when a developer wants hot reload directly on the host.
 
 ## Production-Like Docker Compose
 
-`docker-compose.prod.yml` builds with `Dockerfile.prod`, installs production dependencies, builds the app, runs migrations through `entrypoint.sh`, and starts `node dist/src/main.js`.
+`docker-compose.prod.yml` builds with `Dockerfile.prod`, installs production dependencies, builds the app, runs migrations through `entrypoint.sh`, and starts `node dist/src/main.js`. PostgreSQL is external and supplied exclusively through `DATABASE_URL`.
 
-1. Make sure `.env` uses internal Compose hosts:
+1. Supply the provider-issued database URL and the remaining production secrets through the deployment secret mechanism:
 
    ```env
-   DATABASE_URL="postgresql://postgres:<strong-password>@postgres:5432/kindercare_backend?schema=public"
+   DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
    REDIS_HOST="redis"
    ```
 
@@ -259,11 +262,11 @@ Use this when a developer wants hot reload directly on the host.
 
 Important production-like notes:
 
-- `docker-compose.prod.yml` does not publish app, Postgres, or Redis ports. Add a port mapping or attach a reverse proxy if direct host access is needed.
+- `docker-compose.prod.yml` does not publish app or Redis ports. Add a port mapping or attach a reverse proxy if direct host access is needed.
 - The app container runs migrations automatically on startup. Seeds are not automatic and should be run intentionally.
-- Postgres health checks read `POSTGRES_USER` and `POSTGRES_DB` from the container environment, so there is no duplicate hard-coded database identity.
-- Production Compose requires a non-empty `POSTGRES_PASSWORD`; supply it through the deployment secret mechanism.
-- `POSTGRES_DB` only initializes a database in an empty Postgres data directory. For an existing volume, migrate or rename the database explicitly and update `DATABASE_URL`; never delete a persistent volume merely to apply the new default.
+- `DATABASE_URL` is required and passed through unchanged; do not commit it or bake it into an image.
+- The production stack does not start PostgreSQL. The configured database must be reachable from the app container.
+- For Neon, the pooled `-pooler` URL is appropriate for application traffic. Consider a separate direct URL before introducing migration workloads that are incompatible with transaction pooling.
 
 ## Seed Data
 
@@ -467,9 +470,11 @@ Then confirm:
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| App cannot connect to Postgres inside Compose | `.env` uses `localhost` for a containerized app | Use `postgres` in `DATABASE_URL` when the app runs in Compose. |
-| Redis connection errors inside Compose | `REDIS_HOST=localhost` in containerized app | Use `REDIS_HOST=redis`. |
-| Compose Postgres health check fails after changing DB/user | Container environment values do not match the intended database/user | Confirm `POSTGRES_USER` and `POSTGRES_DB` are set consistently; the health check reads them automatically. |
+| Compose reports `DATABASE_URL is required` | The project `.env` is missing or the variable is empty | Create `.env` and set the complete provider-issued PostgreSQL URL. |
+| App cannot connect to hosted PostgreSQL inside Compose | The database hostname is unreachable from the container, TLS options are missing, or provider access rules reject the connection | Verify the full `DATABASE_URL`, provider status/access rules, and required `sslmode` options. |
+| App waits for the wrong database port | A non-default port is missing or malformed in `DATABASE_URL` | Include the explicit port; otherwise `entrypoint.sh` defaults PostgreSQL to `5432`. |
+| Redis connection errors inside Compose | `REDIS_HOST` was overridden incorrectly | App Compose stacks set `REDIS_HOST=redis`; avoid overriding it with `localhost` inside the container. |
+| Optional local Postgres health check fails after customization | Local container initialization values do not match the intended database/user | Set `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` only when using `docker-compose.db.yml`. |
 | Protected endpoints return unauthorized | Missing or invalid Clerk keys/token | Set `CLERK_SECRET_KEY`, `CLERK_PUBLISHABLE_KEY`, and send a Clerk session token. |
 | Admin resolves with no permissions | Seed was not run after migrations | Run `npx prisma db seed`. |
 | `npm run prisma:generate` fails with Windows `EPERM` on query engine rename | Running Node/Prisma process is locking `node_modules/.prisma/client` | Stop local Nest/Prisma/Node processes and retry. |
@@ -485,3 +490,6 @@ Then confirm:
 - @doc/architecture/multi-campus-architecture
 - @doc/patterns/prisma-migration-patterns
 - @doc/guides/seed-and-clerk-cli-reference
+- [Docker Compose variable interpolation](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
+- [Prisma ORM with Neon](https://docs.prisma.io/docs/orm/v6/overview/databases/neon)
+- [Neon connection pooling](https://neon.com/docs/connect/connection-pooling)

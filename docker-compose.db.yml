@@ -1,4 +1,7 @@
-# Database-only Docker setup (FASTEST option for development)
+# Optional local database fallback. The application Compose stacks use DATABASE_URL
+# directly and do not start this PostgreSQL service.
+#
+# Database-only Docker setup (FASTEST option for fully local development)
 #
 # Usage:
 #   1. Start databases: docker-compose -f docker-compose.db.yml up -d

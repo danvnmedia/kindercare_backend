@@ -7,33 +7,15 @@ services:
       - .env
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-kindercare_backend}?schema=public
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL is required}
       - REDIS_HOST=redis
       - REDIS_PORT=${REDIS_PORT:-6379}
       - PORT=${APP_PORT:-8000}
       - SEED_SUPER_ADMIN_CLERK_UID=${SEED_SUPER_ADMIN_CLERK_UID:-}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
     command: npm run start:prod
-    networks:
-      - kindercare-network
-
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      - POSTGRES_DB=${POSTGRES_DB:-kindercare_backend}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     networks:
       - kindercare-network
 
@@ -50,5 +32,4 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   redis_data:

@@ -92,7 +92,7 @@ src/
 
 - Node.js 18+
 - Docker & Docker Compose
-- PostgreSQL (if running locally)
+- PostgreSQL connection string (hosted or local)
 - Redis (if running locally)
 
 ### Installation
@@ -116,11 +116,14 @@ src/
 
 4. **Start with Docker (Recommended)**
    ```bash
-   # Development mode
-   docker-compose up app-dev
+   # Standard app + Redis stack (DATABASE_URL supplies PostgreSQL)
+   docker compose up --build app
 
-   # Production mode
-   docker-compose up app
+   # Development mode with source mounts
+   docker compose -f docker-compose.dev.yml up --build app
+
+   # Production-like mode
+   docker compose -f docker-compose.prod.yml up -d --build
    ```
 
 5. **Or start locally**

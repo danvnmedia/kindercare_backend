@@ -1,9 +1,36 @@
 #!/bin/sh
 set -e
 
-# Extract database host from DATABASE_URL
-DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\):.*/\1/p')
-DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "❌ DATABASE_URL is required"
+  exit 1
+fi
+
+# Parse hosted and local PostgreSQL URLs without exposing credentials. PostgreSQL
+# defaults to port 5432 when the connection string omits an explicit port.
+DB_HOST=$(node -e '
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    if (!["postgresql:", "postgres:"].includes(url.protocol) || !url.hostname) process.exit(1);
+    process.stdout.write(url.hostname);
+  } catch {
+    process.exit(1);
+  }
+')
+DB_PORT=$(node -e '
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    if (!["postgresql:", "postgres:"].includes(url.protocol) || !url.hostname) process.exit(1);
+    process.stdout.write(url.port || "5432");
+  } catch {
+    process.exit(1);
+  }
+')
+
+if [ -z "$DB_HOST" ] || [ -z "$DB_PORT" ]; then
+  echo "❌ DATABASE_URL is not a valid PostgreSQL connection string"
+  exit 1
+fi
 
 echo "⏳ Waiting for PostgreSQL at $DB_HOST:$DB_PORT..."
 
@@ -12,7 +39,7 @@ max_retries=30
 retry_count=0
 
 while [ $retry_count -lt $max_retries ]; do
-  if nc -z $DB_HOST $DB_PORT 2>/dev/null; then
+  if nc -z "$DB_HOST" "$DB_PORT" 2>/dev/null; then
     echo "✅ PostgreSQL is ready!"
     break
   fi
