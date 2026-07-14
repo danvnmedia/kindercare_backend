@@ -46,6 +46,16 @@ export abstract class StaffRepository {
   abstract findByUserId(userId: string): Promise<Staff | null>;
 
   /**
+   * Find active staff by user ID within a campus. Concrete repositories should
+   * prefer this for authorization checks where one user can have staff profiles
+   * in multiple campuses.
+   */
+  abstract findByUserIdInCampus(
+    campusId: string,
+    userId: string,
+  ): Promise<Staff | null>;
+
+  /**
    * Find any staff profile by linked user ID within a campus, including
    * archived profiles. Used by create-or-attach flows to distinguish active,
    * archived, and absent target-campus profiles for a shared identity.

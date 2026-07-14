@@ -6,6 +6,7 @@
 
 import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
 import { StudentAttendanceLog } from "@/domain/attendance/entities/student-attendance-log.entity";
+import { StudentAttendanceChangeLog } from "@/domain/attendance/entities/student-attendance-change-log.entity";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 
@@ -117,6 +118,38 @@ export abstract class StudentAttendanceRepository {
    * Delete all logs for a summary
    */
   abstract deleteLogsBySummaryId(summaryId: string): Promise<void>;
+
+  // ==========================================
+  // Change Log Methods
+  // ==========================================
+
+  /**
+   * Find status/note/absence change timeline entries for a summary.
+   */
+  abstract findChangeLogsBySummaryId(
+    summaryId: string,
+  ): Promise<StudentAttendanceChangeLog[]>;
+
+  /**
+   * Find status/note/absence change timeline entries for multiple summaries.
+   */
+  abstract findChangeLogsBySummaryIds(
+    summaryIds: string[],
+  ): Promise<StudentAttendanceChangeLog[]>;
+
+  /**
+   * Save one status/note/absence timeline entry.
+   */
+  abstract saveChangeLog(
+    changeLog: StudentAttendanceChangeLog,
+  ): Promise<StudentAttendanceChangeLog>;
+
+  /**
+   * Save multiple status/note/absence timeline entries.
+   */
+  abstract saveChangeLogs(
+    changeLogs: StudentAttendanceChangeLog[],
+  ): Promise<StudentAttendanceChangeLog[]>;
 
   // ==========================================
   // Combined Operations (Transaction)

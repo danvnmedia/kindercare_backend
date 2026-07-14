@@ -58,13 +58,22 @@ export class CreateStaffTypeUseCase {
         );
       }
 
-      // Validate defaultRoleId if provided
+      let defaultRoleId = input.defaultRoleId ?? null;
+
+      // Validate defaultRoleId if provided; otherwise use the backend-managed
+      // minimal access role so future staff creates are campus-discoverable
+      // without requiring frontend default-role setup.
       if (input.defaultRoleId) {
         await loadAllowedDefaultRole(
           this.roleRepository,
           input.defaultRoleId,
           input.campusId,
         );
+      } else {
+        const fallbackRole = await this.roleRepository.ensureCampusAccessRole(
+          input.campusId,
+        );
+        defaultRoleId = fallbackRole.id;
       }
 
       // Determine order: use provided order or auto-assign using maxOrder + 1
@@ -95,7 +104,7 @@ export class CreateStaffTypeUseCase {
         campusId: input.campusId,
         name: input.name,
         description: input.description ?? null,
-        defaultRoleId: input.defaultRoleId ?? null,
+        defaultRoleId,
         isArchived: input.isArchived,
         order,
       });

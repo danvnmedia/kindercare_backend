@@ -156,6 +156,7 @@ describe("Student health instruction use cases", () => {
     } as unknown as jest.Mocked<ClassRepository>;
     enrollmentRepository = {
       findByClassIdAndEffectiveStatus: jest.fn(),
+      findActiveByClassIdOnDate: jest.fn(),
     } as unknown as jest.Mocked<EnrollmentRepository>;
     transactionRunner = {
       run: jest.fn(async (task) => task({} as never)),

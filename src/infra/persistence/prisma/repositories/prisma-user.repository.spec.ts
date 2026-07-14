@@ -105,4 +105,29 @@ describe("PrismaUserRepository", () => {
       }),
     ]);
   });
+
+  it("bulk-loads every requested actor ID without pagination", async () => {
+    const actorIds = Array.from({ length: 51 }, (_, index) => `user-${index}`);
+    const findMany = jest.fn().mockResolvedValue(
+      actorIds.map((id) => ({
+        ...userRow,
+        id,
+        clerkUid: `clerk-${id}`,
+        staffs: [],
+        guardians: [],
+      })),
+    );
+    const prisma = { user: { findMany } } as unknown as PrismaService;
+    const repository = new PrismaUserRepository(
+      prisma,
+      {} as PrismaQueryService,
+    );
+
+    const users = await repository.findByIds(actorIds);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: { in: actorIds } } }),
+    );
+    expect(users).toHaveLength(51);
+  });
 });

@@ -20,6 +20,7 @@ describe("GetMyAbsenceRequestsUseCase", () => {
       findByCampusId: jest.fn(),
       findByRequesterGuardianId: jest.fn().mockResolvedValue([]),
       findActiveOverlaps: jest.fn(),
+      findApprovedOverlapsForStudents: jest.fn().mockResolvedValue([]),
       save: jest.fn(),
       update: jest.fn(),
     } as jest.Mocked<AbsenceRequestRepository>;

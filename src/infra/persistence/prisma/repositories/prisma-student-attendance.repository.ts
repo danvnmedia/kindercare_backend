@@ -3,11 +3,14 @@ import { PrismaService } from "../prisma.service";
 import { StudentAttendanceRepository } from "@/application/attendance/ports/student-attendance.repository";
 import { StudentAttendanceSummary } from "@/domain/attendance/entities/student-attendance-summary.entity";
 import { StudentAttendanceLog } from "@/domain/attendance/entities/student-attendance-log.entity";
+import { StudentAttendanceChangeLog } from "@/domain/attendance/entities/student-attendance-change-log.entity";
 import { PrismaStudentAttendanceSummaryMapper } from "../mapper/prisma-student-attendance-summary.mapper";
 import { PrismaStudentAttendanceLogMapper } from "../mapper/prisma-student-attendance-log.mapper";
+import { PrismaStudentAttendanceChangeLogMapper } from "../mapper/prisma-student-attendance-change-log.mapper";
 import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
+import { parseAttendanceDateOnly } from "@/application/attendance/attendance-date";
 
 @Injectable()
 export class PrismaStudentAttendanceRepository
@@ -51,9 +54,7 @@ export class PrismaStudentAttendanceRepository
     studentId: string,
     date: Date,
   ): Promise<StudentAttendanceSummary | null> {
-    // Normalize date to start of day for comparison
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = parseAttendanceDateOnly(date);
 
     const prismaSummary = await this.prisma.studentAttendanceSummary.findUnique(
       {
@@ -75,9 +76,7 @@ export class PrismaStudentAttendanceRepository
     classId: string,
     date: Date,
   ): Promise<StudentAttendanceSummary[]> {
-    // Normalize date to start of day for comparison
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = parseAttendanceDateOnly(date);
 
     const prismaSummaries = await this.prisma.studentAttendanceSummary.findMany(
       {
@@ -97,11 +96,9 @@ export class PrismaStudentAttendanceRepository
     startDate: Date,
     endDate: Date,
   ): Promise<StudentAttendanceSummary[]> {
-    // Normalize dates
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const start = parseAttendanceDateOnly(startDate);
+    const end = parseAttendanceDateOnly(endDate);
+    end.setUTCHours(23, 59, 59, 999);
 
     const prismaSummaries = await this.prisma.studentAttendanceSummary.findMany(
       {
@@ -262,6 +259,60 @@ export class PrismaStudentAttendanceRepository
     await this.prisma.studentAttendanceLog.deleteMany({
       where: { attendanceSummaryId: summaryId },
     });
+  }
+
+  // ==========================================
+  // Change Log Methods
+  // ==========================================
+
+  async findChangeLogsBySummaryId(
+    summaryId: string,
+  ): Promise<StudentAttendanceChangeLog[]> {
+    const rows = await this.prisma.studentAttendanceChangeLog.findMany({
+      where: { attendanceSummaryId: summaryId },
+      orderBy: { createdAt: "asc" },
+    });
+    return PrismaStudentAttendanceChangeLogMapper.toDomainArray(rows);
+  }
+
+  async findChangeLogsBySummaryIds(
+    summaryIds: string[],
+  ): Promise<StudentAttendanceChangeLog[]> {
+    if (summaryIds.length === 0) {
+      return [];
+    }
+
+    const rows = await this.prisma.studentAttendanceChangeLog.findMany({
+      where: { attendanceSummaryId: { in: summaryIds } },
+      orderBy: [{ attendanceSummaryId: "asc" }, { createdAt: "asc" }],
+    });
+    return PrismaStudentAttendanceChangeLogMapper.toDomainArray(rows);
+  }
+
+  async saveChangeLog(
+    changeLog: StudentAttendanceChangeLog,
+  ): Promise<StudentAttendanceChangeLog> {
+    const created = await this.prisma.studentAttendanceChangeLog.create({
+      data: PrismaStudentAttendanceChangeLogMapper.toPrisma(changeLog),
+    });
+    return PrismaStudentAttendanceChangeLogMapper.toDomain(created);
+  }
+
+  async saveChangeLogs(
+    changeLogs: StudentAttendanceChangeLog[],
+  ): Promise<StudentAttendanceChangeLog[]> {
+    const results: StudentAttendanceChangeLog[] = [];
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const changeLog of changeLogs) {
+        const created = await tx.studentAttendanceChangeLog.create({
+          data: PrismaStudentAttendanceChangeLogMapper.toPrisma(changeLog),
+        });
+        results.push(PrismaStudentAttendanceChangeLogMapper.toDomain(created));
+      }
+    });
+
+    return results;
   }
 
   // ==========================================

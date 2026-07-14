@@ -53,6 +53,7 @@ export function createMockStaffRepository(): jest.Mocked<StaffRepository> {
     findByPhoneNumber: jest.fn(),
     findByPhoneNumberInCampus: jest.fn(),
     findByUserId: jest.fn(),
+    findByUserIdInCampus: jest.fn(),
     findAnyByUserIdInCampus: jest.fn(),
     findByStaffTypeId: jest.fn(),
     findByCampusId: jest.fn(),
@@ -124,6 +125,7 @@ export function createMockUserRepository(): jest.Mocked<UserRepository> {
     findByEmail: jest.fn(),
     findManyByEmail: jest.fn(),
     findManyByPhoneNumber: jest.fn(),
+    findByIds: jest.fn(),
     findByClerkUid: jest.fn(),
     findAll: jest.fn(),
     save: jest.fn(),
@@ -143,6 +145,7 @@ export function createMockRoleRepository(): jest.Mocked<RoleRepository> {
   return {
     findById: jest.fn(),
     findByName: jest.fn(),
+    ensureCampusAccessRole: jest.fn(),
     findByCampusId: jest.fn(),
     findSystemDefaults: jest.fn(),
     findAll: jest.fn(),

@@ -7,8 +7,10 @@ import {
   UnitOfWorkPort,
 } from "@/application/ports/unit-of-work.port";
 import { Gender } from "@/domain/user-management/enums/gender.enum";
+import { Role } from "@/domain/user-management/role.entity";
 import { User } from "@/domain/user-management/user.entity";
 import {
+  createMockRoleRepository,
   createMockStaffRepository,
   createMockUserRepository,
   createStaff,
@@ -16,6 +18,7 @@ import {
 } from "@/test-utils";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
+import { RoleRepository } from "../../ports/role.repository";
 import { UserRepository } from "../../ports/user.repository";
 import {
   CreateOrAttachStaffErrorCode,
@@ -31,6 +34,7 @@ const TYPE_TEACHER = "stype-teacher";
 const TYPE_EXISTING = "stype-existing";
 const ROLE_STAFF = "role-staff";
 const ROLE_EXISTING = "role-existing";
+const ROLE_CAMPUS_ACCESS = "role-campus-access";
 
 function buildActor(): User {
   return User.reconstitute(
@@ -71,10 +75,26 @@ function stype(overrides: {
   };
 }
 
+function buildRole(overrides: Partial<Role> = {}): Role {
+  return {
+    id: ROLE_CAMPUS_ACCESS,
+    name: "Staff Campus Access",
+    description: null,
+    campusId: CAMPUS_ID,
+    isSystemDefault: true,
+    isSystemRole: false,
+    permissions: [],
+    createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+    ...overrides,
+  };
+}
+
 describe("CreateOrAttachStaffUseCase", () => {
   let useCase: CreateOrAttachStaffUseCase;
   let staffRepo: jest.Mocked<StaffRepository>;
   let staffTypeRepo: jest.Mocked<StaffTypeRepository>;
+  let roleRepo: jest.Mocked<RoleRepository>;
   let userRepo: jest.Mocked<UserRepository>;
   let unitOfWork: jest.Mocked<UnitOfWorkPort>;
   let identityPort: jest.Mocked<IdentityPort>;
@@ -100,6 +120,8 @@ describe("CreateOrAttachStaffUseCase", () => {
           stype({ id, defaultRoleId: ROLE_STAFF }),
         ),
     } as unknown as jest.Mocked<StaffTypeRepository>;
+    roleRepo = createMockRoleRepository();
+    roleRepo.ensureCampusAccessRole.mockResolvedValue(buildRole());
     userRepo = createMockUserRepository();
     mockTx = {
       createUser: jest
@@ -140,6 +162,7 @@ describe("CreateOrAttachStaffUseCase", () => {
       staffRepo,
       staffTypeRepo,
       userRepo,
+      roleRepo,
       unitOfWork,
       identityPort,
       staffCodeGenerator,
@@ -187,6 +210,23 @@ describe("CreateOrAttachStaffUseCase", () => {
         campusId: CAMPUS_ID,
       }),
     );
+  });
+
+  it("creates a new staff profile with the backend-managed campus access role when selected StaffTypes have no default role", async () => {
+    staffTypeRepo.findById.mockImplementation(
+      async (id: string) => stype({ id, defaultRoleId: null }) as never,
+    );
+
+    await useCase.execute(validInput, actor);
+
+    expect(roleRepo.ensureCampusAccessRole).toHaveBeenCalledWith(CAMPUS_ID);
+    expect(mockTx.assignRoles).toHaveBeenCalledWith("user-new", [
+      {
+        roleId: ROLE_CAMPUS_ACCESS,
+        campusId: CAMPUS_ID,
+        grantedViaStaffTypeId: TYPE_TEACHER,
+      },
+    ]);
   });
 
   it("attaches an existing staff identity to a new campus without Clerk creation", async () => {

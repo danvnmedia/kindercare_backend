@@ -15,6 +15,8 @@ import {
 } from "@nestjs/common";
 import { StaffRepository } from "../../ports/staff.repository";
 import { StaffTypeRepository } from "../../ports/staff-type.repository";
+import { RoleRepository } from "../../ports/role.repository";
+import { buildStaffTypeRoleAssignments } from "./staff-campus-access-role-grants";
 
 export interface CreateStaffInput {
   campusId: string;
@@ -58,6 +60,8 @@ export class CreateStaffUseCase {
     private readonly staffRepository: StaffRepository,
     @Inject("STAFF_TYPE_REPOSITORY")
     private readonly staffTypeRepository: StaffTypeRepository,
+    @Inject("ROLE_REPOSITORY")
+    private readonly roleRepository: RoleRepository,
     private readonly unitOfWork: UnitOfWorkPort,
     private readonly identityPort: IdentityPort,
     private readonly staffCodeGenerator: StaffCodeGeneratorPort,
@@ -77,6 +81,13 @@ export class CreateStaffUseCase {
 
     // Step 2: Check Staff uniqueness (email/phone within campus)
     await this.checkStaffUniqueness(input);
+
+    const roleAssignments = await buildStaffTypeRoleAssignments(
+      this.roleRepository,
+      input.campusId,
+      input.staffTypeIds,
+      resolvedTypes,
+    );
 
     // Step 3: Create Clerk user FIRST (external service - most likely to fail)
     const clerkUser = await this.createClerkUser(input);
@@ -141,18 +152,6 @@ export class CreateStaffUseCase {
         // (@doc/specs/tracked-grant-revocation, D5 manual-wins; retired
         // under D2 of @doc/specs/staff-multi-type-refactor — manual rows
         // still ignored by SQL NULL semantics on the IN-list filter).
-        const roleAssignments = input.staffTypeIds.flatMap((typeId) => {
-          const roleId = resolvedTypes.get(typeId)!.defaultRoleId;
-          return roleId
-            ? [
-                {
-                  roleId,
-                  campusId: input.campusId,
-                  grantedViaStaffTypeId: typeId,
-                },
-              ]
-            : [];
-        });
         if (roleAssignments.length > 0) {
           await tx.assignRoles(user.id, roleAssignments);
           this.logger.log(

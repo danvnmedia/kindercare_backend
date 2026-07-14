@@ -88,6 +88,15 @@ export abstract class EnrollmentRepository {
   ): Promise<Enrollment[]>;
 
   /**
+   * Find enrollments active for a class on a selected date. Active-on-date means
+   * `enrollmentDate <= date` and `endDate IS NULL OR endDate >= date`.
+   */
+  abstract findActiveByClassIdOnDate(
+    classId: string,
+    date: Date,
+  ): Promise<Enrollment[]>;
+
+  /**
    * Find all enrollments for a student across classes and periods,
    * ordered by `enrollmentDate DESC`. Used by the student class-history view.
    */

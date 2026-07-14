@@ -225,3 +225,75 @@ describe("PrismaClassRepository", () => {
     });
   });
 });
+
+describe("PrismaClassRepository.findAttendanceOptions", () => {
+  const findMany = jest.fn();
+  const count = jest.fn();
+  const transaction = jest.fn();
+  const prisma = {
+    class: { findMany, count },
+    $transaction: transaction,
+  };
+  const repository = new PrismaClassRepository(prisma as never, {} as never);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findMany.mockReturnValue("find-many-query");
+    count.mockReturnValue("count-query");
+  });
+
+  it("scopes, searches, sorts, and paginates in Prisma", async () => {
+    transaction.mockResolvedValue([
+      [{ id: "class-1", name: "Sunflower A" }],
+      26,
+    ]);
+
+    const result = await repository.findAttendanceOptions("campus-a", {
+      search: "sun",
+      limit: 25,
+      offset: 25,
+    });
+
+    const where = {
+      campusId: "campus-a",
+      name: { contains: "sun", mode: "insensitive" },
+    };
+    expect(findMany).toHaveBeenCalledWith({
+      where,
+      select: { id: true, name: true },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      take: 25,
+      skip: 25,
+    });
+    expect(count).toHaveBeenCalledWith({ where });
+    expect(transaction).toHaveBeenCalledWith([
+      "find-many-query",
+      "count-query",
+    ]);
+    expect(result).toEqual({
+      data: [{ id: "class-1", name: "Sunflower A", code: null }],
+      pagination: {
+        count: 26,
+        limit: 25,
+        offset: 25,
+        totalPages: 2,
+        currentPage: 2,
+        hasNext: false,
+        hasPrev: true,
+      },
+    });
+  });
+
+  it("does not add a search predicate for an empty search", async () => {
+    transaction.mockResolvedValue([[], 0]);
+
+    await repository.findAttendanceOptions("campus-b", {
+      limit: 10,
+      offset: 0,
+    });
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { campusId: "campus-b" } }),
+    );
+  });
+});

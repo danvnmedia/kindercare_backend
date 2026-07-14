@@ -169,6 +169,7 @@ describe("TransferStudentUseCase", () => {
       findByStudentId: jest.fn(),
       findActiveByStudentId: jest.fn(),
       findByClassIdAndEffectiveStatus: jest.fn(),
+      findActiveByClassIdOnDate: jest.fn(),
       findAllByStudentId: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),

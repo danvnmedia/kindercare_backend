@@ -29,6 +29,12 @@ export abstract class AbsenceRequestRepository {
     period: AbsencePeriod,
   ): Promise<AbsenceRequest[]>;
 
+  abstract findApprovedOverlapsForStudents(
+    campusId: string,
+    studentIds: string[],
+    date: Date,
+  ): Promise<AbsenceRequest[]>;
+
   abstract save(absenceRequest: AbsenceRequest): Promise<AbsenceRequest>;
 
   abstract update(absenceRequest: AbsenceRequest): Promise<AbsenceRequest>;

@@ -11,6 +11,11 @@ import {
   ClassListItemView,
   ClassRepository,
 } from "@/application/class-management/ports/class.repository";
+import {
+  AttendanceClassOptionView,
+  AttendanceClassOptionsRepository,
+  FindAttendanceClassOptionsParams,
+} from "@/application/attendance/ports/attendance-class-options.repository";
 import { Class } from "@/domain/class-management/entities/class.entity";
 import { ClassStaffRole } from "@/domain/class-management/enums/class-staff-role.enum";
 import { PrismaClassMapper } from "../mapper/prisma-class.mapper";
@@ -32,7 +37,9 @@ type PrismaClassListRow = PrismaClass & {
 };
 
 @Injectable()
-export class PrismaClassRepository implements ClassRepository {
+export class PrismaClassRepository
+  implements ClassRepository, AttendanceClassOptionsRepository
+{
   constructor(
     private readonly prisma: PrismaService,
     private readonly queryService: PrismaQueryService,
@@ -245,6 +252,45 @@ export class PrismaClassRepository implements ClassRepository {
     }));
 
     return { data, pagination: result.pagination };
+  }
+
+  async findAttendanceOptions(
+    campusId: string,
+    params: FindAttendanceClassOptionsParams,
+  ): Promise<PaginatedResult<AttendanceClassOptionView>> {
+    const where = {
+      campusId,
+      ...(params.search
+        ? { name: { contains: params.search, mode: "insensitive" as const } }
+        : {}),
+    };
+
+    const [rows, count] = await this.prisma.$transaction([
+      this.prisma.class.findMany({
+        where,
+        select: { id: true, name: true },
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+        take: params.limit,
+        skip: params.offset,
+      }),
+      this.prisma.class.count({ where }),
+    ]);
+
+    const currentPage = Math.floor(params.offset / params.limit) + 1;
+    const totalPages = Math.ceil(count / params.limit);
+
+    return {
+      data: rows.map((row) => ({ ...row, code: null })),
+      pagination: {
+        count,
+        limit: params.limit,
+        offset: params.offset,
+        totalPages,
+        currentPage,
+        hasNext: params.offset + rows.length < count,
+        hasPrev: params.offset > 0,
+      },
+    };
   }
 
   async save(classEntity: Class): Promise<Class> {

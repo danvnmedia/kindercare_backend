@@ -1,3 +1,10 @@
+import { ConflictException } from "@nestjs/common";
+
+import {
+  STAFF_CAMPUS_ACCESS_ROLE_DESCRIPTION,
+  STAFF_CAMPUS_ACCESS_ROLE_NAME,
+} from "@/application/user-management/ports/role.repository";
+
 import { PrismaRoleRepository } from "./prisma-role.repository";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { PrismaService } from "../prisma.service";
@@ -113,5 +120,85 @@ describe("PrismaRoleRepository.getRoleMembers", () => {
         warning: null,
       },
     });
+  });
+});
+
+describe("PrismaRoleRepository.ensureCampusAccessRole", () => {
+  const roleFactory = (overrides: Record<string, unknown> = {}) => ({
+    id: ROLE_ID,
+    campusId: CAMPUS_ID,
+    name: STAFF_CAMPUS_ACCESS_ROLE_NAME,
+    description: STAFF_CAMPUS_ACCESS_ROLE_DESCRIPTION,
+    isSystemDefault: true,
+    isSystemRole: false,
+    createdAt: new Date("2026-07-13T00:00:00.000Z"),
+    updatedAt: new Date("2026-07-13T00:00:00.000Z"),
+    rolePermissions: [],
+    ...overrides,
+  });
+
+  function createRepository(returnedRole: Record<string, unknown>) {
+    const upsert = jest.fn().mockResolvedValue(returnedRole);
+    const repository = new PrismaRoleRepository(
+      { role: { upsert } } as unknown as PrismaService,
+      {} as PrismaQueryService,
+    );
+
+    return { repository, upsert };
+  }
+
+  it("creates the fallback as a protected permissionless role", async () => {
+    const { repository, upsert } = createRepository(roleFactory());
+
+    const role = await repository.ensureCampusAccessRole(CAMPUS_ID);
+
+    expect(role).toMatchObject({
+      name: STAFF_CAMPUS_ACCESS_ROLE_NAME,
+      isSystemDefault: true,
+      isSystemRole: false,
+      permissions: [],
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: {},
+        create: expect.objectContaining({
+          campusId: CAMPUS_ID,
+          name: STAFF_CAMPUS_ACCESS_ROLE_NAME,
+          isSystemDefault: true,
+          isSystemRole: false,
+        }),
+      }),
+    );
+  });
+
+  it("rejects a mutable role that collides with the reserved name", async () => {
+    const { repository } = createRepository(
+      roleFactory({ isSystemDefault: false }),
+    );
+
+    await expect(
+      repository.ensureCampusAccessRole(CAMPUS_ID),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it("rejects a permission-bearing role that collides with the reserved name", async () => {
+    const { repository } = createRepository(
+      roleFactory({
+        rolePermissions: [
+          {
+            permission: {
+              id: "student.read",
+              module: "student",
+              description: "Read students",
+              createdAt: new Date("2026-07-13T00:00:00.000Z"),
+            },
+          },
+        ],
+      }),
+    );
+
+    await expect(
+      repository.ensureCampusAccessRole(CAMPUS_ID),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

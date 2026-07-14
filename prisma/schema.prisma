@@ -277,6 +277,7 @@ model User {
   // Attendance
   attendanceUpdates     StudentAttendanceSummary[] @relation("AttendanceUpdates")
   attendanceLogsCreated StudentAttendanceLog[]     @relation("AttendanceLogCreator")
+  attendanceChangeLogs  StudentAttendanceChangeLog[] @relation("AttendanceChangeLogActor")
 
   // Absence Requests
   absenceRequestSubmissions AbsenceRequest[] @relation("AbsenceRequestSubmissions")
@@ -1024,8 +1025,9 @@ model StudentAttendanceSummary {
   totalMinutesPresent Int       @default(0) @map("total_minutes_present")
 
   // Audit
-  updatedById String? @map("updated_by_id") @db.Uuid
-  note        String?
+  updatedById      String? @map("updated_by_id") @db.Uuid
+  absenceRequestId String? @map("absence_request_id") @db.Uuid
+  note             String?
 
   // Campus scoping
   campusId String @map("campus_id") @db.Uuid
@@ -1034,9 +1036,11 @@ model StudentAttendanceSummary {
   student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class     Class   @relation(fields: [classId], references: [id], onDelete: Restrict)
   updatedBy User?   @relation("AttendanceUpdates", fields: [updatedById], references: [id], onDelete: SetNull)
+  absenceRequest AbsenceRequest? @relation("AttendanceAbsenceRequest", fields: [absenceRequestId], references: [id], onDelete: Restrict)
 
   // Detail records
-  logs StudentAttendanceLog[]
+  logs       StudentAttendanceLog[]
+  changeLogs StudentAttendanceChangeLog[]
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1046,6 +1050,7 @@ model StudentAttendanceSummary {
   @@index([classId])
   @@index([date])
   @@index([status])
+  @@index([absenceRequestId])
   @@index([campusId, date, status])
   @@map("student_attendance_summary")
 }
@@ -1081,6 +1086,27 @@ model StudentAttendanceLog {
   @@index([timestamp])
   @@index([createdById])
   @@map("student_attendance_log")
+}
+
+model StudentAttendanceChangeLog {
+  id                  String @id @default(uuid()) @db.Uuid
+  attendanceSummaryId String @map("attendance_summary_id") @db.Uuid
+  changeType          String @map("change_type") @db.VarChar(50)
+  previousValue       Json?  @map("previous_value")
+  newValue            Json?  @map("new_value")
+  actorId             String @map("actor_id") @db.Uuid
+  note                String?
+
+  attendanceSummary StudentAttendanceSummary @relation(fields: [attendanceSummaryId], references: [id], onDelete: Cascade)
+  actor             User                     @relation("AttendanceChangeLogActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([attendanceSummaryId])
+  @@index([actorId])
+  @@index([changeType])
+  @@index([createdAt])
+  @@map("student_attendance_change_log")
 }
 
 // ==========================================
@@ -1488,6 +1514,7 @@ model AbsenceRequest {
   requesterGuardian Guardian @relation(fields: [requesterGuardianId], references: [id], onDelete: Restrict)
   requesterUser     User?    @relation("AbsenceRequestSubmissions", fields: [requesterUserId], references: [id], onDelete: SetNull)
   reviewedBy        User?    @relation("AbsenceRequestReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
+  attendanceSummaries StudentAttendanceSummary[] @relation("AttendanceAbsenceRequest")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

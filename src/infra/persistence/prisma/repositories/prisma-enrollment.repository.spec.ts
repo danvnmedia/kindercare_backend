@@ -258,6 +258,32 @@ describe("PrismaEnrollmentRepository", () => {
     });
   });
 
+  describe("findActiveByClassIdOnDate", () => {
+    it("uses the UTC day and excludes cancelled enrollments and archived students", async () => {
+      enrollmentDelegate.findMany.mockResolvedValue([]);
+
+      await repository.findActiveByClassIdOnDate(
+        "class-1",
+        new Date("2026-07-11T23:59:59.999Z"),
+      );
+
+      expect(enrollmentDelegate.findMany).toHaveBeenCalledWith({
+        where: {
+          classId: "class-1",
+          cancelledAt: null,
+          enrollmentDate: { lte: new Date("2026-07-11T00:00:00.000Z") },
+          OR: [
+            { endDate: null },
+            { endDate: { gte: new Date("2026-07-11T00:00:00.000Z") } },
+          ],
+          student: { isArchived: false },
+        },
+        include: enrollmentInclude,
+        orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
+      });
+    });
+  });
+
   describe("findAllByStudentId", () => {
     it("queries with no endDate filter and includes nested schoolYear and gradeLevel", async () => {
       enrollmentDelegate.findMany.mockResolvedValue([prismaRowFactory()]);

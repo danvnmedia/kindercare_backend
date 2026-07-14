@@ -36,6 +36,7 @@ describe("RequestContext", () => {
       findByEmail: jest.fn(),
       findManyByEmail: jest.fn(),
       findManyByPhoneNumber: jest.fn(),
+      findByIds: jest.fn(),
       findByClerkUid: jest.fn(),
       findAll: jest.fn(),
       save: jest.fn(),

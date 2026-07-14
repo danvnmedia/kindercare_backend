@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -20,8 +21,10 @@ import {
   CampusContext,
   RequireCampusAccess,
   CAMPUS_ID_HEADER,
+  CurrentUser,
 } from "../decorators";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
+import { User } from "@/domain/user-management/user.entity";
 
 import {
   RecordAttendanceRequest,
@@ -29,6 +32,11 @@ import {
   BulkRecordAttendanceRequest,
   StudentAttendanceResponse,
   BulkRecordAttendanceResponse,
+  ClassRollCallResponse,
+  SaveClassRollCallRequest,
+  SaveClassRollCallResponse,
+  AttendanceClassOptionsQuery,
+  AttendanceClassOptionResponse,
 } from "../dtos/attendance";
 
 // Use Cases
@@ -38,6 +46,11 @@ import { GetAttendanceByIdUseCase } from "@/application/attendance/use-cases/get
 import { GetClassAttendanceUseCase } from "@/application/attendance/use-cases/get-class-attendance.use-case";
 import { GetStudentAttendanceUseCase } from "@/application/attendance/use-cases/get-student-attendance.use-case";
 import { BulkRecordAttendanceUseCase } from "@/application/attendance/use-cases/bulk-record-attendance.use-case";
+import { GetClassRollCallUseCase } from "@/application/attendance/use-cases/get-class-roll-call.use-case";
+import { SaveClassRollCallUseCase } from "@/application/attendance/use-cases/save-class-roll-call.use-case";
+import { GetAttendanceClassOptionsUseCase } from "@/application/attendance/use-cases/get-attendance-class-options.use-case";
+import { Permissions } from "../decorators/permissions.decorator";
+import { PermissionsGuard } from "../guards/permissions.guard";
 
 @Controller("attendance")
 @ApiTags("Attendance")
@@ -50,7 +63,45 @@ export class AttendanceController {
     private readonly getClassAttendanceUseCase: GetClassAttendanceUseCase,
     private readonly getStudentAttendanceUseCase: GetStudentAttendanceUseCase,
     private readonly bulkRecordAttendanceUseCase: BulkRecordAttendanceUseCase,
+    private readonly getClassRollCallUseCase: GetClassRollCallUseCase,
+    private readonly saveClassRollCallUseCase: SaveClassRollCallUseCase,
+    private readonly getAttendanceClassOptionsUseCase: GetAttendanceClassOptionsUseCase,
   ) {}
+
+  @Get("class-options")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("attendance.read", "attendance.list")
+  @StandardResponse({
+    message: "Attendance class options retrieved successfully",
+    type: AttendanceClassOptionResponse,
+    isPaginated: true,
+    defaultLimit: 25,
+    maxLimit: 100,
+    allowedSortFields: ["name"],
+  })
+  @ApiOperation({
+    summary: "List class options for attendance roll-call",
+    description:
+      "Returns a lightweight, searchable, campus-scoped class list for the attendance selector.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async getAttendanceClassOptions(
+    @CampusContext() campusId: string,
+    @Query() query: AttendanceClassOptionsQuery,
+  ) {
+    return this.getAttendanceClassOptionsUseCase.execute({
+      campusId,
+      search: query.search,
+      limit: query.limit,
+      offset: query.offset,
+    });
+  }
 
   @Post()
   @RequireCampusAccess()
@@ -192,6 +243,89 @@ export class AttendanceController {
       note: dto.note,
     });
     return StudentAttendanceResponse.fromDomain(result.summary);
+  }
+
+  @Get("class/:classId/roll-call")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("attendance.read", "attendance.list")
+  @StandardResponse({
+    message: "Class roll-call sheet retrieved successfully",
+    type: ClassRollCallResponse,
+  })
+  @ApiOperation({
+    summary: "Get class roll-call sheet for a date",
+    description:
+      "Returns one row per student active in the class on the selected date with saved attendance, approved absence context, and derived V1 roll-call state.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "classId",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiQuery({
+    name: "date",
+    description: "Roll-call date in YYYY-MM-DD format",
+    example: "2026-07-06",
+    required: true,
+  })
+  async getClassRollCall(
+    @CampusContext() campusId: string,
+    @Param("classId", ParseUUIDPipe) classId: string,
+    @Query("date") date: string,
+  ): Promise<ClassRollCallResponse> {
+    const sheet = await this.getClassRollCallUseCase.execute({
+      campusId,
+      classId,
+      date,
+    });
+    return ClassRollCallResponse.fromUseCase(sheet);
+  }
+
+  @Post("class/:classId/roll-call")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("attendance.create", "attendance.update")
+  @StandardResponse({
+    message: "Class roll-call sheet saved successfully",
+    type: SaveClassRollCallResponse,
+  })
+  @ApiOperation({
+    summary: "Save class roll-call sheet for a date",
+    description:
+      "Saves teacher or assistant roll-call selections for active students in the class roster. NOT_IDENTIFIED rows are skipped and do not persist attendance.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus ID for the operation",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  @ApiParam({
+    name: "classId",
+    description: "Class UUID",
+    example: "123e4567-e89b-12d3-a456-426614174000",
+  })
+  async saveClassRollCall(
+    @CampusContext() campusId: string,
+    @Param("classId", ParseUUIDPipe) classId: string,
+    @Body() dto: SaveClassRollCallRequest,
+    @CurrentUser() currentUser: User,
+  ): Promise<SaveClassRollCallResponse> {
+    const result = await this.saveClassRollCallUseCase.execute({
+      campusId,
+      classId,
+      date: dto.date,
+      rows: dto.rows,
+      currentUser,
+    });
+    return SaveClassRollCallResponse.fromUseCase(result);
   }
 
   @Get("class/:classId")

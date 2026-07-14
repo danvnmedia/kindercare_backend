@@ -33,7 +33,41 @@ npm run cli:list-admins
 ### Xóa Admin Account
 
 ```bash
-npm run cli:delete-admin -- --email=admin@kindercare.com
+npm run cli:delete-admin -- --clerk-uid=user_abc123xyz
+```
+
+### Đổi Password Admin Trên Clerk
+
+```bash
+read -s NEW_PASSWORD
+printf '%s' "$NEW_PASSWORD" | npm run cli:update-admin-password -- \
+  --email=admin@kindercare.com \
+  --password-stdin
+unset NEW_PASSWORD
+
+# Hoặc dùng Clerk UID trực tiếp
+read -s NEW_PASSWORD
+printf '%s' "$NEW_PASSWORD" | npm run cli:update-admin-password -- \
+  --clerk-uid=user_abc123xyz \
+  --password-stdin
+unset NEW_PASSWORD
+```
+
+### Đổi Password Bất Kỳ Clerk Account
+
+```bash
+read -s NEW_PASSWORD
+printf '%s' "$NEW_PASSWORD" | npm run cli:update-clerk-password -- \
+  --email=user@example.com \
+  --password-stdin
+unset NEW_PASSWORD
+
+# Hoặc dùng Clerk UID trực tiếp
+read -s NEW_PASSWORD
+printf '%s' "$NEW_PASSWORD" | npm run cli:update-clerk-password -- \
+  --clerk-uid=user_abc123xyz \
+  --password-stdin
+unset NEW_PASSWORD
 ```
 
 ## 📋 Commands
@@ -42,7 +76,9 @@ npm run cli:delete-admin -- --email=admin@kindercare.com
 |---------|-------------|-------|
 | `cli:create-admin` | Tạo admin account mới | `npm run cli:create-admin -- --email=... --name=...` |
 | `cli:list-admins` | Liệt kê tất cả admin | `npm run cli:list-admins` |
-| `cli:delete-admin` | Xóa admin account | `npm run cli:delete-admin -- --email=...` |
+| `cli:delete-admin` | Xóa admin account | `npm run cli:delete-admin -- --clerk-uid=...` |
+| `cli:update-admin-password` | Đổi password admin trên Clerk | `... \| npm run cli:update-admin-password -- --email=... --password-stdin` |
+| `cli:update-clerk-password` | Đổi password bất kỳ user trên Clerk | `... \| npm run cli:update-clerk-password -- --email=... --password-stdin` |
 
 ## ⚙️ Options
 
@@ -54,6 +90,27 @@ npm run cli:delete-admin -- --email=admin@kindercare.com
 | `--name` | ✅ Yes | Tên đầy đủ | `--name="Nguyễn Văn A"` |
 | `--clerk-uid` | ❌ No | Clerk User ID (nếu user đã có trên Clerk) | `--clerk-uid=user_abc123` |
 | `--phone` | ❌ No | Số điện thoại (E.164 format) | `--phone="+84901234567"` |
+| `--password-stdin` | ❌ No | Đọc password tạo user Clerk từ stdin | `--password-stdin` |
+
+### Update Password Options
+
+| Option | Required | Description | Example |
+|--------|----------|-------------|---------|
+| `--email` | ✅ Yes* | Email admin trên Clerk | `--email=admin@test.com` |
+| `--clerk-uid` | ✅ Yes* | Clerk User ID | `--clerk-uid=user_abc123` |
+| `--password-stdin` | ✅ Yes | Đọc password mới từ stdin | `--password-stdin` |
+
+*Cần một trong hai: `--email` hoặc `--clerk-uid`.
+
+### Update Clerk Password Options
+
+| Option | Required | Description | Example |
+|--------|----------|-------------|---------|
+| `--email` | ✅ Yes* | Email user trên Clerk | `--email=user@test.com` |
+| `--clerk-uid` | ✅ Yes* | Clerk User ID | `--clerk-uid=user_abc123` |
+| `--password-stdin` | ✅ Yes | Đọc password mới từ stdin | `--password-stdin` |
+
+*Cần một trong hai: `--email` hoặc `--clerk-uid`.
 
 **🎉 Smart Feature:**
 - Nếu **không** cung cấp `--clerk-uid`, CLI sẽ **tự động tạo user trên Clerk**
@@ -74,7 +131,17 @@ npm run cli:create-admin -- \
 npm run cli:list-admins
 
 # Xóa admin test khi không cần
-npm run cli:delete-admin -- --email=dev@test.com
+npm run cli:delete-admin -- --clerk-uid=user_xxx_from_list_admins
+
+# Đổi password admin test mà không đưa secret vào argv/history
+read -s NEW_PASSWORD
+printf '%s' "$NEW_PASSWORD" | npm run cli:update-admin-password -- --email=dev@test.com --password-stdin
+unset NEW_PASSWORD
+
+# Đổi password một Clerk user bất kỳ
+read -s NEW_PASSWORD
+printf '%s' "$NEW_PASSWORD" | npm run cli:update-clerk-password -- --email=parent@test.com --password-stdin
+unset NEW_PASSWORD
 ```
 
 ### Staging/Production Environment
@@ -189,8 +256,8 @@ npm run cli:list-admins
 # Kiểm tra danh sách admin hiện có
 npm run cli:list-admins
 
-# Nếu muốn xóa và tạo lại
-npm run cli:delete-admin -- --email=admin@example.com
+# Nếu muốn xóa và tạo lại, lấy Clerk UID từ cli:list-admins trước
+npm run cli:delete-admin -- --clerk-uid=user_xxx_from_list_admins
 npm run cli:create-admin -- --email=admin@example.com --name="New Admin"
 ```
 

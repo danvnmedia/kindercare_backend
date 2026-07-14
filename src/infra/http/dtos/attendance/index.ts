@@ -2,3 +2,8 @@ export * from "./record-attendance.request";
 export * from "./update-attendance.request";
 export * from "./bulk-record-attendance.request";
 export * from "./student-attendance.response";
+export * from "./class-roll-call.response";
+export * from "./save-class-roll-call.request";
+export * from "./save-class-roll-call.response";
+export * from "./attendance-class-options.query";
+export * from "./attendance-class-option.response";

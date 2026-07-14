@@ -111,6 +111,21 @@ export class PrismaStaffRepository implements StaffRepository {
     return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
   }
 
+  async findByUserIdInCampus(
+    campusId: string,
+    userId: string,
+  ): Promise<Staff | null> {
+    const prismaStaff = await this.prisma.staff.findFirst({
+      where: {
+        campusId,
+        userId,
+        isArchived: false,
+      },
+      include: STAFF_INCLUDE_WITH_USER,
+    });
+    return prismaStaff ? PrismaStaffMapper.toDomain(prismaStaff) : null;
+  }
+
   async findAnyByUserIdInCampus(
     userId: string,
     campusId: string,

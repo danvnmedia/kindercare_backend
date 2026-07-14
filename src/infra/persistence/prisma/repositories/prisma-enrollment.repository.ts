@@ -211,6 +211,28 @@ export class PrismaEnrollmentRepository implements EnrollmentRepository {
     return PrismaEnrollmentMapper.toDomainArray(prismaEnrollments);
   }
 
+  async findActiveByClassIdOnDate(
+    classId: string,
+    date: Date,
+  ): Promise<Enrollment[]> {
+    const dateOnly = toUtcDateOnly(date);
+    const prismaEnrollments = await this.prisma.enrollment.findMany({
+      where: {
+        classId,
+        cancelledAt: null,
+        enrollmentDate: { lte: dateOnly },
+        OR: [{ endDate: null }, { endDate: { gte: dateOnly } }],
+        student: { isArchived: false },
+      },
+      include: {
+        class: { include: { schoolYear: true, gradeLevel: true } },
+        student: true,
+      },
+      orderBy: [{ enrollmentDate: "desc" }, { id: "desc" }],
+    });
+    return PrismaEnrollmentMapper.toDomainArray(prismaEnrollments);
+  }
+
   async findAllByStudentId(studentId: string): Promise<Enrollment[]> {
     const prismaEnrollments = await this.prisma.enrollment.findMany({
       where: { studentId },
