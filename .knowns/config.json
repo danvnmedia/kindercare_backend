@@ -10,8 +10,8 @@
       "tasks": false,
       "docs": true,
       "templates": true,
-      "memories": false,
-      "decisions": false
+      "memories": true,
+      "decisions": true
     },
     "statuses": [
       "todo",
