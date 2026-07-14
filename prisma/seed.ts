@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { SYSTEM_PERMISSIONS } from "../src/application/rbac/use-cases/seed-permissions.use-case";
-import { seedCmsDemo } from "./seeds/seed-cms";
 
 const prisma = new PrismaClient();
 
@@ -129,11 +128,6 @@ async function main() {
       "Skipped Super Admin user assignment (SEED_SUPER_ADMIN_CLERK_UID not set).",
     );
   }
-
-  await seedCmsDemo(
-    prisma,
-    campuses.map((campus) => campus.id),
-  );
 
   console.log("Seeding completed.");
 }
