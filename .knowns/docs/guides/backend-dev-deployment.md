@@ -2,7 +2,7 @@
 title: Backend Dev Deployment
 description: Developer deployment and first-run setup guide for the Kindercare backend, including environment variables, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap.
 createdAt: '2026-06-13T16:03:16.017Z'
-updatedAt: '2026-07-14T06:29:35.724Z'
+updatedAt: '2026-07-14T12:54:01.866Z'
 tags:
   - guide
   - deployment
@@ -49,6 +49,8 @@ These details matter when deploying from this checkout:
 ## Environment Variables
 
 Create `.env` from `.env.example`, then fill in all values required by the deployment mode. `.env` is ignored by git and must not be committed.
+
+Prisma CLI loads repository-root `.env` for migrations and the baseline seed. Direct TypeScript database seed and admin npm launchers preload `dotenv/config`; exported or container-injected values take precedence, and an injected `DATABASE_URL` continues to work when no `.env` file exists inside the container. Guardian provisioning and Clerk wipe use Node's native `--env-file=.env` launcher and require the file for host execution.
 
 The application uses a complete `DATABASE_URL` connection string in every execution mode. The app Compose stacks pass that value through unchanged and do not start a PostgreSQL container. This keeps hosted-provider credentials, TLS options, host, port, and database name in one provider-issued value.
 
@@ -338,6 +340,8 @@ Clerk provisioning is a separate opt-in step. Run `seed:dev-data` first, configu
 | `CLERK_SECRET_KEY` | Selects the Clerk development/test tenant. |
 | `SEED_CLERK_GUARDIAN_PASSWORD` | Shared development password for all 15 fixture accounts. It is never persisted or printed. |
 
+The host launcher loads repository-root `.env` with Node's native `--env-file=.env` option. The file is required; already exported values take precedence.
+
 Then run:
 
 ```bash
@@ -352,14 +356,14 @@ After a Clerk tenant wipe, rerunning this command recreates the marked guardian 
 
 The wipe command targets every user in the tenant selected by `CLERK_SECRET_KEY`, including fixture guardians, staff, administrators, and unrelated test users. Use only a disposable Clerk development/test tenant. It permanently refuses `NODE_ENV=production`.
 
-The npm launcher requires a repository-root `.env.local` and loads it with Node's native environment-file support before the CLI starts. At minimum, configure:
+The npm launcher requires a repository-root `.env` and loads it with Node's native environment-file support before the CLI starts. At minimum, configure:
 
 ```env
 NODE_ENV=development
 CLERK_SECRET_KEY=sk_test_...
 ```
 
-Explicitly exported process environment variables take precedence over values in `.env.local`. This ensures an exported `NODE_ENV=production` can never be weakened by the file.
+Explicitly exported process environment variables take precedence over values in `.env`. This ensures an exported `NODE_ENV=production` can never be weakened by the file.
 
 Preview is the default and performs no deletion:
 
@@ -471,6 +475,7 @@ Then confirm:
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | Compose reports `DATABASE_URL is required` | The project `.env` is missing or the variable is empty | Create `.env` and set the complete provider-issued PostgreSQL URL. |
+| Direct seed/admin reports a missing `DATABASE_URL` | Neither repository-root `.env` nor the process/container environment supplies it | Set the complete connection string in `.env`, or inject `DATABASE_URL` into the process/container. |
 | App cannot connect to hosted PostgreSQL inside Compose | The database hostname is unreachable from the container, TLS options are missing, or provider access rules reject the connection | Verify the full `DATABASE_URL`, provider status/access rules, and required `sslmode` options. |
 | App waits for the wrong database port | A non-default port is missing or malformed in `DATABASE_URL` | Include the explicit port; otherwise `entrypoint.sh` defaults PostgreSQL to `5432`. |
 | Redis connection errors inside Compose | `REDIS_HOST` was overridden incorrectly | App Compose stacks set `REDIS_HOST=redis`; avoid overriding it with `localhost` inside the container. |

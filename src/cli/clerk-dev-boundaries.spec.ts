@@ -62,19 +62,19 @@ describe("Clerk development CLI boundaries", () => {
     expect(runtimeSources).toContain("password: input.password");
   });
 
-  it("loads a required .env.local while preserving explicit environment values", () => {
+  it("loads the required .env while preserving explicit environment values", () => {
     const packageJson = JSON.parse(readProjectFile("package.json")) as {
       scripts: Record<string, string>;
     };
     expect(packageJson.scripts["seed:provision-guardian-clerk"]).toBe(
-      "node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register ./src/cli/provision-guardian-clerk.ts",
+      "node --env-file=.env -r ts-node/register -r tsconfig-paths/register ./src/cli/provision-guardian-clerk.ts",
     );
     expect(packageJson.scripts["clerk:wipe-all-users"]).toBe(
-      "node --env-file=.env.local -r ts-node/register -r tsconfig-paths/register ./src/cli/wipe-clerk-users.ts",
+      "node --env-file=.env -r ts-node/register -r tsconfig-paths/register ./src/cli/wipe-clerk-users.ts",
     );
 
     const directory = mkdtempSync(resolve(tmpdir(), "clerk-wipe-env-"));
-    const envFile = resolve(directory, ".env.local");
+    const envFile = resolve(directory, ".env");
     try {
       writeFileSync(envFile, "CLERK_WIPE_ENV_SOURCE=env-file\n", "utf8");
       const output = execFileSync(

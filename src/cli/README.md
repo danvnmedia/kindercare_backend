@@ -2,6 +2,8 @@
 
 Simple CLI tool để quản lý admin accounts cho KinderCare Backend.
 
+Các lệnh npm trong tài liệu này tự tải file `.env` ở thư mục gốc. `DATABASE_URL` phải là connection string PostgreSQL hoàn chỉnh; biến môi trường đã được export hoặc inject vào container luôn được ưu tiên hơn giá trị trong file.
+
 ## 🚀 Quick Start
 
 ### Tạo Admin Account

@@ -2,7 +2,7 @@
 title: Seed And Clerk CLI Reference
 description: Operator reference for database seed helpers, guardian Clerk provisioning, tenant-wide Clerk wipe commands, environment loading, ordering, recovery, and destructive-operation safeguards.
 createdAt: '2026-07-12T16:24:48.991Z'
-updatedAt: '2026-07-12T16:24:48.991Z'
+updatedAt: '2026-07-14T12:53:15.037Z'
 tags:
   - guide
   - cli
@@ -41,6 +41,8 @@ npm run seed:provision-guardian-clerk
 ```
 
 Run Clerk provisioning only after the database fixtures exist.
+
+Use the repository-root `.env` for all host-side commands. Prisma CLI loads `.env` for migrations and the baseline seed. Direct database seed and admin npm launchers preload `dotenv/config`; they keep an already exported or container-injected `DATABASE_URL` unchanged and continue to work when a container supplies the environment without an in-image `.env` file. The guardian provisioning and Clerk wipe launchers use Node's native `--env-file=.env` option and therefore require that file when run on the host.
 
 ## Database Seed Commands
 
@@ -146,11 +148,11 @@ Behavior:
 - stops on the first failure while preserving earlier successes;
 - resumes idempotently on rerun.
 
-The provisioning npm script uses the current process environment. Unlike the wipe launcher, it does not require `.env.local`.
+The provisioning npm launcher requires the repository-root `.env` and loads it with Node's native `--env-file=.env` option. Explicitly exported process variables take precedence over values in the file.
 
 ## Preview Or Wipe The Clerk Tenant
 
-### Required `.env.local`
+### Required `.env`
 
 The wipe npm launcher requires this repository-root file:
 
@@ -159,9 +161,9 @@ NODE_ENV=development
 CLERK_SECRET_KEY=sk_test_...
 ```
 
-`.env.local` is git-ignored. The launcher uses Node's native `--env-file=.env.local` option and fails before starting if the file is missing.
+`.env` is git-ignored. The launcher uses Node's native `--env-file=.env` option and fails before starting if the file is missing.
 
-Explicitly exported process variables take precedence over values in the file. In particular, an exported `NODE_ENV=production` cannot be weakened by `.env.local`.
+Explicitly exported process variables take precedence over values in the file. In particular, an exported `NODE_ENV=production` cannot be weakened by `.env`.
 
 ### Preview
 
@@ -208,10 +210,11 @@ This repairs guardian fixture mappings only. Staff, administrators, and unrelate
 
 | Symptom | Meaning and action |
 | --- | --- |
-| `node: .env.local: not found` | Create the repository-root `.env.local` before running the wipe command. |
+| `node: .env: not found` | Create the repository-root `.env` before running guardian provisioning or the wipe command. |
+| Direct seed/admin reports a missing `DATABASE_URL` | Set the complete PostgreSQL connection string in repository-root `.env`, or inject it into the process/container environment. |
 | Production-disabled error | Expected hard refusal. Use a disposable development/test tenant and a non-production process environment. |
-| Missing `CLERK_SECRET_KEY` | Add it to wipe `.env.local`, or export it for guardian provisioning. |
-| Missing `SEED_CLERK_GUARDIAN_PASSWORD` | Export the guardian seed password before provisioning. |
+| Missing `CLERK_SECRET_KEY` | Add it to `.env`, or export it before launching the command. |
+| Missing `SEED_CLERK_GUARDIAN_PASSWORD` | Add or export the guardian seed password before provisioning. |
 | Guardian fixture missing | Run `npx prisma db seed` and `npm run seed:dev-data` first with the same campus selection. |
 | Unmarked Clerk email conflict | Do not attach automatically. Resolve the unrelated Clerk user or use a clean disposable tenant. |
 | Partial guardian provisioning | Fix the cause and rerun; completed accounts and links are reused. |

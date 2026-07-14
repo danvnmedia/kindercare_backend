@@ -31,6 +31,7 @@
  *   6. Verify expected outcome via psql (see task notes for AC-by-AC checks).
  */
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

@@ -5,6 +5,7 @@
  * Usage: npx ts-node -r tsconfig-paths/register prisma/seeds/verify-enrollment-migration.ts
  */
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

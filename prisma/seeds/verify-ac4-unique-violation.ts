@@ -7,6 +7,7 @@
  * migration was applied — so student ...011 already has one active enrollment.
  */
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();

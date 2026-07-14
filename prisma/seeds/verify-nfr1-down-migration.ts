@@ -6,6 +6,7 @@
  * the migrated state (matching `_prisma_migrations` tracking).
  */
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
