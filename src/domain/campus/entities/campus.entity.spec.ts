@@ -10,6 +10,7 @@ describe("Campus Entity", () => {
       expect(campus.name).toBe("Main Campus");
       expect(campus.address).toBeNull();
       expect(campus.phoneNumber).toBeNull();
+      expect(campus.timeZone).toBe("Asia/Ho_Chi_Minh");
       expect(campus.isArchived).toBe(false);
       expect(campus.id).toBeDefined();
       expect(campus.createdAt).toBeInstanceOf(Date);
@@ -21,12 +22,14 @@ describe("Campus Entity", () => {
         name: "Branch Campus",
         address: "123 Main Street",
         phoneNumber: "+84901234567",
+        timeZone: "America/Toronto",
         isArchived: true,
       });
 
       expect(campus.name).toBe("Branch Campus");
       expect(campus.address).toBe("123 Main Street");
       expect(campus.phoneNumber).toBe("+84901234567");
+      expect(campus.timeZone).toBe("America/Toronto");
       expect(campus.isArchived).toBe(true);
     });
 
@@ -80,6 +83,12 @@ describe("Campus Entity", () => {
         expect(campus.phoneNumber).toBe(phone);
       });
     });
+
+    it("should reject an invalid IANA timezone", () => {
+      expect(() =>
+        Campus.create({ name: "Test", timeZone: "Mars/Olympus" }),
+      ).toThrow("Campus timeZone must be a valid IANA timezone");
+    });
   });
 
   describe("update", () => {
@@ -121,6 +130,18 @@ describe("Campus Entity", () => {
       campus.update({ phoneNumber: null });
 
       expect(campus.phoneNumber).toBeNull();
+    });
+
+    it("should update the IANA timezone", () => {
+      campus.update({ timeZone: "America/Toronto" });
+
+      expect(campus.timeZone).toBe("America/Toronto");
+    });
+
+    it("should reject an invalid timezone update", () => {
+      expect(() => campus.update({ timeZone: "Invalid/Zone" })).toThrow(
+        "Campus timeZone must be a valid IANA timezone",
+      );
     });
 
     it("should update isArchived", () => {

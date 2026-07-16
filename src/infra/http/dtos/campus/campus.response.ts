@@ -34,6 +34,13 @@ export class CampusResponse {
 
   @Expose()
   @ApiProperty({
+    description: "IANA timezone used for campus-local schedules",
+    example: "Asia/Ho_Chi_Minh",
+  })
+  timeZone: string;
+
+  @Expose()
+  @ApiProperty({
     description: "Whether the campus is archived",
     example: false,
   })

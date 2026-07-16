@@ -2,7 +2,7 @@
 title: RBAC System
 description: Permissions, Roles, UserRole assignments with campus scoping, system-role bypass, and StaffType default-role auto-assignment
 createdAt: '2026-05-05T17:46:08.624Z'
-updatedAt: '2026-07-12T05:39:54.026Z'
+updatedAt: '2026-07-15T03:16:23.909Z'
 tags:
   - architecture
   - rbac
@@ -175,23 +175,13 @@ The four guards collaborate in this order. See [@doc/patterns/guards-pattern](pa
 ```
 1. ClerkAuthGuard      → "is the request authenticated?" (clerkId present)
 2. CampusGuard         → "does the campus exist, is it active, and does the user have access?"
-3. PermissionsGuard    → "does the user hold any required permission in this campus?"
+3. PermissionsGuard    → "is the user a global system-role holder, or do they hold any required permission in this campus?"
    (or RolesGuard      → "does the user hold any required role name in this campus?")
 ```
 
-`PermissionsGuard.canActivate(...)`:
+`PermissionsGuard.canActivate(...)` first resolves the authenticated domain user. A globally assigned `isSystemRole` bypasses permission checks through `user.hasSystemRole()`; campus-scoped system roles and globally assigned non-system roles do not bypass. Campus access and campus validity remain the responsibility of the preceding `CampusGuard`.
 
-```typescript
-const user = await this.requestContext.getUser();
-const campusId = this.requestContext.campusId;
-const applicableRoles = user.getRolesForCampus(campusId);
-const userPermissionIds = new Set<string>(
-  applicableRoles.flatMap(r => (r.permissions ?? []).map(p => p.id)),
-);
-return requiredPermissions.some(p => userPermissionIds.has(p));   // OR logic
-```
-
-Permission checking is **OR**: any one matching permission allows the request. For "must have all" scenarios, decompose into multiple endpoints or check inside the use case.
+For ordinary users, the guard resolves `user.getRolesForCampus(campusId)`, collects their permission IDs through the shared application permission helpers, and applies **OR** semantics: any one matching permission allows the request. Route-specific documented implications such as `post.manage` satisfying `post.review` remain additive. Use `AllPermissionsGuard` only for endpoints that explicitly require every listed permission.
 
 ## StaffType → Default Role
 
@@ -361,3 +351,20 @@ Cross-campus authority was re-reviewed and hardened:
 - User.hasSystemRole now reflects its documented global-only bypass semantics.
 
 Cross-campus denial and global-role success regressions pass. Deployment still requires permission seeding and intentional file.manage role assignment.
+
+## Student Health And Medication Lifecycle RBAC Snapshot — 2026-07-14
+
+The Student Health catalog now includes `student_health.delete` exclusively for recoverable archive endpoints. `student_health.update` remains an update permission and is not an alternative archive grant.
+
+The active medication permissions are:
+
+- `medication_request.list` for the staff queue.
+- `medication_request.read` for request and student-history detail.
+- `medication_request.update` for staff review.
+- `medication_administration.read` for daily administration reads.
+- `medication_administration.create` for first outcome recording.
+- `medication_administration.update` for outcome correction.
+
+Guardian medication request creation continues to use authenticated guardian ownership and campus rules, not a staff `medication_request.create` permission. The obsolete `medication_request.create`, `medication_request.delete`, and `medication_administration.list` IDs are removed by migration and are no longer seeded.
+
+`GET /health-center/medication-summary` uses the explicit conjunctive `AllPermissionsGuard` policy: campus-scoped callers need both `medication_request.read` and `medication_administration.read`. A globally assigned system role retains Super Admin access. Existing routes using `PermissionsGuard` retain OR semantics.

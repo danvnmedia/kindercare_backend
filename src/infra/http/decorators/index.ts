@@ -15,3 +15,7 @@ export {
   REQUIRE_CAMPUS_ACCESS_KEY,
   type RequireCampusAccessOptions,
 } from "./require-campus-access.decorator";
+export {
+  RequireAllPermissions,
+  REQUIRED_ALL_PERMISSIONS_KEY,
+} from "./require-all-permissions.decorator";

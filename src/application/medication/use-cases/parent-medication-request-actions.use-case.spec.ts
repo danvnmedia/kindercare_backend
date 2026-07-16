@@ -10,7 +10,9 @@ import { CancelMedicationRequestUseCase } from "@/application/medication/use-cas
 import { GetMyMedicationRequestByIdUseCase } from "@/application/medication/use-cases/get-my-medication-request-by-id.use-case";
 import { GetMyMedicationRequestsUseCase } from "@/application/medication/use-cases/get-my-medication-requests.use-case";
 import { RespondMedicationRequestUseCase } from "@/application/medication/use-cases/respond-medication-request.use-case";
+import { MedicationRequestCommandGuard } from "@/application/medication/use-cases/medication-request-command.guard";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 import {
   MedicationRequest,
   MedicationRequestStatus,
@@ -20,6 +22,8 @@ import {
 } from "@/domain/medication";
 import {
   createGuardian,
+  createCampus,
+  createMockCampusRepository,
   createMockGuardianRepository,
   createStudent,
   createUser,
@@ -74,6 +78,8 @@ describe("parent medication request use cases", () => {
   let medicationRequestRepository: jest.Mocked<MedicationRequestRepository>;
   let guardianRepository: ReturnType<typeof createMockGuardianRepository>;
   let transactionRunner: jest.Mocked<TransactionRunnerPort>;
+  let campusRepository: jest.Mocked<CampusRepository>;
+  let commandGuard: MedicationRequestCommandGuard;
 
   beforeEach(() => {
     medicationRequestRepository = {
@@ -92,6 +98,7 @@ describe("parent medication request use cases", () => {
       updateInCampusIfStatusIn: jest.fn(),
       createOccurrences: jest.fn(),
       addTimelineEntry: jest.fn(async (entry) => entry),
+      transitionToTerminalIfStatusIn: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<MedicationRequestRepository>;
 
     guardianRepository = createMockGuardianRepository();
@@ -109,6 +116,17 @@ describe("parent medication request use cases", () => {
     transactionRunner = {
       run: jest.fn(async (callback) => callback({} as never)),
     } as unknown as jest.Mocked<TransactionRunnerPort>;
+    campusRepository = createMockCampusRepository();
+    campusRepository.findById.mockResolvedValue(
+      createCampus({
+        id: DEFAULT_CAMPUS_ID_A,
+        timeZone: "America/Toronto",
+      }),
+    );
+    commandGuard = new MedicationRequestCommandGuard(
+      medicationRequestRepository,
+      campusRepository,
+    );
   });
 
   it("lists current guardian medication history with authorized filters", async () => {
@@ -191,6 +209,9 @@ describe("parent medication request use cases", () => {
       guardian.id.toString(),
       request.id,
     );
+    expect(
+      medicationRequestRepository.transitionToTerminalIfStatusIn,
+    ).not.toHaveBeenCalled();
   });
 
   it("returns not found for non-owned medication request detail", async () => {
@@ -220,6 +241,7 @@ describe("parent medication request use cases", () => {
       medicationRequestRepository,
       guardianRepository,
       transactionRunner,
+      commandGuard,
     );
 
     const result = await useCase.execute(
@@ -262,6 +284,7 @@ describe("parent medication request use cases", () => {
       medicationRequestRepository,
       guardianRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(
@@ -285,6 +308,7 @@ describe("parent medication request use cases", () => {
       medicationRequestRepository,
       guardianRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(
@@ -293,6 +317,59 @@ describe("parent medication request use cases", () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(medicationRequestRepository.addTimelineEntry).not.toHaveBeenCalled();
+  });
+
+  it("expires a late cancellation before returning conflict", async () => {
+    const request = createMedicationRequest();
+    const now = new Date("2099-07-06T04:00:00.000Z");
+    medicationRequestRepository.findByIdForRequesterGuardian.mockResolvedValue(
+      request,
+    );
+    const useCase = new CancelMedicationRequestUseCase(
+      medicationRequestRepository,
+      guardianRepository,
+      transactionRunner,
+      commandGuard,
+    );
+
+    await expect(
+      useCase.execute(DEFAULT_CAMPUS_ID_A, user, request.id, {}, now),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(
+      medicationRequestRepository.transitionToTerminalIfStatusIn,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: request.id,
+        sourceStatuses: [MedicationRequestStatus.SUBMITTED],
+        targetStatus: MedicationRequestStatus.EXPIRED,
+        effectiveAt: new Date("2099-07-06T04:00:00.000Z"),
+        updatedAt: now,
+      }),
+      expect.any(Object),
+    );
+    expect(
+      medicationRequestRepository.updateForRequesterGuardianIfStatusIn,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("returns conflict for a persisted terminal parent request", async () => {
+    const request = createMedicationRequest(MedicationRequestStatus.COMPLETED);
+    medicationRequestRepository.findByIdForRequesterGuardian.mockResolvedValue(
+      request,
+    );
+    const useCase = new CancelMedicationRequestUseCase(
+      medicationRequestRepository,
+      guardianRepository,
+      transactionRunner,
+      commandGuard,
+    );
+
+    await expect(
+      useCase.execute(DEFAULT_CAMPUS_ID_A, user, request.id),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(
+      medicationRequestRepository.updateForRequesterGuardianIfStatusIn,
+    ).not.toHaveBeenCalled();
   });
 
   it("accepts parent responses only for needs-more-info requests", async () => {
@@ -306,6 +383,7 @@ describe("parent medication request use cases", () => {
       medicationRequestRepository,
       guardianRepository,
       transactionRunner,
+      commandGuard,
     );
 
     const result = await useCase.execute(
@@ -344,6 +422,7 @@ describe("parent medication request use cases", () => {
       medicationRequestRepository,
       guardianRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(
@@ -371,6 +450,7 @@ describe("parent medication request use cases", () => {
       medicationRequestRepository,
       guardianRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(
@@ -379,5 +459,44 @@ describe("parent medication request use cases", () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(medicationRequestRepository.addTimelineEntry).not.toHaveBeenCalled();
+  });
+
+  it("expires a late needs-more-info response before returning conflict", async () => {
+    const request = createMedicationRequest(
+      MedicationRequestStatus.NEEDS_MORE_INFO,
+    );
+    const now = new Date("2099-07-06T04:00:00.000Z");
+    medicationRequestRepository.findByIdForRequesterGuardian.mockResolvedValue(
+      request,
+    );
+    const useCase = new RespondMedicationRequestUseCase(
+      medicationRequestRepository,
+      guardianRepository,
+      transactionRunner,
+      commandGuard,
+    );
+
+    await expect(
+      useCase.execute(
+        DEFAULT_CAMPUS_ID_A,
+        user,
+        request.id,
+        { message: "Doctor confirmed dosage." },
+        now,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(
+      medicationRequestRepository.transitionToTerminalIfStatusIn,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceStatuses: [MedicationRequestStatus.NEEDS_MORE_INFO],
+        effectiveAt: new Date("2099-07-06T04:00:00.000Z"),
+        updatedAt: now,
+      }),
+      expect.any(Object),
+    );
+    expect(
+      medicationRequestRepository.updateForRequesterGuardianIfStatusIn,
+    ).not.toHaveBeenCalled();
   });
 });

@@ -10,6 +10,7 @@ import {
   GetMyMedicationRequestByIdUseCase,
   GetMyMedicationRequestsUseCase,
   RecordMedicationAdministrationUseCase,
+  MedicationRequestCommandGuard,
   RespondMedicationRequestUseCase,
   ReviewMedicationRequestUseCase,
 } from "@/application/medication";
@@ -26,6 +27,7 @@ import { MedicationAdministrationController } from "../controllers/medication-ad
 import { MedicationRequestController } from "../controllers/medication-request.controller";
 import { ParentMedicationRequestController } from "../controllers/parent-medication-request.controller";
 import { RequestContextModule } from "../context/request-context.module";
+import { AllPermissionsGuard } from "../guards/all-permissions.guard";
 import { CampusGuard } from "../guards/campus.guard";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { HydrateCurrentUserGuard } from "../guards/hydrate-current-user.guard";
@@ -55,11 +57,13 @@ import { CampusModule } from "./campus.module";
     GetMyMedicationRequestByIdUseCase,
     GetMyMedicationRequestsUseCase,
     RecordMedicationAdministrationUseCase,
+    MedicationRequestCommandGuard,
     RespondMedicationRequestUseCase,
     ReviewMedicationRequestUseCase,
     ClerkAuthGuard,
     CampusGuard,
     HydrateCurrentUserGuard,
+    AllPermissionsGuard,
     PermissionsGuard,
     {
       provide: "MEDICATION_REQUEST_REPOSITORY",

@@ -10,6 +10,7 @@ import {
   formatDateOnly,
 } from "@/domain/student-health";
 
+import { MedicationAdministrationQueueItemResponse } from "../medication/medication-administration.response";
 import { StudentHealthEventUserResponse } from "./student-health-event.response";
 import { StudentHealthInstructionUserResponse } from "./student-health-instruction.response";
 
@@ -226,6 +227,52 @@ export class HealthCenterDailyItemsCountsResponse {
   @Expose()
   @ApiProperty({ example: 15 })
   total: number;
+
+  @Expose()
+  @ApiProperty({ example: 8 })
+  medicationAdministrations: number;
+
+  @Expose()
+  @ApiProperty({ example: 6 })
+  dueMedicationAdministrations: number;
+
+  @Expose()
+  @ApiProperty({ example: 2 })
+  overdueMedicationAdministrations: number;
+
+  @Expose()
+  @ApiProperty({ example: 3 })
+  requestsNeedingReview: number;
+
+  @Expose()
+  @ApiProperty({ example: 23 })
+  visibleTotal: number;
+
+  @Expose()
+  @ApiProperty({ example: 11 })
+  actionRequired: number;
+}
+
+export class HealthCenterDailyItemsAccessResponse {
+  @Expose()
+  @ApiProperty({ example: true })
+  healthItems: boolean;
+
+  @Expose()
+  @ApiProperty({ example: true })
+  medicationAdministrations: boolean;
+
+  @Expose()
+  @ApiProperty({ example: true })
+  medicationRequests: boolean;
+
+  @Expose()
+  @ApiProperty({ example: true })
+  canRecordMedication: boolean;
+
+  @Expose()
+  @ApiProperty({ example: true })
+  canReviewMedicationRequests: boolean;
 }
 
 export class HealthCenterPaginationGroupResponse {
@@ -256,6 +303,11 @@ export class HealthCenterDailyItemsPaginationResponse {
   @Type(() => HealthCenterPaginationGroupResponse)
   @ApiProperty({ type: HealthCenterPaginationGroupResponse })
   events: HealthCenterPaginationGroupResponse;
+
+  @Expose()
+  @Type(() => HealthCenterPaginationGroupResponse)
+  @ApiProperty({ type: HealthCenterPaginationGroupResponse })
+  medicationAdministrations: HealthCenterPaginationGroupResponse;
 }
 
 export class HealthCenterDailyItemsResponseDto {
@@ -273,6 +325,15 @@ export class HealthCenterDailyItemsResponseDto {
     nullable: true,
   })
   classId: string | null;
+
+  @Expose()
+  @ApiProperty({ example: "2026-07-01T15:30:00.000Z" })
+  generatedAt: string;
+
+  @Expose()
+  @Type(() => HealthCenterDailyItemsAccessResponse)
+  @ApiProperty({ type: HealthCenterDailyItemsAccessResponse })
+  access: HealthCenterDailyItemsAccessResponse;
 
   @Expose()
   @Type(() => HealthCenterDailyItemsCountsResponse)
@@ -293,6 +354,11 @@ export class HealthCenterDailyItemsResponseDto {
   @Type(() => HealthCenterEventItemResponse)
   @ApiProperty({ type: [HealthCenterEventItemResponse] })
   events: HealthCenterEventItemResponse[];
+
+  @Expose()
+  @Type(() => MedicationAdministrationQueueItemResponse)
+  @ApiProperty({ type: [MedicationAdministrationQueueItemResponse] })
+  medicationAdministrations: MedicationAdministrationQueueItemResponse[];
 }
 
 function formatHealthCenterDateOnly(value: unknown): string | null {

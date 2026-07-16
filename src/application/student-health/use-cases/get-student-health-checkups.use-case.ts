@@ -1,17 +1,19 @@
 import { Inject, Injectable } from "@nestjs/common";
 
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
-import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { StudentHealthCheckup } from "@/domain/student-health";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 
-import { StudentHealthCheckupRepository } from "../ports";
+import {
+  StudentHealthCheckupListParams,
+  StudentHealthCheckupRepository,
+} from "../ports";
 import { getStudentInCampusOrThrow } from "./student-health-student-scope";
 
 export interface GetStudentHealthCheckupsInput {
   campusId: string;
   studentId: string;
-  params: StandardRequest;
+  params: StudentHealthCheckupListParams;
 }
 
 @Injectable()

@@ -1,11 +1,13 @@
 import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
+import { assertValidIanaTimeZone } from "@/core/time/campus-time-zone";
 import { Optional } from "@/core/types/optional";
 
 export interface CampusProps {
   name: string;
   address: string | null;
   phoneNumber: string | null;
+  timeZone: string;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +30,10 @@ export class Campus extends Entity<CampusProps> {
 
   get phoneNumber(): string | null {
     return this.props.phoneNumber;
+  }
+
+  get timeZone(): string {
+    return this.props.timeZone;
   }
 
   get isArchived(): boolean {
@@ -59,6 +65,11 @@ export class Campus extends Entity<CampusProps> {
         this.validatePhoneNumber(data.phoneNumber);
       }
       this.props.phoneNumber = data.phoneNumber;
+    }
+
+    if (data.timeZone !== undefined) {
+      this.validateTimeZone(data.timeZone);
+      this.props.timeZone = data.timeZone;
     }
 
     if (data.isArchived !== undefined) {
@@ -109,12 +120,21 @@ export class Campus extends Entity<CampusProps> {
     }
   }
 
+  private validateTimeZone(timeZone: string): void {
+    assertValidIanaTimeZone(timeZone);
+  }
+
   // --- Factory Method ---
 
   public static create(
     props: Optional<
       CampusProps,
-      "createdAt" | "updatedAt" | "isArchived" | "address" | "phoneNumber"
+      | "createdAt"
+      | "updatedAt"
+      | "isArchived"
+      | "address"
+      | "phoneNumber"
+      | "timeZone"
     >,
     id?: string,
   ): Campus {
@@ -136,11 +156,15 @@ export class Campus extends Entity<CampusProps> {
       }
     }
 
+    const timeZone = props.timeZone ?? "Asia/Ho_Chi_Minh";
+    assertValidIanaTimeZone(timeZone);
+
     const campusProps: CampusProps = {
       ...props,
       name: props.name.trim(),
       address: props.address?.trim() || null,
       phoneNumber: props.phoneNumber || null,
+      timeZone,
       isArchived: props.isArchived ?? false,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),

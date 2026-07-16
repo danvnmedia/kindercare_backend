@@ -5,6 +5,10 @@ import {
   StudentHealthInstructionStatus,
   StudentHealthInstructionType,
 } from "../enums";
+import {
+  createStudentHealthArchiveTransition,
+  normalizeStudentHealthArchiveState,
+} from "./student-health-archive";
 
 export interface StudentHealthInstructionUserSnapshot {
   id: string;
@@ -28,6 +32,8 @@ export interface StudentHealthInstructionProps {
   createdBy: StudentHealthInstructionUserSnapshot | null;
   lastUpdatedByUserId: string | null;
   lastUpdatedBy: StudentHealthInstructionUserSnapshot | null;
+  archivedAt: Date | null;
+  archivedByUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,6 +55,8 @@ export interface CreateStudentHealthInstructionData {
   createdBy?: StudentHealthInstructionUserSnapshot | null;
   lastUpdatedByUserId?: string | null;
   lastUpdatedBy?: StudentHealthInstructionUserSnapshot | null;
+  archivedAt?: Date | null;
+  archivedByUserId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -149,6 +157,18 @@ export class StudentHealthInstruction extends Entity<StudentHealthInstructionPro
     return this.props.lastUpdatedBy ? { ...this.props.lastUpdatedBy } : null;
   }
 
+  get archivedAt(): Date | null {
+    return this.props.archivedAt;
+  }
+
+  get archivedByUserId(): string | null {
+    return this.props.archivedByUserId;
+  }
+
+  get isArchived(): boolean {
+    return this.props.archivedAt !== null;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -218,6 +238,21 @@ export class StudentHealthInstruction extends Entity<StudentHealthInstructionPro
     this.touch();
   }
 
+  archive(actorUserId: string, archivedAt = new Date()): boolean {
+    if (this.isArchived) {
+      return false;
+    }
+
+    const archiveState = createStudentHealthArchiveTransition(
+      actorUserId,
+      archivedAt,
+    );
+    this.props.archivedAt = archiveState.archivedAt;
+    this.props.archivedByUserId = archiveState.archivedByUserId;
+    this.touch(archiveState.archivedAt);
+    return true;
+  }
+
   static create(
     props: CreateStudentHealthInstructionData,
     id?: string,
@@ -231,6 +266,8 @@ export class StudentHealthInstruction extends Entity<StudentHealthInstructionPro
           key !== "createdBy" &&
           key !== "lastUpdatedByUserId" &&
           key !== "lastUpdatedBy" &&
+          key !== "archivedAt" &&
+          key !== "archivedByUserId" &&
           key !== "createdAt" &&
           key !== "updatedAt",
       ),
@@ -252,6 +289,10 @@ export class StudentHealthInstruction extends Entity<StudentHealthInstructionPro
     const endDate = normalizeOptionalDateOnly(props.endDate, "End date");
     assertDateRange(startDate, endDate);
 
+    const archiveState = normalizeStudentHealthArchiveState(
+      props.archivedAt,
+      props.archivedByUserId,
+    );
     const normalizedProps: StudentHealthInstructionProps = {
       campusId: props.campusId,
       studentId: props.studentId,
@@ -275,6 +316,7 @@ export class StudentHealthInstruction extends Entity<StudentHealthInstructionPro
       createdBy: props.createdBy ?? null,
       lastUpdatedByUserId: props.lastUpdatedByUserId ?? null,
       lastUpdatedBy: props.lastUpdatedBy ?? null,
+      ...archiveState,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };
@@ -285,8 +327,8 @@ export class StudentHealthInstruction extends Entity<StudentHealthInstructionPro
     );
   }
 
-  private touch(): void {
-    this.props.updatedAt = new Date();
+  private touch(at = new Date()): void {
+    this.props.updatedAt = at;
   }
 }
 

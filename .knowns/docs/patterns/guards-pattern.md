@@ -1,8 +1,8 @@
 ---
 title: Guards Pattern
 description: Authentication and authorization guards (Clerk, Campus, Roles, Permissions) and their interaction with RequestContext
-createdAt: "2026-01-03T19:52:36.724Z"
-updatedAt: "2026-06-29T00:38:04.898Z"
+createdAt: '2026-01-03T19:52:36.724Z'
+updatedAt: '2026-07-15T03:16:23.931Z'
 tags:
   - patterns
   - guards
@@ -86,7 +86,10 @@ Reads `@Roles('Admin', 'Teacher')` metadata and checks the **role names** agains
 
 Reads `@Permissions('student.create', 'student.update')` and checks the **permission IDs** against the union of permissions from all roles applicable to the user in the current campus.
 
-- Uses **OR** logic: any one of the listed permissions is enough.
+- A globally assigned system role bypasses permission checks through `user.hasSystemRole()`.
+- A campus-scoped system role does not bypass, and neither does a globally assigned non-system role.
+- `CampusGuard` still runs first and owns campus existence, active-state, and campus-access enforcement.
+- Ordinary permission evaluation uses **OR** logic: any one of the listed permissions is enough.
 - "Applicable roles" comes from `user.getRolesForCampus(campusId)` — that includes both globally assigned roles (`UserRole.campusId = null`) and campus-specific roles.
 - Permission IDs follow the `module.action` convention (`student.read`, `post.delete`). See [@doc/architecture/multi-campus-architecture](architecture/multi-campus-architecture) for the catalogue.
 
@@ -177,3 +180,11 @@ The use case must resolve the guardian profile from trusted server-side context,
 Parent relationship access must never grant admin/staff capabilities. Admin and staff routes continue to use normal `@RequireCampusAccess()`, `PermissionsGuard`, and explicit permission metadata. A mixed staff+guardian user should receive admin access only through RBAC routes and parent access only through guardian relationship checks.
 
 Campus discovery is the exception because there is no selected campus yet. `GET /guardians/me/campuses` uses `HydrateCurrentUserGuard` and resolves non-archived campuses from active guardian profiles for `currentUser.id`; it does not accept `userId`, `guardianId`, or `campusId` input.
+
+## AllPermissionsGuard
+
+`src/infra/http/guards/all-permissions.guard.ts`
+
+Reads `@RequireAllPermissions(...ids)` and requires every listed permission from the union of roles applicable to the selected campus. It is intentionally separate from `PermissionsGuard`, whose OR behavior remains the default contract.
+
+The guard uses `RequestContext` and the shared application permission helpers, so campus-scoped and global role resolution match the existing RBAC path. A globally assigned `isSystemRole = true` role retains Super Admin access. Register the guard in the feature module and place it after `@RequireCampusAccess()`.

@@ -45,6 +45,8 @@ describe("MedicationRequest", () => {
     });
 
     expect(request.status).toBe(MedicationRequestStatus.SUBMITTED);
+    expect(request.completedAt).toBeNull();
+    expect(request.expiredAt).toBeNull();
     expect(request.startDate.toISOString()).toBe("2026-07-01T00:00:00.000Z");
     expect(request.endDate.toISOString()).toBe("2026-07-05T00:00:00.000Z");
     expect(request.items).toHaveLength(1);
@@ -55,6 +57,33 @@ describe("MedicationRequest", () => {
       timesOfDay: ["08:30", "16:00"],
     });
   });
+
+  it.each([
+    [
+      MedicationRequestStatus.COMPLETED,
+      new Date("2026-07-05T05:30:00.000Z"),
+      null,
+    ],
+    [
+      MedicationRequestStatus.EXPIRED,
+      null,
+      new Date("2026-07-06T04:00:00.000Z"),
+    ],
+  ])(
+    "preserves persisted %s timestamps without deriving status",
+    (status, completedAt, expiredAt) => {
+      const request = MedicationRequest.create({
+        ...baseRequest,
+        status,
+        completedAt,
+        expiredAt,
+      });
+
+      expect(request.status).toBe(status);
+      expect(request.completedAt).toBe(completedAt);
+      expect(request.expiredAt).toBe(expiredAt);
+    },
+  );
 
   it("rejects invalid request payload shape", () => {
     expect(() =>
@@ -177,6 +206,36 @@ describe("MedicationRequest", () => {
         baseRequest.requesterUserId,
       ),
     ).toThrow("Only submitted medication requests can be reviewed");
+  });
+
+  it("applies terminal transitions with distinct effective and write instants", () => {
+    const effectiveAt = new Date("2026-07-05T12:30:00.000Z");
+    const transitionedAt = new Date("2026-07-05T12:35:00.000Z");
+    const approved = MedicationRequest.create({
+      ...baseRequest,
+      status: MedicationRequestStatus.APPROVED,
+    });
+    const submitted = MedicationRequest.create(baseRequest);
+
+    approved.completeAt(effectiveAt, transitionedAt);
+    submitted.expireAt(effectiveAt, transitionedAt);
+
+    expect(approved).toMatchObject({
+      status: MedicationRequestStatus.COMPLETED,
+      completedAt: effectiveAt,
+      updatedAt: transitionedAt,
+    });
+    expect(submitted).toMatchObject({
+      status: MedicationRequestStatus.EXPIRED,
+      expiredAt: effectiveAt,
+      updatedAt: transitionedAt,
+    });
+    expect(() => approved.completeAt(effectiveAt)).toThrow(
+      "Only approved medication requests can be completed",
+    );
+    expect(() => submitted.expireAt(effectiveAt)).toThrow(
+      "Only submitted or needs-more-info medication requests can expire",
+    );
   });
 });
 

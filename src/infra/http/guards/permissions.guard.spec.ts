@@ -93,6 +93,52 @@ describe("PermissionsGuard", () => {
     expect(requestContext.getUser).toHaveBeenCalledTimes(1);
   });
 
+  it("allows a globally assigned system role without catalog permissions", async () => {
+    reflector.getAllAndOverride.mockReturnValue(["student_health.read"]);
+    const systemRole = createRole({
+      isSystemRole: true,
+      permissions: [],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(systemRole, null)],
+    });
+    const guard = new PermissionsGuard(reflector, mockRequestContext(user));
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(true);
+  });
+
+  it("does not bypass permissions for a campus-scoped system role", async () => {
+    reflector.getAllAndOverride.mockReturnValue(["student_health.read"]);
+    const systemRole = createRole({
+      isSystemRole: true,
+      permissions: [],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(systemRole, DEFAULT_CAMPUS_ID_A)],
+    });
+    const guard = new PermissionsGuard(reflector, mockRequestContext(user));
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(
+      false,
+    );
+  });
+
+  it("does not bypass permissions for a globally assigned non-system role", async () => {
+    reflector.getAllAndOverride.mockReturnValue(["student_health.read"]);
+    const regularRole = createRole({
+      isSystemRole: false,
+      permissions: [],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(regularRole, null)],
+    });
+    const guard = new PermissionsGuard(reflector, mockRequestContext(user));
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(
+      false,
+    );
+  });
+
   it("denies staff without medication request read or list permission before handler data can be returned", async () => {
     reflector.getAllAndOverride.mockReturnValue([
       "medication_request.read",
@@ -115,6 +161,24 @@ describe("PermissionsGuard", () => {
     );
 
     expect(requestContext.getUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("denies health archival to staff with update but without delete permission", async () => {
+    reflector.getAllAndOverride.mockReturnValue(["student_health.delete"]);
+    const role = createRole({
+      permissions: [permission("student_health.update")],
+    });
+    const user = createUser({
+      roleAssignments: [createRoleAssignment(role, DEFAULT_CAMPUS_ID_A)],
+    });
+    const guard = new PermissionsGuard(
+      reflector,
+      mockRequestContext(user, DEFAULT_CAMPUS_ID_A),
+    );
+
+    await expect(guard.canActivate(mockExecutionContext())).resolves.toBe(
+      false,
+    );
   });
 
   it("allows post.manage as an implied CMS review permission", async () => {

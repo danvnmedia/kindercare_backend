@@ -1,5 +1,6 @@
 import { instanceToPlain, plainToInstance } from "class-transformer";
 
+import { MedicationAdministrationStatus } from "@/domain/medication";
 import {
   StudentHealthConditionCategory,
   StudentHealthEventStatus,
@@ -18,10 +19,34 @@ describe("HealthCenterDailyItemsResponseDto", () => {
         campusId: "11111111-1111-4111-a111-111111111111",
         date: "2026-07-01",
         classId: null,
-        counts: { instructions: 1, events: 1, total: 2 },
+        generatedAt: "2026-07-01T15:30:00.000Z",
+        access: {
+          healthItems: true,
+          medicationAdministrations: true,
+          medicationRequests: true,
+          canRecordMedication: true,
+          canReviewMedicationRequests: true,
+        },
+        counts: {
+          instructions: 1,
+          events: 1,
+          total: 2,
+          medicationAdministrations: 1,
+          dueMedicationAdministrations: 1,
+          overdueMedicationAdministrations: 0,
+          requestsNeedingReview: 2,
+          visibleTotal: 3,
+          actionRequired: 3,
+        },
         pagination: {
           instructions: { offset: 0, limit: 50, total: 1, hasMore: false },
           events: { offset: 0, limit: 50, total: 1, hasMore: false },
+          medicationAdministrations: {
+            offset: 0,
+            limit: 50,
+            total: 1,
+            hasMore: false,
+          },
         },
         instructions: [
           {
@@ -80,6 +105,39 @@ describe("HealthCenterDailyItemsResponseDto", () => {
             latestOutcome: "GIVEN",
           },
         ],
+        medicationAdministrations: [
+          {
+            occurrenceId: "55555555-5555-4555-a555-555555555555",
+            requestId: "66666666-6666-4666-a666-666666666666",
+            medicationItemId: "77777777-7777-4777-a777-777777777777",
+            student: {
+              id: "33333333-3333-4333-a333-333333333333",
+              fullName: "Alice Student",
+              studentCode: null,
+            },
+            class: null,
+            medicationName: "Antibiotic syrup",
+            dosage: null,
+            instructions: "Give after lunch with water.",
+            dueDate: "2026-07-01T00:00:00.000Z",
+            dueTime: "12:30",
+            status: MedicationAdministrationStatus.DUE,
+            isOverdue: false,
+            parentNotes: null,
+            latestLog: null,
+            latestOutcome: null,
+            latestLogId: null,
+            latestRecordedAt: null,
+            latestRecordedByUserId: null,
+            latestNote: null,
+            createdAt: "2026-07-01T05:30:00.000Z",
+            updatedAt: "2026-07-01T05:30:00.000Z",
+            guardian: {
+              id: "must-not-leak",
+              fullName: "Guardian",
+            },
+          },
+        ],
         hiddenField: "must not leak",
       },
       {
@@ -92,15 +150,46 @@ describe("HealthCenterDailyItemsResponseDto", () => {
     const plain = instanceToPlain(response);
 
     expect(plain).toMatchObject({
-      counts: { instructions: 1, events: 1, total: 2 },
+      generatedAt: "2026-07-01T15:30:00.000Z",
+      access: {
+        healthItems: true,
+        medicationAdministrations: true,
+        medicationRequests: true,
+        canRecordMedication: true,
+        canReviewMedicationRequests: true,
+      },
+      counts: {
+        instructions: 1,
+        events: 1,
+        total: 2,
+        medicationAdministrations: 1,
+        requestsNeedingReview: 2,
+        visibleTotal: 3,
+        actionRequired: 3,
+      },
       instructions: [{ startDate: "2026-07-01", endDate: "2026-07-05" }],
       events: [{ status: StudentHealthEventStatus.OPEN }],
+      medicationAdministrations: [
+        {
+          student: {
+            id: "33333333-3333-4333-a333-333333333333",
+            fullName: "Alice Student",
+            studentCode: null,
+          },
+          class: null,
+          dosage: null,
+          dueDate: "2026-07-01",
+          latestLog: null,
+          latestOutcome: null,
+        },
+      ],
     });
     expect(plain.instructions[0]).not.toHaveProperty("occurrenceId");
     expect(plain.instructions[0]).not.toHaveProperty("medicationItemId");
     expect(plain.instructions[0]).not.toHaveProperty("latestOutcome");
     expect(plain.events[0]).not.toHaveProperty("occurrenceId");
     expect(plain.events[0]).not.toHaveProperty("latestOutcome");
+    expect(plain.medicationAdministrations[0]).not.toHaveProperty("guardian");
     expect(plain).not.toHaveProperty("hiddenField");
   });
 });

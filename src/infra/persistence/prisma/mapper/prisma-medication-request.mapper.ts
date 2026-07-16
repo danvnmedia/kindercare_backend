@@ -100,6 +100,15 @@ export class PrismaMedicationRequestMapper {
     },
   } satisfies Prisma.MedicationRequestInclude;
 
+  static lifecycleInclude = {
+    items: {
+      orderBy: { createdAt: "asc" },
+    },
+    occurrences: {
+      orderBy: [{ dueDate: "asc" }, { dueMinute: "asc" }],
+    },
+  } satisfies Prisma.MedicationRequestInclude;
+
   static toDomain(
     row: PrismaMedicationRequestWithRelations,
   ): MedicationRequest {
@@ -119,6 +128,8 @@ export class PrismaMedicationRequestMapper {
         reviewNote: row.reviewNote,
         cancelledAt: row.cancelledAt,
         cancelReason: row.cancelReason,
+        completedAt: row.completedAt,
+        expiredAt: row.expiredAt,
         items: (row.items ?? []).map((item) => ({
           id: item.id,
           medicationName: item.medicationName,
@@ -193,6 +204,8 @@ export class PrismaMedicationRequestMapper {
       reviewNote: request.reviewNote,
       cancelledAt: request.cancelledAt,
       cancelReason: request.cancelReason,
+      completedAt: request.completedAt,
+      expiredAt: request.expiredAt,
       createdAt: request.createdAt,
       updatedAt: request.updatedAt,
       items: {
@@ -225,6 +238,8 @@ export class PrismaMedicationRequestMapper {
       reviewNote: request.reviewNote,
       cancelledAt: request.cancelledAt,
       cancelReason: request.cancelReason,
+      completedAt: request.completedAt,
+      expiredAt: request.expiredAt,
       updatedAt: request.updatedAt,
     };
   }
@@ -243,6 +258,8 @@ export class PrismaMedicationRequestMapper {
       reviewNote: request.reviewNote,
       cancelledAt: request.cancelledAt,
       cancelReason: request.cancelReason,
+      completedAt: request.completedAt,
+      expiredAt: request.expiredAt,
       updatedAt: request.updatedAt,
     };
   }

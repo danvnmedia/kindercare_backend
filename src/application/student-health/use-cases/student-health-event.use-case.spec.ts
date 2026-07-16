@@ -1,7 +1,11 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { AuditEventRecorderPort } from "@/application/audit";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
@@ -59,6 +63,8 @@ function makeEvent(
     status: StudentHealthEventStatus;
     title: string;
     resolutionNotes: string | null;
+    archivedAt: Date | null;
+    archivedByUserId: string | null;
   }> = {},
 ) {
   return StudentHealthEvent.create(
@@ -79,6 +85,8 @@ function makeEvent(
         : null,
       recordedByUserId: ACTOR_ID,
       recordedBy: { id: ACTOR_ID, fullName: "School Nurse" },
+      archivedAt: overrides.archivedAt,
+      archivedByUserId: overrides.archivedByUserId,
     },
     EVENT_ID,
   );
@@ -95,7 +103,8 @@ describe("Student health event use cases", () => {
       findByStudentInCampus: jest.fn(),
       findByIdForStudentInCampus: jest.fn(),
       create: jest.fn(async (event) => event),
-      update: jest.fn(async (event) => event),
+      archiveIfActive: jest.fn(async (event) => event),
+      updateIfActive: jest.fn(async (event) => event),
     } as unknown as jest.Mocked<StudentHealthEventRepository>;
     studentRepository = {
       findById: jest.fn(),
@@ -155,7 +164,11 @@ describe("Student health event use cases", () => {
   });
 
   it("reads archived-student events without blocking access", async () => {
-    const event = makeEvent({ status: StudentHealthEventStatus.ARCHIVED });
+    const event = makeEvent({
+      status: StudentHealthEventStatus.RESOLVED,
+      archivedAt: new Date("2026-07-01T10:00:00.000Z"),
+      archivedByUserId: ACTOR_ID,
+    });
     studentRepository.findById.mockResolvedValue(
       makeStudent({ isArchived: true }),
     );
@@ -352,11 +365,11 @@ describe("Student health event use cases", () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(eventRepository.findByIdForStudentInCampus).not.toHaveBeenCalled();
-    expect(eventRepository.update).not.toHaveBeenCalled();
+    expect(eventRepository.updateIfActive).not.toHaveBeenCalled();
     expect(auditRecorder.record).not.toHaveBeenCalled();
   });
 
-  it("updates status to ARCHIVED as a readable non-delete state and audits diffs", async () => {
+  it("updates clinical status to RESOLVED and audits diffs", async () => {
     const event = makeEvent();
     studentRepository.findById.mockResolvedValue(makeStudent());
     eventRepository.findByIdForStudentInCampus.mockResolvedValue(event);
@@ -373,15 +386,15 @@ describe("Student health event use cases", () => {
       STUDENT_ID,
       EVENT_ID,
       {
-        status: StudentHealthEventStatus.ARCHIVED,
-        resolutionNotes: "  Archived after review.  ",
+        status: StudentHealthEventStatus.RESOLVED,
+        resolutionNotes: "  Resolved after review.  ",
       },
       CURRENT_USER,
     );
 
-    expect(result.status).toBe(StudentHealthEventStatus.ARCHIVED);
-    expect(result.resolutionNotes).toBe("Archived after review.");
-    expect(eventRepository.update).toHaveBeenCalledWith(event, {});
+    expect(result.status).toBe(StudentHealthEventStatus.RESOLVED);
+    expect(result.resolutionNotes).toBe("Resolved after review.");
+    expect(eventRepository.updateIfActive).toHaveBeenCalledWith(event, {});
     expect(auditRecorder.record).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "UPDATE_STUDENT_HEALTH_EVENT",
@@ -389,11 +402,64 @@ describe("Student health event use cases", () => {
           status: StudentHealthEventStatus.OPEN,
         }),
         afterValue: expect.objectContaining({
-          status: StudentHealthEventStatus.ARCHIVED,
+          status: StudentHealthEventStatus.RESOLVED,
         }),
       }),
       {},
     );
+  });
+
+  it("returns conflict without audit when archival wins an update race", async () => {
+    studentRepository.findById.mockResolvedValue(makeStudent());
+    eventRepository.findByIdForStudentInCampus.mockResolvedValue(makeEvent());
+    eventRepository.updateIfActive.mockResolvedValue(null);
+    const useCase = new UpdateStudentHealthEventUseCase(
+      eventRepository,
+      studentRepository,
+      transactionRunner,
+      auditRecorder,
+    );
+
+    await expect(
+      useCase.execute(
+        CAMPUS_ID,
+        STUDENT_ID,
+        EVENT_ID,
+        { description: "Updated description" },
+        CURRENT_USER,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(auditRecorder.record).not.toHaveBeenCalled();
+  });
+
+  it("returns conflict when an archived event is updated", async () => {
+    studentRepository.findById.mockResolvedValue(makeStudent());
+    eventRepository.findByIdForStudentInCampus.mockResolvedValue(
+      makeEvent({
+        archivedAt: new Date("2026-07-14T15:00:00.000Z"),
+        archivedByUserId: ACTOR_ID,
+      }),
+    );
+    const useCase = new UpdateStudentHealthEventUseCase(
+      eventRepository,
+      studentRepository,
+      transactionRunner,
+      auditRecorder,
+    );
+
+    await expect(
+      useCase.execute(
+        CAMPUS_ID,
+        STUDENT_ID,
+        EVENT_ID,
+        { description: "Updated description" },
+        CURRENT_USER,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(eventRepository.updateIfActive).not.toHaveBeenCalled();
+    expect(auditRecorder.record).not.toHaveBeenCalled();
   });
 
   it("PATCH rejects empty payloads and unknown fields before loading student data", async () => {

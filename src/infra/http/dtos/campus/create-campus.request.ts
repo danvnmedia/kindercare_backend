@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsTimeZone,
   MaxLength,
   MinLength,
   Matches,
@@ -42,6 +43,16 @@ export class CreateCampusRequest {
     message: "Phone number must be in E.164 format (e.g., +84901234567)",
   })
   phoneNumber?: string;
+
+  @ApiProperty({
+    description:
+      "Required IANA timezone used for campus-local schedules and lifecycle boundaries; missing or invalid values are rejected.",
+    example: "Asia/Ho_Chi_Minh",
+  })
+  @IsString()
+  @IsNotEmpty()
+  @IsTimeZone({ message: "timeZone must be a valid IANA timezone" })
+  timeZone: string;
 
   @ApiPropertyOptional({
     description: "Whether the campus is archived",

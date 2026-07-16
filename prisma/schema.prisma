@@ -18,6 +18,7 @@ model Campus {
   name        String
   address     String?
   phoneNumber String? @map("phone_number")
+  timeZone    String  @map("time_zone")
   isArchived  Boolean @default(false) @map("is_archived")
 
   // Relations - RBAC
@@ -291,13 +292,16 @@ model User {
   medicationAdministrationOccurrencesRecordedBy MedicationAdministrationOccurrence[] @relation("MedicationOccurrenceLatestRecordedBy")
 
   // Student Health
-  studentHealthProfilesUpdated     StudentHealthProfile[]     @relation("StudentHealthProfileLastUpdatedBy")
-  studentHealthCheckupsRecorded    StudentHealthCheckup[]     @relation("StudentHealthCheckupRecordedBy")
-  studentHealthCheckupsUpdated     StudentHealthCheckup[]     @relation("StudentHealthCheckupLastUpdatedBy")
-  studentHealthInstructionsCreated StudentHealthInstruction[] @relation("StudentHealthInstructionCreatedBy")
-  studentHealthInstructionsUpdated StudentHealthInstruction[] @relation("StudentHealthInstructionLastUpdatedBy")
-  studentHealthEventsRecorded      StudentHealthEvent[]       @relation("StudentHealthEventRecordedBy")
-  studentHealthEventsUpdated       StudentHealthEvent[]       @relation("StudentHealthEventLastUpdatedBy")
+  studentHealthProfilesUpdated      StudentHealthProfile[]     @relation("StudentHealthProfileLastUpdatedBy")
+  studentHealthCheckupsRecorded     StudentHealthCheckup[]     @relation("StudentHealthCheckupRecordedBy")
+  studentHealthCheckupsUpdated      StudentHealthCheckup[]     @relation("StudentHealthCheckupLastUpdatedBy")
+  studentHealthCheckupsArchived     StudentHealthCheckup[]     @relation("StudentHealthCheckupArchivedBy")
+  studentHealthInstructionsCreated  StudentHealthInstruction[] @relation("StudentHealthInstructionCreatedBy")
+  studentHealthInstructionsUpdated  StudentHealthInstruction[] @relation("StudentHealthInstructionLastUpdatedBy")
+  studentHealthInstructionsArchived StudentHealthInstruction[] @relation("StudentHealthInstructionArchivedBy")
+  studentHealthEventsRecorded       StudentHealthEvent[]       @relation("StudentHealthEventRecordedBy")
+  studentHealthEventsUpdated        StudentHealthEvent[]       @relation("StudentHealthEventLastUpdatedBy")
+  studentHealthEventsArchived       StudentHealthEvent[]       @relation("StudentHealthEventArchivedBy")
 
   // School-year lifecycle
   schoolYearLifecycleRunsCreated     SchoolYearLifecycleRun[]           @relation("SchoolYearLifecycleRunCreatedBy")
@@ -1563,6 +1567,8 @@ model MedicationRequest {
   reviewNote          String?                 @map("review_note") @db.Text
   cancelledAt         DateTime?               @map("cancelled_at") @db.Timestamptz(6)
   cancelReason        String?                 @map("cancel_reason") @db.Text
+  completedAt         DateTime?               @map("completed_at") @db.Timestamptz(6)
+  expiredAt           DateTime?               @map("expired_at") @db.Timestamptz(6)
 
   campus            Campus                               @relation(fields: [campusId], references: [id], onDelete: Restrict)
   student           Student                              @relation(fields: [studentId], references: [id], onDelete: Restrict)
@@ -1758,7 +1764,6 @@ enum StudentHealthEventType {
 enum StudentHealthEventStatus {
   OPEN
   RESOLVED
-  ARCHIVED
 }
 
 model StudentHealthProfile {
@@ -1794,13 +1799,16 @@ model StudentHealthCheckup {
   weightKg    Decimal?                 @map("weight_kg") @db.Decimal(5, 2)
   notes       String?                  @db.Text
 
-  recordedByUserId    String? @map("recorded_by_user_id") @db.Uuid
-  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+  recordedByUserId    String?   @map("recorded_by_user_id") @db.Uuid
+  lastUpdatedByUserId String?   @map("last_updated_by_user_id") @db.Uuid
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+  archivedByUserId    String?   @map("archived_by_user_id") @db.Uuid
 
   campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
   student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   recordedBy    User?   @relation("StudentHealthCheckupRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
   lastUpdatedBy User?   @relation("StudentHealthCheckupLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+  archivedBy    User?   @relation("StudentHealthCheckupArchivedBy", fields: [archivedByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1808,9 +1816,11 @@ model StudentHealthCheckup {
   @@index([campusId])
   @@index([studentId])
   @@index([campusId, studentId, checkedAt(sort: Desc)], map: "student_health_checkup_lookup_idx")
+  @@index([campusId, studentId, archivedAt, checkedAt(sort: Desc)], map: "student_health_checkup_archive_lookup_idx")
   @@index([checkupType])
   @@index([recordedByUserId])
   @@index([lastUpdatedByUserId])
+  @@index([archivedByUserId])
   @@map("student_health_checkup")
 }
 
@@ -1829,13 +1839,16 @@ model StudentHealthInstruction {
   notes           String?                      @db.Text
   isActive        Boolean                      @default(true) @map("is_active")
 
-  createdByUserId     String? @map("created_by_user_id") @db.Uuid
-  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+  createdByUserId     String?   @map("created_by_user_id") @db.Uuid
+  lastUpdatedByUserId String?   @map("last_updated_by_user_id") @db.Uuid
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+  archivedByUserId    String?   @map("archived_by_user_id") @db.Uuid
 
   campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
   student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   createdBy     User?   @relation("StudentHealthInstructionCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   lastUpdatedBy User?   @relation("StudentHealthInstructionLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+  archivedBy    User?   @relation("StudentHealthInstructionArchivedBy", fields: [archivedByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1843,9 +1856,12 @@ model StudentHealthInstruction {
   @@index([campusId])
   @@index([studentId])
   @@index([campusId, studentId, isActive, startDate, endDate], map: "student_health_instruction_active_idx")
+  @@index([campusId, studentId, archivedAt, startDate, endDate], map: "student_health_instruction_archive_lookup_idx")
+  @@index([campusId, archivedAt, isActive, startDate, endDate], map: "student_health_instruction_health_center_idx")
   @@index([instructionType])
   @@index([createdByUserId])
   @@index([lastUpdatedByUserId])
+  @@index([archivedByUserId])
   @@map("student_health_instruction")
 }
 
@@ -1861,13 +1877,16 @@ model StudentHealthEvent {
   status          StudentHealthEventStatus        @default(OPEN)
   resolutionNotes String?                         @map("resolution_notes") @db.Text
 
-  recordedByUserId    String? @map("recorded_by_user_id") @db.Uuid
-  lastUpdatedByUserId String? @map("last_updated_by_user_id") @db.Uuid
+  recordedByUserId    String?   @map("recorded_by_user_id") @db.Uuid
+  lastUpdatedByUserId String?   @map("last_updated_by_user_id") @db.Uuid
+  archivedAt          DateTime? @map("archived_at") @db.Timestamptz(6)
+  archivedByUserId    String?   @map("archived_by_user_id") @db.Uuid
 
   campus        Campus  @relation(fields: [campusId], references: [id], onDelete: Restrict)
   student       Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   recordedBy    User?   @relation("StudentHealthEventRecordedBy", fields: [recordedByUserId], references: [id], onDelete: SetNull)
   lastUpdatedBy User?   @relation("StudentHealthEventLastUpdatedBy", fields: [lastUpdatedByUserId], references: [id], onDelete: SetNull)
+  archivedBy    User?   @relation("StudentHealthEventArchivedBy", fields: [archivedByUserId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1875,11 +1894,14 @@ model StudentHealthEvent {
   @@index([campusId])
   @@index([studentId])
   @@index([campusId, studentId, occurredAt(sort: Desc)], map: "student_health_event_timeline_idx")
+  @@index([campusId, studentId, archivedAt, occurredAt(sort: Desc)], map: "student_health_event_archive_timeline_idx")
+  @@index([campusId, archivedAt, status, occurredAt(sort: Desc)], map: "student_health_event_health_center_idx")
   @@index([eventType])
   @@index([category])
   @@index([status])
   @@index([recordedByUserId])
   @@index([lastUpdatedByUserId])
+  @@index([archivedByUserId])
   @@map("student_health_event")
 }
 

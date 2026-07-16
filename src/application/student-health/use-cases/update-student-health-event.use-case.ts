@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -65,9 +66,13 @@ export class UpdateStudentHealthEventUseCase {
         campusId,
         studentId,
         eventId,
+        tx,
       );
       if (!event) {
         throw new NotFoundException("Student health event not found");
+      }
+      if (event.isArchived) {
+        throw new ConflictException("Archived health events cannot be updated");
       }
 
       const beforeAudit = pickStudentHealthEventAuditFields(event);
@@ -79,7 +84,12 @@ export class UpdateStudentHealthEventUseCase {
 
       const requestedAfterAudit = pickStudentHealthEventAuditFields(event);
       const diff = computeDiff(beforeAudit, requestedAfterAudit);
-      const saved = await this.eventRepository.update(event, tx);
+      const saved = await this.eventRepository.updateIfActive(event, tx);
+      if (!saved) {
+        throw new ConflictException(
+          "Health event was archived while the update was in progress",
+        );
+      }
 
       await this.auditRecorder.record(
         {

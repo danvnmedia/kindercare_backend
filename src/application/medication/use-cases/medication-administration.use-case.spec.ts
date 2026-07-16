@@ -5,8 +5,10 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 import { MedicationAdministrationRepository } from "@/application/medication";
 import {
+  deriveMedicationAdministrationStatus,
   GetDailyMedicationAdministrationsUseCase,
   RecordMedicationAdministrationUseCase,
 } from "@/application/medication/use-cases";
@@ -18,6 +20,8 @@ import {
   MedicationAdministrationStatus,
 } from "@/domain/medication";
 import {
+  createCampus,
+  createMockCampusRepository,
   createRole,
   createRoleAssignment,
   createUser,
@@ -139,6 +143,7 @@ function createQueueRow(
 describe("medication administration use cases", () => {
   let medicationAdministrationRepository: jest.Mocked<MedicationAdministrationRepository>;
   let transactionRunner: jest.Mocked<TransactionRunnerPort>;
+  let campusRepository: jest.Mocked<CampusRepository>;
 
   beforeEach(() => {
     medicationAdministrationRepository = {
@@ -154,6 +159,35 @@ describe("medication administration use cases", () => {
     transactionRunner = {
       run: jest.fn(async (callback) => callback({} as never)),
     } as unknown as jest.Mocked<TransactionRunnerPort>;
+    campusRepository = createMockCampusRepository();
+    campusRepository.findById.mockResolvedValue(
+      createCampus({
+        id: DEFAULT_CAMPUS_ID_A,
+        timeZone: "America/Toronto",
+      }),
+    );
+  });
+
+  it("uses the earlier DST-fold instant as the exact overdue boundary", () => {
+    const occurrence = createOccurrence({
+      dueDate: "2026-11-01",
+      dueMinute: 90,
+    });
+
+    expect(
+      deriveMedicationAdministrationStatus(
+        occurrence,
+        new Date("2026-11-01T05:30:00.000Z"),
+        "America/Toronto",
+      ),
+    ).toBe(MedicationAdministrationStatus.DUE);
+    expect(
+      deriveMedicationAdministrationStatus(
+        occurrence,
+        new Date("2026-11-01T05:30:00.001Z"),
+        "America/Toronto",
+      ),
+    ).toBe(MedicationAdministrationStatus.OVERDUE);
   });
 
   it("returns selected-date queue rows with filters and deterministic ordering", async () => {
@@ -188,6 +222,7 @@ describe("medication administration use cases", () => {
     ]);
     const useCase = new GetDailyMedicationAdministrationsUseCase(
       medicationAdministrationRepository,
+      campusRepository,
     );
 
     const result = await useCase.execute(
@@ -226,12 +261,13 @@ describe("medication administration use cases", () => {
     ]);
     const useCase = new GetDailyMedicationAdministrationsUseCase(
       medicationAdministrationRepository,
+      campusRepository,
     );
 
     const result = await useCase.execute(
       DEFAULT_CAMPUS_ID_A,
       { date: "2026-07-01", status: MedicationAdministrationStatus.OVERDUE },
-      new Date("2026-07-01T09:00:00.000Z"),
+      new Date("2026-07-01T13:00:00.000Z"),
     );
 
     expect(result).toHaveLength(1);
@@ -244,16 +280,17 @@ describe("medication administration use cases", () => {
     expect(medicationAdministrationRepository.createLog).not.toHaveBeenCalled();
   });
 
-  it("defaults omitted queue date from the server-local day", async () => {
+  it("defaults omitted queue date from the campus-local day", async () => {
     medicationAdministrationRepository.findDailyByCampus.mockResolvedValue([]);
     const useCase = new GetDailyMedicationAdministrationsUseCase(
       medicationAdministrationRepository,
+      campusRepository,
     );
 
     await useCase.execute(
       DEFAULT_CAMPUS_ID_A,
       {},
-      new Date(2026, 6, 1, 23, 30, 0),
+      new Date("2026-07-02T02:30:00.000Z"),
     );
 
     expect(
@@ -282,6 +319,7 @@ describe("medication administration use cases", () => {
     ]);
     const useCase = new GetDailyMedicationAdministrationsUseCase(
       medicationAdministrationRepository,
+      campusRepository,
     );
 
     const result = await useCase.execute(
@@ -402,7 +440,7 @@ describe("medication administration use cases", () => {
     expect(medicationAdministrationRepository.createLog).not.toHaveBeenCalled();
   });
 
-  it("appends corrections and guards the expected latest log", async () => {
+  it("keeps occurrences correctable after request completion", async () => {
     const recordedOccurrence = createOccurrence({
       latestOutcome: MedicationAdministrationOutcome.REFUSED,
       latestLogId: OLD_LOG_ID,

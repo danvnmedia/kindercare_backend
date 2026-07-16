@@ -46,6 +46,7 @@ export function createCampus(
     name: string;
     address: string | null;
     phoneNumber: string | null;
+    timeZone: string;
     isArchived: boolean;
   }> = {},
 ): Campus {
@@ -54,6 +55,7 @@ export function createCampus(
       name: overrides.name ?? "Test Campus",
       address: overrides.address ?? "123 Test Street",
       phoneNumber: overrides.phoneNumber ?? "+84901234567",
+      timeZone: overrides.timeZone ?? "Asia/Ho_Chi_Minh",
       isArchived: overrides.isArchived ?? false,
     },
     overrides.id ?? uuidv4(),

@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { AuditEventRecorderPort } from "@/application/audit";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
@@ -88,7 +92,8 @@ describe("Student health checkup use cases", () => {
       findByStudentInCampus: jest.fn(),
       findByIdForStudentInCampus: jest.fn(),
       create: jest.fn(async (checkup) => checkup),
-      update: jest.fn(async (checkup) => checkup),
+      archiveIfActive: jest.fn(async (checkup) => checkup),
+      updateIfActive: jest.fn(async (checkup) => checkup),
     } as unknown as jest.Mocked<StudentHealthCheckupRepository>;
     studentRepository = {
       findById: jest.fn(),
@@ -287,7 +292,33 @@ describe("Student health checkup use cases", () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
 
-    expect(checkupRepository.update).not.toHaveBeenCalled();
+    expect(checkupRepository.updateIfActive).not.toHaveBeenCalled();
+  });
+
+  it("returns conflict without audit when archival wins an update race", async () => {
+    studentRepository.findById.mockResolvedValue(makeStudent());
+    checkupRepository.findByIdForStudentInCampus.mockResolvedValue(
+      makeCheckup(),
+    );
+    checkupRepository.updateIfActive.mockResolvedValue(null);
+    const useCase = new UpdateStudentHealthCheckupUseCase(
+      checkupRepository,
+      studentRepository,
+      transactionRunner,
+      auditRecorder,
+    );
+
+    await expect(
+      useCase.execute(
+        CAMPUS_ID,
+        STUDENT_ID,
+        CHECKUP_ID,
+        { notes: "Updated note" },
+        CURRENT_USER,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(auditRecorder.record).not.toHaveBeenCalled();
   });
 
   it("PATCH rejects empty payloads and unknown fields before loading student data", async () => {

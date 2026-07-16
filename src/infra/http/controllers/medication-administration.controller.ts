@@ -103,7 +103,7 @@ export class MedicationAdministrationController {
   })
   @ApiForbiddenResponse({
     description:
-      "Requires campus access and medication_administration.update permission.",
+      "Requires campus access and either medication_administration.create or medication_administration.update permission.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,

@@ -8,7 +8,12 @@ import {
   Param,
   UseGuards,
 } from "@nestjs/common";
-import { ApiOperation, ApiTags, ApiParam } from "@nestjs/swagger";
+import {
+  ApiBadRequestResponse,
+  ApiOperation,
+  ApiTags,
+  ApiParam,
+} from "@nestjs/swagger";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { StandardResponse } from "@/core/modules/standard-response/decorators/standard-response.decorator";
 import { StandardRequestParam } from "@/core/modules/standard-response";
@@ -47,7 +52,11 @@ export class CampusController {
   })
   @ApiOperation({
     summary: "Create a new campus",
-    description: "Create a new campus with a unique name.",
+    description:
+      "Create a new campus with a unique name and required IANA timezone.",
+  })
+  @ApiBadRequestResponse({
+    description: "Missing or invalid IANA timeZone, or another invalid field.",
   })
   async create(@Body() dto: CreateCampusRequest) {
     return await this.createCampusUseCase.execute(dto);
@@ -107,7 +116,10 @@ export class CampusController {
   @ApiOperation({
     summary: "Update a campus",
     description:
-      "Update campus name, address, phone number, or archived status.",
+      "Update campus name, address, phone number, IANA timezone, or archived status.",
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid IANA timeZone or another invalid field.",
   })
   @ApiParam({
     name: "id",

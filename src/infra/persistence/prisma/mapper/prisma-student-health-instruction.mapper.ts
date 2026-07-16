@@ -77,6 +77,8 @@ export class PrismaStudentHealthInstructionMapper {
               fullName: resolveUserProfileName(row.lastUpdatedBy),
             }
           : null,
+        archivedAt: row.archivedAt,
+        archivedByUserId: row.archivedByUserId,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },
@@ -103,6 +105,8 @@ export class PrismaStudentHealthInstructionMapper {
       isActive: instruction.isActive,
       createdByUserId: instruction.createdByUserId,
       lastUpdatedByUserId: instruction.lastUpdatedByUserId,
+      archivedAt: instruction.archivedAt,
+      archivedByUserId: instruction.archivedByUserId,
       createdAt: instruction.createdAt,
       updatedAt: instruction.updatedAt,
     };
@@ -123,6 +127,8 @@ export class PrismaStudentHealthInstructionMapper {
       notes: instruction.notes,
       isActive: instruction.isActive,
       lastUpdatedByUserId: instruction.lastUpdatedByUserId,
+      archivedAt: instruction.archivedAt,
+      archivedByUserId: instruction.archivedByUserId,
       updatedAt: instruction.updatedAt,
     };
   }

@@ -58,6 +58,52 @@ describe("PrismaMedicationAdministrationRepository", () => {
     expect(findManyArg.orderBy).toEqual([{ dueMinute: "asc" }]);
   });
 
+  it("paginates unrecorded Health Center occurrences without filtering by request lifecycle state", async () => {
+    const occurrenceDelegate = {
+      findMany: jest.fn().mockResolvedValue([]),
+    };
+    const repository = new PrismaMedicationAdministrationRepository({
+      medicationAdministrationOccurrence: occurrenceDelegate,
+    } as unknown as PrismaService);
+    const dueDate = new Date("2026-07-01T00:00:00.000Z");
+
+    await repository.findHealthCenterDailyByCampus(CAMPUS_ID, {
+      dueDate,
+      now: new Date("2026-07-01T15:30:00.000Z"),
+      timeZone: "America/Toronto",
+      classId: CLASS_ID,
+      offset: 5,
+      limit: 10,
+    });
+
+    const findManyArg = occurrenceDelegate.findMany.mock.calls[0][0];
+    expect(findManyArg.where).toEqual({
+      campusId: CAMPUS_ID,
+      dueDate,
+      latestOutcome: null,
+      student: {
+        enrollments: {
+          some: {
+            classId: CLASS_ID,
+            class: { campusId: CAMPUS_ID },
+            cancelledAt: null,
+            enrollmentDate: { lte: dueDate },
+            OR: [{ endDate: null }, { endDate: { gte: dueDate } }],
+          },
+        },
+      },
+    });
+    expect(findManyArg.where.request).toBeUndefined();
+    expect(findManyArg.skip).toBe(5);
+    expect(findManyArg.take).toBe(10);
+    expect(findManyArg.orderBy).toEqual([
+      { dueMinute: "asc" },
+      { student: { fullName: "asc" } },
+      { medicationItem: { medicationName: "asc" } },
+      { medicationItemId: "asc" },
+    ]);
+  });
+
   it("counts current-day due and overdue unrecorded occurrences for Health Center summary", async () => {
     const occurrenceDelegate = {
       count: jest.fn().mockResolvedValueOnce(8).mockResolvedValueOnce(2),
@@ -73,6 +119,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
       {
         dueDate,
         now,
+        timeZone: "UTC",
       },
     );
 
@@ -95,6 +142,49 @@ describe("PrismaMedicationAdministrationRepository", () => {
     expect(result).toEqual({ dueToday: 8, overdue: 2 });
   });
 
+  it("applies selected-date class enrollment to both due and overdue totals", async () => {
+    const occurrenceDelegate = {
+      count: jest.fn().mockResolvedValueOnce(3).mockResolvedValueOnce(2),
+    };
+    const repository = new PrismaMedicationAdministrationRepository({
+      medicationAdministrationOccurrence: occurrenceDelegate,
+    } as unknown as PrismaService);
+    const dueDate = new Date("2099-07-01T00:00:00.000Z");
+
+    await repository.countHealthCenterSummaryByCampus(CAMPUS_ID, {
+      dueDate,
+      now: new Date("2099-07-01T10:30:00.000Z"),
+      timeZone: "UTC",
+      classId: CLASS_ID,
+    });
+
+    const expectedStudentScope = {
+      enrollments: {
+        some: {
+          classId: CLASS_ID,
+          class: { campusId: CAMPUS_ID },
+          cancelledAt: null,
+          enrollmentDate: { lte: dueDate },
+          OR: [{ endDate: null }, { endDate: { gte: dueDate } }],
+        },
+      },
+    };
+    expect(occurrenceDelegate.count).toHaveBeenNthCalledWith(1, {
+      where: expect.objectContaining({
+        latestOutcome: null,
+        student: expectedStudentScope,
+        dueMinute: { gte: 630 },
+      }),
+    });
+    expect(occurrenceDelegate.count).toHaveBeenNthCalledWith(2, {
+      where: expect.objectContaining({
+        latestOutcome: null,
+        student: expectedStudentScope,
+        dueMinute: { lt: 630 },
+      }),
+    });
+  });
+
   it("matches daily queue absolute-time overdue boundary for partial minutes", async () => {
     const occurrenceDelegate = {
       count: jest.fn().mockResolvedValueOnce(8).mockResolvedValueOnce(3),
@@ -107,6 +197,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
     await repository.countHealthCenterSummaryByCampus(CAMPUS_ID, {
       dueDate,
       now: new Date("2099-07-01T10:30:01.000Z"),
+      timeZone: "UTC",
     });
 
     expect(occurrenceDelegate.count).toHaveBeenNthCalledWith(1, {
@@ -114,7 +205,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
         campusId: CAMPUS_ID,
         dueDate,
         latestOutcome: null,
-        dueMinute: { gt: 630 },
+        dueMinute: { gte: 631 },
       },
     });
     expect(occurrenceDelegate.count).toHaveBeenNthCalledWith(2, {
@@ -122,7 +213,40 @@ describe("PrismaMedicationAdministrationRepository", () => {
         campusId: CAMPUS_ID,
         dueDate,
         latestOutcome: null,
-        dueMinute: { lte: 630 },
+        dueMinute: { lt: 631 },
+      },
+    });
+  });
+
+  it("uses absolute due instants across a campus DST fold", async () => {
+    const occurrenceDelegate = {
+      count: jest.fn().mockResolvedValueOnce(4).mockResolvedValueOnce(6),
+    };
+    const repository = new PrismaMedicationAdministrationRepository({
+      medicationAdministrationOccurrence: occurrenceDelegate,
+    } as unknown as PrismaService);
+    const dueDate = new Date("2026-11-01T00:00:00.000Z");
+
+    await repository.countHealthCenterSummaryByCampus(CAMPUS_ID, {
+      dueDate,
+      now: new Date("2026-11-01T06:15:00.000Z"),
+      timeZone: "America/Toronto",
+    });
+
+    expect(occurrenceDelegate.count).toHaveBeenNthCalledWith(1, {
+      where: {
+        campusId: CAMPUS_ID,
+        dueDate,
+        latestOutcome: null,
+        dueMinute: { gte: 120 },
+      },
+    });
+    expect(occurrenceDelegate.count).toHaveBeenNthCalledWith(2, {
+      where: {
+        campusId: CAMPUS_ID,
+        dueDate,
+        latestOutcome: null,
+        dueMinute: { lt: 120 },
       },
     });
   });
@@ -141,6 +265,7 @@ describe("PrismaMedicationAdministrationRepository", () => {
       {
         dueDate,
         now: new Date("2099-07-02T12:00:00.000Z"),
+        timeZone: "UTC",
       },
     );
 

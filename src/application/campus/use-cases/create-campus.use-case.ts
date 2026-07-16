@@ -12,6 +12,7 @@ export interface CreateCampusInput {
   name: string;
   address?: string | null;
   phoneNumber?: string | null;
+  timeZone: string;
   isArchived?: boolean;
 }
 
@@ -28,6 +29,10 @@ export class CreateCampusUseCase {
     try {
       this.logger.log(`Creating campus: ${input.name}`);
 
+      if (!input.timeZone) {
+        throw new Error("Campus timeZone is required");
+      }
+
       // Check for duplicate name
       const existingByName = await this.campusRepository.findByName(input.name);
       if (existingByName) {
@@ -39,6 +44,7 @@ export class CreateCampusUseCase {
         name: input.name,
         address: input.address ?? null,
         phoneNumber: input.phoneNumber ?? null,
+        timeZone: input.timeZone,
         isArchived: input.isArchived,
       });
 

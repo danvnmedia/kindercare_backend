@@ -34,6 +34,25 @@ function expectNoActiveAttachmentFields(value: unknown) {
 }
 
 describe("MedicationRequestResponse", () => {
+  it.each([
+    MedicationRequestResponse,
+    MedicationRequestDetailResponse,
+    ParentMedicationRequestDetailResponse,
+  ])("exposes terminal timestamps through %p", (ResponseType) => {
+    const completedAt = new Date("2099-07-05T05:30:00.000Z");
+    const expiredAt = new Date("2099-07-06T04:00:00.000Z");
+    const response = plainToInstance(
+      ResponseType,
+      { completedAt, expiredAt },
+      { excludeExtraneousValues: true },
+    );
+
+    expect(instanceToPlain(response)).toMatchObject({
+      completedAt,
+      expiredAt,
+    });
+  });
+
   it("exposes parent-visible review, cancel, and timeline fields", () => {
     const response = plainToInstance(
       MedicationRequestResponse,

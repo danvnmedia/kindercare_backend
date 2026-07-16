@@ -1,6 +1,14 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
+import { getCampusDateOnly } from "@/core/time/campus-time-zone";
 import {
   MedicationRequest,
   MedicationRequestStatus,
@@ -17,15 +25,26 @@ export class GetMedicationRequestsUseCase {
   constructor(
     @Inject("MEDICATION_REQUEST_REPOSITORY")
     private readonly medicationRequestRepository: MedicationRequestRepository,
+    @Inject("CAMPUS_REPOSITORY")
+    private readonly campusRepository: CampusRepository,
   ) {}
 
   async execute(
     campusId: string,
     params: StaffMedicationRequestListParams,
+    now = new Date(),
   ): Promise<PaginatedResult<MedicationRequest>> {
     this.validateParams(params);
 
-    return this.medicationRequestRepository.findByCampusId(campusId, params);
+    const campus = await this.campusRepository.findById(campusId);
+    if (!campus) {
+      throw new NotFoundException("Campus not found");
+    }
+
+    return this.medicationRequestRepository.findByCampusId(campusId, {
+      ...params,
+      enrollmentReferenceDate: getCampusDateOnly(now, campus.timeZone),
+    });
   }
 
   private validateParams(params: StaffMedicationRequestListParams): void {

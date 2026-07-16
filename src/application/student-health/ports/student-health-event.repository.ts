@@ -18,10 +18,14 @@ export interface HealthCenterEventItem {
   class: HealthCenterClassSummary | null;
 }
 
-export interface HealthCenterEventListParams {
+export interface HealthCenterEventScope {
   campusId: string;
   referenceDate: Date;
+  visibleUntil: Date;
   classId?: string;
+}
+
+export interface HealthCenterEventListParams extends HealthCenterEventScope {
   offset: number;
   limit: number;
 }
@@ -34,6 +38,7 @@ export interface HealthCenterEventListResult {
 export interface StudentHealthEventListParams extends StandardRequest {
   status?: StudentHealthEventStatus;
   eventType?: StudentHealthEventType;
+  includeArchived?: boolean;
 }
 
 export abstract class StudentHealthEventRepository {
@@ -47,19 +52,29 @@ export abstract class StudentHealthEventRepository {
     campusId: string,
     studentId: string,
     eventId: string,
+    tx?: AppTransactionClient,
   ): Promise<StudentHealthEvent | null>;
 
   abstract findOpenForHealthCenter(
     params: HealthCenterEventListParams,
   ): Promise<HealthCenterEventListResult>;
 
+  abstract countOpenForHealthCenter(
+    params: HealthCenterEventScope,
+  ): Promise<number>;
+
   abstract create(
     event: StudentHealthEvent,
     tx?: AppTransactionClient,
   ): Promise<StudentHealthEvent>;
 
-  abstract update(
+  abstract archiveIfActive(
     event: StudentHealthEvent,
     tx?: AppTransactionClient,
-  ): Promise<StudentHealthEvent>;
+  ): Promise<StudentHealthEvent | null>;
+
+  abstract updateIfActive(
+    event: StudentHealthEvent,
+    tx?: AppTransactionClient,
+  ): Promise<StudentHealthEvent | null>;
 }

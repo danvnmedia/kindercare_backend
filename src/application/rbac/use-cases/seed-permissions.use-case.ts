@@ -53,6 +53,11 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     module: "student_health",
     description: "Update student health records",
   },
+  {
+    id: "student_health.delete",
+    module: "student_health",
+    description: "Archive student health records",
+  },
 
   // Guardian permissions
   {
@@ -429,27 +434,12 @@ export const SYSTEM_PERMISSIONS: CreatePermissionData[] = [
     description: "View medication request details",
   },
   {
-    id: "medication_request.create",
-    module: "medication_request",
-    description: "Create medication requests",
-  },
-  {
     id: "medication_request.update",
     module: "medication_request",
     description: "Review or update medication requests",
   },
-  {
-    id: "medication_request.delete",
-    module: "medication_request",
-    description: "Archive medication requests",
-  },
 
   // Medication administration permissions
-  {
-    id: "medication_administration.list",
-    module: "medication_administration",
-    description: "List medication administration occurrences",
-  },
   {
     id: "medication_administration.read",
     module: "medication_administration",

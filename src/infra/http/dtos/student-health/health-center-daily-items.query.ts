@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -9,6 +10,8 @@ import {
   Max,
   Min,
 } from "class-validator";
+
+import { transformStrictBooleanQuery } from "./strict-boolean-query.transform";
 
 export class HealthCenterDailyItemsQuery {
   @ApiProperty({
@@ -81,4 +84,42 @@ export class HealthCenterDailyItemsQuery {
   @Min(1)
   @Max(100)
   eventsLimit = 50;
+
+  @ApiProperty({
+    example: 0,
+    required: false,
+    description: "Number of medication administration items to skip.",
+    default: 0,
+  })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  medicationsOffset = 0;
+
+  @ApiProperty({
+    example: 50,
+    required: false,
+    description: "Number of medication administration items to return.",
+    default: 50,
+    maximum: 100,
+  })
+  @Type(() => Number)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  medicationsLimit = 50;
+
+  @ApiProperty({
+    example: false,
+    required: false,
+    description:
+      "When true, returns access metadata and complete totals with empty item arrays.",
+    default: false,
+  })
+  @Transform(({ value }) => transformStrictBooleanQuery(value))
+  @IsOptional()
+  @IsBoolean()
+  summaryOnly = false;
 }

@@ -10,31 +10,34 @@ async function main() {
   const campuses = await Promise.all([
     prisma.campus.upsert({
       where: { id: "11111111-1111-4111-8111-111111111111" },
-      update: { name: "Kindercare Mỹ Đình" },
+      update: { name: "Kindercare Mỹ Đình", timeZone: "Asia/Ho_Chi_Minh" },
       create: {
         id: "11111111-1111-4111-8111-111111111111",
         name: "Kindercare Mỹ Đình",
         address: "My Dinh, Ha Noi",
+        timeZone: "Asia/Ho_Chi_Minh",
         isArchived: false,
       },
     }),
     prisma.campus.upsert({
       where: { id: "22222222-2222-4222-8222-222222222222" },
-      update: { name: "Kindercare Nam Đô" },
+      update: { name: "Kindercare Nam Đô", timeZone: "Asia/Ho_Chi_Minh" },
       create: {
         id: "22222222-2222-4222-8222-222222222222",
         name: "Kindercare Nam Đô",
         address: "Quan 2, Ho Chi Minh",
+        timeZone: "Asia/Ho_Chi_Minh",
         isArchived: false,
       },
     }),
     prisma.campus.upsert({
       where: { id: "33333333-3333-4333-8333-333333333333" },
-      update: { name: "Kindercare Bắc Giang" },
+      update: { name: "Kindercare Bắc Giang", timeZone: "Asia/Ho_Chi_Minh" },
       create: {
         id: "33333333-3333-4333-8333-333333333333",
         name: "Kindercare Bắc Giang",
         address: "Nam Do, Ha Noi",
+        timeZone: "Asia/Ho_Chi_Minh",
         isArchived: false,
       },
     }),

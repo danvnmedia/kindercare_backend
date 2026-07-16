@@ -4,11 +4,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 import { MedicationRequestRepository } from "@/application/medication";
 import { GetMedicationRequestByIdUseCase } from "@/application/medication/use-cases/get-medication-request-by-id.use-case";
 import { GetMedicationRequestsUseCase } from "@/application/medication/use-cases/get-medication-requests.use-case";
 import { GetStudentMedicationHistoryUseCase } from "@/application/medication/use-cases/get-student-medication-history.use-case";
 import { ReviewMedicationRequestUseCase } from "@/application/medication/use-cases/review-medication-request.use-case";
+import { MedicationRequestCommandGuard } from "@/application/medication/use-cases/medication-request-command.guard";
 import { TransactionRunnerPort } from "@/application/ports/transaction-runner.port";
 import { StudentRepository } from "@/application/user-management/ports/student.repository";
 import {
@@ -17,7 +19,13 @@ import {
   MedicationRequestTimelineAction,
   MedicationReviewAction,
 } from "@/domain/medication";
-import { createStudent, createUser, DEFAULT_CAMPUS_ID_A } from "@/test-utils";
+import {
+  createCampus,
+  createMockCampusRepository,
+  createStudent,
+  createUser,
+  DEFAULT_CAMPUS_ID_A,
+} from "@/test-utils";
 
 const reviewer = createUser({
   id: "44444444-4444-4444-a444-444444444444",
@@ -54,6 +62,8 @@ describe("staff medication request use cases", () => {
   let medicationRequestRepository: jest.Mocked<MedicationRequestRepository>;
   let transactionRunner: jest.Mocked<TransactionRunnerPort>;
   let studentRepository: jest.Mocked<StudentRepository>;
+  let campusRepository: jest.Mocked<CampusRepository>;
+  let commandGuard: MedicationRequestCommandGuard;
 
   beforeEach(() => {
     medicationRequestRepository = {
@@ -72,6 +82,7 @@ describe("staff medication request use cases", () => {
       ),
       createOccurrences: jest.fn(async (occurrences) => occurrences.length),
       addTimelineEntry: jest.fn(async (entry) => entry),
+      transitionToTerminalIfStatusIn: jest.fn().mockResolvedValue(true),
     } as unknown as jest.Mocked<MedicationRequestRepository>;
 
     transactionRunner = {
@@ -85,6 +96,17 @@ describe("staff medication request use cases", () => {
         }),
       ),
     } as unknown as jest.Mocked<StudentRepository>;
+    campusRepository = createMockCampusRepository();
+    campusRepository.findById.mockResolvedValue(
+      createCampus({
+        id: DEFAULT_CAMPUS_ID_A,
+        timeZone: "America/Toronto",
+      }),
+    );
+    commandGuard = new MedicationRequestCommandGuard(
+      medicationRequestRepository,
+      campusRepository,
+    );
   });
 
   it("lists campus medication requests with staff filters", async () => {
@@ -103,6 +125,7 @@ describe("staff medication request use cases", () => {
     medicationRequestRepository.findByCampusId.mockResolvedValue(expected);
     const useCase = new GetMedicationRequestsUseCase(
       medicationRequestRepository,
+      campusRepository,
     );
     const params = {
       status: MedicationRequestStatus.SUBMITTED,
@@ -113,12 +136,16 @@ describe("staff medication request use cases", () => {
       search: "Antibiotic",
     };
 
-    const result = await useCase.execute(DEFAULT_CAMPUS_ID_A, params);
+    const now = new Date("2099-07-02T02:30:00.000Z");
+    const result = await useCase.execute(DEFAULT_CAMPUS_ID_A, params, now);
 
     expect(result).toBe(expected);
     expect(medicationRequestRepository.findByCampusId).toHaveBeenCalledWith(
       DEFAULT_CAMPUS_ID_A,
-      params,
+      {
+        ...params,
+        enrollmentReferenceDate: new Date("2099-07-01T00:00:00.000Z"),
+      },
     );
   });
 
@@ -137,6 +164,9 @@ describe("staff medication request use cases", () => {
     expect(
       medicationRequestRepository.findDetailByIdInCampus,
     ).toHaveBeenCalledWith(DEFAULT_CAMPUS_ID_A, request.id);
+    expect(
+      medicationRequestRepository.transitionToTerminalIfStatusIn,
+    ).not.toHaveBeenCalled();
   });
 
   it("returns not found for missing staff detail", async () => {
@@ -241,10 +271,12 @@ describe("staff medication request use cases", () => {
 
   it("approves submitted requests and materializes all occurrences", async () => {
     const request = createMedicationRequest();
+    const now = new Date("2099-07-02T15:00:00.000Z");
     medicationRequestRepository.findByIdInCampus.mockResolvedValue(request);
     const useCase = new ReviewMedicationRequestUseCase(
       medicationRequestRepository,
       transactionRunner,
+      commandGuard,
     );
 
     const result = await useCase.execute(
@@ -255,9 +287,11 @@ describe("staff medication request use cases", () => {
         note: "Approved for this week.",
       },
       reviewer,
+      now,
     );
 
     expect(result.status).toBe(MedicationRequestStatus.APPROVED);
+    expect(result.reviewedAt).toBe(now);
     expect(
       medicationRequestRepository.updateInCampusIfStatusIn,
     ).toHaveBeenCalledWith(
@@ -279,6 +313,9 @@ describe("staff medication request use cases", () => {
     expect(
       medicationRequestRepository.addTimelineEntry.mock.calls[0][0].action,
     ).toBe(MedicationRequestTimelineAction.APPROVED);
+    expect(
+      medicationRequestRepository.addTimelineEntry.mock.calls[0][0].createdAt,
+    ).toBe(now);
   });
 
   it("supports reject and needs-more-info without creating occurrences", async () => {
@@ -289,6 +326,7 @@ describe("staff medication request use cases", () => {
     const useCase = new ReviewMedicationRequestUseCase(
       medicationRequestRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(
@@ -342,6 +380,7 @@ describe("staff medication request use cases", () => {
     const useCase = new ReviewMedicationRequestUseCase(
       medicationRequestRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(
@@ -376,6 +415,87 @@ describe("staff medication request use cases", () => {
     expect(medicationRequestRepository.addTimelineEntry).not.toHaveBeenCalled();
   });
 
+  it("commits late expiration before rejecting staff review outside the transaction", async () => {
+    const request = createMedicationRequest();
+    const now = new Date("2099-07-04T04:00:00.000Z");
+    let transactionCommitted = false;
+    medicationRequestRepository.findByIdInCampus.mockResolvedValue(request);
+    transactionRunner.run.mockImplementation(async (callback) => {
+      const result = await callback({} as never);
+      transactionCommitted = true;
+      return result;
+    });
+    const useCase = new ReviewMedicationRequestUseCase(
+      medicationRequestRepository,
+      transactionRunner,
+      commandGuard,
+    );
+
+    await expect(
+      useCase.execute(
+        DEFAULT_CAMPUS_ID_A,
+        request.id,
+        { action: MedicationReviewAction.APPROVE },
+        reviewer,
+        now,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(transactionCommitted).toBe(true);
+    expect(
+      medicationRequestRepository.transitionToTerminalIfStatusIn,
+    ).toHaveBeenCalledWith(
+      {
+        requestId: request.id,
+        campusId: DEFAULT_CAMPUS_ID_A,
+        sourceStatuses: [MedicationRequestStatus.SUBMITTED],
+        targetStatus: MedicationRequestStatus.EXPIRED,
+        effectiveAt: new Date("2099-07-04T04:00:00.000Z"),
+        updatedAt: now,
+      },
+      expect.any(Object),
+    );
+    const timeline =
+      medicationRequestRepository.addTimelineEntry.mock.calls[0][0];
+    expect(timeline).toMatchObject({
+      action: MedicationRequestTimelineAction.EXPIRED,
+      createdAt: now,
+    });
+    expect(
+      medicationRequestRepository.updateInCampusIfStatusIn,
+    ).not.toHaveBeenCalled();
+    expect(
+      medicationRequestRepository.createOccurrences,
+    ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    MedicationRequestStatus.REJECTED,
+    MedicationRequestStatus.CANCELLED,
+    MedicationRequestStatus.COMPLETED,
+    MedicationRequestStatus.EXPIRED,
+  ])("returns conflict for persisted terminal status %s", async (status) => {
+    const request = createMedicationRequest(status);
+    medicationRequestRepository.findByIdInCampus.mockResolvedValue(request);
+    const useCase = new ReviewMedicationRequestUseCase(
+      medicationRequestRepository,
+      transactionRunner,
+      commandGuard,
+    );
+
+    await expect(
+      useCase.execute(
+        DEFAULT_CAMPUS_ID_A,
+        request.id,
+        { action: MedicationReviewAction.APPROVE },
+        reviewer,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(
+      medicationRequestRepository.updateInCampusIfStatusIn,
+    ).not.toHaveBeenCalled();
+  });
+
   it("propagates transaction failures after status update so rollback can occur", async () => {
     const request = createMedicationRequest();
     const failure = new Error("occurrence insert failed");
@@ -384,6 +504,7 @@ describe("staff medication request use cases", () => {
     const useCase = new ReviewMedicationRequestUseCase(
       medicationRequestRepository,
       transactionRunner,
+      commandGuard,
     );
 
     await expect(

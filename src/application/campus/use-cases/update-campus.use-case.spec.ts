@@ -37,10 +37,12 @@ describe("UpdateCampusUseCase", () => {
     const result = await useCase.execute("campus-id", {
       name: "Updated Campus",
       address: "New Address",
+      timeZone: "America/Toronto",
     });
 
     expect(result.name).toBe("Updated Campus");
     expect(result.address).toBe("New Address");
+    expect(result.timeZone).toBe("America/Toronto");
     expect(mockCampusRepository.update).toHaveBeenCalled();
   });
 
@@ -106,6 +108,15 @@ describe("UpdateCampusUseCase", () => {
 
     await expect(
       useCase.execute("campus-id", { phoneNumber: "invalid" }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("should reject an invalid timezone", async () => {
+    const existingCampus = Campus.create({ name: "Test Campus" }, "campus-id");
+    mockCampusRepository.findById.mockResolvedValue(existingCampus);
+
+    await expect(
+      useCase.execute("campus-id", { timeZone: "Invalid/Zone" }),
     ).rejects.toThrow(BadRequestException);
   });
 });

@@ -2,7 +2,7 @@
 title: Decorators Pattern
 description: 'Custom HTTP decorators: Public, Roles, Permissions, RequireCampusAccess, CampusContext, CurrentUser'
 createdAt: '2026-01-03T19:52:38.347Z'
-updatedAt: '2026-05-05T17:31:03.626Z'
+updatedAt: '2026-07-14T17:43:23.777Z'
 tags:
   - patterns
   - decorators
@@ -164,3 +164,22 @@ export class StudentController {
 3. **Don't mix `@CurrentUser` and `@User`.** Both exist for legacy reasons. New code should use `@CurrentUser`.
 4. **Document the campus header.** When using `@RequireCampusAccess()`, add `@ApiHeader({ name: "x-campus-id", required: true })` to your Swagger annotations.
 5. **Don't read `campusId` from the body.** The body is user-controlled. The `@CampusContext()` value is validated and can be trusted; pass it to use cases as a separate argument or override the body field.
+
+### `@RequireAllPermissions(...ids)`
+
+`decorators/require-all-permissions.decorator.ts`
+
+Declares a conjunctive permission policy for the dedicated `AllPermissionsGuard`. Use it only when a route must require every permission, and pair it with `@UseGuards(AllPermissionsGuard)`.
+
+```typescript
+@Get("medication-summary")
+@RequireCampusAccess()
+@UseGuards(AllPermissionsGuard)
+@RequireAllPermissions(
+  "medication_request.read",
+  "medication_administration.read",
+)
+async getSummary() { /* ... */ }
+```
+
+Do not pass multiple IDs to `@Permissions` when AND semantics are required; that decorator deliberately retains OR semantics.

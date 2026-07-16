@@ -1,6 +1,18 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 import { ClassRepository } from "@/application/class-management/ports/class.repository";
+import {
+  mapQueueRowToItem,
+  MedicationAdministrationQueueItem,
+  MedicationAdministrationQueueRow,
+  MedicationAdministrationRepository,
+  MedicationRequestRepository,
+} from "@/application/medication";
+import {
+  getPermissionIdsForCampus,
+  hasAllPermissions,
+} from "@/application/rbac/permission-access";
 import {
   HealthCenterEventItem,
   HealthCenterInstructionItem,
@@ -8,9 +20,14 @@ import {
   StudentHealthInstructionRepository,
 } from "@/application/student-health/ports";
 import {
+  getCampusDateOnly,
+  getCampusDateString,
+} from "@/core/time/campus-time-zone";
+import {
   StudentHealthEventStatus,
   StudentHealthInstructionStatus,
 } from "@/domain/student-health";
+import { User } from "@/domain/user-management/user.entity";
 
 import { parseReferenceDate } from "./get-active-student-health-instructions.use-case";
 
@@ -25,6 +42,8 @@ export interface GetHealthCenterDailyItemsInput {
   classId?: string;
   instructions?: HealthCenterPaginationInput;
   events?: HealthCenterPaginationInput;
+  medications?: HealthCenterPaginationInput;
+  summaryOnly?: boolean;
 }
 
 export interface HealthCenterDailyStudentSummary {
@@ -89,6 +108,12 @@ export interface HealthCenterDailyItemsCounts {
   instructions: number;
   events: number;
   total: number;
+  medicationAdministrations: number;
+  dueMedicationAdministrations: number;
+  overdueMedicationAdministrations: number;
+  requestsNeedingReview: number;
+  visibleTotal: number;
+  actionRequired: number;
 }
 
 export interface HealthCenterDailyItemsPaginationGroup {
@@ -101,16 +126,28 @@ export interface HealthCenterDailyItemsPaginationGroup {
 export interface HealthCenterDailyItemsPagination {
   instructions: HealthCenterDailyItemsPaginationGroup;
   events: HealthCenterDailyItemsPaginationGroup;
+  medicationAdministrations: HealthCenterDailyItemsPaginationGroup;
+}
+
+export interface HealthCenterDailyItemsAccess {
+  healthItems: boolean;
+  medicationAdministrations: boolean;
+  medicationRequests: boolean;
+  canRecordMedication: boolean;
+  canReviewMedicationRequests: boolean;
 }
 
 export interface HealthCenterDailyItemsResponse {
   campusId: string;
   date: string;
   classId: string | null;
+  generatedAt: string;
+  access: HealthCenterDailyItemsAccess;
   counts: HealthCenterDailyItemsCounts;
   pagination: HealthCenterDailyItemsPagination;
   instructions: HealthCenterInstructionResponseItem[];
   events: HealthCenterEventResponseItem[];
+  medicationAdministrations: MedicationAdministrationQueueItem[];
 }
 
 const DEFAULT_LIMIT = 50;
@@ -125,12 +162,27 @@ export class GetHealthCenterDailyItemsUseCase {
     private readonly eventRepository: StudentHealthEventRepository,
     @Inject("CLASS_REPOSITORY")
     private readonly classRepository: ClassRepository,
+    @Inject("CAMPUS_REPOSITORY")
+    private readonly campusRepository: CampusRepository,
+    @Inject("MEDICATION_ADMINISTRATION_REPOSITORY")
+    private readonly medicationAdministrationRepository: MedicationAdministrationRepository,
+    @Inject("MEDICATION_REQUEST_REPOSITORY")
+    private readonly medicationRequestRepository: MedicationRequestRepository,
   ) {}
 
   async execute(
     input: GetHealthCenterDailyItemsInput,
+    currentUser: User,
+    now = new Date(),
   ): Promise<HealthCenterDailyItemsResponse> {
-    const referenceDate = parseReferenceDate(input.date);
+    const campus = await this.campusRepository.findById(input.campusId);
+    if (!campus) {
+      throw new NotFoundException("Campus not found");
+    }
+
+    const referenceDate = parseReferenceDate(
+      input.date ?? getCampusDateString(now, campus.timeZone),
+    );
     const classId = input.classId?.trim() || undefined;
 
     if (classId) {
@@ -142,53 +194,202 @@ export class GetHealthCenterDailyItemsUseCase {
 
     const instructionsPagination = normalizePagination(input.instructions);
     const eventsPagination = normalizePagination(input.events);
+    const medicationsPagination = normalizePagination(input.medications);
+    const access = resolveAccess(currentUser, input.campusId);
 
-    const [instructions, events] = await Promise.all([
-      this.instructionRepository.findActiveForHealthCenter({
-        campusId: input.campusId,
-        referenceDate,
-        classId,
-        offset: instructionsPagination.offset,
-        limit: instructionsPagination.limit,
-      }),
-      this.eventRepository.findOpenForHealthCenter({
-        campusId: input.campusId,
-        referenceDate,
-        classId,
-        offset: eventsPagination.offset,
-        limit: eventsPagination.limit,
-      }),
+    const instructionScope = {
+      campusId: input.campusId,
+      referenceDate,
+      classId,
+    };
+    const eventScope = {
+      campusId: input.campusId,
+      referenceDate,
+      visibleUntil: now,
+      classId,
+    };
+    const medicationScope = {
+      dueDate: referenceDate,
+      now,
+      timeZone: campus.timeZone,
+      classId,
+    };
+    const requestReviewScope = {
+      actualDate: getCampusDateOnly(now, campus.timeZone),
+      enrollmentReferenceDate: referenceDate,
+      classId,
+    };
+
+    const instructionsPromise = !access.healthItems
+      ? Promise.resolve({
+          data: [] as HealthCenterInstructionItem[],
+          total: 0,
+        })
+      : input.summaryOnly
+        ? this.instructionRepository
+            .countActiveForHealthCenter(instructionScope)
+            .then((total) => ({
+              data: [] as HealthCenterInstructionItem[],
+              total,
+            }))
+        : this.instructionRepository.findActiveForHealthCenter({
+            ...instructionScope,
+            offset: instructionsPagination.offset,
+            limit: instructionsPagination.limit,
+          });
+
+    const eventsPromise = !access.healthItems
+      ? Promise.resolve({
+          data: [] as HealthCenterEventItem[],
+          total: 0,
+        })
+      : input.summaryOnly
+        ? this.eventRepository
+            .countOpenForHealthCenter(eventScope)
+            .then((total) => ({
+              data: [] as HealthCenterEventItem[],
+              total,
+            }))
+        : this.eventRepository.findOpenForHealthCenter({
+            ...eventScope,
+            offset: eventsPagination.offset,
+            limit: eventsPagination.limit,
+          });
+
+    const medicationAdministrationsPromise = !access.medicationAdministrations
+      ? Promise.resolve({
+          rows: [] as MedicationAdministrationQueueRow[],
+          dueToday: 0,
+          overdue: 0,
+        })
+      : Promise.all([
+          input.summaryOnly
+            ? Promise.resolve([] as MedicationAdministrationQueueRow[])
+            : this.medicationAdministrationRepository.findHealthCenterDailyByCampus(
+                input.campusId,
+                {
+                  ...medicationScope,
+                  offset: medicationsPagination.offset,
+                  limit: medicationsPagination.limit,
+                },
+              ),
+          this.medicationAdministrationRepository.countHealthCenterSummaryByCampus(
+            input.campusId,
+            medicationScope,
+          ),
+        ]).then(([rows, counts]) => ({ rows, ...counts }));
+
+    const requestsNeedingReviewPromise = access.medicationRequests
+      ? this.medicationRequestRepository.countHealthCenterRequestsNeedingReview(
+          input.campusId,
+          requestReviewScope,
+        )
+      : Promise.resolve(0);
+
+    const [
+      instructions,
+      events,
+      medicationAdministrations,
+      requestsNeedingReview,
+    ] = await Promise.all([
+      instructionsPromise,
+      eventsPromise,
+      medicationAdministrationsPromise,
+      requestsNeedingReviewPromise,
     ]);
+    const medicationAdministrationTotal =
+      medicationAdministrations.dueToday + medicationAdministrations.overdue;
 
     return {
       campusId: input.campusId,
       date: referenceDate.toISOString().slice(0, 10),
       classId: classId ?? null,
+      generatedAt: now.toISOString(),
+      access,
       counts: {
         instructions: instructions.total,
         events: events.total,
         total: instructions.total + events.total,
+        medicationAdministrations: medicationAdministrationTotal,
+        dueMedicationAdministrations: medicationAdministrations.dueToday,
+        overdueMedicationAdministrations: medicationAdministrations.overdue,
+        requestsNeedingReview,
+        visibleTotal:
+          instructions.total + events.total + medicationAdministrationTotal,
+        actionRequired:
+          (access.canRecordMedication ? medicationAdministrationTotal : 0) +
+          (access.canReviewMedicationRequests ? requestsNeedingReview : 0),
       },
       pagination: {
         instructions: {
           ...instructionsPagination,
           total: instructions.total,
-          hasMore:
-            instructionsPagination.offset + instructions.data.length <
-            instructions.total,
+          hasMore: hasMorePage(instructionsPagination, instructions.total),
         },
         events: {
           ...eventsPagination,
           total: events.total,
-          hasMore: eventsPagination.offset + events.data.length < events.total,
+          hasMore: hasMorePage(eventsPagination, events.total),
+        },
+        medicationAdministrations: {
+          ...medicationsPagination,
+          total: medicationAdministrationTotal,
+          hasMore: hasMorePage(
+            medicationsPagination,
+            medicationAdministrationTotal,
+          ),
         },
       },
-      instructions: instructions.data.map((item) =>
-        toInstructionResponseItem(item),
-      ),
-      events: events.data.map((item) => toEventResponseItem(item)),
+      instructions: input.summaryOnly
+        ? []
+        : instructions.data.map((item) => toInstructionResponseItem(item)),
+      events: input.summaryOnly
+        ? []
+        : events.data.map((item) => toEventResponseItem(item)),
+      medicationAdministrations: input.summaryOnly
+        ? []
+        : medicationAdministrations.rows.map((row) =>
+            mapQueueRowToItem(row, now, campus.timeZone),
+          ),
     };
   }
+}
+
+function resolveAccess(
+  currentUser: User,
+  campusId: string,
+): HealthCenterDailyItemsAccess {
+  if (currentUser.hasSystemRole()) {
+    return {
+      healthItems: true,
+      medicationAdministrations: true,
+      medicationRequests: true,
+      canRecordMedication: true,
+      canReviewMedicationRequests: true,
+    };
+  }
+
+  const permissionIds = getPermissionIdsForCampus(currentUser, campusId);
+  const healthItems = permissionIds.has("student_health.read");
+  const medicationAdministrations = permissionIds.has(
+    "medication_administration.read",
+  );
+  const medicationRequests = permissionIds.has("medication_request.list");
+
+  return {
+    healthItems,
+    medicationAdministrations,
+    medicationRequests,
+    canRecordMedication:
+      medicationAdministrations &&
+      permissionIds.has("medication_administration.create"),
+    canReviewMedicationRequests:
+      medicationRequests &&
+      hasAllPermissions(permissionIds, [
+        "medication_request.read",
+        "medication_request.update",
+      ]),
+  };
 }
 
 function normalizePagination(input?: HealthCenterPaginationInput): {
@@ -202,6 +403,13 @@ function normalizePagination(input?: HealthCenterPaginationInput): {
       Math.max(1, Math.trunc(input?.limit ?? DEFAULT_LIMIT)),
     ),
   };
+}
+
+function hasMorePage(
+  pagination: { offset: number; limit: number },
+  total: number,
+): boolean {
+  return pagination.offset + pagination.limit < total;
 }
 
 function toInstructionResponseItem(

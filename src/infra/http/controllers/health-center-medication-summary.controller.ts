@@ -18,14 +18,14 @@ import {
   CAMPUS_ID_HEADER,
   CampusContext,
   RequireCampusAccess,
+  RequireAllPermissions,
 } from "../decorators";
-import { Permissions } from "../decorators/permissions.decorator";
 import {
   HealthCenterMedicationSummaryQuery,
   HealthCenterMedicationSummaryResponseDto,
 } from "../dtos/medication";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
-import { PermissionsGuard } from "../guards/permissions.guard";
+import { AllPermissionsGuard } from "../guards/all-permissions.guard";
 
 @ApiTags("Health Center")
 @ApiBearerAuth("JWT")
@@ -38,16 +38,20 @@ export class HealthCenterMedicationSummaryController {
 
   @Get("medication-summary")
   @RequireCampusAccess()
-  @UseGuards(PermissionsGuard)
-  @Permissions("medication_request.read")
+  @UseGuards(AllPermissionsGuard)
+  @RequireAllPermissions(
+    "medication_request.read",
+    "medication_administration.read",
+  )
   @StandardResponse({
     message: "Health Center medication summary retrieved successfully",
     type: HealthCenterMedicationSummaryResponseDto,
   })
   @ApiOperation({
     summary: "Get Health Center medication summary",
+    deprecated: true,
     description:
-      "Returns campus-scoped medication request and administration counts for the Health Center without modifying the daily-items instruction or event arrays.",
+      "Deprecated compatibility endpoint. New Health Center clients should use GET /api/health-center/daily-items, optionally with summaryOnly=true. This route remains operational and response-compatible during migration.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -59,7 +63,7 @@ export class HealthCenterMedicationSummaryController {
   })
   @ApiForbiddenResponse({
     description:
-      "Requires campus access and medication_request.read permission.",
+      "Requires campus access plus both medication_request.read and medication_administration.read permissions, or global Super Admin access.",
   })
   async getSummary(
     @CampusContext() campusId: string,

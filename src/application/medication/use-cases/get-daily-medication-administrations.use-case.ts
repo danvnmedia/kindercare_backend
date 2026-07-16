@@ -1,5 +1,13 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
+
+import { getCampusDateString } from "@/core/time/campus-time-zone";
 import {
   MedicationAdministrationLog,
   MedicationAdministrationOutcome,
@@ -8,6 +16,7 @@ import {
   normalizeDateOnly,
 } from "@/domain/medication";
 
+import { getMedicationOccurrenceDueAt } from "../medication-time-boundaries";
 import {
   MedicationAdministrationQueueRow,
   MedicationAdministrationRepository,
@@ -68,6 +77,8 @@ export class GetDailyMedicationAdministrationsUseCase {
   constructor(
     @Inject("MEDICATION_ADMINISTRATION_REPOSITORY")
     private readonly medicationAdministrationRepository: MedicationAdministrationRepository,
+    @Inject("CAMPUS_REPOSITORY")
+    private readonly campusRepository: CampusRepository,
   ) {}
 
   async execute(
@@ -75,7 +86,12 @@ export class GetDailyMedicationAdministrationsUseCase {
     input: GetDailyMedicationAdministrationsInput,
     now = new Date(),
   ): Promise<MedicationAdministrationQueueItem[]> {
-    const dueDate = this.normalizeQueueDate(input.date, now);
+    const campus = await this.campusRepository.findById(campusId);
+    if (!campus) {
+      throw new NotFoundException("Campus not found");
+    }
+
+    const dueDate = this.normalizeQueueDate(input.date, now, campus.timeZone);
     const rows =
       await this.medicationAdministrationRepository.findDailyByCampus(
         campusId,
@@ -88,13 +104,20 @@ export class GetDailyMedicationAdministrationsUseCase {
 
     return rows
       .sort(compareQueueRows)
-      .map((row) => mapQueueRowToItem(row, now))
+      .map((row) => mapQueueRowToItem(row, now, campus.timeZone))
       .filter((item) => !input.status || item.status === input.status);
   }
 
-  private normalizeQueueDate(value: string | undefined, now: Date): Date {
+  private normalizeQueueDate(
+    value: string | undefined,
+    now: Date,
+    timeZone: string,
+  ): Date {
     try {
-      return normalizeDateOnly(value ?? toServerDateOnly(now), "Date");
+      return normalizeDateOnly(
+        value ?? getCampusDateString(now, timeZone),
+        "Date",
+      );
     } catch (error) {
       throw new BadRequestException((error as Error).message);
     }
@@ -148,12 +171,17 @@ export interface MedicationAdministrationRecordResult {
   updatedAt: Date;
 }
 
-function mapQueueRowToItem(
+export function mapQueueRowToItem(
   row: MedicationAdministrationQueueRow,
   now: Date,
+  timeZone: string,
 ): MedicationAdministrationQueueItem {
   const { occurrence } = row;
-  const status = deriveMedicationAdministrationStatus(occurrence, now);
+  const status = deriveMedicationAdministrationStatus(
+    occurrence,
+    now,
+    timeZone,
+  );
 
   return {
     occurrenceId: occurrence.id,
@@ -183,12 +211,13 @@ function mapQueueRowToItem(
 export function deriveMedicationAdministrationStatus(
   occurrence: MedicationAdministrationOccurrence,
   now: Date,
+  timeZone = "UTC",
 ): MedicationAdministrationStatus {
   if (occurrence.latestOutcome) {
     return occurrence.latestOutcome as unknown as MedicationAdministrationStatus;
   }
 
-  return isOccurrenceOverdue(occurrence, now)
+  return isOccurrenceOverdue(occurrence, now, timeZone)
     ? MedicationAdministrationStatus.OVERDUE
     : MedicationAdministrationStatus.DUE;
 }
@@ -196,22 +225,11 @@ export function deriveMedicationAdministrationStatus(
 function isOccurrenceOverdue(
   occurrence: MedicationAdministrationOccurrence,
   now: Date,
+  timeZone: string,
 ): boolean {
-  return getOccurrenceDueAt(occurrence).getTime() < now.getTime();
-}
-
-function getOccurrenceDueAt(
-  occurrence: MedicationAdministrationOccurrence,
-): Date {
-  return new Date(occurrence.dueDate.getTime() + occurrence.dueMinute * 60000);
-}
-
-function toServerDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+  return (
+    getMedicationOccurrenceDueAt(occurrence, timeZone).getTime() < now.getTime()
+  );
 }
 
 function compareQueueRows(

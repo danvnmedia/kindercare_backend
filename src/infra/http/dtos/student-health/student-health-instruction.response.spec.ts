@@ -28,6 +28,9 @@ describe("StudentHealthInstructionResponse", () => {
         status: StudentHealthInstructionStatus.ACTIVE,
         createdBy: null,
         lastUpdatedBy: null,
+        archivedAt: null,
+        archivedByUserId: null,
+        isArchived: false,
         createdAt: "2026-07-01T08:30:00.000Z",
         updatedAt: "2026-07-01T08:30:00.000Z",
         internalOnly: "must not leak",
@@ -44,6 +47,9 @@ describe("StudentHealthInstructionResponse", () => {
     expect(plain).toMatchObject({
       startDate: "2026-06-30",
       endDate: "2026-07-31",
+      archivedAt: null,
+      archivedByUserId: null,
+      isArchived: false,
     });
     expect(plain).not.toHaveProperty("internalOnly");
   });

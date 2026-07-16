@@ -5,6 +5,8 @@ export enum MedicationRequestTimelineAction {
   NEEDS_MORE_INFO = "NEEDS_MORE_INFO",
   CANCELLED = "CANCELLED",
   PARENT_RESPONDED = "PARENT_RESPONDED",
+  COMPLETED = "COMPLETED",
+  EXPIRED = "EXPIRED",
 }
 
 export enum MedicationRequestTimelineActorType {

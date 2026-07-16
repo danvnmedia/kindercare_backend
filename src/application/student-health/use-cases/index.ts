@@ -15,3 +15,6 @@ export * from "./update-student-health-checkup.use-case";
 export * from "./update-student-health-event.use-case";
 export * from "./update-student-health-instruction.use-case";
 export * from "./update-student-health-profile.use-case";
+export * from "./archive-student-health-checkup.use-case";
+export * from "./archive-student-health-event.use-case";
+export * from "./archive-student-health-instruction.use-case";

@@ -122,6 +122,8 @@ export interface MedicationRequestProps {
   reviewNote?: string | null;
   cancelledAt?: Date | null;
   cancelReason?: string | null;
+  completedAt?: Date | null;
+  expiredAt?: Date | null;
   items: MedicationRequestItem[];
   student?: MedicationStudentSummary | null;
   requesterGuardian?: MedicationGuardianSummary | null;
@@ -159,6 +161,8 @@ export interface CreateMedicationRequestData {
   reviewNote?: unknown;
   cancelledAt?: Date | null;
   cancelReason?: unknown;
+  completedAt?: Date | null;
+  expiredAt?: Date | null;
   items?: unknown;
   student?: MedicationStudentSummary | null;
   requesterGuardian?: MedicationGuardianSummary | null;
@@ -234,6 +238,14 @@ export class MedicationRequest extends Entity<MedicationRequestProps> {
 
   get cancelReason(): string | null {
     return this.props.cancelReason ?? null;
+  }
+
+  get completedAt(): Date | null {
+    return this.props.completedAt ?? null;
+  }
+
+  get expiredAt(): Date | null {
+    return this.props.expiredAt ?? null;
   }
 
   get items(): MedicationRequestItem[] {
@@ -321,6 +333,35 @@ export class MedicationRequest extends Entity<MedicationRequestProps> {
     this.props.reviewedAt = at;
     this.props.reviewNote = reviewNote;
     this.touch(at);
+  }
+
+  completeAt(effectiveAt: Date, transitionedAt = new Date()): void {
+    if (this.status !== MedicationRequestStatus.APPROVED) {
+      throw new Error("Only approved medication requests can be completed");
+    }
+
+    this.props.status = MedicationRequestStatus.COMPLETED;
+    this.props.completedAt = normalizeTimestamp(effectiveAt, "Completed at");
+    this.props.expiredAt = null;
+    this.touch(transitionedAt);
+  }
+
+  expireAt(effectiveAt: Date, transitionedAt = new Date()): void {
+    if (
+      ![
+        MedicationRequestStatus.SUBMITTED,
+        MedicationRequestStatus.NEEDS_MORE_INFO,
+      ].includes(this.status)
+    ) {
+      throw new Error(
+        "Only submitted or needs-more-info medication requests can expire",
+      );
+    }
+
+    this.props.status = MedicationRequestStatus.EXPIRED;
+    this.props.expiredAt = normalizeTimestamp(effectiveAt, "Expired at");
+    this.props.completedAt = null;
+    this.touch(transitionedAt);
   }
 
   private touch(at = new Date()): void {
@@ -646,6 +687,8 @@ function normalizeMedicationRequestProps(
     reviewNote: normalizeOptionalText(props.reviewNote, "Review note"),
     cancelledAt: props.cancelledAt ?? null,
     cancelReason: normalizeOptionalText(props.cancelReason, "Cancel reason"),
+    completedAt: props.completedAt ?? null,
+    expiredAt: props.expiredAt ?? null,
     items,
     student: props.student ?? null,
     requesterGuardian: props.requesterGuardian ?? null,
@@ -798,6 +841,14 @@ function normalizeRequestStatus(value: unknown): MedicationRequestStatus {
   }
 
   return value as MedicationRequestStatus;
+}
+
+function normalizeTimestamp(value: Date, fieldName: string): Date {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    throw new Error(`${fieldName} must be a valid timestamp`);
+  }
+
+  return value;
 }
 
 function normalizeAdministrationOutcome(

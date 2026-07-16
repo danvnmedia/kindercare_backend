@@ -128,6 +128,37 @@ describe("PrismaMedicationRequestMapper", () => {
       email: null,
     });
   });
+
+  it("round-trips terminal timestamps through domain and persistence shapes", () => {
+    const completedAt = new Date("2099-07-05T05:30:00.000Z");
+    const expiredAt = new Date("2099-07-06T04:00:00.000Z");
+    const completedRequest = PrismaMedicationRequestMapper.toDomain(
+      medicationRequestRow({
+        status: MedicationRequestStatus.COMPLETED,
+        completedAt,
+      }),
+    );
+    const expiredRequest = PrismaMedicationRequestMapper.toDomain(
+      medicationRequestRow({
+        status: MedicationRequestStatus.EXPIRED,
+        expiredAt,
+      }),
+    );
+
+    expect(completedRequest.completedAt).toBe(completedAt);
+    expect(completedRequest.expiredAt).toBeNull();
+    expect(expiredRequest.completedAt).toBeNull();
+    expect(expiredRequest.expiredAt).toBe(expiredAt);
+    expect(
+      PrismaMedicationRequestMapper.toPrismaCreate(completedRequest),
+    ).toMatchObject({ completedAt, expiredAt: null });
+    expect(
+      PrismaMedicationRequestMapper.toPrismaUpdate(expiredRequest),
+    ).toMatchObject({ completedAt: null, expiredAt });
+    expect(
+      PrismaMedicationRequestMapper.toPrismaUpdateMany(completedRequest),
+    ).toMatchObject({ completedAt, expiredAt: null });
+  });
 });
 
 function medicationRequestRow(
@@ -149,6 +180,8 @@ function medicationRequestRow(
     reviewNote: "Approved.",
     cancelledAt: null,
     cancelReason: null,
+    completedAt: null,
+    expiredAt: null,
     createdAt: NOW,
     updatedAt: NOW,
     items: [

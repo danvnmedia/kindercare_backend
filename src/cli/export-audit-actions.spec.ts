@@ -39,15 +39,15 @@ describe("buildAuditActionsExport", () => {
   // added 3; direct role assignment added 2; role lifecycle added 3; global
   // identity lifecycle added 3; staff-type lifecycle added 4; meal-menu
   // lifecycle added 6; weekly-plan lifecycle added 5; student-health profile
-  // updates added 1; student-health checkup lifecycle added 2; student-health
-  // instruction lifecycle added 2; student-health event lifecycle added 2;
+  // updates added 1; student-health checkup lifecycle added 3; student-health
+  // instruction lifecycle added 3; student-health event lifecycle added 3;
   // medication request lifecycle added 1; school-year grade correction added 1;
   // school-year lifecycle run/decision/preview/commit added 9;
   // historical record correction/export/retention lifecycle added 6; future
   // school-year enrollment cancellation added 1; CMS lifecycle added 15.
-  it("emits exactly 87 actions including enrollment cancellation and CMS lifecycle", () => {
+  it("emits exactly 90 actions including health archival and CMS lifecycle", () => {
     const result = buildAuditActionsExport();
-    expect(result.actions).toHaveLength(87);
+    expect(result.actions).toHaveLength(90);
   });
 
   it("preserves spec FR-1 group ordering (enrollment → edit → archive → create → link)", () => {

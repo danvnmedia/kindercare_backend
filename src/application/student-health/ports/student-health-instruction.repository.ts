@@ -23,10 +23,14 @@ export interface HealthCenterInstructionItem {
   class: HealthCenterClassSummary | null;
 }
 
-export interface HealthCenterInstructionListParams {
+export interface HealthCenterInstructionScope {
   campusId: string;
   referenceDate: Date;
   classId?: string;
+}
+
+export interface HealthCenterInstructionListParams
+  extends HealthCenterInstructionScope {
   offset: number;
   limit: number;
 }
@@ -39,6 +43,7 @@ export interface HealthCenterInstructionListResult {
 export interface StudentHealthInstructionListParams extends StandardRequest {
   status?: StudentHealthInstructionStatus;
   date?: string;
+  includeArchived?: boolean;
 }
 
 export abstract class StudentHealthInstructionRepository {
@@ -52,6 +57,7 @@ export abstract class StudentHealthInstructionRepository {
     campusId: string,
     studentId: string,
     instructionId: string,
+    tx?: AppTransactionClient,
   ): Promise<StudentHealthInstruction | null>;
 
   abstract findActiveByStudentInCampus(
@@ -70,13 +76,22 @@ export abstract class StudentHealthInstructionRepository {
     params: HealthCenterInstructionListParams,
   ): Promise<HealthCenterInstructionListResult>;
 
+  abstract countActiveForHealthCenter(
+    params: HealthCenterInstructionScope,
+  ): Promise<number>;
+
   abstract create(
     instruction: StudentHealthInstruction,
     tx?: AppTransactionClient,
   ): Promise<StudentHealthInstruction>;
 
-  abstract update(
+  abstract archiveIfActive(
     instruction: StudentHealthInstruction,
     tx?: AppTransactionClient,
-  ): Promise<StudentHealthInstruction>;
+  ): Promise<StudentHealthInstruction | null>;
+
+  abstract updateIfActive(
+    instruction: StudentHealthInstruction,
+    tx?: AppTransactionClient,
+  ): Promise<StudentHealthInstruction | null>;
 }

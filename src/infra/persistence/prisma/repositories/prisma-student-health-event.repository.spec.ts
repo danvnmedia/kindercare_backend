@@ -15,10 +15,8 @@ const NOW = new Date("2026-07-01T06:30:00.000Z");
 describe("PrismaStudentHealthEventRepository", () => {
   let repository: PrismaStudentHealthEventRepository;
   let eventDelegate: StudentHealthEventDelegateMock;
-  let nowSpy: jest.SpyInstance<number, []>;
 
   beforeEach(() => {
-    nowSpy = jest.spyOn(Date, "now").mockReturnValue(NOW.getTime());
     eventDelegate = {
       findMany: jest.fn().mockResolvedValue([]),
       count: jest.fn().mockResolvedValue(0),
@@ -32,14 +30,11 @@ describe("PrismaStudentHealthEventRepository", () => {
     );
   });
 
-  afterEach(() => {
-    nowSpy.mockRestore();
-  });
-
-  it("caps Health Center open event reads at now for the selected current day", async () => {
+  it("caps Health Center open event reads at the request-provided cutoff", async () => {
     await repository.findOpenForHealthCenter({
       campusId: CAMPUS_ID,
       referenceDate: new Date("2026-07-01T00:00:00.000Z"),
+      visibleUntil: NOW,
       offset: 0,
       limit: 50,
     });
@@ -50,17 +45,20 @@ describe("PrismaStudentHealthEventRepository", () => {
     expect(findManyArg.where).toEqual(
       expect.objectContaining({
         campusId: CAMPUS_ID,
+        archivedAt: null,
         status: StudentHealthEventStatus.OPEN,
         occurredAt: { lte: NOW },
       }),
     );
     expect(countArg.where.occurredAt).toEqual({ lte: NOW });
+    expect(countArg.where.archivedAt).toBeNull();
   });
 
   it("uses selected day end for Health Center open event reads in the past", async () => {
     await repository.findOpenForHealthCenter({
       campusId: CAMPUS_ID,
       referenceDate: new Date("2026-06-30T00:00:00.000Z"),
+      visibleUntil: NOW,
       offset: 0,
       limit: 50,
     });
@@ -79,6 +77,7 @@ describe("PrismaStudentHealthEventRepository", () => {
       campusId: CAMPUS_ID,
       classId: "class-1",
       referenceDate: selectedDate,
+      visibleUntil: NOW,
       offset: 0,
       limit: 50,
     });
@@ -95,5 +94,35 @@ describe("PrismaStudentHealthEventRepository", () => {
     expect(arg.include.student.select.enrollments.where).toEqual(
       expectedEnrollment,
     );
+  });
+
+  it("counts the same archived, campus, event, and enrollment scope without hydration", async () => {
+    const selectedDate = new Date("2026-07-01T00:00:00.000Z");
+    eventDelegate.count.mockResolvedValue(4);
+
+    await expect(
+      repository.countOpenForHealthCenter({
+        campusId: CAMPUS_ID,
+        classId: "class-1",
+        referenceDate: selectedDate,
+        visibleUntil: NOW,
+      }),
+    ).resolves.toBe(4);
+
+    expect(eventDelegate.findMany).not.toHaveBeenCalled();
+    expect(eventDelegate.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        campusId: CAMPUS_ID,
+        archivedAt: null,
+        status: StudentHealthEventStatus.OPEN,
+        occurredAt: { lte: NOW },
+        student: expect.objectContaining({
+          campusId: CAMPUS_ID,
+          enrollments: {
+            some: expect.objectContaining({ classId: "class-1" }),
+          },
+        }),
+      }),
+    });
   });
 });

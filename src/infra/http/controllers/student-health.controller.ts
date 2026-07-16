@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -12,6 +13,7 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiHeader,
   ApiNotFoundResponse,
@@ -22,6 +24,9 @@ import {
 
 import { GetStudentMedicationHistoryUseCase } from "@/application/medication";
 import {
+  ArchiveStudentHealthCheckupUseCase,
+  ArchiveStudentHealthEventUseCase,
+  ArchiveStudentHealthInstructionUseCase,
   CreateStudentHealthCheckupUseCase,
   CreateStudentHealthEventUseCase,
   CreateStudentHealthInstructionUseCase,
@@ -152,6 +157,9 @@ const HEALTH_INSTRUCTION_ALLOWED_FILTER_FIELDS = [
 @UseGuards(ClerkAuthGuard)
 export class StudentHealthController {
   constructor(
+    private readonly archiveCheckupUseCase: ArchiveStudentHealthCheckupUseCase,
+    private readonly archiveEventUseCase: ArchiveStudentHealthEventUseCase,
+    private readonly archiveInstructionUseCase: ArchiveStudentHealthInstructionUseCase,
     private readonly createCheckupUseCase: CreateStudentHealthCheckupUseCase,
     private readonly createEventUseCase: CreateStudentHealthEventUseCase,
     private readonly createInstructionUseCase: CreateStudentHealthInstructionUseCase,
@@ -310,7 +318,7 @@ export class StudentHealthController {
   @ApiOperation({
     summary: "List student health checkups",
     description:
-      "Lists selected-campus health checkup records for one student using standard pagination, sorting, and filtering.",
+      "Lists selected-campus health checkups using standard pagination, sorting, and filtering. Archived records are excluded unless includeArchived=true. The Health Snapshot obtains the latest active checkup with limit=1, offset=0, sort=-checkedAt, and includeArchived omitted.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -449,7 +457,7 @@ export class StudentHealthController {
   @ApiOperation({
     summary: "Update student health checkup",
     description:
-      "Updates one selected-campus health checkup record. V1 supports updates but no delete/archive endpoint.",
+      "Updates one active selected-campus health checkup record. Archived records reject updates with conflict.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -475,6 +483,9 @@ export class StudentHealthController {
   @ApiForbiddenResponse({
     description: "Requires campus access and student_health.update permission.",
   })
+  @ApiConflictResponse({
+    description: "The checkup is archived or lost a race with archival.",
+  })
   @ApiNotFoundResponse({
     description:
       "Student was not found in the selected campus, or checkup was not found for the student.",
@@ -491,6 +502,51 @@ export class StudentHealthController {
       studentId,
       checkupId,
       dto,
+      currentUser,
+    );
+  }
+
+  @Delete(":studentId/health-checkups/:checkupId")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("student_health.delete")
+  @StandardResponse({
+    message: "Student health checkup archived successfully",
+    type: StudentHealthCheckupResponse,
+  })
+  @ApiOperation({
+    summary: "Archive student health checkup",
+    description:
+      "Archives one selected-campus health checkup. Repeating the request returns the original archive metadata without a second audit event.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID used as the system-enforced health data scope.",
+  })
+  @ApiParam({ name: "studentId", type: "string", format: "uuid" })
+  @ApiParam({ name: "checkupId", type: "string", format: "uuid" })
+  @ApiBadRequestResponse({
+    description:
+      "The record is active but the owning student has already been archived.",
+  })
+  @ApiForbiddenResponse({
+    description: "Requires campus access and student_health.delete permission.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Student or checkup was not found in the selected campus and ownership scope.",
+  })
+  async archiveCheckup(
+    @CampusContext() campusId: string,
+    @Param("studentId", ParseUUIDPipe) studentId: string,
+    @Param("checkupId", ParseUUIDPipe) checkupId: string,
+    @CurrentUser() currentUser: User,
+  ): Promise<StudentHealthCheckup> {
+    return this.archiveCheckupUseCase.execute(
+      campusId,
+      studentId,
+      checkupId,
       currentUser,
     );
   }
@@ -648,7 +704,7 @@ export class StudentHealthController {
   @ApiOperation({
     summary: "Update student health event",
     description:
-      "Updates one selected-campus manual health history event. ARCHIVED is a readable status, not deletion.",
+      "Updates one selected-campus manual health history event. Clinical status is OPEN or RESOLVED; record archival uses the DELETE endpoint.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -674,6 +730,9 @@ export class StudentHealthController {
   @ApiForbiddenResponse({
     description: "Requires campus access and student_health.update permission.",
   })
+  @ApiConflictResponse({
+    description: "The event is archived or lost a race with archival.",
+  })
   @ApiNotFoundResponse({
     description:
       "Student was not found in the selected campus, or event was not found for the student.",
@@ -690,6 +749,51 @@ export class StudentHealthController {
       studentId,
       eventId,
       dto,
+      currentUser,
+    );
+  }
+
+  @Delete(":studentId/health-events/:eventId")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("student_health.delete")
+  @StandardResponse({
+    message: "Student health event archived successfully",
+    type: StudentHealthEventResponse,
+  })
+  @ApiOperation({
+    summary: "Archive student health event",
+    description:
+      "Archives one selected-campus health event without changing its OPEN or RESOLVED clinical status.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID used as the system-enforced health data scope.",
+  })
+  @ApiParam({ name: "studentId", type: "string", format: "uuid" })
+  @ApiParam({ name: "eventId", type: "string", format: "uuid" })
+  @ApiBadRequestResponse({
+    description:
+      "The record is active but the owning student has already been archived.",
+  })
+  @ApiForbiddenResponse({
+    description: "Requires campus access and student_health.delete permission.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Student or event was not found in the selected campus and ownership scope.",
+  })
+  async archiveEvent(
+    @CampusContext() campusId: string,
+    @Param("studentId", ParseUUIDPipe) studentId: string,
+    @Param("eventId", ParseUUIDPipe) eventId: string,
+    @CurrentUser() currentUser: User,
+  ): Promise<StudentHealthEvent> {
+    return this.archiveEventUseCase.execute(
+      campusId,
+      studentId,
+      eventId,
       currentUser,
     );
   }
@@ -898,7 +1002,7 @@ export class StudentHealthController {
   @ApiOperation({
     summary: "Update student health instruction",
     description:
-      "Updates one selected-campus health instruction. V1 supports updates but no delete/archive endpoint.",
+      "Updates one active selected-campus health instruction. Archived records reject updates with conflict.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -924,6 +1028,9 @@ export class StudentHealthController {
   @ApiForbiddenResponse({
     description: "Requires campus access and student_health.update permission.",
   })
+  @ApiConflictResponse({
+    description: "The instruction is archived or lost a race with archival.",
+  })
   @ApiNotFoundResponse({
     description:
       "Student was not found in the selected campus, or instruction was not found for the student.",
@@ -940,6 +1047,52 @@ export class StudentHealthController {
       studentId,
       instructionId,
       dto,
+      currentUser,
+    );
+    return toInstructionResponse(instruction);
+  }
+
+  @Delete(":studentId/health-instructions/:instructionId")
+  @RequireCampusAccess()
+  @UseGuards(PermissionsGuard)
+  @Permissions("student_health.delete")
+  @StandardResponse({
+    message: "Student health instruction archived successfully",
+    type: StudentHealthInstructionResponse,
+  })
+  @ApiOperation({
+    summary: "Archive student health instruction",
+    description:
+      "Archives one selected-campus health instruction without deleting its history.",
+  })
+  @ApiHeader({
+    name: CAMPUS_ID_HEADER,
+    required: true,
+    description: "Campus UUID used as the system-enforced health data scope.",
+  })
+  @ApiParam({ name: "studentId", type: "string", format: "uuid" })
+  @ApiParam({ name: "instructionId", type: "string", format: "uuid" })
+  @ApiBadRequestResponse({
+    description:
+      "The record is active but the owning student has already been archived.",
+  })
+  @ApiForbiddenResponse({
+    description: "Requires campus access and student_health.delete permission.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Student or instruction was not found in the selected campus and ownership scope.",
+  })
+  async archiveInstruction(
+    @CampusContext() campusId: string,
+    @Param("studentId", ParseUUIDPipe) studentId: string,
+    @Param("instructionId", ParseUUIDPipe) instructionId: string,
+    @CurrentUser() currentUser: User,
+  ): Promise<StudentHealthInstructionResponseShape> {
+    const instruction = await this.archiveInstructionUseCase.execute(
+      campusId,
+      studentId,
+      instructionId,
       currentUser,
     );
     return toInstructionResponse(instruction);
@@ -975,6 +1128,9 @@ function toInstructionResponse(
     status: instruction.getStatus(referenceDate ?? new Date()),
     createdBy: instruction.createdBy,
     lastUpdatedBy: instruction.lastUpdatedBy,
+    archivedAt: instruction.archivedAt,
+    archivedByUserId: instruction.archivedByUserId,
+    isArchived: instruction.isArchived,
     createdAt: instruction.createdAt,
     updatedAt: instruction.updatedAt,
   };

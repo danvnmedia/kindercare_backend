@@ -1,9 +1,11 @@
 import { Injectable } from "@nestjs/common";
 
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
-import { StudentHealthCheckupRepository } from "@/application/student-health";
+import {
+  StudentHealthCheckupListParams,
+  StudentHealthCheckupRepository,
+} from "@/application/student-health";
 import { PaginatedResult } from "@/core/modules/standard-response/dto/query.dto";
-import { StandardRequest } from "@/core/modules/standard-response/dto/standard-request.dto";
 import { PrismaQueryService } from "@/core/modules/standard-response/services/prisma-query.service";
 import { StudentHealthCheckup } from "@/domain/student-health";
 
@@ -22,7 +24,7 @@ export class PrismaStudentHealthCheckupRepository
   async findByStudentInCampus(
     campusId: string,
     studentId: string,
-    params: StandardRequest,
+    params: StudentHealthCheckupListParams,
   ): Promise<PaginatedResult<StudentHealthCheckup>> {
     params.allowedFilterFields = [
       "checkupType",
@@ -49,7 +51,11 @@ export class PrismaStudentHealthCheckupRepository
         dateFilterFields: ["checkedAt", "createdAt", "updatedAt"],
         include: PrismaStudentHealthCheckupMapper.include,
         orderBy: { checkedAt: "desc" },
-        scope: { campusId, studentId },
+        scope: {
+          campusId,
+          studentId,
+          ...(params.includeArchived === true ? {} : { archivedAt: null }),
+        },
       },
       PrismaStudentHealthCheckupMapper,
     );
@@ -59,8 +65,10 @@ export class PrismaStudentHealthCheckupRepository
     campusId: string,
     studentId: string,
     checkupId: string,
+    tx?: AppTransactionClient,
   ): Promise<StudentHealthCheckup | null> {
-    const row = await this.prisma.studentHealthCheckup.findFirst({
+    const client = tx ?? this.prisma;
+    const row = await client.studentHealthCheckup.findFirst({
       where: { id: checkupId, campusId, studentId },
       include: PrismaStudentHealthCheckupMapper.include,
     });
@@ -81,17 +89,63 @@ export class PrismaStudentHealthCheckupRepository
     return PrismaStudentHealthCheckupMapper.toDomain(created);
   }
 
-  async update(
+  async archiveIfActive(
     checkup: StudentHealthCheckup,
     tx?: AppTransactionClient,
-  ): Promise<StudentHealthCheckup> {
+  ): Promise<StudentHealthCheckup | null> {
     const client = tx ?? this.prisma;
-    const updated = await client.studentHealthCheckup.update({
-      where: { id: checkup.id },
-      data: PrismaStudentHealthCheckupMapper.toPrismaUpdate(checkup),
-      include: PrismaStudentHealthCheckupMapper.include,
+    if (!checkup.archivedAt || !checkup.archivedByUserId) {
+      throw new Error("Archived health checkup metadata is required");
+    }
+
+    const result = await client.studentHealthCheckup.updateMany({
+      where: {
+        id: checkup.id,
+        campusId: checkup.campusId,
+        studentId: checkup.studentId,
+        archivedAt: null,
+        student: { isArchived: false },
+      },
+      data: {
+        archivedAt: checkup.archivedAt,
+        archivedByUserId: checkup.archivedByUserId,
+        updatedAt: checkup.updatedAt,
+      },
     });
 
-    return PrismaStudentHealthCheckupMapper.toDomain(updated);
+    return result.count === 1
+      ? this.findByIdForStudentInCampus(
+          checkup.campusId,
+          checkup.studentId,
+          checkup.id,
+          tx,
+        )
+      : null;
+  }
+
+  async updateIfActive(
+    checkup: StudentHealthCheckup,
+    tx?: AppTransactionClient,
+  ): Promise<StudentHealthCheckup | null> {
+    const client = tx ?? this.prisma;
+    const result = await client.studentHealthCheckup.updateMany({
+      where: {
+        id: checkup.id,
+        campusId: checkup.campusId,
+        studentId: checkup.studentId,
+        archivedAt: null,
+        student: { isArchived: false },
+      },
+      data: PrismaStudentHealthCheckupMapper.toPrismaUpdate(checkup),
+    });
+
+    return result.count === 1
+      ? this.findByIdForStudentInCampus(
+          checkup.campusId,
+          checkup.studentId,
+          checkup.id,
+          tx,
+        )
+      : null;
   }
 }

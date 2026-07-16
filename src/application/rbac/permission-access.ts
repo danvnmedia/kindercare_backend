@@ -28,12 +28,32 @@ export function hasAnyPermission(
   );
 }
 
+export function hasAllPermissions(
+  permissionIds: ReadonlySet<string>,
+  requiredPermissions: readonly string[],
+): boolean {
+  return requiredPermissions.every((permission) =>
+    permissionIds.has(permission),
+  );
+}
+
 export function hasAnyPermissionInCampus(
   user: User,
   campusId: string | null,
   requiredPermissions: readonly string[],
 ): boolean {
   return hasAnyPermission(
+    getPermissionIdsForCampus(user, campusId),
+    requiredPermissions,
+  );
+}
+
+export function hasAllPermissionsInCampus(
+  user: User,
+  campusId: string | null,
+  requiredPermissions: readonly string[],
+): boolean {
+  return hasAllPermissions(
     getPermissionIdsForCampus(user, campusId),
     requiredPermissions,
   );

@@ -248,23 +248,28 @@ describe("StudentHealthController route metadata", () => {
     );
   });
 
-  it("does not expose a DELETE/archive route for health checkups", () => {
-    const methods = Object.getOwnPropertyNames(
-      StudentHealthController.prototype,
-    )
-      .filter((name) => name !== "constructor")
-      .map(
-        (name) =>
-          Reflect.getMetadata(
-            METHOD_METADATA,
-            StudentHealthController.prototype[
-              name as keyof StudentHealthController
-            ],
-          ) as RequestMethod | undefined,
+  it.each([
+    ["archiveCheckup" as const, ":studentId/health-checkups/:checkupId"],
+    ["archiveEvent" as const, ":studentId/health-events/:eventId"],
+    [
+      "archiveInstruction" as const,
+      ":studentId/health-instructions/:instructionId",
+    ],
+  ])(
+    "wires DELETE archive route %s with delete-only permission",
+    (name, path) => {
+      expect(Reflect.getMetadata(PATH_METADATA, handler(name))).toBe(path);
+      expect(Reflect.getMetadata(METHOD_METADATA, handler(name))).toBe(
+        RequestMethod.DELETE,
       );
-
-    expect(methods).not.toContain(RequestMethod.DELETE);
-  });
+      expect(
+        Reflect.getMetadata(REQUIRE_CAMPUS_ACCESS_KEY, handler(name)),
+      ).toEqual({});
+      expect(guardsFor(name)).toEqual([CampusGuard, PermissionsGuard]);
+      expect(permissionsFor(name)).toEqual(["student_health.delete"]);
+      expect(permissionsFor(name)).not.toContain("student_health.update");
+    },
+  );
 });
 
 describe("ClassHealthInstructionsController route metadata", () => {
@@ -310,7 +315,7 @@ describe("HealthCenterController route metadata", () => {
     expect(classGuards).toContain(ClerkAuthGuard);
   });
 
-  it("wires GET /health-center/daily-items with read permission", () => {
+  it("wires GET /health-center/daily-items with permission-aware OR entry", () => {
     const routeHandler = HealthCenterController.prototype.getDailyItems;
 
     expect(Reflect.getMetadata(PATH_METADATA, HealthCenterController)).toBe(
@@ -331,6 +336,8 @@ describe("HealthCenterController route metadata", () => {
     ]);
     expect(Reflect.getMetadata(PERMISSIONS_KEY, routeHandler)).toEqual([
       "student_health.read",
+      "medication_administration.read",
+      "medication_request.list",
     ]);
   });
 });

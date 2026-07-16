@@ -260,11 +260,12 @@ async function main() {
 
   const campus = await prisma.campus.upsert({
     where: { id: CAMPUS_ID },
-    update: { isArchived: false },
+    update: { isArchived: false, timeZone: "Asia/Ho_Chi_Minh" },
     create: {
       id: CAMPUS_ID,
       name: "Kindercare Health Center Demo",
       address: "Demo campus",
+      timeZone: "Asia/Ho_Chi_Minh",
       isArchived: false,
     },
   });

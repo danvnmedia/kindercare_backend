@@ -9,9 +9,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiHeader,
+  ApiNotFoundResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -145,6 +148,10 @@ export class ParentMedicationRequestController {
     type: "string",
     format: "uuid",
   })
+  @ApiNotFoundResponse({
+    description:
+      "Medication request was not found for the authenticated guardian in the selected campus.",
+  })
   async findOne(
     @CampusContext() campusId: string,
     @CurrentUser() currentUser: User,
@@ -167,7 +174,7 @@ export class ParentMedicationRequestController {
   @ApiOperation({
     summary: "Cancel my medication request",
     description:
-      "Cancels a guardian-owned medication request while it is submitted or waiting for more information.",
+      "Cancels a guardian-owned request while submitted or waiting for more information. Terminal requests and requests at or beyond their campus-local expiration boundary return conflict; a late active request is first persisted as EXPIRED.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -180,6 +187,17 @@ export class ParentMedicationRequestController {
     description: "Medication request ID",
     type: "string",
     format: "uuid",
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid cancellation reason or non-terminal workflow state.",
+  })
+  @ApiConflictResponse({
+    description:
+      "The request is terminal or reached its campus-local expiration boundary.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Medication request was not found for the authenticated guardian in the selected campus.",
   })
   async cancel(
     @CampusContext() campusId: string,
@@ -205,7 +223,7 @@ export class ParentMedicationRequestController {
   @ApiOperation({
     summary: "Respond to a medication request information request",
     description:
-      "Adds parent follow-up information when staff requested more information for a guardian-owned request.",
+      "Adds parent follow-up information when staff requested more information. Terminal requests and requests at or beyond their campus-local expiration boundary return conflict; a late active request is first persisted as EXPIRED.",
   })
   @ApiHeader({
     name: CAMPUS_ID_HEADER,
@@ -218,6 +236,17 @@ export class ParentMedicationRequestController {
     description: "Medication request ID",
     type: "string",
     format: "uuid",
+  })
+  @ApiBadRequestResponse({
+    description: "Missing response message or non-terminal workflow state.",
+  })
+  @ApiConflictResponse({
+    description:
+      "The request is terminal or reached its campus-local expiration boundary.",
+  })
+  @ApiNotFoundResponse({
+    description:
+      "Medication request was not found for the authenticated guardian in the selected campus.",
   })
   async respond(
     @CampusContext() campusId: string,

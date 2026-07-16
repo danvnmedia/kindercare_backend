@@ -2,6 +2,9 @@ import { Module } from "@nestjs/common";
 
 import { GetStudentMedicationHistoryUseCase } from "@/application/medication";
 import {
+  ArchiveStudentHealthCheckupUseCase,
+  ArchiveStudentHealthEventUseCase,
+  ArchiveStudentHealthInstructionUseCase,
   CreateStudentHealthCheckupUseCase,
   CreateStudentHealthEventUseCase,
   CreateStudentHealthInstructionUseCase,
@@ -25,7 +28,6 @@ import { PrismaModule } from "@/infra/persistence/prisma/prisma.module";
 import {
   PrismaClassRepository,
   PrismaEnrollmentRepository,
-  PrismaMedicationRequestRepository,
   PrismaStudentHealthCheckupRepository,
   PrismaStudentHealthEventRepository,
   PrismaStudentHealthInstructionRepository,
@@ -41,6 +43,7 @@ import { CampusGuard } from "../guards/campus.guard";
 import { ClerkAuthGuard } from "../guards/clerk-auth.guard";
 import { PermissionsGuard } from "../guards/permissions.guard";
 import { CampusModule } from "./campus.module";
+import { MedicationModule } from "./medication.module";
 
 @Module({
   imports: [
@@ -48,6 +51,7 @@ import { CampusModule } from "./campus.module";
     StandardResponseModule,
     RequestContextModule,
     CampusModule,
+    MedicationModule,
   ],
   controllers: [
     StudentHealthController,
@@ -55,6 +59,9 @@ import { CampusModule } from "./campus.module";
     HealthCenterController,
   ],
   providers: [
+    ArchiveStudentHealthCheckupUseCase,
+    ArchiveStudentHealthEventUseCase,
+    ArchiveStudentHealthInstructionUseCase,
     CreateStudentHealthCheckupUseCase,
     CreateStudentHealthEventUseCase,
     CreateStudentHealthInstructionUseCase,
@@ -103,10 +110,6 @@ import { CampusModule } from "./campus.module";
     {
       provide: "STUDENT_REPOSITORY",
       useClass: PrismaStudentRepository,
-    },
-    {
-      provide: "MEDICATION_REQUEST_REPOSITORY",
-      useClass: PrismaMedicationRequestRepository,
     },
   ],
   exports: [

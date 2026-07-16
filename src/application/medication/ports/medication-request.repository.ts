@@ -24,6 +24,11 @@ export interface StaffMedicationRequestListParams extends StandardRequest {
   search?: string;
 }
 
+export interface StaffMedicationRequestRepositoryParams
+  extends StaffMedicationRequestListParams {
+  enrollmentReferenceDate: Date;
+}
+
 export interface StudentMedicationHistoryParams extends StandardRequest {
   status?: MedicationRequestStatus;
   fromDate?: string | Date;
@@ -35,6 +40,34 @@ export interface MedicationRequestHealthCenterSummaryCounts {
   needsMoreInfo: number;
 }
 
+export interface MedicationRequestHealthCenterReviewCountParams {
+  actualDate: Date;
+  enrollmentReferenceDate: Date;
+  classId?: string;
+}
+
+export interface MedicationLifecycleCandidate {
+  request: MedicationRequest;
+  timeZone: string;
+}
+
+export interface MedicationLifecycleCandidateQuery {
+  now: Date;
+  limit: number;
+  afterId?: string;
+}
+
+export interface MedicationTerminalTransition {
+  requestId: string;
+  campusId: string;
+  sourceStatuses: MedicationRequestStatus[];
+  targetStatus:
+    | MedicationRequestStatus.COMPLETED
+    | MedicationRequestStatus.EXPIRED;
+  effectiveAt: Date;
+  updatedAt: Date;
+}
+
 export abstract class MedicationRequestRepository {
   abstract findByIdInCampus(
     campusId: string,
@@ -44,7 +77,7 @@ export abstract class MedicationRequestRepository {
 
   abstract findByCampusId(
     campusId: string,
-    params: StaffMedicationRequestListParams,
+    params: StaffMedicationRequestRepositoryParams,
   ): Promise<PaginatedResult<MedicationRequest>>;
 
   abstract findDetailByIdInCampus(
@@ -62,6 +95,11 @@ export abstract class MedicationRequestRepository {
   abstract countHealthCenterSummaryByCampus(
     campusId: string,
   ): Promise<MedicationRequestHealthCenterSummaryCounts>;
+
+  abstract countHealthCenterRequestsNeedingReview(
+    campusId: string,
+    params: MedicationRequestHealthCenterReviewCountParams,
+  ): Promise<number>;
 
   abstract findByIdForRequesterGuardian(
     campusId: string,
@@ -117,4 +155,13 @@ export abstract class MedicationRequestRepository {
     timelineEntry: MedicationRequestTimelineEntry,
     tx?: AppTransactionClient,
   ): Promise<MedicationRequestTimelineEntry>;
+
+  abstract findLifecycleCandidates(
+    query: MedicationLifecycleCandidateQuery,
+  ): Promise<MedicationLifecycleCandidate[]>;
+
+  abstract transitionToTerminalIfStatusIn(
+    transition: MedicationTerminalTransition,
+    tx?: AppTransactionClient,
+  ): Promise<boolean>;
 }

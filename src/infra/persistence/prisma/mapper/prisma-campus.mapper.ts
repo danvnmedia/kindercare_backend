@@ -9,6 +9,7 @@ export class PrismaCampusMapper {
         name: prismaCampus.name,
         address: prismaCampus.address,
         phoneNumber: prismaCampus.phoneNumber,
+        timeZone: prismaCampus.timeZone,
         isArchived: prismaCampus.isArchived,
         createdAt: prismaCampus.createdAt,
         updatedAt: prismaCampus.updatedAt,
@@ -23,6 +24,7 @@ export class PrismaCampusMapper {
       name: campus.name,
       address: campus.address,
       phoneNumber: campus.phoneNumber,
+      timeZone: campus.timeZone,
       isArchived: campus.isArchived,
       createdAt: campus.createdAt,
       updatedAt: campus.updatedAt,
@@ -34,6 +36,7 @@ export class PrismaCampusMapper {
       name: campus.name,
       address: campus.address,
       phoneNumber: campus.phoneNumber,
+      timeZone: campus.timeZone,
       isArchived: campus.isArchived,
       updatedAt: campus.updatedAt,
     };

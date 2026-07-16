@@ -3,6 +3,9 @@ import { Prisma } from "@prisma/client";
 
 import {
   MedicationAdministrationDailyParams,
+  MedicationAdministrationHealthCenterDailyParams,
+  MedicationAdministrationHealthCenterSummaryCounts,
+  MedicationAdministrationHealthCenterSummaryParams,
   MedicationAdministrationQueueRow,
   MedicationAdministrationRepository,
 } from "@/application/medication";
@@ -12,6 +15,11 @@ import {
   MedicationAdministrationOccurrence,
   normalizeDateOnly,
 } from "@/domain/medication";
+
+import {
+  campusWallTimeToInstant,
+  getCampusDateOnly,
+} from "@/core/time/campus-time-zone";
 
 import { PrismaMedicationAdministrationMapper } from "../mapper/prisma-medication-administration.mapper";
 import { PrismaService } from "../prisma.service";
@@ -39,14 +47,8 @@ export class PrismaMedicationAdministrationRepository
 
   async countHealthCenterSummaryByCampus(
     campusId: string,
-    params: {
-      dueDate: Date;
-      now: Date;
-    },
-  ): Promise<{
-    dueToday: number;
-    overdue: number;
-  }> {
+    params: MedicationAdministrationHealthCenterSummaryParams,
+  ): Promise<MedicationAdministrationHealthCenterSummaryCounts> {
     const dueWhere = buildDueTodaySummaryWhere(campusId, params);
     const overdueWhere = buildOverdueSummaryWhere(campusId, params);
 
@@ -67,6 +69,32 @@ export class PrismaMedicationAdministrationRepository
       dueToday,
       overdue,
     };
+  }
+
+  async findHealthCenterDailyByCampus(
+    campusId: string,
+    params: MedicationAdministrationHealthCenterDailyParams,
+  ): Promise<MedicationAdministrationQueueRow[]> {
+    const rows = await this.prisma.medicationAdministrationOccurrence.findMany({
+      where: buildUnrecordedOccurrenceWhere(
+        campusId,
+        params.dueDate,
+        params.classId,
+      ),
+      include: buildDailyQueueInclude(campusId, params.dueDate, params.classId),
+      orderBy: [
+        { dueMinute: "asc" },
+        { student: { fullName: "asc" } },
+        { medicationItem: { medicationName: "asc" } },
+        { medicationItemId: "asc" },
+      ],
+      skip: params.offset,
+      take: params.limit,
+    });
+
+    return rows.map((row) =>
+      PrismaMedicationAdministrationMapper.toQueueRow(row),
+    );
   }
 
   async findOccurrenceByIdInCampus(
@@ -227,23 +255,29 @@ function buildSelectedDateEnrollmentWhere(
 
 function buildDueTodaySummaryWhere(
   campusId: string,
-  params: {
-    dueDate: Date;
-    now: Date;
-  },
+  params: MedicationAdministrationHealthCenterSummaryParams,
 ): Prisma.MedicationAdministrationOccurrenceWhereInput | null {
   const dueDate = normalizeDateOnly(params.dueDate, "Due date");
-  const today = normalizeDateOnly(toServerDateOnly(params.now), "Date");
+  const today = getCampusDateOnly(params.now, params.timeZone);
   const dateComparison = compareDateOnly(dueDate, today);
 
   if (dateComparison < 0) {
     return null;
   }
 
-  const where = buildUnrecordedOccurrenceWhere(campusId, dueDate);
+  const where = buildUnrecordedOccurrenceWhere(
+    campusId,
+    dueDate,
+    params.classId,
+  );
 
   if (dateComparison === 0) {
-    where.dueMinute = getDueMinutePredicate(dueDate, params.now, "due");
+    where.dueMinute = getDueMinutePredicate(
+      dueDate,
+      params.now,
+      params.timeZone,
+      "due",
+    );
   }
 
   return where;
@@ -251,23 +285,29 @@ function buildDueTodaySummaryWhere(
 
 function buildOverdueSummaryWhere(
   campusId: string,
-  params: {
-    dueDate: Date;
-    now: Date;
-  },
+  params: MedicationAdministrationHealthCenterSummaryParams,
 ): Prisma.MedicationAdministrationOccurrenceWhereInput | null {
   const dueDate = normalizeDateOnly(params.dueDate, "Due date");
-  const today = normalizeDateOnly(toServerDateOnly(params.now), "Date");
+  const today = getCampusDateOnly(params.now, params.timeZone);
   const dateComparison = compareDateOnly(dueDate, today);
 
   if (dateComparison > 0) {
     return null;
   }
 
-  const where = buildUnrecordedOccurrenceWhere(campusId, dueDate);
+  const where = buildUnrecordedOccurrenceWhere(
+    campusId,
+    dueDate,
+    params.classId,
+  );
 
   if (dateComparison === 0) {
-    where.dueMinute = getDueMinutePredicate(dueDate, params.now, "overdue");
+    where.dueMinute = getDueMinutePredicate(
+      dueDate,
+      params.now,
+      params.timeZone,
+      "overdue",
+    );
   }
 
   return where;
@@ -276,32 +316,53 @@ function buildOverdueSummaryWhere(
 function buildUnrecordedOccurrenceWhere(
   campusId: string,
   dueDate: Date,
+  classId?: string,
 ): Prisma.MedicationAdministrationOccurrenceWhereInput {
   return {
     campusId,
     dueDate,
     latestOutcome: null,
+    ...(classId
+      ? {
+          student: {
+            enrollments: {
+              some: buildSelectedDateEnrollmentWhere(
+                campusId,
+                dueDate,
+                classId,
+              ),
+            },
+          },
+        }
+      : {}),
   };
 }
 
 function getDueMinutePredicate(
   dueDate: Date,
   now: Date,
+  timeZone: string,
   mode: "due" | "overdue",
 ): Prisma.IntFilter {
-  const elapsedMs = now.getTime() - dueDate.getTime();
-  const elapsedMinutes = Math.floor(elapsedMs / 60000);
-  const partialMinuteElapsed = elapsedMs % 60000 > 0;
+  let lowerBound = 0;
+  let upperBound = 24 * 60;
 
-  if (mode === "overdue") {
-    return partialMinuteElapsed
-      ? { lte: elapsedMinutes }
-      : { lt: elapsedMinutes };
+  while (lowerBound < upperBound) {
+    const candidateMinute = Math.floor((lowerBound + upperBound) / 2);
+    const candidateInstant = campusWallTimeToInstant(
+      dueDate,
+      candidateMinute,
+      timeZone,
+    );
+
+    if (candidateInstant.getTime() < now.getTime()) {
+      lowerBound = candidateMinute + 1;
+    } else {
+      upperBound = candidateMinute;
+    }
   }
 
-  return partialMinuteElapsed
-    ? { gt: elapsedMinutes }
-    : { gte: elapsedMinutes };
+  return mode === "overdue" ? { lt: lowerBound } : { gte: lowerBound };
 }
 
 function compareDateOnly(left: Date, right: Date): number {
@@ -310,12 +371,4 @@ function compareDateOnly(left: Date, right: Date): number {
     : left.getTime() < right.getTime()
       ? -1
       : 1;
-}
-
-function toServerDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
 }

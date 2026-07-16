@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -63,9 +64,15 @@ export class UpdateStudentHealthCheckupUseCase {
         campusId,
         studentId,
         checkupId,
+        tx,
       );
       if (!checkup) {
         throw new NotFoundException("Student health checkup not found");
+      }
+      if (checkup.isArchived) {
+        throw new ConflictException(
+          "Archived health checkups cannot be updated",
+        );
       }
 
       const beforeAudit = pickStudentHealthCheckupAuditFields(checkup);
@@ -77,7 +84,12 @@ export class UpdateStudentHealthCheckupUseCase {
 
       const requestedAfterAudit = pickStudentHealthCheckupAuditFields(checkup);
       const diff = computeDiff(beforeAudit, requestedAfterAudit);
-      const saved = await this.checkupRepository.update(checkup, tx);
+      const saved = await this.checkupRepository.updateIfActive(checkup, tx);
+      if (!saved) {
+        throw new ConflictException(
+          "Health checkup was archived while the update was in progress",
+        );
+      }
 
       await this.auditRecorder.record(
         {

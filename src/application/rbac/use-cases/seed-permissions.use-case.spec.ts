@@ -41,18 +41,22 @@ const STUDENT_HEALTH_PERMISSION_IDS = [
   "student_health.read",
   "student_health.create",
   "student_health.update",
+  "student_health.delete",
 ];
 
 const MEDICATION_PERMISSION_IDS = [
   "medication_request.list",
   "medication_request.read",
-  "medication_request.create",
   "medication_request.update",
-  "medication_request.delete",
-  "medication_administration.list",
   "medication_administration.read",
   "medication_administration.create",
   "medication_administration.update",
+];
+
+const OBSOLETE_MEDICATION_PERMISSION_IDS = [
+  "medication_request.create",
+  "medication_request.delete",
+  "medication_administration.list",
 ];
 
 const HISTORICAL_RECORD_PERMISSION_IDS = [
@@ -173,6 +177,9 @@ describe("SeedPermissionsUseCase", () => {
       expect(permission?.module).toBe("student_health");
       expect(permission?.description).toEqual(expect.any(String));
     }
+    expect(
+      permissions.find(({ id }) => id === "student_health.delete")?.description,
+    ).toBe("Archive student health records");
   });
 
   it("includes all medication permission IDs in the system catalog", () => {
@@ -185,6 +192,9 @@ describe("SeedPermissionsUseCase", () => {
       expect(permission?.module).toBe(id.split(".")[0]);
       expect(permission?.description).toEqual(expect.any(String));
     }
+    expect(ids).not.toEqual(
+      expect.arrayContaining(OBSOLETE_MEDICATION_PERMISSION_IDS),
+    );
   });
 
   it("includes all historical record permission IDs in the system catalog", () => {

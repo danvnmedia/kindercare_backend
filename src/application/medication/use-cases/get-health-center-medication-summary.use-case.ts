@@ -1,5 +1,13 @@
-import { BadRequestException, Inject, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
+
+import { getCampusDateString } from "@/core/time/campus-time-zone";
 import { normalizeDateOnly } from "@/domain/medication";
 
 import {
@@ -35,6 +43,8 @@ export class GetHealthCenterMedicationSummaryUseCase {
     private readonly medicationRequestRepository: MedicationRequestRepository,
     @Inject("MEDICATION_ADMINISTRATION_REPOSITORY")
     private readonly medicationAdministrationRepository: MedicationAdministrationRepository,
+    @Inject("CAMPUS_REPOSITORY")
+    private readonly campusRepository: CampusRepository,
   ) {}
 
   async execute(
@@ -42,7 +52,12 @@ export class GetHealthCenterMedicationSummaryUseCase {
     input: GetHealthCenterMedicationSummaryInput = {},
     now = new Date(),
   ): Promise<HealthCenterMedicationSummaryResponse> {
-    const dueDate = normalizeSummaryDate(input.date, now);
+    const campus = await this.campusRepository.findById(campusId);
+    if (!campus) {
+      throw new NotFoundException("Campus not found");
+    }
+
+    const dueDate = normalizeSummaryDate(input.date, now, campus.timeZone);
     const [requestCounts, administrationCounts] = await Promise.all([
       this.medicationRequestRepository.countHealthCenterSummaryByCampus(
         campusId,
@@ -52,6 +67,7 @@ export class GetHealthCenterMedicationSummaryUseCase {
         {
           dueDate,
           now,
+          timeZone: campus.timeZone,
         },
       ),
     ]);
@@ -71,18 +87,17 @@ export class GetHealthCenterMedicationSummaryUseCase {
   }
 }
 
-function normalizeSummaryDate(value: string | undefined, now: Date): Date {
+function normalizeSummaryDate(
+  value: string | undefined,
+  now: Date,
+  timeZone: string,
+): Date {
   try {
-    return normalizeDateOnly(value ?? toServerDateOnly(now), "Date");
+    return normalizeDateOnly(
+      value ?? getCampusDateString(now, timeZone),
+      "Date",
+    );
   } catch (error) {
     throw new BadRequestException((error as Error).message);
   }
-}
-
-function toServerDateOnly(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
 }

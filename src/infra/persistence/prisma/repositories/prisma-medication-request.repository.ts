@@ -2,9 +2,13 @@ import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import {
+  MedicationLifecycleCandidate,
+  MedicationLifecycleCandidateQuery,
+  MedicationRequestHealthCenterReviewCountParams,
   MedicationRequestListFilters,
   MedicationRequestRepository,
-  StaffMedicationRequestListParams,
+  MedicationTerminalTransition,
+  StaffMedicationRequestRepositoryParams,
   StudentMedicationHistoryParams,
 } from "@/application/medication";
 import { AppTransactionClient } from "@/application/ports/transaction-runner.port";
@@ -22,7 +26,6 @@ import {
 
 import { PrismaMedicationRequestMapper } from "../mapper/prisma-medication-request.mapper";
 import { PrismaService } from "../prisma.service";
-import { toUtcDateOnly } from "@/domain/class-management/enrollment-effective-status";
 
 @Injectable()
 export class PrismaMedicationRequestRepository
@@ -49,7 +52,7 @@ export class PrismaMedicationRequestRepository
 
   async findByCampusId(
     campusId: string,
-    params: StaffMedicationRequestListParams,
+    params: StaffMedicationRequestRepositoryParams,
   ): Promise<PaginatedResult<MedicationRequest>> {
     params.allowedFilterFields = [
       "status",
@@ -146,6 +149,44 @@ export class PrismaMedicationRequestRepository
       pendingRequests,
       needsMoreInfo,
     };
+  }
+
+  async countHealthCenterRequestsNeedingReview(
+    campusId: string,
+    params: MedicationRequestHealthCenterReviewCountParams,
+  ): Promise<number> {
+    const actualDate = normalizeDateOnly(params.actualDate, "Actual date");
+    const enrollmentReferenceDate = normalizeDateOnly(
+      params.enrollmentReferenceDate,
+      "Enrollment reference date",
+    );
+
+    return this.prisma.medicationRequest.count({
+      where: {
+        campusId,
+        status: MedicationRequestStatus.SUBMITTED,
+        endDate: { gte: actualDate },
+        ...(params.classId
+          ? {
+              student: {
+                campusId,
+                enrollments: {
+                  some: {
+                    classId: params.classId,
+                    class: { campusId },
+                    cancelledAt: null,
+                    enrollmentDate: { lte: enrollmentReferenceDate },
+                    OR: [
+                      { endDate: null },
+                      { endDate: { gte: enrollmentReferenceDate } },
+                    ],
+                  },
+                },
+              },
+            }
+          : {}),
+      },
+    });
   }
 
   async findByIdForRequesterGuardian(
@@ -319,6 +360,129 @@ export class PrismaMedicationRequestRepository
     );
   }
 
+  async findLifecycleCandidates(
+    query: MedicationLifecycleCandidateQuery,
+  ): Promise<MedicationLifecycleCandidate[]> {
+    const firstRows = await this.queryLifecycleCandidateRows(
+      query.now,
+      query.limit,
+      query.afterId
+        ? Prisma.sql`AND mr.id > ${query.afterId}::uuid`
+        : Prisma.empty,
+    );
+    const rows = [...firstRows];
+
+    if (query.afterId && rows.length < query.limit) {
+      rows.push(
+        ...(await this.queryLifecycleCandidateRows(
+          query.now,
+          query.limit - rows.length,
+          Prisma.sql`AND mr.id <= ${query.afterId}::uuid`,
+        )),
+      );
+    }
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const requests = await this.prisma.medicationRequest.findMany({
+      where: { id: { in: rows.map((row) => row.id) } },
+      include: PrismaMedicationRequestMapper.lifecycleInclude,
+    });
+    const requestsById = new Map(
+      requests.map((request) => [
+        request.id,
+        PrismaMedicationRequestMapper.toDomain(request),
+      ]),
+    );
+
+    return rows.flatMap((row) => {
+      const request = requestsById.get(row.id);
+      return request ? [{ request, timeZone: row.timeZone }] : [];
+    });
+  }
+
+  async transitionToTerminalIfStatusIn(
+    transition: MedicationTerminalTransition,
+    tx?: AppTransactionClient,
+  ): Promise<boolean> {
+    const client = tx ?? this.prisma;
+    const result = await client.medicationRequest.updateMany({
+      where: {
+        id: transition.requestId,
+        campusId: transition.campusId,
+        status: { in: transition.sourceStatuses },
+      },
+      data: {
+        status: transition.targetStatus,
+        ...(transition.targetStatus === MedicationRequestStatus.COMPLETED
+          ? { completedAt: transition.effectiveAt, expiredAt: null }
+          : { completedAt: null, expiredAt: transition.effectiveAt }),
+        updatedAt: transition.updatedAt,
+      },
+    });
+
+    return result.count === 1;
+  }
+
+  private queryLifecycleCandidateRows(
+    now: Date,
+    limit: number,
+    cursorPredicate: Prisma.Sql,
+  ): Promise<Array<{ id: string; timeZone: string }>> {
+    return this.prisma.$queryRaw<Array<{ id: string; timeZone: string }>>(
+      Prisma.sql`
+        SELECT mr.id, c.time_zone AS "timeZone"
+        FROM medication_request mr
+        INNER JOIN campus c ON c.id = mr.campus_id
+        CROSS JOIN LATERAL (
+          SELECT (${now}::timestamptz AT TIME ZONE c.time_zone) AS local_now
+        ) clock
+        LEFT JOIN LATERAL (
+          SELECT occurrence.due_date, occurrence.due_minute
+          FROM medication_administration_occurrence occurrence
+          WHERE occurrence.request_id = mr.id
+          ORDER BY occurrence.due_date DESC, occurrence.due_minute DESC
+          LIMIT 1
+        ) final_occurrence ON true
+        WHERE (
+          (
+            mr.status IN ('SUBMITTED', 'NEEDS_MORE_INFO')
+            AND clock.local_now::date > mr.end_date
+          )
+          OR
+          (
+            mr.status = 'APPROVED'
+            AND (
+              (
+                final_occurrence.due_date IS NULL
+                AND clock.local_now::date > mr.end_date
+              )
+              OR
+              (
+                final_occurrence.due_date IS NOT NULL
+                AND (
+                  clock.local_now::date > final_occurrence.due_date
+                  OR (
+                    clock.local_now::date = final_occurrence.due_date
+                    AND (
+                      EXTRACT(HOUR FROM clock.local_now)::int * 60
+                      + EXTRACT(MINUTE FROM clock.local_now)::int
+                    ) >= final_occurrence.due_minute
+                  )
+                )
+              )
+            )
+          )
+        )
+        ${cursorPredicate}
+        ORDER BY mr.id ASC
+        LIMIT ${limit}
+      `,
+    );
+  }
+
   private buildGuardianListWhere(
     campusId: string,
     requesterGuardianId: string,
@@ -361,7 +525,7 @@ export class PrismaMedicationRequestRepository
 
   private buildStaffListScope(
     campusId: string,
-    params: StaffMedicationRequestListParams,
+    params: StaffMedicationRequestRepositoryParams,
   ): Prisma.MedicationRequestWhereInput {
     const scope: Prisma.MedicationRequestWhereInput = { campusId };
 
@@ -374,7 +538,10 @@ export class PrismaMedicationRequestRepository
     }
 
     if (params.classId) {
-      const currentDate = toUtcDateOnly(new Date());
+      const currentDate = normalizeDateOnly(
+        params.enrollmentReferenceDate,
+        "Enrollment reference date",
+      );
       scope.student = {
         enrollments: {
           some: {

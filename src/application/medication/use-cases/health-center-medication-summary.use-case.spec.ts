@@ -1,9 +1,11 @@
 import { BadRequestException } from "@nestjs/common";
 
+import { CampusRepository } from "@/application/campus/ports/campus.repository";
 import {
   MedicationAdministrationRepository,
   MedicationRequestRepository,
 } from "@/application/medication";
+import { createCampus, createMockCampusRepository } from "@/test-utils";
 
 import { GetHealthCenterMedicationSummaryUseCase } from "./get-health-center-medication-summary.use-case";
 
@@ -12,6 +14,7 @@ const CAMPUS_ID = "11111111-1111-4111-a111-111111111111";
 describe("GetHealthCenterMedicationSummaryUseCase", () => {
   let medicationRequestRepository: jest.Mocked<MedicationRequestRepository>;
   let medicationAdministrationRepository: jest.Mocked<MedicationAdministrationRepository>;
+  let campusRepository: jest.Mocked<CampusRepository>;
 
   beforeEach(() => {
     medicationRequestRepository = {
@@ -20,6 +23,10 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     medicationAdministrationRepository = {
       countHealthCenterSummaryByCampus: jest.fn(),
     } as unknown as jest.Mocked<MedicationAdministrationRepository>;
+    campusRepository = createMockCampusRepository();
+    campusRepository.findById.mockResolvedValue(
+      createCampus({ id: CAMPUS_ID, timeZone: "America/Toronto" }),
+    );
   });
 
   it("returns request and administration counts plus navigation links", async () => {
@@ -38,6 +45,7 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     const useCase = new GetHealthCenterMedicationSummaryUseCase(
       medicationRequestRepository,
       medicationAdministrationRepository,
+      campusRepository,
     );
     const now = new Date("2099-07-01T10:30:00.000Z");
 
@@ -55,6 +63,7 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     ).toHaveBeenCalledWith(CAMPUS_ID, {
       dueDate: new Date("2099-07-01T00:00:00.000Z"),
       now,
+      timeZone: "America/Toronto",
     });
     expect(result).toEqual({
       medication: {
@@ -70,7 +79,7 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     });
   });
 
-  it("defaults omitted date from the server-local day", async () => {
+  it("defaults omitted date from the campus-local day", async () => {
     medicationRequestRepository.countHealthCenterSummaryByCampus.mockResolvedValue(
       {
         pendingRequests: 0,
@@ -86,8 +95,9 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     const useCase = new GetHealthCenterMedicationSummaryUseCase(
       medicationRequestRepository,
       medicationAdministrationRepository,
+      campusRepository,
     );
-    const now = new Date(2099, 6, 2, 9, 15, 0, 0);
+    const now = new Date("2099-07-02T02:30:00.000Z");
 
     await useCase.execute(CAMPUS_ID, {}, now);
 
@@ -96,8 +106,9 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     ).toHaveBeenCalledWith(
       CAMPUS_ID,
       expect.objectContaining({
-        dueDate: new Date(Date.UTC(2099, 6, 2)),
+        dueDate: new Date("2099-07-01T00:00:00.000Z"),
         now,
+        timeZone: "America/Toronto",
       }),
     );
   });
@@ -106,6 +117,7 @@ describe("GetHealthCenterMedicationSummaryUseCase", () => {
     const useCase = new GetHealthCenterMedicationSummaryUseCase(
       medicationRequestRepository,
       medicationAdministrationRepository,
+      campusRepository,
     );
 
     await expect(

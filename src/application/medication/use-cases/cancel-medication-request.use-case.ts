@@ -19,6 +19,7 @@ import { User } from "@/domain/user-management/user.entity";
 
 import { MedicationRequestRepository } from "../ports";
 import { ParentMedicationRequestAccess } from "./parent-medication-request-access";
+import { MedicationRequestCommandGuard } from "./medication-request-command.guard";
 
 export interface CancelMedicationRequestInput {
   reason?: unknown;
@@ -32,6 +33,7 @@ export class CancelMedicationRequestUseCase extends ParentMedicationRequestAcces
     @Inject("GUARDIAN_REPOSITORY")
     guardianRepository: GuardianRepository,
     private readonly transactionRunner: TransactionRunnerPort,
+    private readonly commandGuard: MedicationRequestCommandGuard,
   ) {
     super(guardianRepository);
   }
@@ -41,10 +43,12 @@ export class CancelMedicationRequestUseCase extends ParentMedicationRequestAcces
     currentUser: User,
     requestId: string,
     input: CancelMedicationRequestInput = {},
+    now = new Date(),
   ): Promise<MedicationRequest> {
     const guardian = await this.resolveCurrentGuardian(campusId, currentUser);
+    const timeZone = await this.commandGuard.getCampusTimeZone(campusId);
 
-    return this.transactionRunner.run(async (tx) => {
+    const result = await this.transactionRunner.run(async (tx) => {
       const medicationRequest =
         await this.medicationRequestRepository.findByIdForRequesterGuardian(
           campusId,
@@ -57,8 +61,19 @@ export class CancelMedicationRequestUseCase extends ParentMedicationRequestAcces
         throw new NotFoundException("Medication request not found");
       }
 
+      if (
+        !(await this.commandGuard.isWorkflowAllowed(
+          medicationRequest,
+          timeZone,
+          now,
+          tx,
+        ))
+      ) {
+        return { kind: "blocked" } as const;
+      }
+
       try {
-        medicationRequest.cancelByParent(input.reason);
+        medicationRequest.cancelByParent(input.reason, now);
       } catch (error) {
         throw new BadRequestException((error as Error).message);
       }
@@ -90,18 +105,26 @@ export class CancelMedicationRequestUseCase extends ParentMedicationRequestAcces
           actorGuardianId: guardian.id.toString(),
           action: MedicationRequestTimelineAction.CANCELLED,
           note: medicationRequest.cancelReason,
+          createdAt: now,
+          updatedAt: now,
         }),
         tx,
       );
 
-      return (
+      const response =
         (await this.medicationRequestRepository.findByIdForRequesterGuardian(
           campusId,
           guardian.id.toString(),
           medicationRequest.id,
           tx,
-        )) ?? updated
-      );
+        )) ?? updated;
+      return { kind: "success", request: response } as const;
     });
+
+    if (result.kind === "blocked") {
+      throw new ConflictException("Medication request is no longer actionable");
+    }
+
+    return result.request;
   }
 }

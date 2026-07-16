@@ -6,6 +6,7 @@ import {
   HealthCenterClassSummary,
   HealthCenterEventListParams,
   HealthCenterEventListResult,
+  HealthCenterEventScope,
   HealthCenterStudentSummary,
   StudentHealthEventListParams,
   StudentHealthEventRepository,
@@ -60,6 +61,7 @@ export class PrismaStudentHealthEventRepository
         scope: {
           campusId,
           studentId,
+          ...(params.includeArchived === true ? {} : { archivedAt: null }),
           ...(params.status ? { status: params.status } : {}),
           ...(params.eventType ? { eventType: params.eventType } : {}),
         },
@@ -72,8 +74,10 @@ export class PrismaStudentHealthEventRepository
     campusId: string,
     studentId: string,
     eventId: string,
+    tx?: AppTransactionClient,
   ): Promise<StudentHealthEvent | null> {
-    const row = await this.prisma.studentHealthEvent.findFirst({
+    const client = tx ?? this.prisma;
+    const row = await client.studentHealthEvent.findFirst({
       where: { id: eventId, campusId, studentId },
       include: PrismaStudentHealthEventMapper.include,
     });
@@ -85,27 +89,7 @@ export class PrismaStudentHealthEventRepository
     params: HealthCenterEventListParams,
   ): Promise<HealthCenterEventListResult> {
     const selectedDate = toDateOnly(params.referenceDate);
-    const selectedDayEnd = toEndOfDay(selectedDate);
-    const visibleUntil = minDate(selectedDayEnd, new Date(Date.now()));
-    const where: Prisma.StudentHealthEventWhereInput = {
-      campusId: params.campusId,
-      status: StudentHealthEventStatus.OPEN,
-      occurredAt: { lte: visibleUntil },
-      student: {
-        campusId: params.campusId,
-        ...(params.classId
-          ? {
-              enrollments: {
-                some: buildSelectedDateEnrollmentWhere(
-                  params.campusId,
-                  selectedDate,
-                  params.classId,
-                ),
-              },
-            }
-          : {}),
-      },
-    };
+    const where = buildHealthCenterEventWhere(params);
 
     const [rows, total] = await Promise.all([
       this.prisma.studentHealthEvent.findMany({
@@ -132,6 +116,14 @@ export class PrismaStudentHealthEventRepository
     };
   }
 
+  async countOpenForHealthCenter(
+    params: HealthCenterEventScope,
+  ): Promise<number> {
+    return this.prisma.studentHealthEvent.count({
+      where: buildHealthCenterEventWhere(params),
+    });
+  }
+
   async create(
     event: StudentHealthEvent,
     tx?: AppTransactionClient,
@@ -145,18 +137,64 @@ export class PrismaStudentHealthEventRepository
     return PrismaStudentHealthEventMapper.toDomain(created);
   }
 
-  async update(
+  async archiveIfActive(
     event: StudentHealthEvent,
     tx?: AppTransactionClient,
-  ): Promise<StudentHealthEvent> {
+  ): Promise<StudentHealthEvent | null> {
     const client = tx ?? this.prisma;
-    const updated = await client.studentHealthEvent.update({
-      where: { id: event.id },
-      data: PrismaStudentHealthEventMapper.toPrismaUpdate(event),
-      include: PrismaStudentHealthEventMapper.include,
+    if (!event.archivedAt || !event.archivedByUserId) {
+      throw new Error("Archived health event metadata is required");
+    }
+
+    const result = await client.studentHealthEvent.updateMany({
+      where: {
+        id: event.id,
+        campusId: event.campusId,
+        studentId: event.studentId,
+        archivedAt: null,
+        student: { isArchived: false },
+      },
+      data: {
+        archivedAt: event.archivedAt,
+        archivedByUserId: event.archivedByUserId,
+        updatedAt: event.updatedAt,
+      },
     });
 
-    return PrismaStudentHealthEventMapper.toDomain(updated);
+    return result.count === 1
+      ? this.findByIdForStudentInCampus(
+          event.campusId,
+          event.studentId,
+          event.id,
+          tx,
+        )
+      : null;
+  }
+
+  async updateIfActive(
+    event: StudentHealthEvent,
+    tx?: AppTransactionClient,
+  ): Promise<StudentHealthEvent | null> {
+    const client = tx ?? this.prisma;
+    const result = await client.studentHealthEvent.updateMany({
+      where: {
+        id: event.id,
+        campusId: event.campusId,
+        studentId: event.studentId,
+        archivedAt: null,
+        student: { isArchived: false },
+      },
+      data: PrismaStudentHealthEventMapper.toPrismaUpdate(event),
+    });
+
+    return result.count === 1
+      ? this.findByIdForStudentInCampus(
+          event.campusId,
+          event.studentId,
+          event.id,
+          tx,
+        )
+      : null;
   }
 }
 
@@ -182,6 +220,34 @@ function buildSelectedDateEnrollmentWhere(
     cancelledAt: null,
     enrollmentDate: { lte: selectedDate },
     OR: [{ endDate: null }, { endDate: { gte: selectedDate } }],
+  };
+}
+
+function buildHealthCenterEventWhere(
+  params: HealthCenterEventScope,
+): Prisma.StudentHealthEventWhereInput {
+  const selectedDate = toDateOnly(params.referenceDate);
+  const visibleUntil = minDate(toEndOfDay(selectedDate), params.visibleUntil);
+
+  return {
+    campusId: params.campusId,
+    archivedAt: null,
+    status: StudentHealthEventStatus.OPEN,
+    occurredAt: { lte: visibleUntil },
+    student: {
+      campusId: params.campusId,
+      ...(params.classId
+        ? {
+            enrollments: {
+              some: buildSelectedDateEnrollmentWhere(
+                params.campusId,
+                selectedDate,
+                params.classId,
+              ),
+            },
+          }
+        : {}),
+    },
   };
 }
 

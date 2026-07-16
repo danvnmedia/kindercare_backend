@@ -2,7 +2,7 @@
 title: Backend Dev Deployment
 description: Developer deployment and first-run setup guide for the Kindercare backend, including environment variables, Docker, Prisma migrations, seeds, Clerk, and admin bootstrap.
 createdAt: '2026-06-13T16:03:16.017Z'
-updatedAt: '2026-07-14T12:54:01.866Z'
+updatedAt: '2026-07-14T17:42:55.114Z'
 tags:
   - guide
   - deployment
@@ -498,3 +498,16 @@ Then confirm:
 - [Docker Compose variable interpolation](https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
 - [Prisma ORM with Neon](https://docs.prisma.io/docs/orm/v6/overview/databases/neon)
 - [Neon connection pooling](https://neon.com/docs/connect/connection-pooling)
+
+## Permission Catalog Deployment Order
+
+Student Health and Medication Lifecycle deployments must run the permission seed after database migrations:
+
+```bash
+npm run prisma:migrate:deploy
+npx prisma db seed
+```
+
+The migration removes role assignments for `medication_request.create`, `medication_request.delete`, and `medication_administration.list` before deleting those obsolete permission rows. The seed then creates or updates the canonical `SYSTEM_PERMISSIONS` catalog, including archive-only `student_health.delete`, and grants every current permission to the global Super Admin role.
+
+Application container startup runs migrations but does not run seeds. Operators must perform the seed step intentionally on every environment receiving this permission-catalog change.

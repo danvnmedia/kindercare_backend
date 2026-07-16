@@ -16,6 +16,7 @@ export interface UpdateCampusInput {
   name?: string;
   address?: string | null;
   phoneNumber?: string | null;
+  timeZone?: string;
   isArchived?: boolean;
 }
 
@@ -59,6 +60,9 @@ export class UpdateCampusUseCase {
       }
       if (input.phoneNumber !== undefined) {
         updateData.phoneNumber = input.phoneNumber;
+      }
+      if (input.timeZone !== undefined) {
+        updateData.timeZone = input.timeZone;
       }
       if (input.isArchived !== undefined) {
         updateData.isArchived = input.isArchived;

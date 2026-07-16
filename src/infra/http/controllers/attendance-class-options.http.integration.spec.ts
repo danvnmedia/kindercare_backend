@@ -39,6 +39,7 @@ function buildUser(campusId: string, permissionIds: string[]): User {
   return {
     id: "44444444-4444-4444-a444-444444444444",
     profiles: [{ type: "staff", campusId }],
+    hasSystemRole: () => false,
     getGlobalRoles: () => [],
     getRolesForCampus: (requestedCampusId: string | null) =>
       requestedCampusId === campusId ? roles : [],

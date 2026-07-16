@@ -2,6 +2,10 @@ import { Entity } from "@/core/entities/entity";
 import { UniqueEntityID } from "@/core/entities/unique-entity-id";
 
 import { StudentHealthCheckupType } from "../enums";
+import {
+  createStudentHealthArchiveTransition,
+  normalizeStudentHealthArchiveState,
+} from "./student-health-archive";
 
 export interface StudentHealthCheckupUserSnapshot {
   id: string;
@@ -20,6 +24,8 @@ export interface StudentHealthCheckupProps {
   recordedBy: StudentHealthCheckupUserSnapshot | null;
   lastUpdatedByUserId: string | null;
   lastUpdatedBy: StudentHealthCheckupUserSnapshot | null;
+  archivedAt: Date | null;
+  archivedByUserId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +42,8 @@ export interface CreateStudentHealthCheckupData {
   recordedBy?: StudentHealthCheckupUserSnapshot | null;
   lastUpdatedByUserId?: string | null;
   lastUpdatedBy?: StudentHealthCheckupUserSnapshot | null;
+  archivedAt?: Date | null;
+  archivedByUserId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -101,6 +109,18 @@ export class StudentHealthCheckup extends Entity<StudentHealthCheckupProps> {
     return this.props.lastUpdatedBy ? { ...this.props.lastUpdatedBy } : null;
   }
 
+  get archivedAt(): Date | null {
+    return this.props.archivedAt;
+  }
+
+  get archivedByUserId(): string | null {
+    return this.props.archivedByUserId;
+  }
+
+  get isArchived(): boolean {
+    return this.props.archivedAt !== null;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -144,6 +164,21 @@ export class StudentHealthCheckup extends Entity<StudentHealthCheckupProps> {
     this.touch();
   }
 
+  archive(actorUserId: string, archivedAt = new Date()): boolean {
+    if (this.isArchived) {
+      return false;
+    }
+
+    const archiveState = createStudentHealthArchiveTransition(
+      actorUserId,
+      archivedAt,
+    );
+    this.props.archivedAt = archiveState.archivedAt;
+    this.props.archivedByUserId = archiveState.archivedByUserId;
+    this.touch(archiveState.archivedAt);
+    return true;
+  }
+
   static create(
     props: CreateStudentHealthCheckupData,
     id?: string,
@@ -154,6 +189,10 @@ export class StudentHealthCheckup extends Entity<StudentHealthCheckupProps> {
     if (!props.studentId) {
       throw new Error("Student ID is required for student health checkup");
     }
+    const archiveState = normalizeStudentHealthArchiveState(
+      props.archivedAt,
+      props.archivedByUserId,
+    );
     const normalizedProps: StudentHealthCheckupProps = {
       campusId: props.campusId,
       studentId: props.studentId,
@@ -168,6 +207,7 @@ export class StudentHealthCheckup extends Entity<StudentHealthCheckupProps> {
       recordedBy: props.recordedBy ?? null,
       lastUpdatedByUserId: props.lastUpdatedByUserId ?? null,
       lastUpdatedBy: props.lastUpdatedBy ?? null,
+      ...archiveState,
       createdAt: props.createdAt ?? new Date(),
       updatedAt: props.updatedAt ?? new Date(),
     };
@@ -180,8 +220,8 @@ export class StudentHealthCheckup extends Entity<StudentHealthCheckupProps> {
     );
   }
 
-  private touch(): void {
-    this.props.updatedAt = new Date();
+  private touch(at = new Date()): void {
+    this.props.updatedAt = at;
   }
 }
 

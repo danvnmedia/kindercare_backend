@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -70,9 +71,15 @@ export class UpdateStudentHealthInstructionUseCase {
           campusId,
           studentId,
           instructionId,
+          tx,
         );
       if (!instruction) {
         throw new NotFoundException("Student health instruction not found");
+      }
+      if (instruction.isArchived) {
+        throw new ConflictException(
+          "Archived health instructions cannot be updated",
+        );
       }
 
       const beforeAudit = pickStudentHealthInstructionAuditFields(instruction);
@@ -85,7 +92,15 @@ export class UpdateStudentHealthInstructionUseCase {
       const requestedAfterAudit =
         pickStudentHealthInstructionAuditFields(instruction);
       const diff = computeDiff(beforeAudit, requestedAfterAudit);
-      const saved = await this.instructionRepository.update(instruction, tx);
+      const saved = await this.instructionRepository.updateIfActive(
+        instruction,
+        tx,
+      );
+      if (!saved) {
+        throw new ConflictException(
+          "Health instruction was archived while the update was in progress",
+        );
+      }
 
       await this.auditRecorder.record(
         {

@@ -71,6 +71,8 @@ export class PrismaStudentHealthCheckupMapper {
               fullName: resolveUserProfileName(row.lastUpdatedBy),
             }
           : null,
+        archivedAt: row.archivedAt,
+        archivedByUserId: row.archivedByUserId,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },
@@ -92,6 +94,8 @@ export class PrismaStudentHealthCheckupMapper {
       notes: checkup.notes,
       recordedByUserId: checkup.recordedByUserId,
       lastUpdatedByUserId: checkup.lastUpdatedByUserId,
+      archivedAt: checkup.archivedAt,
+      archivedByUserId: checkup.archivedByUserId,
       createdAt: checkup.createdAt,
       updatedAt: checkup.updatedAt,
     };
@@ -107,6 +111,8 @@ export class PrismaStudentHealthCheckupMapper {
       weightKg: checkup.weightKg,
       notes: checkup.notes,
       lastUpdatedByUserId: checkup.lastUpdatedByUserId,
+      archivedAt: checkup.archivedAt,
+      archivedByUserId: checkup.archivedByUserId,
       updatedAt: checkup.updatedAt,
     };
   }

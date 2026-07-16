@@ -66,6 +66,10 @@ export class PermissionsGuard implements CanActivate {
       return false;
     }
 
+    if (user.hasSystemRole()) {
+      return true;
+    }
+
     // Get campus context from RequestContext (set by CampusGuard)
     const campusId = this.requestContext.campusId;
 

@@ -22,6 +22,9 @@ describe("StudentHealthCheckupResponse", () => {
           fullName: "School Nurse",
         },
         lastUpdatedBy: null,
+        archivedAt: new Date("2026-07-02T10:00:00.000Z"),
+        archivedByUserId: "66666666-6666-4666-a666-666666666666",
+        isArchived: true,
         createdAt: new Date("2020-01-15T09:05:00.000Z"),
         updatedAt: new Date("2020-01-15T09:05:00.000Z"),
         bmi: 15.8,
@@ -40,6 +43,9 @@ describe("StudentHealthCheckupResponse", () => {
     expect(plain).toMatchObject({
       heightCm: 108.5,
       weightKg: 18.6,
+      archivedAt: new Date("2026-07-02T10:00:00.000Z"),
+      archivedByUserId: "66666666-6666-4666-a666-666666666666",
+      isArchived: true,
     });
     expect(plain).not.toHaveProperty("bmi");
     expect(plain).not.toHaveProperty("bmiPercentile");

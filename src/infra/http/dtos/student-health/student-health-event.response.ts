@@ -85,6 +85,29 @@ export class StudentHealthEventResponse {
   lastUpdatedBy: StudentHealthEventUserResponse | null;
 
   @Expose()
+  @ApiProperty({
+    description: "Archive timestamp; null while the event is active.",
+    example: "2026-07-02T10:00:00.000Z",
+    nullable: true,
+  })
+  archivedAt: Date | null;
+
+  @Expose()
+  @ApiProperty({
+    description: "User who archived the event; null while active.",
+    example: "123e4567-e89b-12d3-a456-426614174003",
+    nullable: true,
+  })
+  archivedByUserId: string | null;
+
+  @Expose()
+  @ApiProperty({
+    description: "Derived from archivedAt; false when archivedAt is null.",
+    example: false,
+  })
+  isArchived: boolean;
+
+  @Expose()
   @ApiProperty({ example: "2026-07-01T14:10:00.000Z" })
   createdAt: Date;
 

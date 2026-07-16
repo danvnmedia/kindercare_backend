@@ -29,11 +29,13 @@ describe("CreateCampusUseCase", () => {
       name: "Main Campus",
       address: "123 Main Street",
       phoneNumber: "+84901234567",
+      timeZone: "Asia/Ho_Chi_Minh",
     });
 
     expect(result.name).toBe("Main Campus");
     expect(result.address).toBe("123 Main Street");
     expect(result.phoneNumber).toBe("+84901234567");
+    expect(result.timeZone).toBe("Asia/Ho_Chi_Minh");
     expect(result.isArchived).toBe(false);
     expect(mockCampusRepository.findByName).toHaveBeenCalledWith("Main Campus");
     expect(mockCampusRepository.save).toHaveBeenCalled();
@@ -45,6 +47,7 @@ describe("CreateCampusUseCase", () => {
 
     const result = await useCase.execute({
       name: "Test Campus",
+      timeZone: "America/Toronto",
     });
 
     expect(result.isArchived).toBe(false);
@@ -56,6 +59,7 @@ describe("CreateCampusUseCase", () => {
 
     const result = await useCase.execute({
       name: "Archived Campus",
+      timeZone: "Asia/Ho_Chi_Minh",
       isArchived: true,
     });
 
@@ -66,9 +70,12 @@ describe("CreateCampusUseCase", () => {
     const existingCampus = Campus.create({ name: "Existing Campus" });
     mockCampusRepository.findByName.mockResolvedValue(existingCampus);
 
-    await expect(useCase.execute({ name: "Existing Campus" })).rejects.toThrow(
-      ConflictException,
-    );
+    await expect(
+      useCase.execute({
+        name: "Existing Campus",
+        timeZone: "Asia/Ho_Chi_Minh",
+      }),
+    ).rejects.toThrow(ConflictException);
 
     expect(mockCampusRepository.save).not.toHaveBeenCalled();
   });
@@ -76,9 +83,9 @@ describe("CreateCampusUseCase", () => {
   it("should throw BadRequestException for validation errors", async () => {
     mockCampusRepository.findByName.mockResolvedValue(null);
 
-    await expect(useCase.execute({ name: "" })).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(
+      useCase.execute({ name: "", timeZone: "Asia/Ho_Chi_Minh" }),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it("should handle null address and phoneNumber", async () => {
@@ -87,9 +94,24 @@ describe("CreateCampusUseCase", () => {
 
     const result = await useCase.execute({
       name: "Minimal Campus",
+      timeZone: "Asia/Ho_Chi_Minh",
     });
 
     expect(result.address).toBeNull();
     expect(result.phoneNumber).toBeNull();
+  });
+
+  it("should reject a missing timezone", async () => {
+    await expect(
+      useCase.execute({ name: "Missing Timezone" } as never),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it("should reject an invalid timezone", async () => {
+    mockCampusRepository.findByName.mockResolvedValue(null);
+
+    await expect(
+      useCase.execute({ name: "Invalid Timezone", timeZone: "Mars/Olympus" }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

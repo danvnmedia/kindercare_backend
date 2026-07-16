@@ -19,6 +19,7 @@ import {
 import { User } from "@/domain/user-management/user.entity";
 
 import { MedicationRequestRepository } from "../ports";
+import { MedicationRequestCommandGuard } from "./medication-request-command.guard";
 
 export interface ReviewMedicationRequestInput {
   action?: MedicationReviewAction;
@@ -31,6 +32,7 @@ export class ReviewMedicationRequestUseCase {
     @Inject("MEDICATION_REQUEST_REPOSITORY")
     private readonly medicationRequestRepository: MedicationRequestRepository,
     private readonly transactionRunner: TransactionRunnerPort,
+    private readonly commandGuard: MedicationRequestCommandGuard,
   ) {}
 
   async execute(
@@ -38,6 +40,7 @@ export class ReviewMedicationRequestUseCase {
     requestId: string,
     input: ReviewMedicationRequestInput,
     currentUser: User,
+    now = new Date(),
   ): Promise<MedicationRequest> {
     const action = input?.action;
 
@@ -45,7 +48,8 @@ export class ReviewMedicationRequestUseCase {
       throw new BadRequestException("Invalid medication review action");
     }
 
-    return this.transactionRunner.run(async (tx) => {
+    const timeZone = await this.commandGuard.getCampusTimeZone(campusId);
+    const result = await this.transactionRunner.run(async (tx) => {
       const request = await this.medicationRequestRepository.findByIdInCampus(
         campusId,
         requestId,
@@ -56,8 +60,19 @@ export class ReviewMedicationRequestUseCase {
         throw new NotFoundException("Medication request not found");
       }
 
+      if (
+        !(await this.commandGuard.isWorkflowAllowed(request, timeZone, now, tx))
+      ) {
+        return { kind: "blocked" } as const;
+      }
+
       try {
-        request.reviewByStaff(action, currentUser.id.toString(), input.note);
+        request.reviewByStaff(
+          action,
+          currentUser.id.toString(),
+          input.note,
+          now,
+        );
       } catch (error) {
         throw new BadRequestException((error as Error).message);
       }
@@ -92,18 +107,26 @@ export class ReviewMedicationRequestUseCase {
           actorUserId: currentUser.id.toString(),
           action: mapReviewActionToTimelineAction(action),
           note: request.reviewNote,
+          createdAt: now,
+          updatedAt: now,
         }),
         tx,
       );
 
-      return (
+      const response =
         (await this.medicationRequestRepository.findByIdInCampus(
           campusId,
           request.id,
           tx,
-        )) ?? updated
-      );
+        )) ?? updated;
+      return { kind: "success", request: response } as const;
     });
+
+    if (result.kind === "blocked") {
+      throw new ConflictException("Medication request is no longer actionable");
+    }
+
+    return result.request;
   }
 }
 

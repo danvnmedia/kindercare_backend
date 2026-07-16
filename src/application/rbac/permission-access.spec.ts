@@ -2,6 +2,7 @@ import { User } from "@/domain/user-management/user.entity";
 import { Permission } from "@/domain/rbac";
 import {
   getPermissionIdsForCampus,
+  hasAllPermissionsInCampus,
   hasAnyPermissionInCampus,
 } from "./permission-access";
 
@@ -81,6 +82,31 @@ describe("permission-access", () => {
 
     expect(
       hasAnyPermissionInCampus(user, campusA, ["historical_records.export"]),
+    ).toBe(false);
+  });
+
+  it("requires every permission for an explicit all-permissions policy", () => {
+    const user = userWithAssignments([
+      {
+        campusId: campusA,
+        permissionIds: [
+          "medication_request.read",
+          "medication_administration.read",
+        ],
+      },
+    ]);
+
+    expect(
+      hasAllPermissionsInCampus(user, campusA, [
+        "medication_request.read",
+        "medication_administration.read",
+      ]),
+    ).toBe(true);
+    expect(
+      hasAllPermissionsInCampus(user, campusA, [
+        "medication_request.read",
+        "student_health.read",
+      ]),
     ).toBe(false);
   });
 });

@@ -9,9 +9,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiForbiddenResponse,
   ApiHeader,
+  ApiNotFoundResponse,
   ApiOperation,
   ApiParam,
   ApiTags,
@@ -129,6 +132,9 @@ export class MedicationRequestController {
     type: "string",
     format: "uuid",
   })
+  @ApiNotFoundResponse({
+    description: "Medication request was not found in the selected campus.",
+  })
   async findOne(
     @CampusContext() campusId: string,
     @Param("requestId", ParseUUIDPipe) requestId: string,
@@ -147,7 +153,7 @@ export class MedicationRequestController {
   @ApiOperation({
     summary: "Review medication request",
     description:
-      "Approves, rejects, or requests more information for a submitted campus medication request.",
+      "Approves, rejects, or requests more information for a submitted campus medication request. Terminal requests and requests at or beyond their campus-local expiration boundary return conflict; a late active request is first persisted as EXPIRED.",
   })
   @ApiForbiddenResponse({
     description:
@@ -163,6 +169,16 @@ export class MedicationRequestController {
     description: "Medication request ID",
     type: "string",
     format: "uuid",
+  })
+  @ApiBadRequestResponse({
+    description: "Invalid review action, note, or non-terminal workflow state.",
+  })
+  @ApiConflictResponse({
+    description:
+      "The request is terminal or reached its campus-local expiration boundary.",
+  })
+  @ApiNotFoundResponse({
+    description: "Medication request was not found in the selected campus.",
   })
   async review(
     @CampusContext() campusId: string,

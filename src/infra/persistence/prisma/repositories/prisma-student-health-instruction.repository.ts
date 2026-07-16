@@ -6,6 +6,7 @@ import {
   HealthCenterClassSummary,
   HealthCenterInstructionListParams,
   HealthCenterInstructionListResult,
+  HealthCenterInstructionScope,
   HealthCenterStudentSummary,
   StudentHealthInstructionListParams,
   StudentHealthInstructionRepository,
@@ -71,6 +72,7 @@ export class PrismaStudentHealthInstructionRepository
         {
           campusId,
           studentId,
+          ...(params.includeArchived === true ? {} : { archivedAt: null }),
         },
       ],
     };
@@ -122,8 +124,10 @@ export class PrismaStudentHealthInstructionRepository
     campusId: string,
     studentId: string,
     instructionId: string,
+    tx?: AppTransactionClient,
   ): Promise<StudentHealthInstruction | null> {
-    const row = await this.prisma.studentHealthInstruction.findFirst({
+    const client = tx ?? this.prisma;
+    const row = await client.studentHealthInstruction.findFirst({
       where: { id: instructionId, campusId, studentId },
       include: PrismaStudentHealthInstructionMapper.include,
     });
@@ -140,6 +144,7 @@ export class PrismaStudentHealthInstructionRepository
       where: {
         campusId,
         studentId,
+        archivedAt: null,
         ...buildStatusWhere(
           StudentHealthInstructionStatus.ACTIVE,
           referenceDate,
@@ -167,6 +172,7 @@ export class PrismaStudentHealthInstructionRepository
       where: {
         campusId,
         studentId: { in: studentIds },
+        archivedAt: null,
         ...buildStatusWhere(
           StudentHealthInstructionStatus.ACTIVE,
           referenceDate,
@@ -185,24 +191,7 @@ export class PrismaStudentHealthInstructionRepository
     params: HealthCenterInstructionListParams,
   ): Promise<HealthCenterInstructionListResult> {
     const selectedDate = toDateOnly(params.referenceDate);
-    const where: Prisma.StudentHealthInstructionWhereInput = {
-      campusId: params.campusId,
-      student: {
-        campusId: params.campusId,
-        ...(params.classId
-          ? {
-              enrollments: {
-                some: buildSelectedDateEnrollmentWhere(
-                  params.campusId,
-                  selectedDate,
-                  params.classId,
-                ),
-              },
-            }
-          : {}),
-      },
-      ...buildStatusWhere(StudentHealthInstructionStatus.ACTIVE, selectedDate),
-    };
+    const where = buildHealthCenterInstructionWhere(params);
 
     const [rows, total] = await Promise.all([
       this.prisma.studentHealthInstruction.findMany({
@@ -233,6 +222,14 @@ export class PrismaStudentHealthInstructionRepository
     };
   }
 
+  async countActiveForHealthCenter(
+    params: HealthCenterInstructionScope,
+  ): Promise<number> {
+    return this.prisma.studentHealthInstruction.count({
+      where: buildHealthCenterInstructionWhere(params),
+    });
+  }
+
   async create(
     instruction: StudentHealthInstruction,
     tx?: AppTransactionClient,
@@ -246,18 +243,64 @@ export class PrismaStudentHealthInstructionRepository
     return PrismaStudentHealthInstructionMapper.toDomain(created);
   }
 
-  async update(
+  async archiveIfActive(
     instruction: StudentHealthInstruction,
     tx?: AppTransactionClient,
-  ): Promise<StudentHealthInstruction> {
+  ): Promise<StudentHealthInstruction | null> {
     const client = tx ?? this.prisma;
-    const updated = await client.studentHealthInstruction.update({
-      where: { id: instruction.id },
-      data: PrismaStudentHealthInstructionMapper.toPrismaUpdate(instruction),
-      include: PrismaStudentHealthInstructionMapper.include,
+    if (!instruction.archivedAt || !instruction.archivedByUserId) {
+      throw new Error("Archived health instruction metadata is required");
+    }
+
+    const result = await client.studentHealthInstruction.updateMany({
+      where: {
+        id: instruction.id,
+        campusId: instruction.campusId,
+        studentId: instruction.studentId,
+        archivedAt: null,
+        student: { isArchived: false },
+      },
+      data: {
+        archivedAt: instruction.archivedAt,
+        archivedByUserId: instruction.archivedByUserId,
+        updatedAt: instruction.updatedAt,
+      },
     });
 
-    return PrismaStudentHealthInstructionMapper.toDomain(updated);
+    return result.count === 1
+      ? this.findByIdForStudentInCampus(
+          instruction.campusId,
+          instruction.studentId,
+          instruction.id,
+          tx,
+        )
+      : null;
+  }
+
+  async updateIfActive(
+    instruction: StudentHealthInstruction,
+    tx?: AppTransactionClient,
+  ): Promise<StudentHealthInstruction | null> {
+    const client = tx ?? this.prisma;
+    const result = await client.studentHealthInstruction.updateMany({
+      where: {
+        id: instruction.id,
+        campusId: instruction.campusId,
+        studentId: instruction.studentId,
+        archivedAt: null,
+        student: { isArchived: false },
+      },
+      data: PrismaStudentHealthInstructionMapper.toPrismaUpdate(instruction),
+    });
+
+    return result.count === 1
+      ? this.findByIdForStudentInCampus(
+          instruction.campusId,
+          instruction.studentId,
+          instruction.id,
+          tx,
+        )
+      : null;
   }
 
   private parseStandardQueryParams(
@@ -347,6 +390,32 @@ function buildSelectedDateEnrollmentWhere(
     cancelledAt: null,
     enrollmentDate: { lte: selectedDate },
     OR: [{ endDate: null }, { endDate: { gte: selectedDate } }],
+  };
+}
+
+function buildHealthCenterInstructionWhere(
+  params: HealthCenterInstructionScope,
+): Prisma.StudentHealthInstructionWhereInput {
+  const selectedDate = toDateOnly(params.referenceDate);
+
+  return {
+    campusId: params.campusId,
+    archivedAt: null,
+    student: {
+      campusId: params.campusId,
+      ...(params.classId
+        ? {
+            enrollments: {
+              some: buildSelectedDateEnrollmentWhere(
+                params.campusId,
+                selectedDate,
+                params.classId,
+              ),
+            },
+          }
+        : {}),
+    },
+    ...buildStatusWhere(StudentHealthInstructionStatus.ACTIVE, selectedDate),
   };
 }
 

@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from "@nestjs/common";
 
 import { AuditEventRecorderPort } from "@/application/audit";
 import { EnrollmentRepository } from "@/application/class-management/ports/enrollment.repository";
@@ -146,7 +150,8 @@ describe("Student health instruction use cases", () => {
       findActiveByStudentInCampus: jest.fn(),
       findActiveByStudentsInCampus: jest.fn(),
       create: jest.fn(async (instruction) => instruction),
-      update: jest.fn(async (instruction) => instruction),
+      archiveIfActive: jest.fn(async (instruction) => instruction),
+      updateIfActive: jest.fn(async (instruction) => instruction),
     } as unknown as jest.Mocked<StudentHealthInstructionRepository>;
     studentRepository = {
       findById: jest.fn(),
@@ -317,7 +322,10 @@ describe("Student health instruction use cases", () => {
 
     expect(result.endDate?.toISOString().slice(0, 10)).toBe("2026-07-06");
     expect(result.timesOfDay).toEqual(["12:30", "16:00"]);
-    expect(instructionRepository.update).toHaveBeenCalledWith(instruction, {});
+    expect(instructionRepository.updateIfActive).toHaveBeenCalledWith(
+      instruction,
+      {},
+    );
     expect(auditRecorder.record).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "UPDATE_STUDENT_HEALTH_INSTRUCTION",
@@ -339,6 +347,32 @@ describe("Student health instruction use cases", () => {
         CURRENT_USER,
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("returns conflict without audit when archival wins an update race", async () => {
+    studentRepository.findById.mockResolvedValue(makeStudent());
+    instructionRepository.findByIdForStudentInCampus.mockResolvedValue(
+      makeInstruction(),
+    );
+    instructionRepository.updateIfActive.mockResolvedValue(null);
+    const useCase = new UpdateStudentHealthInstructionUseCase(
+      instructionRepository,
+      studentRepository,
+      transactionRunner,
+      auditRecorder,
+    );
+
+    await expect(
+      useCase.execute(
+        CAMPUS_ID,
+        STUDENT_ID,
+        INSTRUCTION_ID,
+        { notes: "Updated note" },
+        CURRENT_USER,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    expect(auditRecorder.record).not.toHaveBeenCalled();
   });
 
   it("lists instructions after campus student validation and passes derived-status params", async () => {
@@ -405,7 +439,7 @@ describe("Student health instruction use cases", () => {
       ],
     });
     expect(instructionRepository.create).not.toHaveBeenCalled();
-    expect(instructionRepository.update).not.toHaveBeenCalled();
+    expect(instructionRepository.updateIfActive).not.toHaveBeenCalled();
   });
 
   it("groups active class instructions by active campus students only", async () => {

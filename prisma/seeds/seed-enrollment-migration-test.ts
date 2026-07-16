@@ -51,8 +51,8 @@ type Scenario = "chained" | "single-open" | "conflict" | "all";
 
 async function ensureFixtures() {
   await prisma.$executeRawUnsafe(
-    `INSERT INTO "campus" (id, name, address, is_archived, created_at, updated_at)
-     VALUES ($1::uuid, 'Migration Test Campus', 'Test', false, now(), now())
+    `INSERT INTO "campus" (id, name, address, time_zone, is_archived, created_at, updated_at)
+     VALUES ($1::uuid, 'Migration Test Campus', 'Test', 'Asia/Ho_Chi_Minh', false, now(), now())
      ON CONFLICT (id) DO NOTHING`,
     FIXTURE.campusId,
   );
@@ -133,9 +133,21 @@ async function seedChained() {
   // Three enrollments for one student in classA on different dates.
   // After backfill: row1.end_date = '2026-03-31', row2.end_date = '2026-06-30',
   // row3.end_date = NULL (latest). All rows: exit_reason = 'COMPLETED' except row3.
-  await insertEnrollment(FIXTURE.studentChainedId, FIXTURE.classAId, "2026-01-15");
-  await insertEnrollment(FIXTURE.studentChainedId, FIXTURE.classAId, "2026-04-01");
-  await insertEnrollment(FIXTURE.studentChainedId, FIXTURE.classAId, "2026-07-01");
+  await insertEnrollment(
+    FIXTURE.studentChainedId,
+    FIXTURE.classAId,
+    "2026-01-15",
+  );
+  await insertEnrollment(
+    FIXTURE.studentChainedId,
+    FIXTURE.classAId,
+    "2026-04-01",
+  );
+  await insertEnrollment(
+    FIXTURE.studentChainedId,
+    FIXTURE.classAId,
+    "2026-07-01",
+  );
   console.log(
     `[chained] inserted 3 enrollments for student ${FIXTURE.studentChainedId} in class ${FIXTURE.classAId}`,
   );
@@ -143,7 +155,11 @@ async function seedChained() {
 
 async function seedSingleOpen() {
   // Single enrollment — backfill should leave it with end_date = NULL.
-  await insertEnrollment(FIXTURE.studentSingleId, FIXTURE.classAId, "2026-02-01");
+  await insertEnrollment(
+    FIXTURE.studentSingleId,
+    FIXTURE.classAId,
+    "2026-02-01",
+  );
   console.log(
     `[single-open] inserted 1 enrollment for student ${FIXTURE.studentSingleId} in class ${FIXTURE.classAId}`,
   );
@@ -152,8 +168,16 @@ async function seedSingleOpen() {
 async function seedConflict() {
   // One student active in TWO different classes simultaneously.
   // After migration's conflict probe: must abort with conflict report and roll back.
-  await insertEnrollment(FIXTURE.studentConflictId, FIXTURE.classAId, "2026-01-10");
-  await insertEnrollment(FIXTURE.studentConflictId, FIXTURE.classBId, "2026-01-15");
+  await insertEnrollment(
+    FIXTURE.studentConflictId,
+    FIXTURE.classAId,
+    "2026-01-10",
+  );
+  await insertEnrollment(
+    FIXTURE.studentConflictId,
+    FIXTURE.classBId,
+    "2026-01-15",
+  );
   console.log(
     `[conflict] inserted 2 simultaneous enrollments for student ${FIXTURE.studentConflictId} in classes ${FIXTURE.classAId} and ${FIXTURE.classBId}`,
   );

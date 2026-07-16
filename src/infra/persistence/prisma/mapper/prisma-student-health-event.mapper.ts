@@ -72,6 +72,8 @@ export class PrismaStudentHealthEventMapper {
               fullName: resolveUserProfileName(row.lastUpdatedBy),
             }
           : null,
+        archivedAt: row.archivedAt,
+        archivedByUserId: row.archivedByUserId,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
       },
@@ -95,6 +97,8 @@ export class PrismaStudentHealthEventMapper {
       resolutionNotes: event.resolutionNotes,
       recordedByUserId: event.recordedByUserId,
       lastUpdatedByUserId: event.lastUpdatedByUserId,
+      archivedAt: event.archivedAt,
+      archivedByUserId: event.archivedByUserId,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
     };
@@ -112,6 +116,8 @@ export class PrismaStudentHealthEventMapper {
       status: event.status,
       resolutionNotes: event.resolutionNotes,
       lastUpdatedByUserId: event.lastUpdatedByUserId,
+      archivedAt: event.archivedAt,
+      archivedByUserId: event.archivedByUserId,
       updatedAt: event.updatedAt,
     };
   }

@@ -10,3 +10,5 @@ export * from "./get-student-medication-history.use-case";
 export * from "./record-medication-administration.use-case";
 export * from "./respond-medication-request.use-case";
 export * from "./review-medication-request.use-case";
+export * from "./reconcile-medication-request-lifecycle.use-case";
+export * from "./medication-request-command.guard";

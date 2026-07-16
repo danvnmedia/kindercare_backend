@@ -13,11 +13,19 @@ export interface MedicationAdministrationDailyParams {
 export interface MedicationAdministrationHealthCenterSummaryParams {
   dueDate: Date;
   now: Date;
+  timeZone: string;
+  classId?: string;
 }
 
 export interface MedicationAdministrationHealthCenterSummaryCounts {
   dueToday: number;
   overdue: number;
+}
+
+export interface MedicationAdministrationHealthCenterDailyParams
+  extends MedicationAdministrationHealthCenterSummaryParams {
+  offset: number;
+  limit: number;
 }
 
 export interface MedicationAdministrationClassSummary {
@@ -56,6 +64,11 @@ export abstract class MedicationAdministrationRepository {
     campusId: string,
     params: MedicationAdministrationHealthCenterSummaryParams,
   ): Promise<MedicationAdministrationHealthCenterSummaryCounts>;
+
+  abstract findHealthCenterDailyByCampus(
+    campusId: string,
+    params: MedicationAdministrationHealthCenterDailyParams,
+  ): Promise<MedicationAdministrationQueueRow[]>;
 
   abstract findOccurrenceByIdInCampus(
     campusId: string,

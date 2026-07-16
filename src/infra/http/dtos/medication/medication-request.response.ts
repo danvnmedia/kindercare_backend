@@ -318,6 +318,8 @@ export class MedicationRequestResponse {
   @ApiProperty({
     enum: MedicationRequestStatus,
     example: MedicationRequestStatus.SUBMITTED,
+    description:
+      "Lifecycle status, including terminal COMPLETED and EXPIRED states.",
   })
   status: MedicationRequestStatus;
 
@@ -357,6 +359,24 @@ export class MedicationRequestResponse {
   @Expose()
   @ApiProperty({ example: "Medication no longer needed.", nullable: true })
   cancelReason: string | null;
+
+  @Expose()
+  @ApiProperty({
+    description:
+      "Effective campus-local final-occurrence boundary for a COMPLETED request; otherwise null.",
+    example: "2026-07-05T05:30:00.000Z",
+    nullable: true,
+  })
+  completedAt: Date | null;
+
+  @Expose()
+  @ApiProperty({
+    description:
+      "Effective campus-local end-of-request boundary for an EXPIRED request; otherwise null.",
+    example: "2026-07-06T04:00:00.000Z",
+    nullable: true,
+  })
+  expiredAt: Date | null;
 
   @Expose()
   @Type(() => MedicationRequestItemResponse)
