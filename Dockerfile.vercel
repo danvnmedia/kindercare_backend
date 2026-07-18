@@ -1,0 +1,39 @@
+FROM node:22-bookworm-slim AS base
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates openssl \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM base AS builder
+
+COPY package*.json ./
+RUN npm ci
+
+COPY prisma ./prisma
+
+COPY . .
+RUN npm run build
+RUN npm prune --omit=dev
+
+FROM base AS runner
+
+ENV NODE_ENV=production \
+    PORT=3000 \
+    ENABLE_QUEUE_WORKER=false \
+    ENABLE_IN_PROCESS_CRON=false
+
+RUN groupadd --system --gid 1001 nestjs \
+    && useradd --system --uid 1001 --gid nestjs nestjs
+
+COPY --from=builder --chown=nestjs:nestjs /app/package*.json ./
+COPY --from=builder --chown=nestjs:nestjs /app/node_modules ./node_modules
+COPY --from=builder --chown=nestjs:nestjs /app/dist ./dist
+COPY --from=builder --chown=nestjs:nestjs /app/prisma ./prisma
+
+USER nestjs
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]

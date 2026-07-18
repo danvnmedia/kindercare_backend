@@ -7,6 +7,9 @@ import { HttpModule } from "@/infra/http/http.module";
 import { QueueModule } from "@/infra/queue/queue.module";
 import { CronjobModule } from "@/infra/cronjob/cronjob.module";
 
+const queueImports =
+  process.env.ENABLE_QUEUE_WORKER === "true" ? [QueueModule] : [];
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,8 +35,8 @@ import { CronjobModule } from "@/infra/cronjob/cronjob.module";
     ]),
     StandardResponseModule,
     HttpModule,
-    QueueModule,
     CronjobModule,
+    ...queueImports,
   ],
   providers: [
     {

@@ -13,6 +13,14 @@ export class SchoolYearLifecycleExpirationTask {
 
   @Cron("0 15 1 * * *")
   async execute(): Promise<void> {
+    if (process.env.ENABLE_IN_PROCESS_CRON !== "true") {
+      return;
+    }
+
+    return this.run();
+  }
+
+  async run(): Promise<void> {
     try {
       const result = await this.expireInactiveRuns.execute();
       this.logger.log(
@@ -20,6 +28,7 @@ export class SchoolYearLifecycleExpirationTask {
       );
     } catch (error) {
       this.logger.error("School-year lifecycle expiration failed", error);
+      throw error;
     }
   }
 }

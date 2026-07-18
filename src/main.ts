@@ -9,9 +9,16 @@ import helmet from "helmet";
 import { json, urlencoded } from "express";
 
 async function bootstrap() {
+  validateProductionEnvironment();
+
   const app = await NestFactory.create(AppModule);
 
   const isProduction = process.env.NODE_ENV === "production";
+
+  // Hosting traffic arrives through one reverse-proxy hop. This keeps the
+  // throttler keyed to the real client address instead of the platform proxy.
+  app.getHttpAdapter().getInstance().set("trust proxy", 1);
+  app.enableShutdownHooks();
 
   // Security headers with Helmet
   app.use(
@@ -103,6 +110,45 @@ async function bootstrap() {
     credentials: !isProduction, // Only allow credentials in non-production
   });
 
-  await app.listen(process.env.APP_PORT ?? process.env.PORT ?? 3000);
+  // The hosting platform owns PORT. APP_PORT remains a local/Docker fallback.
+  await app.listen(process.env.PORT ?? process.env.APP_PORT ?? 3000, "0.0.0.0");
 }
-bootstrap();
+
+function validateProductionEnvironment(): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  const requiredVariables = [
+    "DATABASE_URL",
+    "CLERK_SECRET_KEY",
+    "CLERK_PUBLISHABLE_KEY",
+    "CORS_ORIGIN",
+    "BASE_URL",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_R2_BUCKET",
+    "CLOUDFLARE_R2_ACCESS_KEY",
+    "CLOUDFLARE_R2_SECRET_KEY",
+  ];
+  const missingVariables = requiredVariables.filter(
+    (name) => !process.env[name]?.trim(),
+  );
+
+  if (missingVariables.length > 0) {
+    throw new Error(
+      `Missing required production environment variables: ${missingVariables.join(", ")}`,
+    );
+  }
+
+  if (
+    process.env.ENABLE_QUEUE_WORKER === "true" &&
+    !process.env.REDIS_HOST?.trim()
+  ) {
+    throw new Error("REDIS_HOST is required when ENABLE_QUEUE_WORKER=true");
+  }
+}
+
+bootstrap().catch((error: unknown) => {
+  console.error("Application bootstrap failed", error);
+  process.exitCode = 1;
+});

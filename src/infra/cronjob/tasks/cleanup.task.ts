@@ -12,6 +12,14 @@ export class CleanupTask {
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleCleanup() {
+    if (process.env.ENABLE_IN_PROCESS_CRON !== "true") {
+      return;
+    }
+
+    return this.runCleanup();
+  }
+
+  async runCleanup() {
     this.logger.log("Starting cleanup task...");
 
     try {
@@ -22,11 +30,20 @@ export class CleanupTask {
       );
     } catch (error) {
       this.logger.error("Cleanup task failed", error);
+      throw error;
     }
   }
 
   @Cron("0 0 * * *") // Daily at midnight
   async handleDailyCleanup() {
+    if (process.env.ENABLE_IN_PROCESS_CRON !== "true") {
+      return;
+    }
+
+    return this.runDailyCleanup();
+  }
+
+  async runDailyCleanup() {
     this.logger.log("Starting daily cleanup task...");
 
     try {
@@ -40,6 +57,7 @@ export class CleanupTask {
       );
     } catch (error) {
       this.logger.error("Daily cleanup task failed", error);
+      throw error;
     }
   }
 }

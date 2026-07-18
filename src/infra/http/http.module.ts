@@ -16,6 +16,7 @@ import { MedicationModule } from "./modules/medication.module";
 import { StudentHealthModule } from "./modules/student-health.module";
 import { AuthMiddleware } from "./middleware/auth.middleware";
 import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
+import { HealthController } from "./controllers/health.controller";
 
 /**
  * HTTP Module
@@ -49,7 +50,7 @@ import { ClerkModule } from "@/infra/external-services/clerk/clerk.module";
     StudentHealthModule, // Student profile health tab management
     AuditModule, // Admin audit-log read endpoints (@doc/specs/admin-audit-log)
   ],
-  controllers: [],
+  controllers: [HealthController],
 })
 export class HttpModule implements NestModule {
   /**

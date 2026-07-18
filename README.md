@@ -2,7 +2,7 @@
 
 A production-ready NestJS backend for managing multiple school campuses with Clean Architecture principles, RBAC, content management, and comprehensive API features.
 
-**Repository:** [DHA-Enterprise/kindercare_backend](https://github.com/DHA-Enterprise/kindercare_backend)
+**Repository:** [danvnmedia/kindercare_backend](https://github.com/danvnmedia/kindercare_backend)
 
 ## Features
 
@@ -99,7 +99,7 @@ src/
 
 1. **Clone the repository**
    ```bash
-   git clone git@github.com:DHA-Enterprise/kindercare_backend.git kindercare-backend
+   git clone git@github.com:danvnmedia/kindercare_backend.git kindercare-backend
    cd kindercare-backend
    ```
 
@@ -261,6 +261,9 @@ See `.knowns/docs/` for detailed documentation:
 - `patterns/` - Code patterns and conventions
 - `guides/` - Developer guides
 - `migrations/` - Migration documentation
+
+For GitHub Actions, production environment variables, database migrations, and
+Vercel container deployment, see [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ## Acknowledgements
 

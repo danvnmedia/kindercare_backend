@@ -13,6 +13,7 @@ import { StorageModule } from "@/infra/storage/storage.module";
 import { CleanupTask } from "./tasks/cleanup.task";
 import { SchoolYearLifecycleExpirationTask } from "./tasks/school-year-lifecycle-expiration.task";
 import { MedicationLifecycleReconciliationTask } from "./tasks/medication-lifecycle-reconciliation.task";
+import { CronController } from "./cron.controller";
 
 @Module({
   imports: [
@@ -41,5 +42,6 @@ import { MedicationLifecycleReconciliationTask } from "./tasks/medication-lifecy
       useClass: PrismaMedicationRequestRepository,
     },
   ],
+  controllers: [CronController],
 })
 export class CronjobModule {}

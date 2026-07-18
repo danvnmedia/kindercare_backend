@@ -163,6 +163,7 @@ export function validateFileUpload(
     };
   }
 
+  // eslint-disable-next-line no-control-regex -- control bytes are intentionally rejected
   if (/[\\/\0\x00-\x1F\x7F]/.test(filename)) {
     return {
       isValid: false,
@@ -212,6 +213,7 @@ export function sanitizeUploadFilename(filename: string): string {
     extensionIndex > 0 ? normalized.slice(extensionIndex) : "";
 
   const safeBase = rawBase
+    // eslint-disable-next-line no-control-regex -- control bytes are intentionally replaced
     .replace(/[\\/\0\x00-\x1F\x7F]/g, "-")
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/-+/g, "-")

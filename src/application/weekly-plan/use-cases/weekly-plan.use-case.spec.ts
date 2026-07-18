@@ -93,8 +93,9 @@ describe("Weekly Plan use cases", () => {
       archiveWeeklyPlan: jest.fn(async (plan) => plan),
       createWeeklyPlan: jest.fn(async (plan) => plan),
       recordAudit: jest.fn(
-        async (_input: Parameters<TransactionContext["recordAudit"]>[0]) =>
-          undefined,
+        async (_input: Parameters<TransactionContext["recordAudit"]>[0]) => {
+          void _input;
+        },
       ),
       restoreWeeklyPlan: jest.fn(async (plan) => plan),
       updateWeeklyPlan: jest.fn(async (plan) => plan),

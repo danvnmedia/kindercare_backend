@@ -20,6 +20,14 @@ export class MedicationLifecycleReconciliationTask {
 
   @Cron("0 */5 * * * *")
   async execute(): Promise<void> {
+    if (process.env.ENABLE_IN_PROCESS_CRON !== "true") {
+      return;
+    }
+
+    return this.run();
+  }
+
+  async run(): Promise<void> {
     try {
       const result = await this.reconcileMedicationLifecycle.execute({
         limit: this.getScanLimit(),
@@ -29,6 +37,7 @@ export class MedicationLifecycleReconciliationTask {
       );
     } catch (error) {
       this.logger.error("Medication lifecycle reconciliation failed", error);
+      throw error;
     }
   }
 
