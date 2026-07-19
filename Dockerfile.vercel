@@ -15,6 +15,7 @@ COPY prisma ./prisma
 
 COPY . .
 RUN npm run build
+RUN test -f dist/main.js
 RUN npm prune --omit=dev
 
 FROM base AS runner
