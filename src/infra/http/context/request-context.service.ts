@@ -179,8 +179,14 @@ export class RequestContext {
     }
 
     try {
-      // Fetch user from repository
-      const user = await this.userRepository.findByClerkUid(this._clerkId);
+      // Fetch the local application identity. A valid Clerk session is enough
+      // to create a base User, but it never grants a role, profile, campus, or
+      // permission. Those authorization records remain explicit admin flows.
+      let user = await this.userRepository.findByClerkUid(this._clerkId);
+
+      if (!user) {
+        user = await this.provisionBaseUser(this._clerkId);
+      }
 
       if (user) {
         this.assertUserActive(user);
@@ -193,10 +199,6 @@ export class RequestContext {
       // Sync to request object for backward compatibility with decorators
       if (user) {
         this.request.user = user;
-      }
-
-      if (!user) {
-        this.logger.debug(`User not found for clerkId: ${this._clerkId}`);
       }
 
       return user;
@@ -266,5 +268,30 @@ export class RequestContext {
 
     this.logger.warn(`Inactive user attempted access: ${user.id}`);
     throw new UnauthorizedException("User account is inactive");
+  }
+
+  /**
+   * Create the local identity for a successfully authenticated Clerk user.
+   *
+   * Multiple frontend queries can arrive concurrently after sign-in. If a
+   * sibling request wins the unique clerkUid race, reload and reuse that row.
+   */
+  private async provisionBaseUser(clerkUid: string): Promise<User> {
+    try {
+      const user = await this.userRepository.save(User.create({ clerkUid }));
+      this.logger.log(`Provisioned base user for Clerk identity: ${clerkUid}`);
+      return user;
+    } catch (error) {
+      const concurrentUser = await this.userRepository.findByClerkUid(clerkUid);
+
+      if (concurrentUser) {
+        this.logger.debug(
+          `Base user already provisioned by a concurrent request: ${clerkUid}`,
+        );
+        return concurrentUser;
+      }
+
+      throw error;
+    }
   }
 }

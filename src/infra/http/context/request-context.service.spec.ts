@@ -182,14 +182,43 @@ describe("RequestContext", () => {
       expect(mockUserRepository.findByClerkUid).toHaveBeenCalledTimes(1);
     });
 
-    it("should return null when user not found", async () => {
-      mockRequest = createMockRequest("clerk-user-1");
+    it("should provision a base user when an authenticated Clerk user is not found", async () => {
+      mockRequest = createMockRequest("user_clerk1");
       mockUserRepository.findByClerkUid.mockResolvedValue(null);
+      const provisionedUser = createUser({ clerkUid: "user_clerk1" });
+      mockUserRepository.save.mockResolvedValue(provisionedUser);
 
       requestContext = new RequestContext(mockRequest, mockUserRepository);
       const user = await requestContext.getUser();
 
-      expect(user).toBeNull();
+      expect(user).toBe(provisionedUser);
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockUserRepository.save.mock.calls[0]?.[0].clerkUid).toBe(
+        "user_clerk1",
+      );
+      expect(
+        mockUserRepository.save.mock.calls[0]?.[0].roleAssignments,
+      ).toEqual([]);
+    });
+
+    it("should reuse a base user created by a concurrent request", async () => {
+      mockRequest = createMockRequest("user_clerk1");
+      const concurrentlyProvisionedUser = createUser({
+        clerkUid: "user_clerk1",
+      });
+      mockUserRepository.findByClerkUid
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(concurrentlyProvisionedUser);
+      mockUserRepository.save.mockRejectedValue(
+        new Error("Unique constraint failed on clerkUid"),
+      );
+
+      requestContext = new RequestContext(mockRequest, mockUserRepository);
+      const user = await requestContext.getUser();
+
+      expect(user).toBe(concurrentlyProvisionedUser);
+      expect(mockUserRepository.findByClerkUid).toHaveBeenCalledTimes(2);
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
     });
 
     it("should sync user to request after fetching", async () => {
@@ -240,16 +269,19 @@ describe("RequestContext", () => {
       expect(mockUserRepository.findByClerkUid).toHaveBeenCalledTimes(1);
     });
 
-    it("should cache null result when user not found", async () => {
-      mockRequest = createMockRequest("clerk-user-1");
+    it("should cache the provisioned base user", async () => {
+      mockRequest = createMockRequest("user_clerk1");
       mockUserRepository.findByClerkUid.mockResolvedValue(null);
+      const provisionedUser = createUser({ clerkUid: "user_clerk1" });
+      mockUserRepository.save.mockResolvedValue(provisionedUser);
 
       requestContext = new RequestContext(mockRequest, mockUserRepository);
 
-      await requestContext.getUser();
-      await requestContext.getUser();
+      expect(await requestContext.getUser()).toBe(provisionedUser);
+      expect(await requestContext.getUser()).toBe(provisionedUser);
 
       expect(mockUserRepository.findByClerkUid).toHaveBeenCalledTimes(1);
+      expect(mockUserRepository.save).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -276,9 +308,10 @@ describe("RequestContext", () => {
       );
     });
 
-    it("should throw UnauthorizedException when user not found", async () => {
-      mockRequest = createMockRequest("clerk-user-1");
+    it("should throw UnauthorizedException when base user provisioning fails", async () => {
+      mockRequest = createMockRequest("user_clerk1");
       mockUserRepository.findByClerkUid.mockResolvedValue(null);
+      mockUserRepository.save.mockRejectedValue(new Error("Database error"));
 
       requestContext = new RequestContext(mockRequest, mockUserRepository);
 
@@ -393,6 +426,19 @@ describe("RequestContext", () => {
       const user = await requestContext.getUser();
 
       expect(user).toBeNull();
+      expect(requestContext.isUserLoaded()).toBe(true);
+    });
+
+    it("should return null when base user provisioning and reload both fail", async () => {
+      mockRequest = createMockRequest("user_clerk1");
+      mockUserRepository.findByClerkUid.mockResolvedValue(null);
+      mockUserRepository.save.mockRejectedValue(new Error("Database error"));
+
+      requestContext = new RequestContext(mockRequest, mockUserRepository);
+      const user = await requestContext.getUser();
+
+      expect(user).toBeNull();
+      expect(mockUserRepository.findByClerkUid).toHaveBeenCalledTimes(2);
       expect(requestContext.isUserLoaded()).toBe(true);
     });
   });
