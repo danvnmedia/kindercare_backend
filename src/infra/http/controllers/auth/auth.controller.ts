@@ -15,7 +15,7 @@ import { RequestContext } from "../../context/request-context.service";
  * Request Flow:
  * 1. AuthMiddleware verifies Clerk token and sets clerkId
  * 2. ClerkAuthGuard checks clerkId exists (rejects unauthenticated requests)
- * 3. RequestContext.getUserOrFail() lazily loads and returns user
+ * 3. RequestContext lazily loads or provisions a role-free base user
  *
  * @example
  * GET /auth/me
@@ -38,7 +38,11 @@ export class AuthController {
    *
    * @returns User information with roles
    *
-   * @throws UnauthorizedException if token is invalid or user not found
+   * A first-time Clerk user receives a local base identity with no roles,
+   * profiles, campuses, or permissions. Application access is granted later
+   * through the existing Staff/Guardian and role assignment flows.
+   *
+   * @throws UnauthorizedException if token is invalid or account is inactive
    *
    * @example
    * ```bash
@@ -58,7 +62,7 @@ export class AuthController {
       "Verify access token and return authenticated user information with roles",
   })
   async getCurrentUser(): Promise<User> {
-    // RequestContext lazy-loads user and throws UnauthorizedException if not found
+    // RequestContext lazy-loads or provisions a role-free local identity.
     return this.requestContext.getUserOrFail();
   }
 }
